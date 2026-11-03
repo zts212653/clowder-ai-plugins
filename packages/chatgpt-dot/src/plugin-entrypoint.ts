@@ -12,7 +12,11 @@ import {
 	type PluginHostActionContext,
 	type PluginModuleDefinition,
 } from "@clowder-ai/plugin-sdk";
-import { DotConnection, type DotSettingsHost } from "./connection.js";
+import {
+	DotConnection,
+	type DotSettingsHost,
+	type SharedConnectionView,
+} from "./connection.js";
 import { createDotWebhookSender, type DotWebhookSend } from "./dot-webhook.js";
 import { projectDotJourney } from "./journey-projection.js";
 import { httpRequestSchema, rpc } from "./rpc.js";
@@ -20,6 +24,9 @@ import { DotRuntime, imageReference } from "./runtime.js";
 export interface DotPluginOptions {
 	readonly sendWebhook?: DotWebhookSend;
 	readonly now?: () => number;
+}
+function sharedActive(view: SharedConnectionView | undefined) {
+	return view?.deployment.state === "configured" && view.binding.state === "active";
 }
 export function createDotPlugin(
 	options: DotPluginOptions = {},
@@ -237,12 +244,31 @@ export function createDotPlugin(
 						const state = await current.store.connection();
 						if (!state)
 							return { ok: false, message: "先在连接设置中准备配对。" };
+						let ready = null;
+						let shared: SharedConnectionView | undefined;
+						try {
+							ready = await current.ready();
+						} catch {
+							// Historical evidence remains inspectable below, but cannot make this attempt ready.
+						}
+						try {
+							shared = await dotHost.external.shared?.status();
+						} catch {
+							// A failed authority read is current-unavailable, never a reason to reuse old success.
+						}
 						const tests = await Promise.all(
 							state.testEventIds.map((id) => current.store.dispatch(id)),
 						);
-						const ok = tests.some(
-							(record) =>
-								record?.sourceReadAt !== null && record?.replyMessageId,
+						const currentReady =
+							ready?.attemptId === state.attemptId && sharedActive(shared);
+						const ok = Boolean(
+							currentReady &&
+								tests.some(
+									(record) =>
+										record?.attemptId === state.attemptId &&
+										record.sourceReadAt !== null &&
+										record.replyMessageId,
+								),
 						);
 						return {
 							ok,

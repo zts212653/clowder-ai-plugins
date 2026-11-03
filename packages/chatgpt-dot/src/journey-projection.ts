@@ -87,7 +87,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 				row(
 					"deployment-blocked",
 					"共享连接尚未准备好",
-					`${reason} 这属于实例部署状态，请由本实例主人在猫咖的通用连接设置中处理；Dot 不会生成地址、凭据或配对说明。`,
+					`${reason} 这属于实例部署状态，请由本实例部署管理员补齐猫咖共享连接；Dot 不会生成地址、凭据或配对说明。`,
 				),
 			],
 		};

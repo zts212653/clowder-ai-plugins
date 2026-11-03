@@ -154,7 +154,8 @@ export class DotConnection {
     async instructions(context: PluginHostActionContext | undefined) {
         await this.owner(context);
         const state = await this.current();
-        if (state.pairingExpiresAt <= this.now()) throw new Error('dot_pairing_expired_or_mismatched');
+        if (state.pairedAt === null && state.pairingExpiresAt <= this.now())
+            throw new Error('dot_pairing_expired_or_mismatched');
         return this.instructionsFor(state);
     }
     async subscribe(input: {

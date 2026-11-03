@@ -104,6 +104,12 @@ test("projects deployment, authorization, and pairing as separate stages", () =>
 		"authorization-required",
 	);
 	assert.equal(stage(base), "pairing-not-started");
+	const blocked = projectDotJourney({
+		...base,
+		shared: shared({ state: "missing-principal" }, "unbound"),
+	});
+	assert.doesNotMatch(blocked.rows[0]?.detail ?? "", /通用连接设置/);
+	assert.match(blocked.rows[0]?.detail ?? "", /部署管理员/);
 });
 
 test("bounds waiting observation by both five minutes and the absolute pairing expiry", () => {

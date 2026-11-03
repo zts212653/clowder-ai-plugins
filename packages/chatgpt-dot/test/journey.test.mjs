@@ -129,12 +129,58 @@ test("connection test distinguishes webhook receipt from source read and nonce-b
 	);
 	await rpc(f, "cat_cafe_dot_reply", {
 		event_id: eventId,
-		content: "confirmed " + dispatch.expectedNonce,
+		content: `confirmed ${dispatch.expectedNonce}`,
 	});
 	assert.equal(
 		(await f.active.actions["dot.test"]({}, undefined, f.owner)).ok,
 		true,
 	);
+});
+
+test("an established active subscription keeps its instructions after the initial pairing deadline", async (t) => {
+	const f = await paired(t);
+	const state = f.records.get("dot/connection/v1").value;
+	assert.notEqual(state.pairedAt, null);
+	state.pairingExpiresAt = Date.now() - 1;
+
+	const result = await f.settings.actions["dot.show-instructions"](
+		{},
+		undefined,
+		f.owner,
+	);
+	assert.equal(result.render, "text");
+	assert.match(result.data, /pairing_code=/);
+});
+
+test("generic connection test keeps old evidence but cannot report a revoked attempt as currently ready", async (t) => {
+	const f = await paired(t);
+	const state = f.records.get("dot/connection/v1").value;
+	const eventId = `dot_evt_${"a".repeat(64)}`;
+	state.testEventIds = [eventId];
+	state.revokedAt = Date.now();
+	f.records.set(`dot/dispatch/${eventId}`, {
+		revision: 1,
+		value: {
+			eventId,
+			ownerUserId: "owner",
+			threadId: "thread-1",
+			sourceMessageId: "source-1",
+			dispatchInvocationId: "test:nonce",
+			attemptId: state.attemptId,
+			agentKeyId: state.agentKeyId,
+			occurredAt: Date.now(),
+			webhookAcknowledgedAt: Date.now(),
+			sourceReadAt: Date.now(),
+			replyMessageId: "reply-1",
+			imagePublicationIds: [],
+			connectionTest: true,
+			expectedNonce: "a".repeat(16),
+		},
+	});
+
+	const result = await f.active.actions["dot.test"]({}, undefined, f.owner);
+	assert.equal(result.ok, false);
+	assert.equal(result.details.revoked, true);
 });
 
 test("proactive questions subscribe only to their thread and forward only exact recipient replies", async (t) => {
