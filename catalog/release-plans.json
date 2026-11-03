@@ -137,6 +137,15 @@
       "owner": "codex61-sol",
       "reviewBy": "2026-11-05T08:00:00Z",
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/191"
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.34",
+      "integrity": "sha512-NlmL8ckvkN+Gf2mdWez/P4zCV3LXRf2+51L4MBGHzm7yZ1gFG1Dasqy14dNSvQLu9PPDj01ZkJ0wL8Lmq6PS7A==",
+      "disposition": "activate",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-05T12:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/192"
     }
   ]
 }
