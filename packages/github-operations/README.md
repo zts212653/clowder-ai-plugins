@@ -63,7 +63,7 @@ Community 页面可以读取仓库事实、查看草稿和进行已声明的协�
 
 如配置了 narrator 的猫和 thread，手动分诊提交会保存固定目标和简报，再由既有调度投递。修改目标会暂停原投递，不会把旧简报改发给新目标。恢复原配置后可重试；启用配置不会自动唤醒历史事项。
 
-外部审查结果通过 `github_record_external_review_verdict` 提交。`pending_verification` 表示结果已保存，**不表示审查送达或租约完成已被批准**。缺少可信发布者关联时，验证会返回 `insufficient`，不能仅凭 GitHub 上出现一条审查就宣称完成。
+外部审查结果通过 `github_record_external_review_verdict` 在已分配 reviewer 的认证会话里提交。它登记插件私有的 exact-HEAD 结果，不完成 Host Task 或 action lease。`pending_verification` 表示提交已保存、仍待验证。拒绝会返回错误码、结果是否未知及恢复动作；用 `github_inspect_subject` 回读当前事件、投影和 `lastReviewVerdictFailure`。后者是最近一次失败的时间、归属和脱敏诊断，不代表当前审查状态；`diagnosticPersisted=false` 表示诊断未能保存。修复本地登记应保留原 GitHub 审查链接，不重复发表审查或改 reviewer。
 
 ## 页面上的能力名称是什么意思
 

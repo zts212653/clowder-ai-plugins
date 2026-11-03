@@ -83,6 +83,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   const reviewEvidence = options.createReviewEvidenceProvider?.(context) ?? transport;
   const reviewVerdicts = new CommunityReviewVerdictRuntime({
     storage: context.storage,
+    secrets: context.secrets,
     provider: reviewEvidence,
     projectionOperations: community.projectionOperations,
   });
