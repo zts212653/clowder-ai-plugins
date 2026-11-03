@@ -9,6 +9,13 @@ on:
 
 permissions:
   contents: read
+  issues: write
+
+# A manual audit and the daily audit share one reminder writer. Never cancel a
+# writer between its issue read and create/update operation.
+concurrency:
+  group: catalog-release-follow-up
+  cancel-in-progress: false
 
 jobs:
   activation:
@@ -24,5 +31,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @clowder-ai/plugin-contract build
-      - name: Require published catalog activation
-        run: pnpm catalog:activation-check
+      - name: Remind release owners without failing on pending activation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: pnpm catalog:release-audit -- --notify

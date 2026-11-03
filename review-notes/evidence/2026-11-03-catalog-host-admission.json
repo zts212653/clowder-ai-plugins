@@ -1,0 +1,194 @@
+{
+  "observedAt": "2026-11-03T01:39:29.851Z",
+  "hostSourceCommit": "5d307bc298681f566fd542a8ceb86bd22b70491e",
+  "loadedContractVersion": "0.3.2-candidate.0",
+  "isolation": "Actual Host source/production installer; temporary packages and in-memory inventory; no user data, lifecycle start or Redis",
+  "sourceHashes": {
+    "official-package-installer.ts": "5238b8641c989d6714fae79663bccd3b9a764545f3e61f870d8605c6f13dccc7",
+    "host-inventory/control-plane.ts": "5a94e929dd946ff40b96d9e3430875d44145790995dcb3271eeab140a7356d73",
+    "host-inventory/stores.ts": "77abff6900e572934472a33f83a47117860adb6143cf811ea0af30aa05a888c6",
+    "host-inventory/manifest-verifier.ts": "a9c96a715da305a21958b119f0406d73d6d7c33414890e36584c3d85b934723c",
+    "external-runtime/package-staging.ts": "a0af5022e79f7f6aff36ec5b340f0b0077e0018b51c4b60f3bfbcbe513f17403",
+    "desktop-window-runtime/admission.ts": "bbc238de8ea7e7e1dd0fc923a8e1eddb71944bb5a95ee58a991b279ac3ed3a65",
+    "desktop-window-runtime/presentation-manifest.ts": "f7655e06b1bd0254490e8bacd53472c083766c8a0f052ae8d49e5385d36f7b82",
+    "desktop-window-runtime/published-companion-v2.ts": "1eedf5ed4118447d207f9ed5c1c71af816ee0176b26129c3dc6423efa97699ce"
+  },
+  "results": [
+    {
+      "pluginId": "dev.clowder.genoffice-docx",
+      "version": "0.1.0-alpha.3",
+      "integrity": "sha512-ptKah/dYt0vrYmXObypafLWKPV7alao2rorfyknL4A/kqSwHKeOOnYr2T/qOmfEY0uFoTZhT+0/XXoT+0rph6g==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "dev.clowder.video-analysis",
+      "version": "0.1.0-alpha.4",
+      "integrity": "sha512-jT0YRbZa6HASX6htx9+gwwH+7byE9oNDh7+CqAQ9XK+5s7qPxgp9ceGbqOdSYEQ4XcZGrdazJAceKnXOUi56KA==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "dev.clowder.video-generation",
+      "version": "0.1.0-alpha.3",
+      "integrity": "sha512-nNUWgAP/mpMc1zE7fQRp1UrEPNJ6WTz8gqUrHqPo+wjJGdzRZUQCJGhws6vLc4hf5hP7YVVg+5abbrId7U2arQ==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "dev.clowder.xiangqi",
+      "version": "0.1.0-alpha.3",
+      "integrity": "sha512-vbHFmwApBERgHB8M45i2y/hNH6gHYV3Kx6OMFm1l4n+R5La86pjwFUiTy69drDWloaCfGCgySGai0vt3/5TuQg==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "official.companion",
+      "version": "0.1.0-alpha.37",
+      "integrity": "sha512-xfxNnyl0Zg8qxCXInQdN5UJBn+uaKZF0exdDItNBCAputlke1Btfvk8GqdTCiYo0/2g/tmqAYegzOJhyZrRq/g==",
+      "admitted": false,
+      "error": "official package archive is invalid",
+      "code": "INVALID_PACKAGE_ARCHIVE",
+      "cause": "installed package manifest fails the published contract"
+    },
+    {
+      "pluginId": "official.companion.personal-chrome",
+      "version": "0.1.0-alpha.9",
+      "integrity": "sha512-IXkiAjtgc/GK0ZO2PSI22pzFTULKPVvILJ8WPzvSIv3OvGnYlG0yhsYmPPYC/DwuGxHdZs7beQATxndVKlCF+Q==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "official.connector.dingtalk",
+      "version": "0.1.0-alpha.8",
+      "integrity": "sha512-bfRgXeLaV4FL2x5Xfw7/U4q6WStkiX6ynJF0SePhlkTf6DnW+PVbzomDCyOaPhZpNQZuAXSbk6XaJZLlLJe5sw==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "official.connector.feishu",
+      "version": "0.1.0-alpha.9",
+      "integrity": "sha512-S/36H0KfLrxx559J4cl1RBUbPNi+rqhTakdChfcoRFmDQX2tHyNe/qIFJw9P6DpPxIvOHy8I1X0wvDNAuYDRCA==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "official.connector.telegram",
+      "version": "0.1.0-alpha.8",
+      "integrity": "sha512-kuhLoCEVzKuAS2wl96F8DOP6gSg2FAE1D/EdSHxrSuBF0RHUhMUA+jRw0tUh9c1BF0TX4xHGp7pSeKLvK72+ow==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "official.connector.wecom-agent",
+      "version": "0.1.0-alpha.8",
+      "integrity": "sha512-2IIK8gD4D9G17Krp/mo70nByrntG/xucNewtjuLZaf1DygXma9mPkd0nz3D+h70x9+cgGQ0k8le1/nypcBfJLg==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "official.connector.wecom-bot",
+      "version": "0.1.0-alpha.8",
+      "integrity": "sha512-ZK3Dq1Cy6betPG8HmGt2o3Rtzx8dTTq50WuZMJyUd/dwZ16a/1YGUDA3vSUW2P32iIiKpbIkSeNKMG4FoFVWVg==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "official.connector.weixin",
+      "version": "0.1.0-alpha.8",
+      "integrity": "sha512-+9B9YxwP/y9o0ixlH0hFa9df1XuFvQFJr0kkaZutwQh13cP6cusNKw6IZWEtcymxVAj/LMSMEW+HZ3ap1mUB9w==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "official.connector.xiaoyi",
+      "version": "0.1.0-alpha.8",
+      "integrity": "sha512-wWa/hxs86UTLXxYoAANXv8vU3YJ69+N+P1U675NgXqH2I11bzSwvdO2ijiGey1byw5Swkogl2AVT1sX3k2GgMA==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "official.enterprise-workflow",
+      "version": "0.1.0-alpha.5",
+      "integrity": "sha512-s9aKJ3JwMdUph717jsL2zcJ1HJuf23IcA3HFNPflLbo37tZdukj7hATHd39kjGvR4nUMNy4NYTUlDra7gu/RVQ==",
+      "admitted": true,
+      "inventoryState": "installed"
+    },
+    {
+      "pluginId": "official.companion",
+      "version": "0.1.0-alpha.36",
+      "integrity": "sha512-8YcLyt88GeUVcYpPx2TlpZUs5Yhpg5ud5nNkCfcqWiyMWDL+FNcqnJsgJlzMShRTxmNgIMsg4w7ReS3BbOGiXg==",
+      "admitted": true,
+      "inventoryState": "installed"
+    }
+  ],
+  "catalogChanges": [
+    {
+      "pluginId": "dev.clowder.genoffice-docx",
+      "from": "0.1.0-alpha.2",
+      "to": "0.1.0-alpha.3"
+    },
+    {
+      "pluginId": "dev.clowder.video-analysis",
+      "from": "0.1.0-alpha.3",
+      "to": "0.1.0-alpha.4"
+    },
+    {
+      "pluginId": "dev.clowder.video-generation",
+      "from": "0.1.0-alpha.2",
+      "to": "0.1.0-alpha.3"
+    },
+    {
+      "pluginId": "dev.clowder.xiangqi",
+      "from": "0.1.0-alpha.2",
+      "to": "0.1.0-alpha.3"
+    },
+    {
+      "pluginId": "official.companion.personal-chrome",
+      "from": "0.1.0-alpha.8",
+      "to": "0.1.0-alpha.9"
+    },
+    {
+      "pluginId": "official.connector.dingtalk",
+      "from": "0.1.0-alpha.7",
+      "to": "0.1.0-alpha.8"
+    },
+    {
+      "pluginId": "official.connector.feishu",
+      "from": "0.1.0-alpha.8",
+      "to": "0.1.0-alpha.9"
+    },
+    {
+      "pluginId": "official.connector.telegram",
+      "from": "0.1.0-alpha.7",
+      "to": "0.1.0-alpha.8"
+    },
+    {
+      "pluginId": "official.connector.wecom-agent",
+      "from": "0.1.0-alpha.7",
+      "to": "0.1.0-alpha.8"
+    },
+    {
+      "pluginId": "official.connector.wecom-bot",
+      "from": "0.1.0-alpha.7",
+      "to": "0.1.0-alpha.8"
+    },
+    {
+      "pluginId": "official.connector.weixin",
+      "from": "0.1.0-alpha.7",
+      "to": "0.1.0-alpha.8"
+    },
+    {
+      "pluginId": "official.connector.xiaoyi",
+      "from": "0.1.0-alpha.7",
+      "to": "0.1.0-alpha.8"
+    },
+    {
+      "pluginId": "official.enterprise-workflow",
+      "from": "0.1.0-alpha.4",
+      "to": "0.1.0-alpha.5"
+    }
+  ],
+  "preservedOldRows": 123,
+  "companionLiveUnchanged": true
+}
