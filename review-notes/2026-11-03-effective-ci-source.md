@@ -2,8 +2,15 @@
 title: Effective CI selection for repeated workflow runs at one PR HEAD
 created: 2026-11-03
 doc_kind: review
-status: source-only-draft
+status: archived-source-validation
 ---
+
+> Historical source-validation record for the implementation reviewed at `21e99e7d`.
+> Release assembly has since advanced to alpha.35 on the published alpha.34 /
+> SDK candidate.10 baseline. The source-only boundaries below describe the earlier
+> stage; current artifact identity and deferred activation conditions are recorded
+> in `catalog/candidate.json`, `catalog/release-plans.json` and PR #192.
+
 
 # Problem and result
 
