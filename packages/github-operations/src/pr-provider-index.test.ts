@@ -3,12 +3,14 @@ import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import type { PluginStorageHost, PluginStorageEntry } from '@clowder-ai/plugin-sdk';
 import { PrProviderIndex, type PrIndexProvider } from './pr-provider-index.js';
+import { scanMemory } from '../test/memory-storage.js';
 
 function fixture() {
   const rows = new Map<string, PluginStorageEntry>(); let revision = 0;
   const storage: PluginStorageHost = {
     get: async key => structuredClone(rows.get(key)),
     list: async () => structuredClone(Object.fromEntries(rows)),
+    scan: async input => scanMemory(rows, input),
     set: async (key, value) => { rows.set(key, { value: structuredClone(value), revision: ++revision }); return { revision }; },
     compareAndSet: async (key, expected, value) => {
       if ((rows.get(key)?.revision ?? null) !== expected) return { applied: false };

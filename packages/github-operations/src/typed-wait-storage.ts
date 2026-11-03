@@ -3,6 +3,7 @@ import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import type { AutomationState, TaskItem, WaitTerminationEventV1 } from './business/model/index.js';
 import { automationGeneration, type ITaskStore } from './business/domains/github-signals/wait-ports.js';
 import { mergeTaskAutomationState } from './business/domains/github-signals/TaskAutomationState.js';
+import { storagePages } from './storage-pages.js';
 
 const PREFIX = 'github.typed-wait.v1.';
 const key = (id: string) => PREFIX + createHash('sha256').update(id).digest('hex');
@@ -85,16 +86,34 @@ export class GitHubWaitStorage implements ITaskStore {
   }
 
   async listByKind(kind: TaskItem['kind']): Promise<readonly TaskItem[]> {
-    return Object.entries(await this.storage.list()).filter(([name]) => name.startsWith(PREFIX))
-      .map(([, entry]) => decode(entry.value)).filter(task => task.kind === kind);
+    const records = new Map<string, { revision: number; task: TaskItem }>();
+    for await (const page of storagePages(this.storage, PREFIX)) {
+      for (const [name, entry] of Object.entries(page)) {
+        if (name.startsWith(PREFIX) && entry.revision >= (records.get(name)?.revision ?? 0)) {
+          records.set(name, { revision: entry.revision, task: decode(entry.value) });
+        }
+      }
+    }
+    return [...records.values()].map(record => record.task).filter(task => task.kind === kind);
   }
 
   async getBySubject(subjectKey: string, owner?: { userId: string; catId: string; threadId: string }): Promise<TaskItem | null> {
-    const matches = [...await this.listByKind('pr_tracking'), ...await this.listByKind('issue_tracking')]
-      .filter(task => task.subjectKey === subjectKey && (!owner ||
-        (task.userId === owner.userId && task.ownerCatId === owner.catId && task.threadId === owner.threadId)));
-    if (matches.length > 1) throw new Error('Ambiguous private tracking subject; retain records for owner inspection');
-    return matches[0] ?? null;
+    const matches = new Map<string, { revision: number; task: TaskItem }>();
+    const revisions = new Map<string, number>();
+    for await (const page of storagePages(this.storage, PREFIX)) {
+      for (const [name, entry] of Object.entries(page)) {
+        if (!name.startsWith(PREFIX)) continue;
+        if (entry.revision < (revisions.get(name) ?? 0)) continue;
+        revisions.set(name, entry.revision);
+        const task = decode(entry.value);
+        if (task.subjectKey === subjectKey && (!owner ||
+          (task.userId === owner.userId && task.ownerCatId === owner.catId && task.threadId === owner.threadId))) {
+          if (entry.revision >= (matches.get(name)?.revision ?? 0)) matches.set(name, { revision: entry.revision, task });
+        } else if (entry.revision >= (matches.get(name)?.revision ?? 0)) matches.delete(name);
+      }
+      if (matches.size > 1) throw new Error('Ambiguous private tracking subject; retain records for owner inspection');
+    }
+    return matches.values().next().value?.task ?? null;
   }
 
   /** One immutable private ID per subscription history; no Host Task is created. */

@@ -5,6 +5,7 @@ import { GitHubWaitStorage } from './typed-wait-storage.js';
 import { GitHubWaitLifecycleService } from './business/domains/github-signals/GitHubWaitLifecycleService.js';
 import { WaitLifecycleRecoverySweep } from './business/domains/ball-custody/WaitLifecycleRecoverySweep.js';
 import type { TaskItem, GitHubWaitOutcomeV1 } from './business/model/index.js';
+import { scanMemory } from '../test/memory-storage.js';
 
 function fixture() {
   const rows = new Map<string, { revision: number; value: unknown }>();
@@ -12,6 +13,7 @@ function fixture() {
   const storage: PluginStorageHost = {
     async get(k) { return structuredClone(rows.get(k)); },
     async list() { return structuredClone(Object.fromEntries(rows)); },
+    async scan(input) { return scanMemory(rows, input); },
     async set(k, value) { rows.set(k, { revision: ++revision, value: structuredClone(value) }); return { revision }; },
     async compareAndSet(k, expected, value) {
       if ((rows.get(k)?.revision ?? null) !== expected) return { applied: false };

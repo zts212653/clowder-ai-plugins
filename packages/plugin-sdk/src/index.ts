@@ -142,6 +142,8 @@ export type {
   PluginStorageDeleteResult,
   PluginStorageEntry,
   PluginStorageHost,
+  PluginStoragePage,
+  PluginStorageScanInput,
   PluginTaskCreateInput,
   PluginTaskWorkTime,
   PluginTaskWorkData,

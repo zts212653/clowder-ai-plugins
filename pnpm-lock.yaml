@@ -58,7 +58,7 @@ importers:
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.2-candidate.9
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.2-candidate.9
       playwright:
         specifier: 1.61.1
         version: 1.61.1
@@ -385,11 +385,11 @@ importers:
   packages/github-operations:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.3.2-candidate.0
-        version: 0.3.2-candidate.0
+        specifier: 0.3.3-candidate.0
+        version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.2-candidate.1
-        version: 0.3.0-beta.2-candidate.1
+        specifier: 0.3.0-beta.2-candidate.10
+        version: link:../plugin-sdk
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
         version: 1.26.0(zod@3.25.76)
@@ -692,6 +692,10 @@ packages:
     resolution: {integrity: sha512-Vz+zJWKHI56qMJEFX8pSAFHmq9bne3c49eOIhKb7XlHCBqZ0Hqmetth9qaNJZVXGcURyj8E4QHMliZLfIBN+3A==}
     engines: {node: '>=20.0.0'}
 
+  '@clowder-ai/plugin-contract@0.3.3-candidate.0':
+    resolution: {integrity: sha512-Nf5n2PxE/eGcvsmntVxtxeaJKAdB/Gr+xOxlzjUYrCQEILJAFPjpBqcQH6GiUpIZwaWwU47GgH2Ie592rMd/kA==}
+    engines: {node: '>=20.0.0'}
+
   '@clowder-ai/plugin-sdk@0.2.0-beta.24':
     resolution: {integrity: sha512-obnziD7d+OHHjQp3eNUKHeZJU5CZ1NC5yonWAak4koXX+Jg8o8wzld3CcBhfGMbZCghIvCFJuXMMTXhNjx7u+g==}
     engines: {node: '>=20.0.0'}
@@ -702,6 +706,10 @@ packages:
 
   '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.1':
     resolution: {integrity: sha512-Drh8XMiPTMrZ9F+EhejH7hqEqv3CUoX9eEtR+CnRdyhMnzOIVAwU3uUNuX0Wlo/gMhnTMJ1HPcO63HgN0EzT8w==}
+    engines: {node: '>=20.0.0'}
+
+  '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.9':
+    resolution: {integrity: sha512-N2Ux1rJN4g9l0tazSGkOrqnGeBreB+LhjG8hbuIglJRP4IuTUnOBYiy++7iYzQ4XTZbDGpezb+llOQh5jjuRrw==}
     engines: {node: '>=20.0.0'}
 
   '@csstools/color-helpers@6.1.2':
@@ -2633,6 +2641,11 @@ snapshots:
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
 
+  '@clowder-ai/plugin-contract@0.3.3-candidate.0':
+    dependencies:
+      ajv: 8.20.0
+      ajv-formats: 3.0.1(ajv@8.20.0)
+
   '@clowder-ai/plugin-sdk@0.2.0-beta.24':
     dependencies:
       '@clowder-ai/plugin-contract': 0.2.0
@@ -2644,6 +2657,10 @@ snapshots:
   '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.1':
     dependencies:
       '@clowder-ai/plugin-contract': 0.3.2-candidate.0
+
+  '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.9':
+    dependencies:
+      '@clowder-ai/plugin-contract': 0.3.3-candidate.0
 
   '@csstools/color-helpers@6.1.2': {}
 

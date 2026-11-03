@@ -1,3 +1,4 @@
+import { storageEntries } from '../../../storage-pages.js';
 import { createHash, randomUUID } from 'node:crypto';
 import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { z } from 'zod';
@@ -48,7 +49,7 @@ class SubjectRecords<T extends { id: string; repo: string; updatedAt: number }> 
     return item;
   }
   async listAll(): Promise<T[]> {
-    return Object.entries(await this.storage.list()).filter(([key]) => key.startsWith(this.prefix)).map(([key, entry]) => {
+    return (await storageEntries(this.storage, this.prefix)).map(([key, entry]) => {
       const item = this.decode(entry.value);
       if (key !== this.prefix + item.id) throw new Error('Community record identity mismatch');
       return item;

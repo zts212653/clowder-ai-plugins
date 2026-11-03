@@ -33,9 +33,25 @@ export interface PluginStorageDeleteResult {
   readonly revision?: number;
 }
 
+export interface PluginStorageScanInput {
+  readonly prefix: string;
+  readonly suffix?: string;
+  readonly cursor?: string;
+  /** Redis COUNT is a work hint, not a hard response limit. */
+  readonly count?: number;
+}
+
+export interface PluginStoragePage {
+  /** An empty page may be nonterminal. "0" completes an iteration. No snapshot guarantee. */
+  readonly cursor: string;
+  readonly entries: Readonly<Record<string, PluginStorageEntry>>;
+}
+
 export interface PluginStorageHost {
   get(key: string): Promise<PluginStorageEntry | undefined>;
   list(): Promise<Readonly<Record<string, PluginStorageEntry>>>;
+  /** Optional on older Hosts. New callers must not replace a missing scan with a full list. */
+  scan?(input: PluginStorageScanInput): Promise<PluginStoragePage>;
   set(key: string, value: unknown): Promise<{ readonly revision: number }>;
   compareAndSet(
     key: string,
