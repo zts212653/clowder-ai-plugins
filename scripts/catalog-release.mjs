@@ -50,6 +50,8 @@ export function assertReleasePlans(candidate, live, plans, {
     const changed = baseCandidate !== undefined
       && !isDeepStrictEqual(previous.find(row => row.pluginId === release.pluginId), release);
     const plan = index.get(key);
+    if (activated && plan) assert.equal(plan.disposition, 'activate',
+      `${key}: a deferred release is still waiting; explicitly release its plan before activation`);
     if (!activated || changed) assert.ok(plan, `${key}: declare an exact release plan before merge`);
     if (plan && (!activated || changed)
       && (changed || !isDeepStrictEqual(basePlans.releases.find(row => releaseKey(row) === key), plan))) {

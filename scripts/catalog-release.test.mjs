@@ -90,3 +90,13 @@ test('candidate-only historical rows do not create fresh obligations after curre
   live.plugins[0].versions.pop();
   assert.equal(releaseStatus(f.candidate, live, { schemaVersion: 1, releases: [] }, { now })[0].state, 'active');
 });
+
+test('a catalog PR must explicitly release a recorded wait before activating that version', () => {
+  const f = fixture(); f.plan.disposition = 'defer';
+  f.plan.reason = 'Paired Host not ready'; f.plan.condition = 'Combined acceptance passes';
+  assert.throws(() => assertReleasePlans(f.candidate, f.candidate, f.plans,
+    { now, baseCandidate: f.candidate, basePlans: f.plans }), /deferred|waiting/i);
+  f.plan.disposition = 'activate';
+  assert.doesNotThrow(() => assertReleasePlans(f.candidate, f.candidate, f.plans,
+    { now, baseCandidate: f.candidate, basePlans: f.plans }));
+});

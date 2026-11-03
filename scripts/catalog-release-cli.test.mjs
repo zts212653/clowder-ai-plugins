@@ -26,6 +26,7 @@ async function fixture(t) {
   function runGh(args, body) {
     if (args.includes('--paginate')) return issues.map(issue => JSON.stringify(issue)).join('\n');
     writes.push({ args, body });
+    if (args.some(arg => arg.endsWith('/comments'))) return JSON.stringify({ id: writes.length, ...body });
     if (args.includes('POST')) {
       const issue = { number: issues.length + 1, state: 'open', ...body }; issues.push(issue);
       return JSON.stringify(issue);

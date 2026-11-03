@@ -25,7 +25,9 @@ export async function runReleaseCommand(args, {
   readArchive = readPublishedArchive, notify = syncReleaseIssues,
   repository = process.env.GITHUB_REPOSITORY,
 } = {}) {
-  const [mode, ...options] = args;
+  const [mode, ...forwarded] = args;
+  // pnpm forwards its separator after the script's baked-in mode argument.
+  const options = forwarded[0] === '--' ? forwarded.slice(1) : forwarded;
   assert.ok(['--check-plan', '--audit'].includes(mode), 'Use --check-plan [--base-sha <sha>] or --audit [--notify]');
   const candidate = JSON.parse(await readFile(join(root, 'catalog/candidate.json'), 'utf8'));
   const live = JSON.parse(await readFile(join(root, 'catalog/catalog.json'), 'utf8'));

@@ -44,6 +44,10 @@ export function syncReleaseIssues(rows, { repository, runGh = gh } = {}) {
       const created = JSON.parse(runGh(['api', '--method', 'POST', `repos/${repository}/issues`, '--input', '-'], { title, body }));
       actions.push({ action: 'created', number: created.number, pluginId: row.pluginId, owner: row.plan?.owner });
     } else if (issue.body !== body || issue.state !== 'open') {
+      // Repo Inbox polls comments as well as new issues. Notify before recording
+      // the new body so a failed send is retried rather than silently consumed.
+      runGh(['api', '--method', 'POST', `repos/${repository}/issues/${issue.number}/comments`, '--input', '-'],
+        { body: `Catalog follow-up changed\n\n${body}` });
       runGh(['api', '--method', 'PATCH', `repos/${repository}/issues/${issue.number}`, '--input', '-'], { title, body, state: 'open' });
       actions.push({ action: 'updated', number: issue.number, pluginId: row.pluginId, owner: row.plan?.owner });
     }

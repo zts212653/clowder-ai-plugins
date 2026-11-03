@@ -1,7 +1,13 @@
 name: Catalog Activation Audit
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      notification_probe:
+        description: 'Create one clearly marked Repo Inbox delivery probe; no release action'
+        required: false
+        default: false
+        type: boolean
   # Manual npm publication bypasses Contract CI's publish job. Audit that path
   # too, without publishing packages or modifying repository contents.
   schedule:
@@ -31,6 +37,11 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @clowder-ai/plugin-contract build
+      - name: Send a manual catalog reminder delivery probe
+        if: github.event_name == 'workflow_dispatch' && inputs.notification_probe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue create --repo "$GITHUB_REPOSITORY" --title "DELIVERY PROBE — catalog follow-up (codex61-sol)" --body-file review-notes/catalog-notification-probe.md
       - name: Remind release owners without failing on pending activation
         env:
           GH_TOKEN: ${{ github.token }}
