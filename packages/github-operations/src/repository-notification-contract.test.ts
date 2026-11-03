@@ -4,6 +4,7 @@ import test from 'node:test';
 import { validateMessagingRowInput } from '@clowder-ai/plugin-contract';
 import type { FeatureContext, PluginMessagingDraft, PluginStorageEntry, PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { CommunityRuntime, type RepoSubject } from './community-runtime.js';
+import { scanMemory } from '../test/memory-storage.js';
 
 // Exercise the real scan/webhook adapters against the shared messaging schema.
 // Only Host presentation fields are removed; unknown transport fields must fail.
@@ -13,6 +14,7 @@ function fixture() {
   const storage: PluginStorageHost = {
     get: async key => structuredClone(rows.get(key)),
     list: async () => structuredClone(Object.fromEntries(rows)),
+    scan: async input => scanMemory(rows, input),
     set: async (key, value) => {
       rows.set(key, { revision: ++revision, value: structuredClone(value) });
       return { revision };

@@ -46,8 +46,12 @@ export class TypedWaitRuntime {
   private assertRunning() { if (this.stopController.signal.aborted) throw new Error('GitHub tracking stopped'); }
   private guardedStore(check: () => Promise<void>) {
     const storage = this.options.context.storage;
+    const scan = storage.scan?.bind(storage);
     return new GitHubWaitStorage({
       get: key => storage.get(key), list: () => storage.list(),
+      ...(scan ? { scan: async (input: Parameters<typeof scan>[0]) => {
+        await check(); const page = await scan(input); await check(); return page;
+      } } : {}),
       compareAndSet: async (...args) => { await check(); return storage.compareAndSet(...args); },
       set: async (...args) => { await check(); return storage.set(...args); },
       delete: async (...args) => { await check(); return storage.delete(...args); },

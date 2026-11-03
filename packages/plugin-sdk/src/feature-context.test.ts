@@ -25,6 +25,41 @@ const BINDING: FeatureBinding = {
   executionLease: 'opaque-host-signed-lease',
 };
 
+test('private storage pages cross the active SDK facade without a full-list fallback', async () => {
+  const adapter = new RecordingAdapter();
+  let reads = 0;
+  Object.assign(adapter.storage, {
+    list: async () => { assert.fail('paged reads must not invoke full list'); },
+    scan: async (input: unknown) => { reads++; return { cursor: '7', entries: { key: { revision: 2, value: input } } }; },
+  });
+  const session = createFeatureContextSession(BINDING, adapter);
+  const scan = session.context.storage.scan;
+  assert.ok(scan);
+  assert.deepEqual(await scan({ prefix: 'github.wait.', cursor: '4', count: 2 }), {
+    cursor: '7', entries: { key: { revision: 2, value: { prefix: 'github.wait.', cursor: '4', count: 2 } } },
+  });
+  await session.revoke();
+  await assert.rejects(scan({ prefix: 'github.wait.' }), FeatureContextRevokedError);
+  assert.equal(reads, 1);
+});
+
+test('revocation during an SDK page read withholds its result; old Hosts expose no page port', async () => {
+  const adapter = new RecordingAdapter();
+  const old = createFeatureContextSession(BINDING, adapter);
+  assert.equal(old.context.storage.scan, undefined);
+  await old.revoke();
+  let release!: (value: { cursor: string; entries: Record<string, never> }) => void;
+  Object.assign(adapter.storage, { scan: () => new Promise(resolve => { release = resolve; }) });
+  const session = createFeatureContextSession(BINDING, adapter);
+  const scan = session.context.storage.scan;
+  assert.ok(scan);
+  const pending = scan({ prefix: 'github.wait.' });
+  const retired = session.revoke();
+  release({ cursor: '0', entries: {} });
+  await assert.rejects(pending, FeatureContextRevokedError);
+  await retired;
+});
+
 test('accepted thread projections and preferredCats patch cross the real FeatureContext wrapper', async () => {
   const adapter = new RecordingAdapter();
   const seen: unknown[] = [];

@@ -18,6 +18,7 @@ import { GitHubPrTitleReader } from './pr-title-reader.js';
 import { ReviewTriggerReader } from './review-trigger-observation.js';
 import type { FailureDiagnostic } from './review-verdict-failure.js';
 import type { GitHubSnapshot } from './tracking-runtime.js';
+import { scanMemory } from '../test/memory-storage.js';
 
 const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
 
@@ -1563,6 +1564,7 @@ function host() {
   const storage: ModulePluginHostShape['storage'] = {
     get: async (key) => structuredClone(entries.get(key)),
     list: async () => structuredClone(Object.fromEntries(entries)),
+    scan: async input => scanMemory(entries, input),
     set: async (key, value) => {
       entries.set(key, { revision: ++revision, value: structuredClone(value) });
       return { revision };

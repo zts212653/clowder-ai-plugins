@@ -1,3 +1,4 @@
+import { storageEntries } from './storage-pages.js';
 import { createHash } from 'node:crypto';
 import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { SdkCommunityEventLog } from './business/domains/community/CommunityEventLog.js';
@@ -31,7 +32,7 @@ function decode(value: unknown): RecordV1 {
 export class SdkCommunityCollectionStore implements CommunityTracking {
   constructor(private readonly storage: PluginStorageHost, private readonly now = Date.now) {}
   async listByKind(kind: TaskItem['kind']): Promise<readonly TaskItem[]> {
-    return Object.entries(await this.storage.list()).filter(([key]) => key.startsWith(prefix)).map(([, entry]) => decode(entry.value).task).filter(task => task.kind === kind);
+    return (await storageEntries(this.storage, prefix)).map(([, entry]) => decode(entry.value).task).filter(task => task.kind === kind);
   }
   async getBySubject(subject: string): Promise<TaskItem | null> {
     parse(subject); const entry = await this.read(idFor(subject)); return entry?.task.status === 'doing' ? entry.task : null;

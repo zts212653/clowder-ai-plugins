@@ -1,3 +1,4 @@
+import { storageEntries } from '../../../storage-pages.js';
 import { createHash } from 'node:crypto';
 import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { type CommunityObjectProjection, canonicalizeCommunitySubjectKey } from '../../model/index.js';
@@ -27,7 +28,7 @@ export class SdkCommunityObjectStore implements ICommunityObjectStore {
     await this.storage.set(key(subjectKey), { ...projection, subjectKey });
   }
   async listSubjectKeys(): Promise<string[]> {
-    return Object.entries(await this.storage.list()).filter(([name]) => name.startsWith(PREFIX))
+    return (await storageEntries(this.storage, PREFIX))
       .map(([, entry]) => (entry.value as CommunityObjectProjection).subjectKey);
   }
   async delete(subjectKey: string): Promise<void> { await this.storage.delete(key(subjectKey)); }

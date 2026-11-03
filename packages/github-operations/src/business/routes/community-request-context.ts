@@ -100,9 +100,11 @@ export class CommunityRequestContext {
   /** Use only for request-owned workflow stores. Background collectors have
    * their own module lifecycle and cannot borrow an invocation's authority. */
   mutationStorage(storage: PluginStorageHost): PluginStorageHost {
+    const scan = storage.scan?.bind(storage);
     return {
       get: key => storage.get(key),
       list: () => storage.list(),
+      ...(scan ? { scan } : {}),
       set: async (key, value) => { await this.assertCurrent(); return storage.set(key, value); },
       compareAndSet: async (key, expected, value) => { await this.assertCurrent(); return storage.compareAndSet(key, expected, value); },
       delete: async (key, expected) => { await this.assertCurrent(); return storage.delete(key, expected); },

@@ -1,3 +1,4 @@
+import { storageEntries } from '../../../storage-pages.js';
 /**
  * CommunityRepoConfigStore — Per-repo routing configuration (F168 Phase F — SO-0)
  *
@@ -108,7 +109,7 @@ export class SdkCommunityRepoConfigStore implements ICommunityRepoConfigStore {
     return (await this.storage.get(keyOf(repo)))?.value as CommunityRepoConfig ?? null;
   }
   async listAll(): Promise<CommunityRepoConfig[]> {
-    return Object.entries(await this.storage.list()).filter(([key]) => key.startsWith(PREFIX))
+    return (await storageEntries(this.storage, PREFIX))
       .map(([, entry]) => entry.value as CommunityRepoConfig);
   }
   async deleteByRepo(repo: string): Promise<boolean> { return (await this.storage.delete(keyOf(repo))).deleted; }

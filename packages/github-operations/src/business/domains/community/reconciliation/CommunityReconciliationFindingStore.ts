@@ -1,3 +1,4 @@
+import { storageEntries } from '../../../../storage-pages.js';
 import { createHash } from 'node:crypto';
 import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 
@@ -99,7 +100,7 @@ export class CommunityReconciliationFindingStore {
     return (await this.listAll()).filter(finding => finding.status === 'open' || finding.status === 'acknowledged');
   }
   async listAll(): Promise<ReconciliationFinding[]> {
-    return Object.entries(await this.storage.list()).filter(([key]) => key.startsWith(PREFIX))
+    return (await storageEntries(this.storage, PREFIX))
       .map(([, entry]) => entry.value as ReconciliationFinding);
   }
 }

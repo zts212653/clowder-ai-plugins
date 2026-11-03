@@ -6,6 +6,8 @@ import { TypedWaitRuntime } from './typed-wait-runtime.js';
 import type { GitHubSnapshot } from './tracking-runtime.js';
 import type { GitHubPrAwaitStateV1 } from './business/model/types/github-wait.js';
 import { executeGitHubRequest } from './business/infrastructure/github/request-budget.js';
+import { scanMemory } from '../test/memory-storage.js';
+import type { PluginStorageScanInput } from '@clowder-ai/plugin-sdk';
 
 function fixture() {
   const rows = new Map<string, PluginStorageEntry>();
@@ -19,6 +21,7 @@ function fixture() {
   const context = {
     storage: {
       get: async (key: string) => structuredClone(rows.get(key)), list: async () => structuredClone(Object.fromEntries(rows)),
+      scan: async (input: PluginStorageScanInput) => scanMemory(rows, input),
       compareAndSet: async (key: string, expected: number | null, value: unknown) => {
         if ((rows.get(key)?.revision ?? null) !== expected) return { applied: false };
         rows.set(key, { revision: ++revision, value: structuredClone(value) }); return { applied: true, revision };

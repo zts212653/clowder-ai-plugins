@@ -1,3 +1,4 @@
+import { storageEntries } from '../../../storage-pages.js';
 import { createHash } from 'node:crypto';
 import type { PluginStorageHost, PluginStorageEntry } from '@clowder-ai/plugin-sdk';
 import type { CommunityEvent } from '../../model/index.js';
@@ -78,7 +79,7 @@ export class SdkCommunityEventLog implements ICommunityEventLog {
 
   private async entries(): Promise<StoredEvent[]> {
     await this.ready();
-    return Object.entries(await this.storage.list()).filter(([key]) => key.startsWith(EVENTS))
+    return (await storageEntries(this.storage, EVENTS))
       .map(([, entry]) => entry.value as StoredEvent).sort((a, b) => a.sequence - b.sequence);
   }
   async read(subjectKey: string, fromSequence = 0): Promise<CommunityEvent[]> {
