@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import { startSuperagent } from '../src/runtime.js';
 import { event, fixture } from './fixture.js';
@@ -108,7 +109,7 @@ test('a worker native result and its ordinary final response produce one origina
   await runtime.stop({ reason: 'test' });
 });
 
-test('Host execution failure is returned to the original conversation even while intake is paused', async () => {
+test('a real Host failed message is returned once to its own Work while intake is paused, regardless of lifecycle hash', async () => {
   const f = fixture();
   await f.seed();
   const runtime = await startSuperagent(f.host);
@@ -126,12 +127,14 @@ test('Host execution failure is returned to the original conversation even while
           outcome: '验证导出',
           workerId: 'worker',
         },
+        { kind: 'start', title: '说明', outcome: '准备说明', workerId: 'worker' },
       ],
     },
     f.caller(main),
   );
   await actions['superagent.tick']({});
   const task = [...f.tasks.values()][0];
+  const other = [...f.tasks.values()][1];
   await f.host.storage.set('preferences', {
     ...f.preferences,
     enabled: false,
@@ -144,7 +147,7 @@ test('Host execution failure is returned to the original conversation even while
       content: '',
       sender: { kind: 'cat', catId: 'worker' },
       response: {
-        executionId: 'opaque-failure',
+        executionId: '01a1a2a5-dbe0-7f30-9066-3291e6f7ff3f',
         inputMessageIds: ['worker-input'],
         status: 'failed',
         startedAt: 1,
@@ -159,12 +162,23 @@ test('Host execution failure is returned to the original conversation even while
     state: 'settled',
     chainDone: true,
     outcome: 'failed',
-    executionId: 'opaque-failure',
+    executionId: `lifecycle_${createHash('sha256').update('01a1a2a5-dbe0-7f30-9066-3291e6f7ff3f').digest('hex').slice(0, 32)}`,
   };
+  const wrong = event('not-a-response', other.threadId, '');
+  wrong.envelope.actor = { kind: 'cat', id: 'worker' };
+  wrong.envelope.messageId = 'failed-response';
+  await actions['superagent.observe'](wrong);
+  await actions['superagent.observe'](status);
+  const failed = event('failed-response', task.threadId, '');
+  failed.envelope.actor = { kind: 'cat', id: 'worker' };
+  failed.envelope.messageId = 'failed-response';
+  await actions['superagent.observe']({ ...failed, executionId: status.executionId });
+  await actions['superagent.observe']({ ...failed, executionId: status.executionId });
   await actions['superagent.observe'](status);
   await actions['superagent.observe'](status);
   await actions['superagent.tick']({});
   assert.equal(f.tasks.get(task.id)?.status, 'blocked');
+  assert.equal(f.tasks.get(other.id)?.status, 'todo', 'a failure must not be assigned to another Work');
   assert.equal(
     [...f.sent.values()].filter(
       (message) => message.threadId === 'source-a' && JSON.stringify(message.payload).includes('本轮未完成'),

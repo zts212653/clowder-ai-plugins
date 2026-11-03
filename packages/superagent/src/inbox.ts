@@ -20,26 +20,11 @@ export async function observe(
   pref: Preferences,
   mainThreadId: string | undefined,
 ) {
+  // Execution-status IDs are opaque and are not the invocation IDs in response history.
+  // The published terminal message supplies the exact response identity instead.
+  if (input.kind === 'execution_status') return;
   const works = await records(host, 'work:', workSchema);
   const work = works.find((entry) => entry.threadId === input.threadId);
-  if (input.kind === 'execution_status') {
-    if (input.state !== 'settled' || input.outcome === 'completed' || !work?.taskId) return;
-    const response = (await host.threads.readMessages(input.threadId, { limit: 100 })).find(
-      (message) => message.response?.executionId === input.executionId && message.sender.catId === work.workerId,
-    );
-    if (!response?.response || response.response.status === 'processing') return;
-    const report = {
-      workId: work.taskId,
-      reportId: 'host-failure',
-      kind: 'error' as const,
-      content: `执行成员本轮未完成（${response.response.status}）。工作与历史保留，请在原工作线程检查后继续。`,
-      applied: false,
-      invocationId: input.executionId,
-    };
-    await saveOnce(host, `report:${input.executionId}:host-failure`, report);
-    await editQueue(host, 'reports', `${input.executionId}:host-failure`, true);
-    return;
-  }
   if (input.envelope.actor.kind === 'plugin' && input.envelope.actor.id === host.pluginInstanceId) return;
   if (
     input.threadId === mainThreadId &&
@@ -49,6 +34,22 @@ export async function observe(
     return;
   if (!pref.threadIds.includes(input.threadId) && input.threadId !== mainThreadId && !work) return;
   if (work && input.envelope.actor.kind === 'cat' && input.envelope.actor.id === work.workerId) {
+    const response = (await host.threads.readMessages(input.threadId, { limit: 100 })).find(
+      (message) => message.id === input.envelope.messageId && message.sender.catId === work.workerId,
+    )?.response;
+    if (work.taskId && response && response.status !== 'processing' && response.status !== 'completed') {
+      const report = {
+        workId: work.taskId,
+        reportId: 'host-failure',
+        kind: 'error' as const,
+        content: `执行成员本轮未完成（${response.status}）。工作与历史保留，请在原工作线程检查后继续。`,
+        applied: false,
+        invocationId: response.executionId,
+      };
+      await saveOnce(host, `report:${response.executionId}:host-failure`, report);
+      await editQueue(host, 'reports', `${response.executionId}:host-failure`, true);
+      return;
+    }
     const message = await host.messaging.get(input.envelope.messageId);
     const invocationId = message?.extra?.stream?.invocationId;
     if (invocationId) {
