@@ -2475,16 +2475,33 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.32",
+          "version": "0.1.0-alpha.34",
           "contractVersion": "0.3.2-candidate.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
             "kind": "npm",
             "packageName": "@clowder-ai/github-operations",
-            "version": "0.1.0-alpha.32",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.32.tgz",
-            "integrity": "sha512-rusH2HjHU9lgjpfTdJVvDVBcTw+Se7nHs31cE3qDOR7avPi9rck3hVohiipTlrjUvL+14SVql7vc28JpFWZADg==",
-            "shasum": "f85592a6f0bad10a34be7e38abefa24bafb564b3",
+            "version": "0.1.0-alpha.34",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.34.tgz",
+            "integrity": "sha512-NVrjxnwbCFfDM4w5xn3Gws3cKyeHGkXKQuAq6dz2UA2R+Y1Vag7oJNZlTrU60PMC3jWgxuLa2m5wdfdOjjV/5A==",
+            "shasum": "ac640fd0917e3fa901ebcda84f895d5b4fe572e5",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/github-operations"
+            }
+          }
+        },
+        {
+          "version": "0.1.0-alpha.33",
+          "contractVersion": "0.3.2-candidate.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/github-operations",
+            "version": "0.1.0-alpha.33",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.33.tgz",
+            "integrity": "sha512-AknGdw77HsE3FTC6M0FFjXe8SW/7ZXqbkHWwbD34vQHK5/oymEQkt3zF9RKJEXGatKq+ya5zR+VPyOrb/gNCTQ==",
+            "shasum": "1e57815f785bd415cbd7bc828beffbb9c073170a",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/github-operations"

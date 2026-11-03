@@ -40,7 +40,9 @@ export function createTrackingMcpServer(handlers: TrackingMcpHandlers): McpServe
   const server = new McpServer({ name: 'clowder-github-tracking', version: '0.1.0' });
   const respond = (handler: TrackingMcpHandlers['registerPr']) => async (input: unknown, call: ModuleActionCallOptions) => {
     try {
-      return { content: [{ type: 'text' as const, text: JSON.stringify(await handler(input, call)) }] };
+      const result = await handler(input, call);
+      const failed = !!result && typeof result === 'object' && 'status' in result && typeof result.status === 'number' && result.status >= 400;
+      return { ...(failed ? { isError: true } : {}), content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
     } catch (error) {
       return { isError: true, content: [{ type: 'text' as const,
         text: error instanceof Error ? error.message : 'GitHub tracking failed' }] };
@@ -72,11 +74,10 @@ export function createTrackingMcpServer(handlers: TrackingMcpHandlers): McpServe
     { taskId: z.string().min(1).max(500), expectedDigest: z.string().regex(/^[a-f0-9]{64}$/) },
     respond((input, call) => handlers.bindMigration!(input, call)));
   if (handlers.reviewVerdict) server.tool('github_record_external_review_verdict',
-    'Submit a verdict for the assigned exact PR HEAD under the current native invocation and action lease. ' +
-    'Use the exact lease generation and review/comment URL, or an explicit pending_delivery reason. ' +
-    'Persists the submission before Host completion verification. pending_verification is NOT review completion; ' +
-    'retry the same submission from a fresh authenticated invocation after the missing evidence is available. ' +
-    'No caller identity, timestamp or verifier selection is accepted. Does not publish to GitHub.',
+    'Record a private exact-HEAD review result. Use when: the assigned reviewer submits a GitHub review/comment URL or pending_delivery reason in its authenticated thread. ' +
+    'NOT for: publishing to GitHub, changing reviewer assignment, or completing a Host Task/action lease. ' +
+    'Output: a persisted private verdict/pending verification result, or a structured refusal with code, outcome and recovery action. ' +
+    'GOTCHA: pending_verification is not completion. After refusal, inspect the exact subject and its lastReviewVerdictFailure before retrying the same valid submission; never republish the review to repair registration.',
     reviewVerdictInput.shape, respond((input, call) => handlers.reviewVerdict!(input, call)));
   if (handlers.community) for (const method of communityNativeMethods) {
     server.tool(method.replaceAll('.', '_').replaceAll('-', '_'),

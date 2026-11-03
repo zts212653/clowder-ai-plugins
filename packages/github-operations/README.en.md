@@ -61,7 +61,7 @@ Community pages read repository facts and expose the declared collaboration and 
 
 With narrator cat and thread configured, manual triage saves a frozen target and briefing before the existing schedule materializes its delivery. Changing either setting pauses the old delivery instead of redirecting it. Restore the original settings to retry. Enabling later does not automatically wake historical cases.
 
-Submit external-review results through `github_record_external_review_verdict`. `pending_verification` means the submission is durable, **not** that delivery or lease completion has been approved. Missing trusted publisher association returns `insufficient`; a matching GitHub object alone is not completion evidence.
+Submit private exact-HEAD review results through `github_record_external_review_verdict` from the assigned reviewer's authenticated thread. This does not complete a Host Task or action lease. `pending_verification` means the submission is durable and still awaits verification. Refusals include an error code, outcome certainty and a recovery action. Use `github_inspect_subject` to read current events/projection and `lastReviewVerdictFailure`: the latest failed attempt's time, attribution and redacted diagnostic, not the current review state. `diagnosticPersisted=false` means the diagnostic could not be saved. Preserve the original GitHub review URL; do not republish a review or change reviewer ownership to repair registration.
 
 ## Understand capability names
 

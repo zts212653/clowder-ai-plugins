@@ -131,14 +131,23 @@
     },
     {
       "pluginId": "official.github-operations",
-      "version": "0.1.0-alpha.32",
-      "integrity": "sha512-rusH2HjHU9lgjpfTdJVvDVBcTw+Se7nHs31cE3qDOR7avPi9rck3hVohiipTlrjUvL+14SVql7vc28JpFWZADg==",
+      "version": "0.1.0-alpha.33",
+      "integrity": "sha512-AknGdw77HsE3FTC6M0FFjXe8SW/7ZXqbkHWwbD34vQHK5/oymEQkt3zF9RKJEXGatKq+ya5zR+VPyOrb/gNCTQ==",
+      "disposition": "activate",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-05T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/191"
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.34",
+      "integrity": "sha512-NVrjxnwbCFfDM4w5xn3Gws3cKyeHGkXKQuAq6dz2UA2R+Y1Vag7oJNZlTrU60PMC3jWgxuLa2m5wdfdOjjV/5A==",
       "disposition": "defer",
       "owner": "codex61-sol",
       "reviewBy": "2026-11-06T08:00:00Z",
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/186",
       "reason": "Source prerelease publication precedes the separately authorized catalog and installed-runtime upgrade.",
-      "condition": "Verify the paired Host scan port and the SDK candidate10 package consumer, then complete the scoped catalog review and owner-authorized runtime upgrade."
+      "condition": "Verify the paired Host scan port and SDK candidate10 package consumer, then complete scoped catalog review and owner-authorized runtime upgrade."
     }
   ]
 }

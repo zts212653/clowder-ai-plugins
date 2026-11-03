@@ -1,5 +1,5 @@
 pluginId: official.github-operations
-version: 0.1.0-alpha.32
+version: 0.1.0-alpha.34
 contractVersion: 0.3.2-candidate.0
 name: GitHub Operations
 description:
@@ -298,8 +298,10 @@ contributions:
   - type: tool
     id: inspect-subject
     name: github_inspect_subject
-    description: Read this installation's PR or issue observations and derived
-      status. These are provider facts, not a governance verdict or approval.
+    description: Read this installation's PR or issue observations, derived status
+      and latest failed review registration with redacted diagnostic. A failure
+      is historical attempt evidence, not the current review state. Provider facts
+      are not a Host governance verdict or approval.
     inputSchema:
       type: object
       additionalProperties: false

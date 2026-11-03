@@ -16,6 +16,7 @@ import { copyLegacyRepositoryProgress, legacyRepositorySnapshotBytes } from './l
 import { createGitHubPluginModule } from './plugin-entrypoint.js';
 import { GitHubPrTitleReader } from './pr-title-reader.js';
 import { ReviewTriggerReader } from './review-trigger-observation.js';
+import type { FailureDiagnostic } from './review-verdict-failure.js';
 import type { GitHubSnapshot } from './tracking-runtime.js';
 import { scanMemory } from '../test/memory-storage.js';
 
@@ -1389,7 +1390,7 @@ test('real builtin projects provider HEAD and CI without accepting or writing a 
     Object.keys(active.actions).filter((method) => /verdict|(^|[.])lease([.]|$)|admission/.test(method)),
     ['github.review.record-verdict'],
   );
-  await assert.rejects(async () => active.actions['github.review.record-verdict']!({}), /native action context/);
+  assert.match(JSON.stringify(await active.actions['github.review.record-verdict']!({})), /native_context_required/);
   assert.equal(f.deliveries.length, 1, 'ordinary CI notification uses existing SDK messaging exactly once');
   snapshot = { ...snapshot, ci: 'pending' };
   await active.actions['github.pr-tracking']!({});
@@ -2360,4 +2361,37 @@ test('production module exposes ordinary review records without private Host com
   assert.equal(typeof active.actions['github.review.record-verdict'],'function');
   assert.equal(manifest.contributions.some((row:{type:string})=>row.type==='terminal-predicate-provider'),false);
  } finally {await active.stop({reason:'test'});}
+});
+
+test('declared review refusal is readable by exact subject after module restart', async t => {
+ const f = host(), module = createGitHubPluginModule();
+ let active = await module.create(manifest).start(f.runtimeHost);
+ t.after(() => active.stop({ reason: 'test' }));
+ await active.actions['github.repository.register']!({
+  repo: target.repoFullName, guardThreadId: target.threadId, guardCatId: target.catId,
+  reviewMode: 'maintainer_review', cloudReviewPolicy: 'optional',
+ });
+ const subjectKey = 'pr:example/project#12';
+ const input = {
+  repoFullName: target.repoFullName, prNumber: 12, reviewedHeadSha: 'a'.repeat(40),
+  verdict: 'approved', summary: 'Existing GitHub review',
+  delivery: { kind: 'delivered', githubUrl: 'https://github.com/example/project/pull/12#pullrequestreview-80' },
+ };
+ const result = await active.actions['github.review.record-verdict']!(input, caller);
+ assert.match(JSON.stringify(result), /review_unassigned/);
+ await active.stop({ reason: 'test' });
+ active = await module.create(manifest).start(f.runtimeHost);
+ const inspected = await active.actions['github.subject.inspect']!({ subjectKey }) as {
+  data: { lastReviewVerdictFailure: FailureDiagnostic | null; events: unknown[] };
+ };
+ const diagnostic = inspected.data.lastReviewVerdictFailure;
+ assert.equal(diagnostic?.failure.body.error.code, 'review_unassigned');
+ assert.equal(diagnostic?.failure.body.diagnosticPersisted, true);
+ assert.equal(diagnostic?.failure.body.subjectKey, subjectKey);
+ assert.equal(diagnostic?.failure.body.reviewedHeadSha, input.reviewedHeadSha);
+ assert.equal(diagnostic?.catId, caller.catId);
+ assert.equal(diagnostic?.threadId, caller.threadId);
+ assert.deepEqual(inspected.data.events, []);
+ assert.deepEqual(await f.runtimeHost.tasks.list({}), []);
+ assert.equal(f.deliveries.length, 0);
 });
