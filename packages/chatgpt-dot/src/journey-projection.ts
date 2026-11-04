@@ -7,8 +7,6 @@ const FIVE_MINUTES_MS = 5 * 60_000;
 const ROUNDTRIP_DEADLINE_MS = 60_000;
 
 type JourneyAction =
-	| "use-long-lived"
-	| "start-temporary"
 	| "show-server-url"
 	| "stop-temporary"
 	| "refresh-credential"
@@ -94,19 +92,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 				(endpoint.mode === "temporary-active" && endpoint.expiresAt > input.now)),
 	);
 	if (!external?.pending && !external?.current) {
-		return {
-			rows: [
-				row(
-					"endpoint-choice",
-					"第一步：建立 ChatGPT 入口",
-					"有长期公网地址就使用已填写的 Server URL 模板；否则可由 Dot 自动启动最长 24 小时的临时入口。无需终端命令。",
-					[
-						action("use-long-lived", "使用长期公网入口"),
-						action("start-temporary", "创建临时入口"),
-					],
-				),
-			],
-		};
+		return { rows: [] };
 	}
 	if (!external.pending && external.current && !currentCredentialUsable) {
 		return {
@@ -119,19 +105,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 		};
 	}
 	if (!external.pending && !endpointActive) {
-		return {
-			rows: [
-				row(
-					"endpoint-choice",
-					"第一步：建立 ChatGPT 入口",
-					"当前安装的兼容凭据仍然保留；请选择长期公网地址，或让 Dot 自动创建最长 24 小时的临时入口。无需终端命令。",
-					[
-						action("use-long-lived", "使用长期公网入口"),
-						action("start-temporary", "创建临时入口"),
-					],
-				),
-			],
-		};
+		return { rows: [] };
 	}
 	if (!endpointActive) {
 		return {
@@ -139,12 +113,8 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 				row(
 					"endpoint-recovery",
 					"外部入口尚不可用",
-					"待验证凭据仍保留；请选择长期入口或重新创建临时入口。旧连接不会因此被替换。",
-					[
-						action("use-long-lived", "使用长期公网入口"),
-						action("start-temporary", "创建临时入口"),
-						action("cancel-pending", "放弃本次更新"),
-					],
+					"待验证凭据仍保留；请在上方所选入口类型中重新建立入口。旧连接不会因此被替换。",
+					[action("cancel-pending", "放弃本次更新")],
 				),
 			],
 		};

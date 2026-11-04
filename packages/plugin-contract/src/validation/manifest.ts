@@ -110,6 +110,19 @@ function requiredWhenScalarType(
   }
 }
 
+function supportsConfigurationVariants(contractVersion: string): boolean {
+  const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/u.exec(contractVersion);
+  if (!match) return false;
+  const [, majorText, minorText, patchText, prerelease] = match;
+  const major = Number(majorText);
+  const minor = Number(minorText);
+  const patch = Number(patchText);
+  if (major !== 0) return major > 0;
+  if (minor !== 2) return minor > 2;
+  if (patch !== 0) return patch > 0;
+  return prerelease === undefined;
+}
+
 /**
  * Validates an untrusted plugin manifest against the contract-owned schema.
  *
@@ -260,8 +273,7 @@ export function validateManifest(value: unknown): ManifestValidationResult {
 
     const variants = manifest.configurationVariants;
     if (variants !== undefined) {
-      const [major = 0, minor = 0] = manifest.contractVersion.split(/[.-]/).slice(0, 2).map(Number);
-      if (!(major > 0 || minor >= 2)) {
+      if (!supportsConfigurationVariants(manifest.contractVersion)) {
         return semanticError(
           '/configurationVariants',
           '#/$defs/ConfigurationVariants/contractVersion',

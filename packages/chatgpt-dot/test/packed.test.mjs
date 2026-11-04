@@ -89,7 +89,7 @@ test("canonical archive installs offline and survives two independently material
     threads:{get:async()=>assert.fail('unexpected thread read'),create:async()=>assert.fail('unexpected thread creation'),getCats:async()=>assert.fail('unexpected member lookup'),readMessages:async()=>assert.fail('unexpected history read')}};
    const owner={kind:'owner-operation',pluginInstanceId:host.pluginInstanceId,userId:'owner',operationKey:'connection',actionId:'begin',requestId:'request',signal:new AbortController().signal,assertCurrent:async()=>{}};
    const active=await module.start(host),settings=await module.settings(host),missing=await settings.actions['dot.status']({},undefined,owner),missingText=JSON.stringify(missing);
-   assert.equal(records.has('dot/connection/v1'),false);assert.match(missingText,/第一步|入口/);assert.equal(missingText.includes('pairing_code'),false);assert.equal(missingText.includes(host.external.token),false);
+   assert.equal(records.has('dot/connection/v1'),false);assert.deepEqual(missing.data.rows,[]);assert.equal(missingText.includes('pairing_code'),false);assert.equal(missingText.includes(host.external.token),false);
    assert.equal(typeof active.deliver,'function');assert.equal(typeof active.handle,'function');
    const first=await settings.actions['dot.begin-pairing']({},undefined,owner),firstState=structuredClone(records.get('dot/connection/v1').value);
    assert.equal((await active.actions['dot.test']({},undefined,owner)).ok,false);await active.stop({reason:'disabled'});

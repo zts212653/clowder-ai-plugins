@@ -78,7 +78,7 @@ test("projects endpoint, ChatGPT discovery, and pairing as separate stages", () 
 	);
 	assert.equal(
 		stage({ ...base, external: null }),
-		"endpoint-choice",
+		undefined,
 	);
 	assert.equal(
 		stage({ ...base, external: pendingExternal(null) }),
@@ -88,6 +88,7 @@ test("projects endpoint, ChatGPT discovery, and pairing as separate stages", () 
 		stage({ ...base, external: pendingExternal(now) }),
 		"pairing-not-started",
 	);
+	assert.deepEqual(projectDotJourney({ ...base, external: null }).rows, []);
 });
 
 test("shows the absolute temporary endpoint expiry in the owner journey", () => {

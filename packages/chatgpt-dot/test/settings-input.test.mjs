@@ -36,7 +36,7 @@ test("status is a pure rows projection and does not manufacture authorization, p
 	const first = await settings.actions["dot.status"]({}, undefined, f.owner);
 	const second = await settings.actions["dot.status"]({}, undefined, f.owner);
 	assert.equal(first.render, "rows");
-	assert.equal(first.data.rows[0].key, "endpoint-choice");
+	assert.deepEqual(first.data.rows, []);
 	assert.deepEqual(second, first);
 	assert.deepEqual(Object.fromEntries(f.records), before);
 });
@@ -44,7 +44,7 @@ test("status is a pure rows projection and does not manufacture authorization, p
 test("legacy pairing remains usable while the journey asks for a real public endpoint", async (t) => {
 	const { f, settings } = await runningFixture(t);
 	const begun = await settings.actions["dot.begin-pairing"]({}, undefined, f.owner);
-	assert.equal(begun.data.rows[0].key, "endpoint-choice");
+	assert.deepEqual(begun.data.rows, []);
 	assert.ok(f.records.get("dot/connection/v1").value.pairingCode);
 	const instructions = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
 	assert.equal(instructions.render, "text");
@@ -63,11 +63,7 @@ test("a legacy credential starts when the Host exposes only a relative forwardin
 	assert.deepEqual(external.endpoint, { mode: "absent" });
 
 	const status = await settings.actions["dot.status"]({}, undefined, f.owner);
-	assert.equal(status.data.rows[0].key, "endpoint-choice");
-	assert.deepEqual(
-		status.data.rows[0].actions.map((item) => item.action),
-		["use-long-lived", "start-temporary"],
-	);
+	assert.deepEqual(status.data.rows, []);
 });
 
 test("begin is idempotent and only the declared reconnect action rotates an existing attempt", async (t) => {
@@ -90,14 +86,13 @@ test("begin is idempotent and only the declared reconnect action rotates an exis
 	);
 });
 
-test("missing endpoint produces owner choices without pairing or terminal commands", async (t) => {
+test("missing endpoint leaves entry selection to native configuration variants", async (t) => {
 	const { f, settings } = await runningFixture(t, async (f) => {
 		f.host.external.endpoint = "";
 		f.host.external.token = "";
 	});
 	const result = await settings.actions["dot.status"]({}, undefined, f.owner);
-	assert.equal(result.data.rows[0].key, "endpoint-choice");
-	assert.deepEqual(result.data.rows[0].actions.map((item) => item.action), ["use-long-lived", "start-temporary"]);
+	assert.deepEqual(result.data.rows, []);
 	assert.equal(f.records.has("dot/connection/v1"), false);
 });
 

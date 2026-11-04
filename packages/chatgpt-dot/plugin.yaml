@@ -1,6 +1,6 @@
 pluginId: official.chatgpt-dot
-version: 0.2.0-alpha.14
-contractVersion: 0.3.1-candidate.2
+version: 0.2.0-alpha.15
+contractVersion: 0.3.1-candidate.3
 name: ChatGPT Dot
 description:
   default: 将已配对的 ChatGPT Dot 接入对话，回复与原图回到召唤来源。
@@ -17,10 +17,18 @@ steps:
   - text: 把页面显示的 Server URL 添加到 ChatGPT；真实 discovery 到达后，页面才进入 Dot 配对。
   - text: 完成订阅并发起真实往返测试；只有同一凭据读取原消息并回传校验回复后才显示可用。
 configuration:
+  - key: endpointMode
+    label: ChatGPT 入口类型
+    kind: select
+    required: true
+    options:
+      - { value: long-lived, label: 长期公网入口 }
+      - { value: temporary, label: 临时公网入口 }
+    description: 选择已有的长期公网入口，或让 Dot 自动创建最长 24 小时的临时入口。
   - key: longLivedServerUrlTemplate
-    label: 长期公网 Server URL 模板（可选）
+    label: 长期公网入口地址
     kind: string
-    required: false
+    required: true
     description: 指向 Host 通用插件转发路径的完整 HTTPS URL，必须且只能包含一次 {token}；例如 https://host.example/api/plugin-runtime/handle?token={token}。
   - key: externalTokenDays
     label: 外部凭据有效天数
@@ -34,6 +42,29 @@ configuration:
     required: false
     default: 1
     description: 最长 24 小时；到期、停用或卸载会自动关闭。
+  - key: longLivedEndpoint
+    label: 长期公网入口
+    kind: operation
+    required: false
+    target: [longLivedServerUrlTemplate]
+    actions:
+      - id: use-long-lived
+        label: 生成 Server URL
+        render: button
+        resultRender: text
+        confirm: 确认签发新的外部凭据并生成 Server URL？
+        action: { method: dot.use-long-lived }
+  - key: temporaryEndpoint
+    label: 临时公网入口
+    kind: operation
+    required: false
+    actions:
+      - id: start-temporary
+        label: 创建临时入口
+        render: button
+        resultRender: text
+        confirm: 确认启动一个有时限的临时公网入口？
+        action: { method: dot.start-temporary }
   - key: webhookProxyUrl
     label: 回调代理（可选）
     kind: string
@@ -49,18 +80,6 @@ configuration:
         render: status
         resultRender: rows
         action: { method: dot.status }
-      - id: use-long-lived
-        label: 使用长期公网入口
-        render: row
-        resultRender: text
-        confirm: 确认签发新的外部凭据并生成 Server URL？
-        action: { method: dot.use-long-lived }
-      - id: start-temporary
-        label: 创建临时入口
-        render: row
-        resultRender: text
-        confirm: 确认启动一个有时限的临时公网入口？
-        action: { method: dot.start-temporary }
       - id: show-server-url
         label: 显示并复制 Server URL
         render: row
@@ -110,6 +129,15 @@ configuration:
         render: row
         resultRender: rows
         action: { method: dot.check-roundtrip }
+configurationVariants:
+  discriminator: endpointMode
+  branches:
+    - id: long-lived
+      when: { properties: { endpointMode: { const: long-lived } } }
+      fields: [longLivedServerUrlTemplate, externalTokenDays, longLivedEndpoint]
+    - id: temporary
+      when: { properties: { endpointMode: { const: temporary } } }
+      fields: [temporaryEndpointHours, temporaryEndpoint]
 test:
   action: { method: dot.test }
 contributions:

@@ -117,6 +117,29 @@ test("controller publishes owner URL without clipboard and closes its exact runn
 	assert.throws(() => controller.allowToken("late-token"), /unavailable/);
 });
 
+test("controller waits through transient edge responses without extending the startup deadline", async (t) => {
+	const root = await mkdtemp(join(tmpdir(), "dot-controller-probe-retry-"));
+	t.after(() => rm(root, { recursive: true, force: true }));
+	const statuses = [502, 404, 401];
+	let probes = 0;
+	const controller = new TemporaryEndpointController({
+		runnerPath,
+		binaryPath: await fakeTunnel(t, root),
+		fetch: async () => new Response("{}", { status: statuses[probes++] ?? 401 }),
+		startupTimeoutMs: 2_000,
+	});
+	t.after(() => controller.stop("owner_stop"));
+	const lease = await controller.start({
+		upstreamLoopbackOrigin: "http://127.0.0.1:5182",
+		relativePath: "/api/plugin-runtime/handle",
+		method: "POST",
+		token: "eventually-ready-token",
+		ttlMs: 60_000,
+	});
+	assert.equal(probes, 3);
+	assert.equal(lease.serverUrl, "https://fixture.trycloudflare.com/mcp?token=eventually-ready-token");
+});
+
 test("stop during binary preparation cancels publication before a runner can become active", async (t) => {
 	const root = await mkdtemp(join(tmpdir(), "dot-controller-start-stop-"));
 	t.after(() => rm(root, { recursive: true, force: true }));

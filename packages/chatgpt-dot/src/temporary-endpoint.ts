@@ -39,6 +39,10 @@ interface ActiveEndpoint {
 
 const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+function transientProbeStatus(status: number): boolean {
+	return status === 404 || status === 408 || status === 425 || status === 429 || status >= 500;
+}
+
 function processGroupAlive(pid: number): boolean {
 	try {
 		process.kill(-pid, 0);
@@ -135,13 +139,17 @@ export class TemporaryEndpointController {
 		timer.unref?.();
 		const active: ActiveEndpoint = { generation, child, timer, publicBaseUrl: null, expiresAt };
 		this.#active = active;
+		const startupDeadline = Date.now() + this.#startupTimeoutMs;
 		child.once("exit", () => {
 			if (this.#active !== active) return;
 			void this.#beginCleanup(active, "runner_exit", false);
 		});
 		try {
 			const publicBaseUrl = await new Promise<string>((resolve, reject) => {
-			const timeout = setTimeout(() => settle(() => reject(new Error("dot_temporary_start_timeout"))), this.#startupTimeoutMs);
+			const timeout = setTimeout(
+				() => settle(() => reject(new Error("dot_temporary_start_timeout"))),
+				Math.max(1, startupDeadline - Date.now()),
+			);
 			const message = (raw: RunnerMessage) => {
 				if (raw?.type === "ready") settle(() => resolve(raw.publicBaseUrl));
 				else if (raw?.type === "error") settle(() => reject(new Error(raw.reason)));
@@ -159,13 +167,30 @@ export class TemporaryEndpointController {
 			});
 			if (this.#active?.generation !== generation) throw new Error("dot_temporary_start_cancelled");
 			this.#active.publicBaseUrl = publicBaseUrl;
-			const probe = await this.#fetch(`${publicBaseUrl.replace(/\/$/u, "")}/mcp`, {
-			method: "POST",
-			headers: { "content-type": "application/json" },
-			body: "{}",
-			signal: AbortSignal.timeout(this.#startupTimeoutMs),
-			});
-			if (probe.status !== 401) throw new Error("dot_temporary_probe_failed");
+			const probeUrl = `${publicBaseUrl.replace(/\/$/u, "")}/mcp`;
+			for (;;) {
+				if (this.#active?.generation !== generation) throw new Error("dot_temporary_start_cancelled");
+				const remaining = startupDeadline - Date.now();
+				if (remaining <= 0) throw new Error("dot_temporary_probe_failed");
+				let status: number | undefined;
+				try {
+					status = (await this.#fetch(probeUrl, {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body: "{}",
+						signal: AbortSignal.timeout(Math.max(1, Math.min(remaining, 2_000))),
+					})).status;
+				} catch {
+					// Quick Tunnel can publish its URL before the edge route accepts traffic.
+					// Network failures remain retryable only inside the original startup deadline.
+				}
+				if (status === 401) break;
+				if (status !== undefined && !transientProbeStatus(status))
+					throw new Error("dot_temporary_probe_failed");
+				const afterProbe = startupDeadline - Date.now();
+				if (afterProbe <= 0) throw new Error("dot_temporary_probe_failed");
+				await pause(Math.min(250, afterProbe));
+			}
 			if (this.#active?.generation !== generation) throw new Error("dot_temporary_start_cancelled");
 			return {
 				generation,
