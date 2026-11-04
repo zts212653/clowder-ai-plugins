@@ -172,6 +172,81 @@ test("an unfinished upload cannot keep the tunnel alive after runner stop", asyn
 	assert.equal(live(pid), false);
 });
 
+test("an interrupted authorized upload cannot crash the runner or strand its tunnel", async (t) => {
+	const root = await mkdtemp(join(tmpdir(), "dot-runner-interrupted-upload-"));
+	const tunnel = await fakeTunnelWithPid(root);
+	const child = fork(runnerPath, [tunnel.path], { stdio: ["ignore", "ignore", "ignore", "ipc"], detached: true });
+	let request;
+	let pid;
+	t.after(async () => {
+		request?.destroy();
+		try { process.kill(-child.pid, "SIGKILL"); } catch {}
+		if (pid && live(pid)) process.kill(pid, "SIGKILL");
+		await rm(root, { recursive: true, force: true });
+	});
+	const ready = new Promise((resolve, reject) => {
+		child.on("message", (message) => message?.type === "ready" && resolve(message));
+		child.once("exit", () => reject(new Error("runner exited")));
+	});
+	child.send({
+		type: "start", upstreamLoopbackOrigin: "http://127.0.0.1:1",
+		relativePath: "/api/plugin-runtime/handle", method: "POST", token: "fixture-token",
+		expiresAt: Date.now() + 60_000,
+	});
+	const info = await ready;
+	pid = Number(await readFile(tunnel.pidFile, "utf8"));
+	request = http.request(`${info.listenerOrigin}/mcp?token=fixture-token`, {
+		method: "POST", headers: { "content-type": "application/json", "content-length": "100" },
+	});
+	request.on("error", () => {});
+	request.write("{");
+	await pause(100);
+	request.destroy();
+	await pause(300);
+	assert.equal(child.exitCode, null, "request stream errors stay inside the request lifecycle");
+	child.send({ type: "stop", reason: "owner_stop" });
+	await new Promise((resolve) => child.once("exit", resolve));
+	assert.equal(live(pid), false);
+});
+
+test("controller reaps the detached tunnel group after an unexpected runner exit", async (t) => {
+	const root = await mkdtemp(join(tmpdir(), "dot-controller-runner-exit-"));
+	const tunnel = await fakeTunnelWithPid(root);
+	const runnerPidFile = join(root, "runner.pid");
+	const wrapper = join(root, "runner-wrapper.mjs");
+	await writeFile(
+		wrapper,
+		`import { writeFileSync } from 'node:fs';\nwriteFileSync(${JSON.stringify(runnerPidFile)}, String(process.pid));\nawait import(${JSON.stringify(runnerPath)});\n`,
+	);
+	const controller = new TemporaryEndpointController({
+		runnerPath: wrapper,
+		binaryPath: tunnel.path,
+		fetch: async () => new Response("{}", { status: 401 }),
+		startupTimeoutMs: 2_000,
+	});
+	let runnerPid;
+	let tunnelPid;
+	t.after(async () => {
+		await controller.stop("owner_stop");
+		if (runnerPid) try { process.kill(-runnerPid, "SIGKILL"); } catch {}
+		if (tunnelPid && live(tunnelPid)) process.kill(tunnelPid, "SIGKILL");
+		await rm(root, { recursive: true, force: true });
+	});
+	await controller.start({
+		upstreamLoopbackOrigin: "http://127.0.0.1:1",
+		relativePath: "/api/plugin-runtime/handle",
+		method: "POST",
+		token: "fixture-token",
+		ttlMs: 60_000,
+	});
+	runnerPid = Number(await readFile(runnerPidFile, "utf8"));
+	tunnelPid = Number(await readFile(tunnel.pidFile, "utf8"));
+	process.kill(runnerPid, "SIGKILL");
+	await pause(1_000);
+	assert.equal(live(tunnelPid), false);
+	assert.throws(() => controller.allowToken("late-token"), /unavailable/u);
+});
+
 test("controller materializes a verified non-executable packaged asset into private runtime storage", async (t) => {
 	const root = await mkdtemp(join(tmpdir(), "dot-controller-materialize-test-"));
 	t.after(() => rm(root, { recursive: true, force: true }));

@@ -49,27 +49,28 @@ process.on("message", async (message) => {
 			throw new Error("dot_temporary_route_invalid");
 		acceptedTokens.add(token);
 		server = http.createServer(async (request, response) => {
-			const matchedToken = [...acceptedTokens].find(
-				(candidate) => request.url === `/mcp?token=${encodeURIComponent(candidate)}`,
-			);
-			if (
-				request.method !== "POST" || !matchedToken || request.headers.upgrade ||
-				request.headers.connection?.toLowerCase().includes("upgrade")
-			) return reply(response, request.url === "/mcp" ? 401 : 404, { error: "request_rejected" });
-			const chunks = [];
-			let size = 0;
-			for await (const chunk of request) {
-				size += chunk.length;
-				if (size > 15 * 1024 * 1024) return reply(response, 413, { error: "body_too_large" });
-				chunks.push(chunk);
-			}
-			const headers = { authorization: `Bearer ${matchedToken}` };
-			for (const name of ["accept", "content-type", "mcp-protocol-version", "mcp-session-id", "last-event-id"])
-				if (typeof request.headers[name] === "string") headers[name] = request.headers[name];
-			const target = new URL(relativePath, upstream);
-			const controller = new AbortController();
-			upstreamRequests.add(controller);
+			let controller;
 			try {
+				const matchedToken = [...acceptedTokens].find(
+					(candidate) => request.url === `/mcp?token=${encodeURIComponent(candidate)}`,
+				);
+				if (
+					request.method !== "POST" || !matchedToken || request.headers.upgrade ||
+					request.headers.connection?.toLowerCase().includes("upgrade")
+				) return reply(response, request.url === "/mcp" ? 401 : 404, { error: "request_rejected" });
+				const chunks = [];
+				let size = 0;
+				for await (const chunk of request) {
+					size += chunk.length;
+					if (size > 15 * 1024 * 1024) return reply(response, 413, { error: "body_too_large" });
+					chunks.push(chunk);
+				}
+				const headers = { authorization: `Bearer ${matchedToken}` };
+				for (const name of ["accept", "content-type", "mcp-protocol-version", "mcp-session-id", "last-event-id"])
+					if (typeof request.headers[name] === "string") headers[name] = request.headers[name];
+				const target = new URL(relativePath, upstream);
+				controller = new AbortController();
+				upstreamRequests.add(controller);
 				const result = await fetch(target, {
 					method: "POST",
 					headers,
@@ -83,9 +84,10 @@ process.on("message", async (message) => {
 				response.writeHead(result.status, responseHeaders);
 				response.end(Buffer.from(await result.arrayBuffer()));
 			} catch {
-				if (!stopping && !response.headersSent) reply(response, 502, { error: "upstream_unavailable" });
+				if (!stopping && !response.headersSent && !response.destroyed)
+					reply(response, 502, { error: "upstream_unavailable" });
 			} finally {
-				upstreamRequests.delete(controller);
+				if (controller) upstreamRequests.delete(controller);
 			}
 		});
 		server.on("connection", (socket) => {

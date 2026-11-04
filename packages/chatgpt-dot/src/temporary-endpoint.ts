@@ -28,6 +28,32 @@ type RunnerMessage =
 	| { readonly type: "ready"; readonly publicBaseUrl: string }
 	| { readonly type: "error"; readonly reason: string };
 
+interface ActiveEndpoint {
+	readonly generation: string;
+	readonly child: ChildProcess;
+	readonly timer: ReturnType<typeof setTimeout>;
+	publicBaseUrl: string | null;
+	readonly expiresAt: number;
+	cleanup?: Promise<void>;
+}
+
+const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+function processGroupAlive(pid: number): boolean {
+	try {
+		process.kill(-pid, 0);
+		return true;
+	} catch (error) {
+		return (error as NodeJS.ErrnoException).code === "EPERM";
+	}
+}
+
+async function waitForProcessGroupExit(pid: number, timeoutMs: number): Promise<boolean> {
+	const deadline = Date.now() + timeoutMs;
+	while (processGroupAlive(pid) && Date.now() < deadline) await pause(25);
+	return !processGroupAlive(pid);
+}
+
 /** Activation-owned temporary ingress. No Host-specific process or endpoint policy lives here. */
 export class TemporaryEndpointController {
 	readonly #runnerPath: string;
@@ -39,7 +65,8 @@ export class TemporaryEndpointController {
 	readonly #runtimeDirectory: string | undefined;
 	readonly #onEnded: TemporaryEndpointOptions["onEnded"];
 	#epoch = 0;
-	#active?: { generation: string; child: ChildProcess; timer: ReturnType<typeof setTimeout>; publicBaseUrl: string | null; expiresAt: number };
+	#active?: ActiveEndpoint;
+	readonly #pendingCleanup = new Set<Promise<void>>();
 
 	constructor(options: TemporaryEndpointOptions = {}) {
 		this.#runnerPath = options.runnerPath ?? fileURLToPath(new URL("./temporary-endpoint-runner.mjs", import.meta.url));
@@ -106,12 +133,11 @@ export class TemporaryEndpointController {
 		const expiresAt = this.#now() + input.ttlMs;
 		const timer = setTimeout(() => void this.stop("expired"), Math.max(1, expiresAt - this.#now()));
 		timer.unref?.();
-		this.#active = { generation, child, timer, publicBaseUrl: null, expiresAt };
+		const active: ActiveEndpoint = { generation, child, timer, publicBaseUrl: null, expiresAt };
+		this.#active = active;
 		child.once("exit", () => {
-			if (this.#active?.generation !== generation) return;
-			this.#active = undefined;
-			clearTimeout(timer);
-			void this.#onEnded?.(generation, "runner_exit");
+			if (this.#active !== active) return;
+			void this.#beginCleanup(active, "runner_exit", false);
 		});
 		try {
 			const publicBaseUrl = await new Promise<string>((resolve, reject) => {
@@ -148,7 +174,8 @@ export class TemporaryEndpointController {
 				expiresAt,
 			};
 		} catch (error) {
-			if (this.#active?.generation === generation) await this.stop("startup_failed");
+			if (this.#active === active) await this.#beginCleanup(active, "startup_failed", true);
+			else await this.#awaitPendingCleanup();
 			throw error;
 		}
 	}
@@ -173,23 +200,45 @@ export class TemporaryEndpointController {
 
 	async #stopActive(reason: string): Promise<void> {
 		const active = this.#active;
-		if (!active) return;
-		this.#active = undefined;
+		if (!active) return this.#awaitPendingCleanup();
+		await this.#beginCleanup(active, reason, true);
+	}
+
+	async #awaitPendingCleanup(): Promise<void> {
+		if (this.#pendingCleanup.size === 0) return;
+		await Promise.all([...this.#pendingCleanup]);
+	}
+
+	#beginCleanup(active: ActiveEndpoint, reason: string, requestRunnerStop: boolean): Promise<void> {
+		if (active.cleanup) return active.cleanup;
+		if (this.#active === active) this.#active = undefined;
 		clearTimeout(active.timer);
-		if (active.child.exitCode !== null || active.child.signalCode !== null) return;
-		await new Promise<void>((resolve) => {
-			const timeout = setTimeout(() => {
-				if (active.child.exitCode === null && active.child.signalCode === null) {
-					try { process.kill(-active.child.pid!, "SIGKILL"); }
-					catch { active.child.kill("SIGKILL"); }
-				}
-			}, 2_000);
-			active.child.once("exit", () => {
-				clearTimeout(timeout);
-				resolve();
-			});
-			active.child.send({ type: "stop", reason });
+		const cleanup = this.#cleanupOwnedGroup(active, reason, requestRunnerStop).finally(() => {
+			this.#pendingCleanup.delete(cleanup);
 		});
+		active.cleanup = cleanup;
+		this.#pendingCleanup.add(cleanup);
+		return cleanup;
+	}
+
+	async #cleanupOwnedGroup(active: ActiveEndpoint, reason: string, requestRunnerStop: boolean): Promise<void> {
+		const pid = active.child.pid;
+		if (pid === undefined) throw new Error("dot_temporary_runner_pid_missing");
+		if (requestRunnerStop && active.child.exitCode === null && active.child.signalCode === null) {
+			const exited = new Promise<void>((resolve) => active.child.once("exit", () => resolve()));
+			try { active.child.send({ type: "stop", reason }); }
+			catch { /* The exit path below still owns the detached process group. */ }
+			await Promise.race([exited, pause(1_500)]);
+		}
+		if (processGroupAlive(pid)) {
+			try { process.kill(-pid, "SIGTERM"); }
+			catch { /* The group may have completed between the liveness check and signal. */ }
+			if (!await waitForProcessGroupExit(pid, 250)) {
+				try { process.kill(-pid, "SIGKILL"); }
+				catch { /* The group may have completed between the liveness check and signal. */ }
+				await waitForProcessGroupExit(pid, 250);
+			}
+		}
 		await this.#onEnded?.(active.generation, reason);
 	}
 }
