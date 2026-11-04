@@ -7,7 +7,7 @@ import { createDotPlugin } from "../src/plugin-entrypoint.ts";
 
 const hash = (value) => createHash("sha256").update(value).digest("hex");
 const secret = "whsec_" + Buffer.alloc(32, 1).toString("base64");
-export function fixture(t) {
+export function fixture(t, options = {}) {
 	const records = new Map(),
 		messages = new Map(),
 		threads = new Map(),
@@ -38,6 +38,7 @@ export function fixture(t) {
 	};
 	const host = {
 		pluginInstanceId: "installed-dot-1",
+		...(options.capability ? { capability: options.capability } : {}),
 		external: {
 			endpoint: "https://plugins.example/plugin/mcp",
 			token: `cpa_${"a".repeat(43)}`,
@@ -63,7 +64,7 @@ export function fixture(t) {
 			},
 		},
 		storage,
-		config: { get: async () => undefined },
+		config: { get: async (key) => options.config?.[key] },
 		secrets: { get: async () => undefined },
 		messaging: {
 			get: async (id) => messages.get(id) ?? null,

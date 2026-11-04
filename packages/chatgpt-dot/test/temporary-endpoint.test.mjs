@@ -1,0 +1,165 @@
+import assert from "node:assert/strict";
+import { fork } from "node:child_process";
+import { chmod, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import http from "node:http";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+import { BUNDLED_TUNNEL_SHA256, TemporaryEndpointController } from "../src/temporary-endpoint.ts";
+import { createHash } from "node:crypto";
+
+const runnerPath = resolve(fileURLToPath(new URL("../src/temporary-endpoint-runner.mjs", import.meta.url)));
+
+test("published darwin-arm64 tunnel binary matches its reviewed manifest identity", async () => {
+	const binary = fileURLToPath(new URL("../assets/bin/darwin-arm64/cloudflared", import.meta.url));
+	const manifest = JSON.parse(await readFile(fileURLToPath(new URL("../assets/runtime-assets.json", import.meta.url)), "utf8"));
+	const bytes = await readFile(binary);
+	assert.equal(createHash("sha256").update(bytes).digest("hex"), BUNDLED_TUNNEL_SHA256);
+	assert.equal(manifest.assets[0].sha256, BUNDLED_TUNNEL_SHA256);
+	assert.notEqual((await stat(binary)).mode & 0o111, 0);
+});
+
+async function fakeTunnel(t, root) {
+	const path = join(root, "fake-cloudflared.mjs");
+	await writeFile(path, `#!/usr/bin/env node\nconsole.error('https://fixture.trycloudflare.com');\nsetInterval(() => {}, 1000);\n`);
+	await chmod(path, 0o755);
+	return path;
+}
+
+async function fakeTunnelWithPid(root) {
+	const pidFile = join(root, "fake-cloudflared.pid");
+	const path = join(root, "fake-cloudflared-with-pid.mjs");
+	await writeFile(path, `#!/usr/bin/env node\nimport { writeFileSync } from 'node:fs';\nwriteFileSync(${JSON.stringify(pidFile)}, String(process.pid));\nconsole.error('https://fixture.trycloudflare.com');\nsetInterval(() => {}, 1000);\n`);
+	await chmod(path, 0o755);
+	return { path, pidFile };
+}
+
+async function listening(server) {
+	await new Promise((resolve, reject) => {
+		server.once("error", reject);
+		server.listen(0, "127.0.0.1", resolve);
+	});
+	const address = server.address();
+	if (!address || typeof address === "string") throw new Error("listener missing");
+	return `http://127.0.0.1:${address.port}`;
+}
+
+test("forward-only runner rejects Host sibling paths, encoded variants and upgrades before upstream", async (t) => {
+	const root = await mkdtemp(join(tmpdir(), "dot-runner-test-"));
+	t.after(() => rm(root, { recursive: true, force: true }));
+	let upstreamCalls = 0;
+	const upstream = http.createServer((request, response) => {
+		upstreamCalls++;
+		assert.equal(request.url, "/api/plugin-runtime/handle");
+		assert.equal(request.headers.authorization, "Bearer signed-token");
+		assert.equal(request.headers.cookie, undefined);
+		response.writeHead(200, { "content-type": "application/json" });
+		response.end('{"ok":true}');
+	});
+	const upstreamOrigin = await listening(upstream);
+	t.after(() => new Promise((resolve) => upstream.close(resolve)));
+	const child = fork(runnerPath, [await fakeTunnel(t, root)], { stdio: ["ignore", "ignore", "ignore", "ipc"] });
+	t.after(() => child.exitCode === null && child.kill("SIGKILL"));
+	const ready = new Promise((resolve, reject) => {
+		child.on("message", (message) => message?.type === "ready" && resolve(message));
+		child.once("exit", () => reject(new Error("runner exited")));
+	});
+	child.send({
+		type: "start",
+		upstreamLoopbackOrigin: upstreamOrigin,
+		relativePath: "/api/plugin-runtime/handle",
+		method: "POST",
+		token: "signed-token",
+		expiresAt: Date.now() + 60_000,
+	});
+	const { listenerOrigin } = await ready;
+	for (const target of ["/api/session", "/api/cats", "/mcp%2F..%2Fapi%2Fsession", "//mcp?token=signed-token"])
+		assert.equal((await fetch(listenerOrigin + target, { method: "POST", body: "{}" })).status, 404);
+	assert.equal(upstreamCalls, 0);
+	const accepted = await fetch(`${listenerOrigin}/mcp?token=signed-token`, {
+		method: "POST",
+		headers: { "content-type": "application/json", cookie: "owner=secret", host: "evil.invalid" },
+		body: "{}",
+	});
+	assert.equal(accepted.status, 200);
+	assert.equal(upstreamCalls, 1);
+	child.send({ type: "stop", reason: "owner_stop" });
+	await new Promise((resolve) => child.once("exit", resolve));
+	await assert.rejects(fetch(`${listenerOrigin}/mcp?token=signed-token`, { method: "POST", body: "{}" }));
+});
+
+test("controller publishes owner URL without clipboard and closes its exact runner", async (t) => {
+	const root = await mkdtemp(join(tmpdir(), "dot-controller-test-"));
+	t.after(() => rm(root, { recursive: true, force: true }));
+	const controller = new TemporaryEndpointController({
+		runnerPath,
+		binaryPath: await fakeTunnel(t, root),
+		fetch: async () => new Response("{}", { status: 401 }),
+		startupTimeoutMs: 2_000,
+	});
+	t.after(() => controller.stop("owner_stop"));
+	const lease = await controller.start({
+		upstreamLoopbackOrigin: "http://127.0.0.1:5182",
+		relativePath: "/api/plugin-runtime/handle",
+		method: "POST",
+		token: "first-token",
+		ttlMs: 60_000,
+	});
+	assert.equal(lease.serverUrl, "https://fixture.trycloudflare.com/mcp?token=first-token");
+	assert.equal(
+		controller.allowToken("second-token").serverUrl,
+		"https://fixture.trycloudflare.com/mcp?token=second-token",
+	);
+	await controller.stop("owner_stop");
+	assert.throws(() => controller.allowToken("late-token"), /unavailable/);
+});
+
+test("controller materializes a verified non-executable packaged asset into private runtime storage", async (t) => {
+	const root = await mkdtemp(join(tmpdir(), "dot-controller-materialize-test-"));
+	t.after(() => rm(root, { recursive: true, force: true }));
+	const binaryPath = await fakeTunnel(t, root);
+	await chmod(binaryPath, 0o644);
+	const bytes = await readFile(binaryPath);
+	const controller = new TemporaryEndpointController({
+		runnerPath,
+		binaryPath,
+		expectedBinarySha256: createHash("sha256").update(bytes).digest("hex"),
+		runtimeDirectory: join(root, "private-runtime"),
+		fetch: async () => new Response("{}", { status: 401 }),
+		startupTimeoutMs: 2_000,
+	});
+	t.after(() => controller.stop("owner_stop"));
+	await controller.start({
+		upstreamLoopbackOrigin: "http://127.0.0.1:5182",
+		relativePath: "/api/plugin-runtime/handle",
+		method: "POST",
+		token: "materialized-token",
+		ttlMs: 60_000,
+	});
+	const materialized = join(root, "private-runtime/cloudflared-darwin-arm64");
+	assert.deepEqual(await readFile(materialized), bytes);
+	assert.equal((await stat(materialized)).mode & 0o777, 0o700);
+});
+
+test("controller closes a provisional runner when the public probe fails", async (t) => {
+	const root = await mkdtemp(join(tmpdir(), "dot-controller-probe-test-"));
+	t.after(() => rm(root, { recursive: true, force: true }));
+	const tunnel = await fakeTunnelWithPid(root);
+	const controller = new TemporaryEndpointController({
+		runnerPath,
+		binaryPath: tunnel.path,
+		fetch: async () => new Response("{}", { status: 200 }),
+		startupTimeoutMs: 2_000,
+	});
+	await assert.rejects(controller.start({
+		upstreamLoopbackOrigin: "http://127.0.0.1:5182",
+		relativePath: "/api/plugin-runtime/handle",
+		method: "POST",
+		token: "first-token",
+		ttlMs: 60_000,
+	}), /probe_failed/);
+	await new Promise((resolve) => setTimeout(resolve, 100));
+	const pid = Number(await import("node:fs/promises").then(({ readFile }) => readFile(tunnel.pidFile, "utf8")));
+	assert.throws(() => process.kill(pid, 0));
+});

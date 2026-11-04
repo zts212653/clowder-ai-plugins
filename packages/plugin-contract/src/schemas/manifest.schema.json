@@ -175,6 +175,7 @@
             "schedule",
             "tool",
             "mcp",
+            "external-request",
             "skill",
             "limb",
             "webhook",
@@ -1087,6 +1088,25 @@
         "type",
         "id",
         "runtime"
+      ],
+      "additionalProperties": false
+    },
+    "ExternalRequestContribution": {
+      "type": "object",
+      "description": "Declares one stable, Host-authenticated external request capability. The Host owns the fixed forwarding route and derives the installation instance from authenticated plugin context; manifests cannot select an origin, path, method, audience or another instance.",
+      "properties": {
+        "type": {
+          "const": "external-request"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "type",
+        "id"
       ],
       "additionalProperties": false
     },
@@ -2103,6 +2123,9 @@
         },
         {
           "$ref": "#/$defs/McpContribution"
+        },
+        {
+          "$ref": "#/$defs/ExternalRequestContribution"
         },
         {
           "$ref": "#/$defs/SkillContribution"

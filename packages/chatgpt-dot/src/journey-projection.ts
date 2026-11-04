@@ -1,13 +1,18 @@
 import type { OperationRows } from "@clowder-ai/plugin-contract";
-import type { SharedConnectionView } from "./connection.js";
 import type { DotConnectionState } from "./connection-state.js";
+import type { DotExternalState } from "./external-state.js";
 import type { Dispatch } from "./store.js";
 
 const FIVE_MINUTES_MS = 5 * 60_000;
 const ROUNDTRIP_DEADLINE_MS = 60_000;
 
 type JourneyAction =
-	| "prepare-shared"
+	| "use-long-lived"
+	| "start-temporary"
+	| "show-server-url"
+	| "stop-temporary"
+	| "refresh-credential"
+	| "cancel-pending"
 	| "begin-pairing"
 	| "show-instructions"
 	| "reconnect"
@@ -51,7 +56,7 @@ function currentTests(
 
 export interface DotJourneyInput {
 	readonly runtimeRunning: boolean;
-	readonly shared?: SharedConnectionView;
+	readonly external: DotExternalState | null;
 	readonly connection: DotConnectionState | null;
 	readonly dispatches: readonly Dispatch[];
 	readonly now: number;
@@ -70,42 +75,58 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 		};
 	}
 
-	const shared = input.shared;
-	if (
-		!shared ||
-		shared.deployment.state !== "configured" ||
-		shared.binding.state === "occupied"
-	) {
-		const reason =
-			shared?.binding.state === "occupied"
-				? "现有猫咖云端连接已由另一个安装占用。"
-				: shared?.deployment.state === "missing-endpoint"
-					? "本实例尚未配置公开 HTTPS 共享入口。"
-					: "本实例尚未配置可用的猫咖云端成员。";
+	const external = input.external;
+	const endpoint = external?.endpoint;
+	const endpointActive = Boolean(
+		endpoint &&
+			(endpoint.mode === "long-lived" ||
+				(endpoint.mode === "temporary-active" && endpoint.expiresAt > input.now)),
+	);
+	if (!external?.pending && !external?.current) {
 		return {
 			rows: [
 				row(
-					"deployment-blocked",
-					"共享连接尚未准备好",
-					`${reason} 这属于实例部署状态，请由本实例部署管理员补齐猫咖共享连接；Dot 不会生成地址、凭据或配对说明。`,
+					"endpoint-choice",
+					"第一步：建立 ChatGPT 入口",
+					"有长期公网地址就使用已填写的 Server URL 模板；否则可由 Dot 自动启动最长 24 小时的临时入口。无需终端命令。",
+					[
+						action("use-long-lived", "使用长期公网入口"),
+						action("start-temporary", "创建临时入口"),
+					],
 				),
 			],
 		};
 	}
-
-	if (shared.binding.state !== "active") {
-		const reason =
-			shared.binding.state === "needs-confirmation"
-				? "安装或能力范围发生变化，需要重新确认。"
-				: shared.binding.state === "revoked"
-					? "此前授权已撤销。"
-					: "Dot 尚未获准使用现有猫咖云端连接。";
+	if (!endpointActive) {
 		return {
 			rows: [
-				row("authorization-required", "需要确认共享连接范围", reason, [
-					action("prepare-shared", "准备授权"),
-				]),
+				row(
+					"endpoint-recovery",
+					"外部入口尚不可用",
+					"待验证凭据仍保留；请选择长期入口或重新创建临时入口。旧连接不会因此被替换。",
+					[
+						action("use-long-lived", "使用长期公网入口"),
+						action("start-temporary", "创建临时入口"),
+						action("cancel-pending", "放弃本次更新"),
+					],
+				),
 			],
+		};
+	}
+	if (external.pending?.discoveredAt === null) {
+		const endpointDetail = endpoint?.mode === "temporary-active"
+			? `这是临时入口，将于 ${new Date(endpoint.expiresAt).toISOString()} 到期。`
+			: "这是已配置的长期公网入口。";
+		return {
+			rows: [row(
+				"waiting-discovery",
+				"第二步：添加到 ChatGPT",
+				`复制 Server URL，在 ChatGPT 添加自定义 MCP 服务器。${endpointDetail}只有真实 discovery 到达后才进入配对。`,
+				[
+					action("show-server-url", "显示并复制 Server URL"),
+					action("cancel-pending", "放弃本次更新"),
+				],
+			)],
 		};
 	}
 
@@ -116,11 +137,11 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 			rows: [
 				row(
 					"pairing-not-started",
-					"共享入口已获准",
-					"下一步生成一次 Dot 配对说明；此动作不会新建第二条猫咖连接。",
+					"第三步：配对 Dot",
+					"ChatGPT 已识别当前待验证凭据。现在生成配对说明并订阅 dot.summoned。",
 					[
 						action("begin-pairing", "生成配对说明"),
-						action("disconnect", "撤销共享授权"),
+						action("cancel-pending", "放弃本次更新"),
 					],
 				),
 			],

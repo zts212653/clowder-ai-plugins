@@ -334,8 +334,30 @@ export interface PluginMessagingHost {
   unsubscribe(input: { readonly threadId: string }): Promise<void>;
 }
 
+export interface PluginCapabilityHost {
+  issueExternal(input: { readonly capabilityId: string; readonly ttlSeconds: number }): Promise<{
+    readonly token: string;
+    readonly tokenId: string;
+    readonly issuedAt: number;
+    readonly expiresAt: number;
+    readonly refreshRecommendedAt: number;
+    readonly forwarding: {
+      readonly upstreamLoopbackOrigin: string;
+      readonly relativePath: string;
+      readonly method: 'POST';
+    };
+  }>;
+  inspectExternal(input: { readonly token: string; readonly capabilityId: string }): Promise<{
+    readonly usable: boolean;
+    readonly reason: string;
+    readonly expiresAt?: number;
+    readonly remainingSeconds?: number;
+    readonly refreshRecommended: boolean;
+  }>;
+}
+
 /** Available while installed, including disabled setup and uninstall. No runtime effects. */
-export type ModulePluginSettingsHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'external' | 'dataPath' | 'config' | 'secrets' | 'storage' | 'log'>;
+export type ModulePluginSettingsHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'capability' | 'external' | 'dataPath' | 'config' | 'secrets' | 'storage' | 'log'>;
 
 /** Structural mirror of the Host-owned in-process module surface. */
 export interface ModulePluginHostShape {
@@ -344,6 +366,8 @@ export interface ModulePluginHostShape {
   readonly collectiveArtifactOwner?: import('./collective-artifact-owner.js').CollectiveArtifactOwnerPort;
   /** Installation attribution supplied by the Host, never the manifest's package id. */
   readonly pluginInstanceId: string;
+  /** Host-authenticated capability operations; caller identity is never accepted as input. */
+  readonly capability?: PluginCapabilityHost;
   readonly members?: import('./members.js').PluginMemberHost;
   /** Available only on Hosts with persistent, controlled member execution. */
   readonly memberSessions?: import('./member-sessions.js').PluginMemberSessionsHost;

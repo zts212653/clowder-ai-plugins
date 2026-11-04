@@ -566,6 +566,7 @@ export function validateManifest(value: unknown): ManifestValidationResult {
       const runtimeContributionIndex = contributions.findIndex(
         (contribution) =>
           'action' in contribution ||
+          contribution.type === 'external-request' ||
           contribution.type === 'media-source' ||
           contribution.type === 'limb' ||
           contribution.type === 'connector' ||

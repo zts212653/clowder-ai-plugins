@@ -1,6 +1,6 @@
 {
 	"name": "@clowder-ai/chatgpt-dot",
-	"version": "0.2.0-alpha.10",
+	"version": "0.2.0-alpha.11",
 	"private": true,
 	"description": "Paired ChatGPT Dot connection and source-bound messaging plugin",
 	"license": "MIT",
@@ -22,15 +22,15 @@
 		"node": ">=20.0.0"
 	},
 	"scripts": {
-		"build": "tsc -p tsconfig.build.json",
+		"build": "tsc -p tsconfig.build.json && node scripts/copy-runtime-assets.mjs",
 		"typecheck": "tsc -p tsconfig.build.json --noEmit",
 		"lint": "tsc -p tsconfig.build.json --noEmit",
 		"test": "node --import tsx --test test/*.test.mjs test/*.test.ts",
 		"prepack": "pnpm build"
 	},
 	"dependencies": {
-		"@clowder-ai/plugin-contract": "0.3.1-candidate.1",
-		"@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.1",
+		"@clowder-ai/plugin-contract": "0.3.1-candidate.2",
+		"@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.2",
 		"zod": "3.24.1",
 		"sharp": "0.33.5"
 	},

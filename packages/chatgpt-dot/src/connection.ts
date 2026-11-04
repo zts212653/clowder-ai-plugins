@@ -2,6 +2,7 @@ import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { ModulePluginSettingsHost, PluginHostActionContext } from '@clowder-ai/plugin-sdk';
 import type { DotConnectionState } from './connection-state.js';
+import type { PendingCredential, VerifiedExternalCredential } from './external-state.js';
 import { DotStore, digest } from './store.js';
 import { verifyDotWebhook, type DotWebhookSend } from './dot-webhook.js';
 import { fenceAsyncPort } from './operation-fence.js';
@@ -21,6 +22,7 @@ export type DotSettingsHost = ModulePluginSettingsHost & {
         };
     };
 };
+export const DOT_EXTERNAL_CAPABILITY_ID = 'dot-mcp';
 export interface SharedConnectionView {
     readonly deployment:
         | { readonly state: 'configured'; readonly endpoint: string; readonly principal: string }
@@ -66,6 +68,217 @@ export class DotConnection {
         context?.signal.throwIfAborted();
     }
     assertCurrent() { return this.checkCurrent(this.operations.getStore()); }
+    async externalState() {
+        const existing = await this.store.external();
+        if (existing) return existing;
+        const connection = await this.store.connection();
+        return this.store.updateExternal(current => current ?? {
+            v: 1,
+            revision: 1,
+            current: this.host.external.token || connection?.credentialSecret
+                ? { kind: 'legacy', recordRef: this.host.external.token ? 'host.external' : 'connection.credentialSecret' }
+                : null,
+            pending: null,
+            endpoint: this.host.external.endpoint && this.host.external.token
+                ? {
+                    mode: 'long-lived',
+                    serverUrl: `${this.host.external.endpoint}${this.host.external.endpoint.includes('?') ? '&' : '?'}token=${encodeURIComponent(this.host.external.token)}`,
+                    reachableAt: null,
+                }
+                : { mode: 'absent' },
+        });
+    }
+    async issuePending(context: PluginHostActionContext | undefined, ttlSeconds: number) {
+        await this.owner(context);
+        if (!Number.isSafeInteger(ttlSeconds) || ttlSeconds <= 0 || ttlSeconds > 180 * 24 * 60 * 60)
+            throw new Error('dot_external_ttl_invalid');
+        const capability = this.host.capability;
+        if (!capability) throw new Error('dot_external_capability_unavailable');
+        const issued = await capability.issueExternal({ capabilityId: DOT_EXTERNAL_CAPABILITY_ID, ttlSeconds });
+        await this.assertCurrent();
+        const now = this.now();
+        const state = await this.store.updateExternal(previous => {
+            const state = previous ?? {
+                v: 1 as const,
+                revision: 0,
+                current: null,
+                pending: null,
+                endpoint: { mode: 'absent' as const },
+            };
+            const pending: PendingCredential = {
+                kind: 'pending',
+                candidateId: randomUUID(),
+                revision: (state.pending?.revision ?? 0) + 1,
+                token: issued.token,
+                tokenId: issued.tokenId,
+                issuedAt: issued.issuedAt,
+                expiresAt: issued.expiresAt,
+                refreshRecommendedAt: issued.refreshRecommendedAt,
+                createdAt: now,
+                discoveredAt: null,
+                pairingAttemptId: null,
+                verificationEventId: null,
+                verificationReadAt: null,
+                verificationReplyAt: null,
+				previousEndpoint: state.pending?.previousEndpoint ?? (state.current ? state.endpoint : null),
+            };
+            return { ...state, revision: state.revision + 1, pending };
+        });
+        return { state, issued };
+    }
+    async inspectCurrentCredential() {
+        const state = await this.externalState();
+        if (state.current?.kind !== 'signed') return state.current ? { usable: true, reason: 'legacy' } : { usable: false, reason: 'absent' };
+        const capability = this.host.capability;
+        if (!capability) return { usable: false, reason: 'capability_unavailable' };
+        return capability.inspectExternal({ token: state.current.token, capabilityId: DOT_EXTERNAL_CAPABILITY_ID });
+    }
+    async setLongLivedServerUrl(serverUrl: string) {
+        return this.store.updateExternal(state => {
+            if (!state?.pending) throw new Error('dot_pending_credential_required');
+            return { ...state, revision: state.revision + 1, endpoint: {
+                mode: 'long-lived', serverUrl, reachableAt: null,
+            } };
+        });
+    }
+    async setTemporaryLease(lease: {
+        readonly generation: string;
+        readonly serverUrl: string;
+        readonly startedAt: number;
+        readonly expiresAt: number;
+    }) {
+        return this.store.updateExternal(state => {
+            if (!state?.pending) throw new Error('dot_pending_credential_required');
+            return { ...state, revision: state.revision + 1, endpoint: {
+                mode: 'temporary-active', ...lease, reachableAt: this.now(),
+            } };
+        });
+    }
+    async expireTemporary(generation: string) {
+        return this.store.updateExternal(state => {
+            if (!state || state.endpoint.mode !== 'temporary-active' || state.endpoint.generation !== generation)
+                return state ?? { v: 1, revision: 1, current: null, pending: null, endpoint: { mode: 'absent' } };
+            return { ...state, revision: state.revision + 1, endpoint: {
+                mode: 'temporary-expired', generation, expiresAt: state.endpoint.expiresAt,
+            } };
+        });
+    }
+    async cancelPending() {
+        return this.store.updateExternal(state => {
+            if (!state) return { v: 1, revision: 1, current: null, pending: null, endpoint: { mode: 'absent' } };
+			const endpoint = state.current && state.pending?.previousEndpoint
+				? state.pending.previousEndpoint
+				: { mode: 'absent' as const };
+            return { ...state, revision: state.revision + 1, pending: null, endpoint };
+        });
+    }
+    async revokeExternal() {
+        return this.store.updateExternal(state => ({
+            v: 1,
+            revision: (state?.revision ?? 0) + 1,
+            current: null,
+            pending: null,
+            endpoint: { mode: 'absent' },
+        }));
+    }
+    async serverUrl() {
+        const endpoint = (await this.externalState()).endpoint;
+        if (endpoint.mode === 'long-lived') return endpoint.serverUrl;
+        if (endpoint.mode === 'temporary-active' && endpoint.expiresAt > this.now()) return endpoint.serverUrl;
+        throw new Error('dot_endpoint_unavailable');
+    }
+    async authorizeExternal(
+        credential: VerifiedExternalCredential | undefined,
+        lane: 'discovery' | 'pairing' | 'business',
+        eventId?: string,
+    ) {
+        const state = await this.externalState();
+        if (!credential) {
+            if (state.current?.kind === 'legacy') return { lane: 'current' as const, tokenId: 'legacy' };
+            throw new Error('dot_external_credential_required');
+        }
+        if (credential.sub !== this.host.pluginInstanceId || credential.cap !== DOT_EXTERNAL_CAPABILITY_ID)
+            throw new Error('dot_external_credential_mismatch');
+        if (state.current?.kind === 'signed' && state.current.tokenId === credential.jti)
+            return { lane: 'current' as const, tokenId: credential.jti };
+        const pending = state.pending;
+        if (!pending || pending.tokenId !== credential.jti)
+            throw new Error('dot_external_credential_rejected');
+        if (lane === 'business' && pending.verificationEventId !== eventId)
+            throw new Error('dot_pending_business_rejected');
+        return { lane: 'pending' as const, tokenId: credential.jti, candidateId: pending.candidateId };
+    }
+    async recordDiscovery(credential: VerifiedExternalCredential | undefined) {
+        const authorized = await this.authorizeExternal(credential, 'discovery');
+        if (authorized.lane !== 'pending') return authorized;
+        await this.store.updateExternal(state => {
+            if (!state?.pending || state.pending.tokenId !== authorized.tokenId || state.pending.candidateId !== authorized.candidateId)
+                throw new Error('dot_candidate_stale');
+            return { ...state, revision: state.revision + 1, pending: { ...state.pending, discoveredAt: this.now() } };
+        });
+        return authorized;
+    }
+    async bindPendingPairing(attemptId: string) {
+        await this.store.updateExternal(state => {
+            if (!state?.pending) throw new Error('dot_pending_credential_required');
+            return { ...state, revision: state.revision + 1, pending: { ...state.pending, pairingAttemptId: attemptId } };
+        });
+    }
+    async bindPendingVerification(eventId: string) {
+        await this.store.updateExternal(state => {
+            if (!state?.pending || state.pending.discoveredAt === null)
+                throw new Error('dot_pending_discovery_required');
+            return { ...state, revision: state.revision + 1, pending: {
+                ...state.pending,
+                verificationEventId: eventId,
+                verificationReadAt: null,
+                verificationReplyAt: null,
+            } };
+        });
+    }
+    async recordPendingEvidence(
+        credential: VerifiedExternalCredential | undefined,
+        eventId: string,
+        kind: 'read' | 'reply',
+    ) {
+        const authorized = await this.authorizeExternal(credential, 'business', eventId);
+        if (authorized.lane !== 'pending') return;
+        const updated = await this.store.updateExternal(state => {
+            const pending = state?.pending;
+            if (!pending || pending.tokenId !== authorized.tokenId || pending.candidateId !== authorized.candidateId || pending.verificationEventId !== eventId)
+                throw new Error('dot_candidate_stale');
+            return { ...state, revision: state.revision + 1, pending: {
+                ...pending,
+                ...(kind === 'read' ? { verificationReadAt: this.now() } : { verificationReplyAt: this.now() }),
+            } };
+        });
+        const pending = updated.pending;
+        if (!pending || pending.discoveredAt === null || pending.verificationReadAt === null || pending.verificationReplyAt === null)
+            return;
+        const connection = await this.ready();
+        if (pending.pairingAttemptId !== connection.attemptId)
+            throw new Error('dot_candidate_pairing_mismatch');
+        await this.store.updateExternal(state => {
+            const exact = state?.pending;
+            if (!exact || exact.candidateId !== pending.candidateId || exact.revision !== pending.revision ||
+                exact.tokenId !== pending.tokenId || exact.verificationEventId !== eventId ||
+                exact.discoveredAt === null || exact.verificationReadAt === null || exact.verificationReplyAt === null)
+                throw new Error('dot_candidate_stale');
+            return {
+                ...state,
+                revision: state.revision + 1,
+                current: {
+                    kind: 'signed',
+                    token: exact.token,
+                    tokenId: exact.tokenId,
+                    issuedAt: exact.issuedAt,
+                    expiresAt: exact.expiresAt,
+                    refreshRecommendedAt: exact.refreshRecommendedAt,
+                },
+                pending: null,
+            };
+        });
+    }
     captureFence() {
         const context = this.operations.getStore();
         return () => this.checkCurrent(context);
@@ -122,6 +335,9 @@ export class DotConnection {
     ) {
         await assertAuthority();
         const owner = await this.owner(context);
+        const externalBefore = await this.externalState();
+        if (externalBefore.pending && externalBefore.pending.discoveredAt === null)
+            throw new Error('dot_pending_discovery_required');
         await assertAuthority();
         const state = await this.store.updateConnection(previous => {
             this.assertLive();
@@ -136,6 +352,8 @@ export class DotConnection {
         });
         try {
             await assertAuthority();
+            const external = await this.externalState();
+            if (external.pending) await this.bindPendingPairing(state.attemptId);
         }
         catch (error) {
             await this.store.updateConnection(current => {

@@ -43,6 +43,37 @@ test('action transport refreshes credentials per call, preserves input, and neve
   } finally { await new Promise<void>(resolve => server.close(() => resolve())); await rm(dir, { recursive: true }); }
 });
 
+test('native action capability is read from its activation file for every request', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'plugin-action-capability-'));
+  const turnFile = join(dir, 'turn.json');
+  const capabilityFile = join(dir, 'capability.json');
+  const seen: Array<string | null> = [];
+  const env = {
+    CAT_CAFE_API_URL: 'http://127.0.0.1:1',
+    CLOWDER_PLUGIN_ACTION_TOKEN: 'stale-launch-token',
+    CLOWDER_PLUGIN_ACTION_CREDENTIAL_FILE: capabilityFile,
+    CLOWDER_PLUGIN_ACTION_PATH: '/api/plugin-runtime/action',
+    CAT_CAFE_CREDENTIAL_FILE: turnFile,
+  };
+  const client = createModuleActionClient({ env, fetch: async (_url, init) => {
+    seen.push(new Headers(init?.headers).get('x-clowder-plugin-action-token'));
+    return Response.json({ result: 'ok' });
+  } });
+  try {
+    await writeFile(turnFile, JSON.stringify({ invocationId: 'invocation', callbackToken: 'callback' }));
+    await writeFile(capabilityFile, JSON.stringify({ v: 1, token: 'first-capability' }));
+    await client.invoke('own.method', {});
+    await writeFile(capabilityFile, JSON.stringify({ v: 1, token: 'second-capability' }));
+    await client.invoke('own.method', {});
+    assert.deepEqual(seen, ['first-capability', 'second-capability']);
+    await writeFile(capabilityFile, 'broken');
+    await assert.rejects(client.invoke('own.method', {}), /credentials/i);
+    assert.equal(seen.length, 2, 'broken activation file must not fall back to the launch token');
+  } finally {
+    await rm(dir, { recursive: true });
+  }
+});
+
 test('native MCP uses exact runtime turn metadata, rechecks projection after admission and isolates concurrent calls', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'plugin-native-action-'));
   const file = join(dir, 'native.json');

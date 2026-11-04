@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { z } from 'zod';
 import { dotConnectionStateSchema } from './connection-state.js';
+import { dotExternalStateSchema } from './external-state.js';
 export const CONNECTION_KEY = 'dot/connection/v1';
+export const EXTERNAL_KEY = 'dot/external/v1';
 const ref = z.string().min(1).max(512);
 export const dispatchSchema = z.object({
     eventId: z.string().regex(/^dot_evt_[a-f0-9]{64}$/), ownerUserId: ref, threadId: ref, sourceMessageId: ref,
@@ -30,6 +32,10 @@ export class DotStore {
         const entry = await this.storage.get(eventKey(id));
         return entry ? dispatchSchema.parse(entry.value) : null;
     }
+    async external() {
+        const entry = await this.storage.get(EXTERNAL_KEY);
+        return entry ? dotExternalStateSchema.parse(entry.value) : null;
+    }
     /** Mutators are pure: an unrelated writer may require a CAS retry. Never put I/O in change. */
     async update<T>(key: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>, change: (value: T | null) => T): Promise<T> {
         for (let attempt = 0; attempt < 8; attempt++) {
@@ -42,6 +48,9 @@ export class DotStore {
     }
     updateConnection(change: (value: z.infer<typeof dotConnectionStateSchema> | null) => z.infer<typeof dotConnectionStateSchema>) {
         return this.update(CONNECTION_KEY, dotConnectionStateSchema, change);
+    }
+    updateExternal(change: (value: z.infer<typeof dotExternalStateSchema> | null) => z.infer<typeof dotExternalStateSchema>) {
+        return this.update(EXTERNAL_KEY, dotExternalStateSchema, change);
     }
     updateDispatch(id: string, change: (value: Dispatch | null) => Dispatch) {
         return this.update(eventKey(id), dispatchSchema, value => {

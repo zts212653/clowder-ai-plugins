@@ -172,10 +172,27 @@ test('generated contract exposes every Train B static contribution type', async 
     'connector',
     'ui',
     'content-editor-provider',
+    'external-request',
   ]) {
     assert.match(source, new RegExp(`'${type}'`));
   }
   assert.match(source, /export type PluginCatalog =/);
+});
+
+test('admits an owner-scoped external request contribution without caller-selected routing', () => {
+  const value = videoManifest();
+  value.contributions.push({ type: 'external-request', id: 'chatgpt-mcp' } as never);
+  value.features[0].contributions.push({ type: 'external-request', id: 'chatgpt-mcp' } as never);
+
+  const result = validateManifest(value);
+  assert.equal(result.valid, true);
+
+  const callerSelectedRoute = structuredClone(value);
+  Object.assign(callerSelectedRoute.contributions.at(-1)!, {
+    path: '/api/session',
+    method: 'GET',
+  });
+  assert.equal(validateManifest(callerSelectedRoute).valid, false);
 });
 
 test('admits only the closed, dedicated-origin DOCX provider surface contract', () => {

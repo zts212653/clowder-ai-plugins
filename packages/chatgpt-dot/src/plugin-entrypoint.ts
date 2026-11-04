@@ -1,4 +1,5 @@
 import { Readable } from "node:stream";
+import { join } from "node:path";
 import {
 	validateManifest,
 	type PluginDeliveryInput,
@@ -15,23 +16,30 @@ import {
 import {
 	DotConnection,
 	type DotSettingsHost,
-	type SharedConnectionView,
 } from "./connection.js";
 import { createDotWebhookSender, type DotWebhookSend } from "./dot-webhook.js";
 import { projectDotJourney } from "./journey-projection.js";
 import { httpRequestSchema, rpc } from "./rpc.js";
 import { DotRuntime, imageReference } from "./runtime.js";
+import { TemporaryEndpointController } from "./temporary-endpoint.js";
 export interface DotPluginOptions {
 	readonly sendWebhook?: DotWebhookSend;
 	readonly now?: () => number;
 }
-function sharedActive(view: SharedConnectionView | undefined) {
-	return view?.deployment.state === "configured" && view.binding.state === "active";
+function longLivedServerUrl(template: unknown, token: string) {
+	if (typeof template !== "string" || template.split("{token}").length !== 2)
+		throw new Error("dot_long_lived_template_required");
+	const rendered = template.replace("{token}", encodeURIComponent(token));
+	const url = new URL(rendered);
+	if (url.protocol !== "https:" || url.username || url.password || url.hash)
+		throw new Error("dot_long_lived_template_invalid");
+	return url.toString();
 }
 export function createDotPlugin(
 	options: DotPluginOptions = {},
 ): PluginModuleDefinition {
 	let running: DotRuntime | undefined;
+	let temporaryEndpoints: TemporaryEndpointController | undefined;
 	async function connection(
 		host: DotSettingsHost,
 		controller: AbortController,
@@ -79,23 +87,10 @@ export function createDotPlugin(
 		async settings(host) {
 			const controller = new AbortController(),
 				[current] = await connection(host as DotSettingsHost, controller);
-			const sharedPort = () => {
-				const shared = (host as DotSettingsHost).external.shared;
-				if (!shared) throw new Error("shared_connection_unavailable");
-				return shared;
-			};
-			const assertSharedActive = async () => {
-				const view = await sharedPort().status();
-				if (view.deployment.state !== "configured")
-					throw new Error(`shared_deployment_${view.deployment.state}`);
-				if (view.binding.state !== "active")
-					throw new Error(`shared_binding_${view.binding.state}`);
-				return view;
-			};
 			const statusRows = async (context?: PluginHostActionContext) => {
 				await current.owner(context);
 				const state = await current.store.connection();
-				const shared = await (host as DotSettingsHost).external.shared?.status();
+				const external = await current.externalState();
 				const dispatches = state
 					? (await Promise.all(state.testEventIds.map((id) => current.store.dispatch(id)))).filter(
 							(value): value is NonNullable<typeof value> => value !== null,
@@ -105,7 +100,7 @@ export function createDotPlugin(
 					render: "rows" as const,
 					data: projectDotJourney({
 						runtimeRunning: Boolean(running),
-						shared,
+						external,
 						connection: state,
 						dispatches,
 						now: (options.now ?? Date.now)(),
@@ -114,30 +109,52 @@ export function createDotPlugin(
 			};
 			const actions: Record<string, PluginActionHandler> = {
 				"dot.status": async (_input, _native, context) => statusRows(context),
-				"dot.prepare-shared": async (_input, _native, context) => {
+				"dot.use-long-lived": async (_input, _native, context) => {
 					await current.owner(context);
 					if (!running) throw new Error("dot_runtime_unavailable");
-					const proposal = await sharedPort().prepare({ confirmationActionId: "bind-shared" });
-					if (proposal.proposalRef.length === 0) return statusRows(context);
+					const ttlDays = Number(await host.config.get("externalTokenDays") ?? 180);
+					const template = await host.config.get("longLivedServerUrlTemplate");
+					const { issued } = await current.issuePending(context, ttlDays * 24 * 60 * 60);
+					const serverUrl = longLivedServerUrl(template, issued.token);
+					await current.setLongLivedServerUrl(serverUrl);
 					return {
-						render: "rows",
-						data: {
-							rows: [proposal.presentation],
-							validUntil: proposal.expiresAt,
-						},
+						render: "text",
+						data: serverUrl,
 					};
 				},
-				"dot.bind-shared": async (raw, _native, context) => {
-					const proposalRef =
-						raw && typeof raw === "object" && "input" in raw &&
-						(raw.input as { proposalRef?: unknown } | undefined)?.proposalRef;
-					if (typeof proposalRef !== "string" || proposalRef.length === 0)
-						throw new Error("shared_proposal_required");
-					await sharedPort().bind(proposalRef);
+				"dot.start-temporary": async (_input, _native, context) => {
+					await current.owner(context);
+					if (!running || !temporaryEndpoints) throw new Error("dot_runtime_unavailable");
+					const hours = Number(await host.config.get("temporaryEndpointHours") ?? 1);
+					if (!Number.isFinite(hours) || hours <= 0 || hours > 24)
+						throw new Error("dot_temporary_ttl_invalid");
+					const ttlMs = Math.floor(hours * 60 * 60_000);
+					const { issued } = await current.issuePending(context, Math.ceil(ttlMs / 1000) + 300);
+					const existing = await current.externalState();
+					const lease = existing.endpoint.mode === "temporary-active" && existing.endpoint.expiresAt > (options.now ?? Date.now)()
+						? temporaryEndpoints.allowToken(issued.token)
+						: await temporaryEndpoints.start({ ...issued.forwarding, token: issued.token, ttlMs });
+					await current.setTemporaryLease(lease);
+					return { render: "text", data: lease.serverUrl };
+				},
+				"dot.show-server-url": async (_input, _native, context) => {
+					await current.owner(context);
+					return { render: "text", data: await current.serverUrl() };
+				},
+				"dot.cancel-pending": async (_input, _native, context) => {
+					await current.owner(context);
+					const before = await current.externalState();
+					const restored = await current.cancelPending();
+					if (
+						before.endpoint.mode === "temporary-active" &&
+						(restored.endpoint.mode !== "temporary-active" ||
+							restored.endpoint.generation !== before.endpoint.generation)
+					)
+						await temporaryEndpoints?.stop("owner_stop");
 					return statusRows(context);
 				},
 				"dot.begin-pairing": async (_input, _native, context) => {
-					await current.begin(context, false, assertSharedActive);
+					await current.begin(context, false);
 					return statusRows(context);
 				},
 				"dot.show-instructions": async (_input, _native, context) => ({
@@ -145,28 +162,18 @@ export function createDotPlugin(
 					data: (await current.instructions(context)).instructions,
 				}),
 				"dot.reconnect": async (_input, _native, context) => {
-					await current.begin(context, true, assertSharedActive);
+					await current.begin(context, true);
 					return statusRows(context);
 				},
 				"dot.roundtrip": async (_input, _native, context) => {
-					await assertSharedActive();
 					if (!running) throw new Error("dot_runtime_unavailable");
 					await running.testRoundtrip();
-					await assertSharedActive();
 					return statusRows(context);
 				},
 				"dot.check-roundtrip": async (_input, _native, context) => statusRows(context),
 				"dot.disconnect": async (_input, _native, context) => {
-					const shared = (host as DotSettingsHost).external.shared;
-					if (shared) {
-						const connectionView = await shared.status();
-						if (
-							connectionView.binding.state === "active" ||
-							connectionView.binding.state === "needs-confirmation"
-						) {
-							await shared.unbind(connectionView.binding.revision);
-						}
-					}
+					await temporaryEndpoints?.stop("owner_stop");
+					await current.revokeExternal();
 					if (await current.store.connection()) await current.disconnect(context);
 					return statusRows(context);
 				},
@@ -213,9 +220,16 @@ export function createDotPlugin(
 				dotHost = host as ModulePluginHostShape & DotSettingsHost,
 				[current, refresh] = await connection(dotHost, controller),
 				runtime = new DotRuntime(host, current);
+				temporaryEndpoints = new TemporaryEndpointController({
+					...(options.now ? { now: options.now } : {}),
+					runtimeDirectory: join(dotHost.dataPath, "temporary-endpoint"),
+				});
 			running = runtime;
 			let disposeSettings: (() => void | Promise<void>) | undefined;
 			try {
+				const external = await current.externalState();
+				if (external.endpoint.mode === "temporary-active")
+					await current.expireTemporary(external.endpoint.generation);
 				await runtime.restoreSubscriptions();
 				let stop: Promise<void> | undefined;
 				const admitted = new Set<Promise<unknown>>();
@@ -245,22 +259,17 @@ export function createDotPlugin(
 						if (!state)
 							return { ok: false, message: "先在连接设置中准备配对。" };
 						let ready = null;
-						let shared: SharedConnectionView | undefined;
 						try {
 							ready = await current.ready();
 						} catch {
 							// Historical evidence remains inspectable below, but cannot make this attempt ready.
 						}
-						try {
-							shared = await dotHost.external.shared?.status();
-						} catch {
-							// A failed authority read is current-unavailable, never a reason to reuse old success.
-						}
+							const credential = await current.inspectCurrentCredential();
 						const tests = await Promise.all(
 							state.testEventIds.map((id) => current.store.dispatch(id)),
 						);
 						const currentReady =
-							ready?.attemptId === state.attemptId && sharedActive(shared);
+								ready?.attemptId === state.attemptId && credential.usable;
 						const ok = Boolean(
 							currentReady &&
 								tests.some(
@@ -370,10 +379,12 @@ export function createDotPlugin(
 					stop() {
 						stop ??= (async () => {
 							controller.abort(new Error("dot_stopped"));
+							await temporaryEndpoints?.stop("owner_stop");
 							await settings.dispose?.();
 							await Promise.allSettled([...admitted]);
 							await runtime.settle();
 							if (running === runtime) running = undefined;
+							if (running === undefined) temporaryEndpoints = undefined;
 						})();
 						return stop;
 					},
@@ -381,6 +392,7 @@ export function createDotPlugin(
 			} catch (error) {
 				controller.abort(error);
 				await Promise.allSettled([
+					temporaryEndpoints?.stop("startup_failed") ?? Promise.resolve(),
 					Promise.resolve().then(() => disposeSettings?.()),
 					runtime.settle(),
 				]);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -63,6 +63,12 @@ test("canonical archive installs offline and survives two independently material
 				await readFile(join(installed, file)),
 				await readFile(join(root, "packages/chatgpt-dot", file)),
 			);
+		const installedTunnel = join(installed, "assets/bin/darwin-arm64/cloudflared");
+		assert.deepEqual(
+			await readFile(installedTunnel),
+			await readFile(join(root, "packages/chatgpt-dot/assets/bin/darwin-arm64/cloudflared")),
+		);
+		assert.equal((await stat(installedTunnel)).mode & 0o777, 0o644);
 		const actualManifest = parseYaml(
 			await readFile(join(installed, "plugin.yaml"), "utf8"),
 		);
@@ -77,15 +83,13 @@ test("canonical archive installs offline and survives two independently material
    const entry=import.meta.resolve('@clowder-ai/chatgpt-dot'),pkgRoot=dirname(dirname(fileURLToPath(entry)));
    const manifest=JSON.parse(process.argv[1]);
    const module=(await import(entry)).default.create(manifest),records=new Map();let revision=0;
-   let sharedView={deployment:{state:'missing-principal'},binding:{state:'unbound',revision:0,scope:{tools:0,events:0}}};
-   const host={pluginInstanceId:'fresh-instance',external:{endpoint:'https://plugins.example/plugin/mcp',token:'cpa_${"a".repeat(43)}',shared:{status:async()=>sharedView,prepare:async()=>assert.fail('status must not prepare shared authority'),bind:async()=>assert.fail('unexpected bind'),unbind:async()=>assert.fail('unexpected unbind')}},dataPath:join(process.cwd(),'private-data'),config:{get:async()=>undefined},secrets:{get:async()=>undefined},log(){},
+   const host={pluginInstanceId:'fresh-instance',external:{endpoint:'https://plugins.example/plugin/mcp',token:'cpa_${"a".repeat(43)}'},dataPath:join(process.cwd(),'private-data'),config:{get:async()=>undefined},secrets:{get:async()=>undefined},log(){},
     storage:{get:async key=>records.get(key),list:async()=>Object.fromEntries(records),compareAndSet:async(key,expected,value)=>{if((records.get(key)?.revision??null)!==expected)return{applied:false};records.set(key,{revision:++revision,value});return{applied:true,revision};}},
     messaging:{subscribe:async()=>assert.fail('unexpected global subscription'),unsubscribe:async()=>{},get:async()=>assert.fail('unexpected message read'),send:async()=>assert.fail('unexpected message send')},
     threads:{get:async()=>assert.fail('unexpected thread read'),create:async()=>assert.fail('unexpected thread creation'),getCats:async()=>assert.fail('unexpected member lookup'),readMessages:async()=>assert.fail('unexpected history read')}};
    const owner={kind:'owner-operation',pluginInstanceId:host.pluginInstanceId,userId:'owner',operationKey:'connection',actionId:'begin',requestId:'request',signal:new AbortController().signal,assertCurrent:async()=>{}};
    const active=await module.start(host),settings=await module.settings(host),missing=await settings.actions['dot.status']({},undefined,owner),missingText=JSON.stringify(missing);
-   assert.equal(records.has('dot/connection/v1'),false);assert.match(missingText,/shared|共享/i);assert.equal(missingText.includes('pairing_code'),false);assert.equal(missingText.includes(host.external.token),false);
-   sharedView={deployment:{state:'configured',endpoint:'https://shared.example/mcp',principal:'gpt-pro'},binding:{state:'active',revision:1,scope:{tools:4,events:1}}};
+   assert.equal(records.has('dot/connection/v1'),false);assert.match(missingText,/第三步|配对/);assert.equal(missingText.includes('pairing_code'),false);assert.equal(missingText.includes(host.external.token),false);
    assert.equal(typeof active.deliver,'function');assert.equal(typeof active.handle,'function');
    const first=await settings.actions['dot.begin-pairing']({},undefined,owner),firstState=structuredClone(records.get('dot/connection/v1').value);
    assert.equal((await active.actions['dot.test']({},undefined,owner)).ok,false);await active.stop({reason:'disabled'});

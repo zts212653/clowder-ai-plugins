@@ -1,30 +1,27 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { SharedConnectionView } from "./connection.js";
 import type { DotConnectionState } from "./connection-state.js";
+import type { DotExternalState } from "./external-state.js";
 import { projectDotJourney } from "./journey-projection.js";
 import type { Dispatch } from "./store.js";
 
 const now = 1_800_000_000_000;
-const shared = (
-	deployment: SharedConnectionView["deployment"],
-	state: SharedConnectionView["binding"]["state"],
-): SharedConnectionView => ({
-	deployment,
-	binding: {
-		state,
-		revision: state === "unbound" ? 0 : 1,
-		scope: { tools: 4, events: 1 },
+const currentExternal: DotExternalState = {
+	v: 1,
+	revision: 1,
+	current: { kind: "signed", token: "token", tokenId: "jti", issuedAt: 1, expiresAt: 2_000_000_000, refreshRecommendedAt: 1_900_000_000 },
+	pending: null,
+	endpoint: { mode: "long-lived", serverUrl: "https://dot.example/mcp?token=token", reachableAt: now },
+};
+const pendingExternal = (discoveredAt: number | null): DotExternalState => ({
+	...currentExternal,
+	current: null,
+	pending: {
+		kind: "pending", candidateId: "candidate", revision: 1, token: "pending", tokenId: "pending-jti",
+		issuedAt: 1, expiresAt: 2_000_000_000, refreshRecommendedAt: 1_900_000_000, createdAt: now,
+		discoveredAt, pairingAttemptId: null, verificationEventId: null, verificationReadAt: null, verificationReplyAt: null,
 	},
 });
-const activeShared = shared(
-	{
-		state: "configured",
-		endpoint: "https://shared.example/mcp",
-		principal: "gpt-pro",
-	},
-	"active",
-);
 const connection = (
 	overrides: Partial<DotConnectionState> = {},
 ): DotConnectionState => ({
@@ -68,48 +65,47 @@ const stage = (input: Parameters<typeof projectDotJourney>[0]) =>
 	projectDotJourney(input).rows[0]?.key;
 const base = {
 	runtimeRunning: true,
-	shared: activeShared,
+	external: currentExternal,
 	connection: null,
 	dispatches: [],
 	now,
 } as const;
 
-test("projects deployment, authorization, and pairing as separate stages", () => {
+test("projects endpoint, ChatGPT discovery, and pairing as separate stages", () => {
 	assert.equal(
 		stage({ ...base, runtimeRunning: false }),
 		"runtime-unavailable",
 	);
 	assert.equal(
-		stage({
-			...base,
-			shared: shared({ state: "missing-principal" }, "unbound"),
-		}),
-		"deployment-blocked",
+		stage({ ...base, external: null }),
+		"endpoint-choice",
 	);
 	assert.equal(
-		stage({
-			...base,
-			shared: shared(
-				{ state: "missing-endpoint", principal: "gpt-pro" },
-				"active",
-			),
-		}),
-		"deployment-blocked",
+		stage({ ...base, external: pendingExternal(null) }),
+		"waiting-discovery",
 	);
 	assert.equal(
-		stage({
-			...base,
-			shared: shared(activeShared.deployment, "needs-confirmation"),
-		}),
-		"authorization-required",
+		stage({ ...base, external: pendingExternal(now) }),
+		"pairing-not-started",
 	);
-	assert.equal(stage(base), "pairing-not-started");
-	const blocked = projectDotJourney({
-		...base,
-		shared: shared({ state: "missing-principal" }, "unbound"),
-	});
-	assert.doesNotMatch(blocked.rows[0]?.detail ?? "", /通用连接设置/);
-	assert.match(blocked.rows[0]?.detail ?? "", /部署管理员/);
+});
+
+test("shows the absolute temporary endpoint expiry in the owner journey", () => {
+	const temporary: DotExternalState = {
+		...pendingExternal(null),
+		endpoint: {
+			mode: "temporary-active",
+			serverUrl: "https://temporary.example/mcp?token=pending",
+			generation: "temporary-one",
+			startedAt: now - 1_000,
+			expiresAt: now + 60_000,
+			reachableAt: now,
+		},
+	};
+	const result = projectDotJourney({ ...base, external: temporary });
+	assert.equal(result.rows[0]?.key, "waiting-discovery");
+	assert.match(result.rows[0]?.detail ?? "", /临时入口/);
+	assert.match(result.rows[0]?.detail ?? "", new RegExp(new Date(now + 60_000).toISOString()));
 });
 
 test("bounds waiting observation by both five minutes and the absolute pairing expiry", () => {

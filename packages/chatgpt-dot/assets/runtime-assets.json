@@ -1,0 +1,18 @@
+{
+  "v": 1,
+  "assets": [
+    {
+      "id": "cloudflared-darwin-arm64",
+      "version": "2026.10.6",
+      "platform": "darwin",
+      "arch": "arm64",
+      "path": "bin/darwin-arm64/cloudflared",
+      "sha256": "e528c46ff3826c7b0bcc4aa760734a92acd422b751c5dfca18fb7c27e129bf2b",
+      "license": "Apache-2.0",
+      "licensePath": "licenses/cloudflared/LICENSE",
+      "sbomPath": "licenses/cloudflared/sbom.spdx.json",
+      "source": "https://github.com/cloudflare/cloudflared/releases/tag/2026.10.6",
+      "distribution": "Homebrew bottle cloudflared 2026.10.6 arm64_tahoe"
+    }
+  ]
+}

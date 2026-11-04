@@ -131,6 +131,7 @@ export {
 export type {
   ModulePluginHostShape,
   ModulePluginSettingsHost,
+  PluginCapabilityHost,
   ModulePluginLogLevel,
   PluginMessageContent,
   PluginMessagingDelivery,

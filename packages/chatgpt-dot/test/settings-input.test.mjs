@@ -16,10 +16,6 @@ async function runningFixture(t, setup = () => {}) {
 	return { f, settings };
 }
 
-function bindingView(base, state, revision = state === "unbound" ? 0 : 1) {
-	return { ...base, binding: { ...base.binding, state, revision } };
-}
-
 test("status is a pure rows projection and does not manufacture authorization, pairing, or tests", async (t) => {
 	const { f, settings } = await runningFixture(t);
 	const before = structuredClone(Object.fromEntries(f.records));
@@ -31,79 +27,14 @@ test("status is a pure rows projection and does not manufacture authorization, p
 	assert.deepEqual(Object.fromEntries(f.records), before);
 });
 
-test("Host prepare, Host bind, and Dot pairing are three separate owner actions", async (t) => {
-	const presentation = {
-		key: "proposal-a",
-		label: "Connect existing cloud link",
-		detail: "Tools (4); events (1)",
-		actions: [
-			{
-				action: "bind-shared",
-				label: "Connect",
-				confirm: "Connect this exact surface?",
-				input: { proposalRef: "proposal-a" },
-			},
-		],
-	};
-	let binding;
-	let boundRef;
-	let expiresAt;
-	const { f, settings } = await runningFixture(t, async (f) => {
-		const original = f.host.external.shared;
-		expiresAt = Date.now() + 60_000;
-		binding = bindingView(await original.status(), "unbound");
-		f.host.external.shared = {
-			status: async () => binding,
-			prepare: async () => ({
-				proposalRef: "proposal-a",
-				expiresAt,
-				presentation,
-				connection: binding,
-			}),
-			bind: async (proposalRef) => {
-				boundRef = proposalRef;
-				binding = bindingView(binding, "active");
-				return binding;
-			},
-			unbind: async () => assert.fail("unexpected unbind"),
-		};
-	});
-
-	const prepared = await settings.actions["dot.prepare-shared"](
-		{},
-		undefined,
-		f.owner,
-	);
-	assert.deepEqual(prepared, {
-		render: "rows",
-		data: { rows: [presentation], validUntil: expiresAt },
-	});
-	assert.equal(f.records.has("dot/connection/v1"), false);
-
-	const connected = await settings.actions["dot.bind-shared"](
-		{ input: { proposalRef: "proposal-a" } },
-		undefined,
-		f.owner,
-	);
-	assert.equal(boundRef, "proposal-a");
-	assert.equal(connected.data.rows[0].key, "pairing-not-started");
-	assert.equal(f.records.has("dot/connection/v1"), false);
-
-	const begun = await settings.actions["dot.begin-pairing"](
-		{},
-		undefined,
-		f.owner,
-	);
+test("legacy endpoint and Dot pairing remain usable without the retired shared binding", async (t) => {
+	const { f, settings } = await runningFixture(t);
+	const begun = await settings.actions["dot.begin-pairing"]({}, undefined, f.owner);
 	assert.equal(begun.data.rows[0].key, "waiting-subscription");
 	assert.ok(f.records.get("dot/connection/v1").value.pairingCode);
-	const instructions = await settings.actions["dot.show-instructions"](
-		{},
-		undefined,
-		f.owner,
-	);
+	const instructions = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
 	assert.equal(instructions.render, "text");
 	assert.match(instructions.data, /pairing_code=/);
-	assert.match(instructions.data, /personal plugin.*Refresh/);
 });
 
 test("begin is idempotent and only the declared reconnect action rotates an existing attempt", async (t) => {
@@ -126,74 +57,37 @@ test("begin is idempotent and only the declared reconnect action rotates an exis
 	);
 });
 
-test("missing deployment produces one honest stage without pairing", async (t) => {
-	let prepared = 0;
+test("missing endpoint produces owner choices without pairing or terminal commands", async (t) => {
 	const { f, settings } = await runningFixture(t, async (f) => {
-		const active = await f.host.external.shared.status();
-		const blocked = {
-			deployment: { ...active.deployment, state: "missing-endpoint" },
-			binding: bindingView(active, "unbound").binding,
-		};
-		f.host.external.shared = {
-			status: async () => blocked,
-			prepare: async () => {
-				prepared += 1;
-				return {
-					proposalRef: "",
-					expiresAt: 0,
-					presentation: {
-						key: "blocked",
-						label: "Blocked",
-						detail: "No endpoint",
-						actions: [],
-					},
-					connection: blocked,
-				};
-			},
-			bind: async () => assert.fail("unexpected bind"),
-			unbind: async () => assert.fail("unexpected unbind"),
-		};
+		f.host.external.endpoint = "";
+		f.host.external.token = "";
 	});
-
 	const result = await settings.actions["dot.status"]({}, undefined, f.owner);
-	assert.equal(result.data.rows[0].key, "deployment-blocked");
-	assert.deepEqual(result.data.rows[0].actions ?? [], []);
-	assert.equal(prepared, 0);
+	assert.equal(result.data.rows[0].key, "endpoint-choice");
+	assert.deepEqual(result.data.rows[0].actions.map((item) => item.action), ["use-long-lived", "start-temporary"]);
 	assert.equal(f.records.has("dot/connection/v1"), false);
 });
 
-test("authority drift after pairing creation revokes that attempt before returning failure", async (t) => {
-	let calls = 0;
-	const { f, settings } = await runningFixture(t, async (f) => {
-		const active = await f.host.external.shared.status();
-		f.host.external.shared.status = async () =>
-			calls++ < 2 ? active : bindingView(active, "revoked", 2);
+test("pending credential cannot start pairing before its own ChatGPT discovery", async (t) => {
+	const { f, settings } = await runningFixture(t);
+	await f.host.storage.set("dot/external/v1", {
+		v: 1, revision: 2, current: null,
+		pending: { kind: "pending", candidateId: "candidate", revision: 1, token: "token", tokenId: "jti", issuedAt: 1,
+			expiresAt: 2_000_000_000, refreshRecommendedAt: 1_900_000_000, createdAt: 1, discoveredAt: null,
+			pairingAttemptId: null, verificationEventId: null, verificationReadAt: null, verificationReplyAt: null },
+		endpoint: { mode: "long-lived", serverUrl: "https://dot.example/mcp?token=token", reachableAt: null },
 	});
-
-	await assert.rejects(
-		() => settings.actions["dot.begin-pairing"]({}, undefined, f.owner),
-		/shared_binding_revoked/,
-	);
-	assert.ok(f.records.get("dot/connection/v1").value.revokedAt !== null);
+	await assert.rejects(() => settings.actions["dot.begin-pairing"]({}, undefined, f.owner), /discovery_required/);
+	assert.equal(f.records.has("dot/connection/v1"), false);
 });
 
-test("owner disconnect revokes the approved shared slot before revoking the Dot pairing", async (t) => {
+test("owner disconnect revokes Dot credentials before revoking the pairing", async (t) => {
 	const calls = [];
-	const { f, settings } = await runningFixture(t, async (f) => {
-		const active = await f.host.external.shared.status();
-		f.host.external.shared = {
-			status: async () => bindingView(active, "active", 7),
-			prepare: async () => assert.fail("unexpected prepare"),
-			bind: async () => assert.fail("unexpected bind"),
-			unbind: async (revision) => {
-				calls.push({ kind: "unbind", revision });
-				return bindingView(active, "revoked", 8);
-			},
-		};
-	});
+	const { f, settings } = await runningFixture(t);
 	await settings.actions["dot.begin-pairing"]({}, undefined, f.owner);
 	const original = f.host.storage.compareAndSet.bind(f.host.storage);
 	f.host.storage.compareAndSet = async (...args) => {
+		if (args[0] === "dot/external/v1") calls.push({ kind: "credential-revoked" });
 		if (args[0] === "dot/connection/v1")
 			calls.push({ kind: "pairing-revoked" });
 		return original(...args);
@@ -201,7 +95,7 @@ test("owner disconnect revokes the approved shared slot before revoking the Dot 
 
 	await settings.actions["dot.disconnect"]({}, undefined, f.owner);
 	assert.deepEqual(calls, [
-		{ kind: "unbind", revision: 7 },
+		{ kind: "credential-revoked" },
 		{ kind: "pairing-revoked" },
 	]);
 });

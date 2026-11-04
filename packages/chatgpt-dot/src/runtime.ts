@@ -13,6 +13,7 @@ import type {
 import sharp from "sharp";
 import { z } from "zod";
 import type { DotConnection } from "./connection.js";
+import type { VerifiedExternalCredential } from "./external-state.js";
 import { dotWebhookHeaders } from "./dot-webhook.js";
 import { retainImageFile } from "./image-file.js";
 import { fenceAsyncPort } from "./operation-fence.js";
@@ -247,7 +248,7 @@ export class DotRuntime {
 		}
 		throw new Error("dot_webhook_unacknowledged");
 	}
-	async read(id: string) {
+	async read(id: string, credential?: VerifiedExternalCredential) {
 		const { state, record, source } = await this.authorize(id);
 		const context = await this.host.threads.readMessages(record.threadId, {
 			before: { timestamp: source.timestamp, id: source.id },
@@ -260,6 +261,7 @@ export class DotRuntime {
 			return { ...current, sourceReadAt: Date.now() };
 		});
 		await this.connection.evidence(state, "read");
+		await this.connection.recordPendingEvidence(credential, id, "read");
 		return {
 			eventId: id,
 			threadId: record.threadId,
@@ -271,7 +273,7 @@ export class DotRuntime {
 			observedAt: Date.now(),
 		};
 	}
-	async reply(id: string, content: string) {
+	async reply(id: string, content: string, credential?: VerifiedExternalCredential) {
 		return this.serial(id, async () => {
 			const { state, record, source } = await this.authorize(id, true);
 			if (record.expectedNonce && !content.includes(record.expectedNonce))
@@ -308,6 +310,7 @@ export class DotRuntime {
 				return { ...current, replyMessageId: posted.messageId };
 			});
 			await this.connection.evidence(state, "reply");
+			await this.connection.recordPendingEvidence(credential, id, "reply");
 			return posted;
 		});
 	}
@@ -643,6 +646,8 @@ export class DotRuntime {
 				testEventIds: [...current.testEventIds.slice(-1), id],
 			};
 		});
+		const external = await this.connection.externalState();
+		if (external.pending) await this.connection.bindPendingVerification(id);
 		try {
 			await this.sendEvent((await this.connection.store.dispatch(id))!);
 			return { eventId: id, nonce, complete: false };
