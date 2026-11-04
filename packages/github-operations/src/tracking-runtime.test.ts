@@ -221,6 +221,8 @@ test('activation without tracking does no IO; registered comments use SDK messag
   f.set({ ...f.snapshot(), state: 'merged' });
   await runtime.poll('review-feedback');
   assert.equal(f.messages.length, 2);
+  assert.match(JSON.stringify(f.messages[1]), /Post-merge: intake \/ delivery remains/);
+  assert.match(JSON.stringify(f.messages[1]), /original maintainer/);
   const count = f.requests();
   await runtime.poll('review-feedback');
   assert.equal(f.requests(), count);

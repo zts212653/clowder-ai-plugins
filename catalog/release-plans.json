@@ -159,6 +159,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/192",
       "reason": "This release inherits SDK candidate10 bounded private reads; source publication precedes paired Host compatibility acceptance and the separately authorized catalog/runtime upgrade.",
       "condition": "Verify the paired Host storage.scan port and SDK10 packaged consumer, then obtain the scoped activation and installed-runtime authorization before enabling this version."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.36",
+      "integrity": "sha512-BoxKCKICCcpvSIVAVO6/W0KR02trWOUrQDGfHEihcZBDslwrUyQB9LYphI8JE42uufRraMPuBCsMhRf6m2WcIQ==",
+      "disposition": "activate",
+      "owner": "codex-astra",
+      "reviewBy": "2026-11-06T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/195",
+      "reason": "This release inherits alpha.35's SDK candidate10 bounded private reads. Its notification fix does not waive paired Host compatibility acceptance or the separately authorized catalog/runtime upgrade; codex-astra owns this version's follow-through.",
+      "condition": "Verify the paired Host storage.scan port and SDK10 packaged consumer, then obtain the scoped activation and installed-runtime authorization before enabling this version."
     }
   ]
 }
