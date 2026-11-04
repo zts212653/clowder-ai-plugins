@@ -69,6 +69,8 @@ test('rejects malformed and over-bound gateway events instead of leaking raw fie
   }
 });
 
+const RAW_TAP_EVENT = { ...RAW_STROKE_EVENT, subtype: 'tap', action: 'head_pat' };
+
 test('starts the local look-up listen reflex before emitting touch and transcript observations', async () => {
   const order: string[] = [];
   const observations: PhysicalLimbObservation[] = [];
@@ -92,6 +94,7 @@ test('starts the local look-up listen reflex before emitting touch and transcrip
         finishListen = resolve;
       });
     },
+    async nuzzle() {},
     async restoreSafePose() {
       order.push('restore-safe-pose');
     },
@@ -107,7 +110,7 @@ test('starts the local look-up listen reflex before emitting touch and transcrip
     createId: createIdFactory(),
   });
 
-  const run = controller.handleGatewayEvent(RAW_STROKE_EVENT);
+  const run = controller.handleGatewayEvent(RAW_TAP_EVENT);
   await Promise.resolve();
 
   assert.deepEqual(order, ['listen', 'emit:touch']);
@@ -126,7 +129,6 @@ test('starts the local look-up listen reflex before emitting touch and transcrip
   assert.deepEqual(order, [
     'listen',
     'emit:touch',
-    'restore-safe-pose',
     'emit:transcript',
   ]);
   assert.deepEqual(observations[1], {
@@ -145,13 +147,14 @@ test('starts the local look-up listen reflex before emitting touch and transcrip
   });
 });
 
-test('returns the head to its configured safe pose after a successful listen window', async () => {
+test('keeps looking at the person after a successful tap listen window', async () => {
   const order: string[] = [];
   const gateway = {
     async listen() {
       order.push('listen');
       return { text: '', language: 'zh', durationMs: 5_000 };
     },
+    async nuzzle() {},
     async restoreSafePose() {
       order.push('restore-safe-pose');
     },
@@ -166,11 +169,11 @@ test('returns the head to its configured safe pose after a successful listen win
     createId: createIdFactory(),
   });
 
-  assert.deepEqual(await controller.handleGatewayEvent(RAW_STROKE_EVENT), {
+  assert.deepEqual(await controller.handleGatewayEvent(RAW_TAP_EVENT), {
     status: 'completed',
     interactionId: 'generated-2',
   });
-  assert.deepEqual(order, ['listen', 'emit:touch', 'restore-safe-pose']);
+  assert.deepEqual(order, ['listen', 'emit:touch']);
 });
 
 test('debounces duplicate or concurrent touches and never opens two microphone windows', async () => {
@@ -190,19 +193,20 @@ test('debounces duplicate or concurrent touches and never opens two microphone w
           finishListen = resolve;
         });
       },
+      async nuzzle() {},
       async restoreSafePose() {},
     },
     emitObservation() {},
     createId: createIdFactory(),
   });
 
-  const first = controller.handleGatewayEvent(RAW_STROKE_EVENT);
+  const first = controller.handleGatewayEvent(RAW_TAP_EVENT);
   await Promise.resolve();
   assert.deepEqual(
     await controller.handleGatewayEvent({
-      ...RAW_STROKE_EVENT,
+      ...RAW_TAP_EVENT,
       ts: 12_341,
-      ts_unix: RAW_STROKE_EVENT.ts_unix + 0.2,
+      ts_unix: RAW_TAP_EVENT.ts_unix + 0.2,
     }),
     { status: 'ignored', reason: 'capture_active' },
   );
@@ -212,7 +216,7 @@ test('debounces duplicate or concurrent touches and never opens two microphone w
   finishListen({ text: '', language: 'zh', durationMs: 5_000 });
   assert.deepEqual(await first, { status: 'completed', interactionId: 'generated-2' });
 
-  assert.deepEqual(await controller.handleGatewayEvent(RAW_STROKE_EVENT), {
+  assert.deepEqual(await controller.handleGatewayEvent(RAW_TAP_EVENT), {
     status: 'ignored',
     reason: 'duplicate',
   });
@@ -227,6 +231,7 @@ test('fails closed when local listen fails and emits no transcript observation',
       async listen() {
         throw new Error('speech dependency missing');
       },
+      async nuzzle() {},
       async restoreSafePose() {},
     },
     emitObservation(observation) {
@@ -235,7 +240,7 @@ test('fails closed when local listen fails and emits no transcript observation',
     createId: createIdFactory(),
   });
 
-  assert.deepEqual(await controller.handleGatewayEvent(RAW_STROKE_EVENT), {
+  assert.deepEqual(await controller.handleGatewayEvent(RAW_TAP_EVENT), {
     status: 'failed',
     reason: 'speech dependency missing',
   });
@@ -248,12 +253,9 @@ test('fails closed when safe pose restore fails and emits no transcript observat
     nodeId: 'stackchan-desk-1',
     gateway: {
       async listen() {
-        return {
-          text: '这句话不能在头部尚未安全复位时投递',
-          language: 'zh',
-          durationMs: 4_800,
-        };
+        throw new Error('listen failed');
       },
+      async nuzzle() {},
       async restoreSafePose() {
         throw new Error('servo restore timed out');
       },
@@ -264,9 +266,28 @@ test('fails closed when safe pose restore fails and emits no transcript observat
     createId: createIdFactory(),
   });
 
-  assert.deepEqual(await controller.handleGatewayEvent(RAW_STROKE_EVENT), {
+  assert.deepEqual(await controller.handleGatewayEvent(RAW_TAP_EVENT), {
     status: 'failed',
-    reason: 'safe pose restore failed: servo restore timed out',
+    reason: 'listen failed; safe pose restore failed: servo restore timed out',
   });
   assert.deepEqual(observations.map(({ kind }) => kind), ['touch']);
+});
+
+test('a stroke nuzzles locally without opening the microphone or emitting a transcript', async () => {
+  const calls: string[] = [];
+  const observations: PhysicalLimbObservation[] = [];
+  const controller = createStackChanTouchReplyController({
+    nodeId: 'stackchan-desk-1',
+    gateway: {
+      async listen() { calls.push('listen'); return { text: 'must not hear', durationMs: 5000 }; },
+      async nuzzle() { calls.push('nuzzle'); },
+      async restoreSafePose() { calls.push('restore'); },
+    },
+    emitObservation(observation) { observations.push(observation); },
+  });
+  assert.equal((await controller.handleGatewayEvent(RAW_STROKE_EVENT)).status, 'completed');
+  assert.deepEqual(calls, ['nuzzle']);
+  assert.deepEqual(observations.map(o => o.kind), ['touch']);
+  assert.equal((await controller.handleGatewayEvent(RAW_STROKE_EVENT)).status, 'ignored');
+  assert.deepEqual(calls, ['nuzzle']);
 });

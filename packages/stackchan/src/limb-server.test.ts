@@ -140,3 +140,27 @@ test('rejects unknown commands, extra/raw fields, oversized bodies, and node mis
     await server.stop();
   }
 });
+
+test('local play requires authentication and accepts only bounded named scenes', async () => {
+  const scenes: string[] = [];
+  const server = createStackChanRemoteLimbServer({
+    nodeId: 'stackchan-home', apiKey: 'approved-key', port: 0,
+    health: async () => 'offline',
+    executor: { async execute(value) { return {v: 1, actionId: value.actionId, nodeId: 'stackchan-home', outcome: 'succeeded', observedAt: new Date().toISOString()}; } },
+    play: async (scene) => { scenes.push(scene); return {scene, outcome: 'completed'}; },
+  });
+  const {url} = await server.start();
+  const post = (value: unknown, authorized = true) => fetch(`${url}/play`, {
+    method: 'POST', headers: {'content-type': 'application/json', ...(authorized ? {authorization: 'Bearer approved-key'} : {})},
+    body: JSON.stringify(value),
+  });
+  try {
+    assert.equal((await post({scene: 'bicker'}, false)).status, 401);
+    assert.equal((await post({scene: 'bicker'})).status, 200);
+    assert.deepEqual(scenes, ['bicker']);
+    assert.equal((await post({scene: 'shell'})).status, 400);
+    assert.equal((await post({scene: 'dance', duration_sec: 999999})).status, 400);
+    assert.equal((await post({scene: 'stop'})).status, 200);
+    assert.deepEqual(scenes, ['bicker', 'stop']);
+  } finally { await server.stop(); }
+});
