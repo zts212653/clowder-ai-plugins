@@ -90,13 +90,11 @@ export class DotConnection {
                 ? { kind: 'legacy', recordRef: this.host.external.token ? 'host.external' : 'connection.credentialSecret' }
                 : null,
             pending: null,
-            endpoint: this.host.external.endpoint && this.host.external.token
-                ? {
-                    mode: 'long-lived',
-                    serverUrl: `${this.host.external.endpoint}${this.host.external.endpoint.includes('?') ? '&' : '?'}token=${encodeURIComponent(this.host.external.token)}`,
-                    reachableAt: null,
-                }
-                : { mode: 'absent' },
+            // Host external.endpoint is the internal forwarding coordinate. It may
+            // deliberately be relative and is never proof that the installation
+            // has a public URL. Dot records a public endpoint only after the owner
+            // supplies a validated HTTPS template or starts its temporary runner.
+            endpoint: { mode: 'absent' },
         });
     }
     async issuePending(context: PluginHostActionContext | undefined, ttlSeconds: number) {

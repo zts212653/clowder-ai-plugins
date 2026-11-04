@@ -16,25 +16,58 @@ async function runningFixture(t, setup = () => {}) {
 	return { f, settings };
 }
 
+async function seedLegacyPublicEndpoint(f) {
+	await f.host.storage.set("dot/external/v1", {
+		v: 1,
+		revision: 1,
+		current: { kind: "legacy", recordRef: "host.external" },
+		pending: null,
+		endpoint: {
+			mode: "long-lived",
+			serverUrl: "https://dot.example/plugin/mcp?token=fixture",
+			reachableAt: null,
+		},
+	});
+}
+
 test("status is a pure rows projection and does not manufacture authorization, pairing, or tests", async (t) => {
 	const { f, settings } = await runningFixture(t);
 	const before = structuredClone(Object.fromEntries(f.records));
 	const first = await settings.actions["dot.status"]({}, undefined, f.owner);
 	const second = await settings.actions["dot.status"]({}, undefined, f.owner);
 	assert.equal(first.render, "rows");
-	assert.equal(first.data.rows[0].key, "pairing-not-started");
+	assert.equal(first.data.rows[0].key, "endpoint-choice");
 	assert.deepEqual(second, first);
 	assert.deepEqual(Object.fromEntries(f.records), before);
 });
 
-test("legacy endpoint and Dot pairing remain usable without the retired shared binding", async (t) => {
+test("legacy pairing remains usable while the journey asks for a real public endpoint", async (t) => {
 	const { f, settings } = await runningFixture(t);
 	const begun = await settings.actions["dot.begin-pairing"]({}, undefined, f.owner);
-	assert.equal(begun.data.rows[0].key, "waiting-subscription");
+	assert.equal(begun.data.rows[0].key, "endpoint-choice");
 	assert.ok(f.records.get("dot/connection/v1").value.pairingCode);
 	const instructions = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
 	assert.equal(instructions.render, "text");
 	assert.match(instructions.data, /pairing_code=/);
+});
+
+test("a legacy credential starts when the Host exposes only a relative forwarding coordinate", async (t) => {
+	const { f, settings } = await runningFixture(t, async (f) => {
+		f.host.external.endpoint = "/plugin/mcp";
+	});
+	const external = f.records.get("dot/external/v1").value;
+	assert.deepEqual(external.current, {
+		kind: "legacy",
+		recordRef: "host.external",
+	});
+	assert.deepEqual(external.endpoint, { mode: "absent" });
+
+	const status = await settings.actions["dot.status"]({}, undefined, f.owner);
+	assert.equal(status.data.rows[0].key, "endpoint-choice");
+	assert.deepEqual(
+		status.data.rows[0].actions.map((item) => item.action),
+		["use-long-lived", "start-temporary"],
+	);
 });
 
 test("begin is idempotent and only the declared reconnect action rotates an existing attempt", async (t) => {
@@ -102,6 +135,7 @@ test("owner disconnect revokes Dot credentials before revoking the pairing", asy
 
 test("a known roundtrip delivery failure is immediately diagnosable and retry preserves prior evidence", async (t) => {
 	const f = fixture(t);
+	await seedLegacyPublicEndpoint(f);
 	let ordinaryDeliveries = 0;
 	const module = createDotPlugin({
 		sendWebhook: async (url, headers, body, signal) => {

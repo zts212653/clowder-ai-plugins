@@ -118,6 +118,21 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 			)],
 		};
 	}
+	if (!external.pending && !endpointActive) {
+		return {
+			rows: [
+				row(
+					"endpoint-choice",
+					"第一步：建立 ChatGPT 入口",
+					"当前安装的兼容凭据仍然保留；请选择长期公网地址，或让 Dot 自动创建最长 24 小时的临时入口。无需终端命令。",
+					[
+						action("use-long-lived", "使用长期公网入口"),
+						action("start-temporary", "创建临时入口"),
+					],
+				),
+			],
+		};
+	}
 	if (!endpointActive) {
 		return {
 			rows: [
