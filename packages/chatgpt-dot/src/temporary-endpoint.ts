@@ -21,6 +21,7 @@ export interface TemporaryEndpointOptions {
 	readonly startupTimeoutMs?: number;
 	readonly expectedBinarySha256?: string | null;
 	readonly runtimeDirectory?: string;
+	readonly onEnded?: (generation: string, reason: string) => void | Promise<void>;
 }
 
 type RunnerMessage =
@@ -36,6 +37,8 @@ export class TemporaryEndpointController {
 	readonly #startupTimeoutMs: number;
 	readonly #expectedBinarySha256: string | null;
 	readonly #runtimeDirectory: string | undefined;
+	readonly #onEnded: TemporaryEndpointOptions["onEnded"];
+	#epoch = 0;
 	#active?: { generation: string; child: ChildProcess; timer: ReturnType<typeof setTimeout>; publicBaseUrl: string | null; expiresAt: number };
 
 	constructor(options: TemporaryEndpointOptions = {}) {
@@ -48,6 +51,7 @@ export class TemporaryEndpointController {
 			? (options.binaryPath === undefined ? BUNDLED_TUNNEL_SHA256 : null)
 			: options.expectedBinarySha256;
 		this.#runtimeDirectory = options.runtimeDirectory;
+		this.#onEnded = options.onEnded;
 	}
 
 	async #prepareBinary(): Promise<string> {
@@ -88,17 +92,27 @@ export class TemporaryEndpointController {
 			throw new Error("dot_temporary_platform_unsupported");
 		if (!Number.isSafeInteger(input.ttlMs) || input.ttlMs <= 0 || input.ttlMs > 24 * 60 * 60_000)
 			throw new Error("dot_temporary_ttl_invalid");
+		const epoch = ++this.#epoch;
 		const executablePath = await this.#prepareBinary();
-		await this.stop("replace");
+		if (epoch !== this.#epoch) throw new Error("dot_temporary_start_cancelled");
+		await this.#stopActive("replace");
+		if (epoch !== this.#epoch) throw new Error("dot_temporary_start_cancelled");
 		const generation = randomUUID();
 		const child = fork(this.#runnerPath, [executablePath], {
 			stdio: ["ignore", "ignore", "ignore", "ipc"],
 			env: { PATH: process.env.PATH ?? "" },
+			detached: true,
 		});
 		const expiresAt = this.#now() + input.ttlMs;
 		const timer = setTimeout(() => void this.stop("expired"), Math.max(1, expiresAt - this.#now()));
 		timer.unref?.();
 		this.#active = { generation, child, timer, publicBaseUrl: null, expiresAt };
+		child.once("exit", () => {
+			if (this.#active?.generation !== generation) return;
+			this.#active = undefined;
+			clearTimeout(timer);
+			void this.#onEnded?.(generation, "runner_exit");
+		});
 		try {
 			const publicBaseUrl = await new Promise<string>((resolve, reject) => {
 			const timeout = setTimeout(() => settle(() => reject(new Error("dot_temporary_start_timeout"))), this.#startupTimeoutMs);
@@ -153,6 +167,11 @@ export class TemporaryEndpointController {
 	}
 
 	async stop(reason: string): Promise<void> {
+		this.#epoch += 1;
+		await this.#stopActive(reason);
+	}
+
+	async #stopActive(reason: string): Promise<void> {
 		const active = this.#active;
 		if (!active) return;
 		this.#active = undefined;
@@ -160,7 +179,10 @@ export class TemporaryEndpointController {
 		if (active.child.exitCode !== null || active.child.signalCode !== null) return;
 		await new Promise<void>((resolve) => {
 			const timeout = setTimeout(() => {
-				if (active.child.exitCode === null && active.child.signalCode === null) active.child.kill("SIGKILL");
+				if (active.child.exitCode === null && active.child.signalCode === null) {
+					try { process.kill(-active.child.pid!, "SIGKILL"); }
+					catch { active.child.kill("SIGKILL"); }
+				}
 			}, 2_000);
 			active.child.once("exit", () => {
 				clearTimeout(timeout);
@@ -168,5 +190,6 @@ export class TemporaryEndpointController {
 			});
 			active.child.send({ type: "stop", reason });
 		});
+		await this.#onEnded?.(active.generation, reason);
 	}
 }

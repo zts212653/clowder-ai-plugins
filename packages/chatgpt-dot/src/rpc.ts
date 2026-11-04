@@ -30,7 +30,18 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
     const credential = request.credential as VerifiedExternalCredential | undefined;
     if (id === undefined)
         return { status: method === 'notifications/initialized' ? 202 : 400, headers, body: null };
-    const complete = (value: object) => ({ status: 200, headers, body: { jsonrpc: '2.0', id, result: { resultType: 'complete', ...value } } });
+    const complete = async (value: object) => {
+        const current = (await runtime.connection.externalState()).current;
+        const retireLegacy = credential && current?.kind === 'signed' && current.tokenId === credential.jti;
+        return {
+            status: 200,
+            headers,
+            body: { jsonrpc: '2.0', id, result: { resultType: 'complete', ...value } },
+            ...(retireLegacy ? {
+                hostEffects: { retireLegacyCredential: { tokenId: credential.jti } },
+            } : {}),
+        };
+    };
     try {
         if (['initialize', 'server/discover', 'tools/list', 'events/list'].includes(method))
             await runtime.connection.recordDiscovery(credential);
@@ -49,13 +60,13 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
         try { await runtime.connection.current(); }
         catch { return { status: 409, headers, body: { error: 'dot_connection_unavailable' } }; }
         if (method === 'events/subscribe') {
-            await runtime.connection.authorizeExternal(credential, 'pairing');
+            await runtime.connection.authorizeExternal(credential, 'pairing-subscribe');
             const input = subscribeSchema.parse(params);
             return complete(await runtime.connection.subscribe({ attemptId: input.arguments.attempt_id, pairingCode: input.arguments.pairing_code,
                 url: input.delivery.url, secret: input.delivery.secret, ...input.ttlMs === undefined ? {} : { ttlMs: input.ttlMs } }));
         }
         if (method === 'events/unsubscribe') {
-            await runtime.connection.authorizeExternal(credential, 'pairing');
+            await runtime.connection.authorizeExternal(credential, 'pairing-unsubscribe');
             const input = unsubscribeSchema.parse(params);
             return complete(await runtime.connection.unsubscribe({ attemptId: input.arguments.attempt_id, pairingCode: input.arguments.pairing_code, url: input.delivery.url }));
         }
@@ -65,22 +76,22 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
             case 'cat_cafe_dot_read_source':
                 {
                     const eventId = dotEventRefSchema.parse(input.arguments).event_id;
-                    await runtime.connection.authorizeExternal(credential, 'business', eventId);
+                    await runtime.connection.authorizeExternal(credential, 'read', eventId);
                     result = await runtime.read(eventId, credential);
                 }
                 break;
             case 'cat_cafe_dot_reply': {
                 const args = dotReplyArguments.parse(input.arguments);
-                await runtime.connection.authorizeExternal(credential, 'business', args.event_id);
+                await runtime.connection.authorizeExternal(credential, 'reply', args.event_id);
                 result = await runtime.reply(args.event_id, args.content, credential);
                 break;
             }
             case 'cat_cafe_dot_publish_image':
-                await runtime.connection.authorizeExternal(credential, 'business', dotImageArguments.parse(input.arguments).event_id);
+                await runtime.connection.authorizeExternal(credential, 'publish-image', dotImageArguments.parse(input.arguments).event_id);
                 result = await runtime.image(dotImageArguments.parse(input.arguments));
                 break;
             case 'cat_cafe_dot_ask':
-                await runtime.connection.authorizeExternal(credential, 'business');
+                await runtime.connection.authorizeExternal(credential, 'ask');
                 result = await runtime.ask(dotAskArguments.parse(input.arguments));
                 break;
             default: return { status: 200, headers, body: { jsonrpc: '2.0', id, error: { code: -32602, message: 'Unknown dot tool' } } };

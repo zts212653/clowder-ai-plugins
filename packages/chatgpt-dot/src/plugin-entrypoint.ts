@@ -26,13 +26,19 @@ export interface DotPluginOptions {
 	readonly sendWebhook?: DotWebhookSend;
 	readonly now?: () => number;
 }
-function longLivedServerUrl(template: unknown, token: string) {
+function longLivedServerUrl(
+	template: unknown,
+	token: string,
+	forwarding: { readonly relativePath: string; readonly method: "POST" },
+) {
 	if (typeof template !== "string" || template.split("{token}").length !== 2)
 		throw new Error("dot_long_lived_template_required");
 	const rendered = template.replace("{token}", encodeURIComponent(token));
 	const url = new URL(rendered);
 	if (url.protocol !== "https:" || url.username || url.password || url.hash)
 		throw new Error("dot_long_lived_template_invalid");
+	if (forwarding.method !== "POST" || url.pathname !== forwarding.relativePath)
+		throw new Error("dot_long_lived_template_route_mismatch");
 	return url.toString();
 }
 export function createDotPlugin(
@@ -96,6 +102,9 @@ export function createDotPlugin(
 							(value): value is NonNullable<typeof value> => value !== null,
 						)
 					: [];
+				const credentialStatus = external.current
+					? await current.inspectCurrentCredential()
+					: undefined;
 				return {
 					render: "rows" as const,
 					data: projectDotJourney({
@@ -104,6 +113,7 @@ export function createDotPlugin(
 						connection: state,
 						dispatches,
 						now: (options.now ?? Date.now)(),
+						...(credentialStatus ? { credentialStatus } : {}),
 					}),
 				};
 			};
@@ -114,9 +124,9 @@ export function createDotPlugin(
 					if (!running) throw new Error("dot_runtime_unavailable");
 					const ttlDays = Number(await host.config.get("externalTokenDays") ?? 180);
 					const template = await host.config.get("longLivedServerUrlTemplate");
-					const { issued } = await current.issuePending(context, ttlDays * 24 * 60 * 60);
-					const serverUrl = longLivedServerUrl(template, issued.token);
-					await current.setLongLivedServerUrl(serverUrl);
+					const { state, issued } = await current.issuePending(context, ttlDays * 24 * 60 * 60);
+					const serverUrl = longLivedServerUrl(template, issued.token, issued.forwarding);
+					await current.setLongLivedServerUrl(state.pending!.candidateId, serverUrl);
 					return {
 						render: "text",
 						data: serverUrl,
@@ -129,13 +139,35 @@ export function createDotPlugin(
 					if (!Number.isFinite(hours) || hours <= 0 || hours > 24)
 						throw new Error("dot_temporary_ttl_invalid");
 					const ttlMs = Math.floor(hours * 60 * 60_000);
-					const { issued } = await current.issuePending(context, Math.ceil(ttlMs / 1000) + 300);
+					const { state, issued } = await current.issuePending(context, Math.ceil(ttlMs / 1000) + 300);
 					const existing = await current.externalState();
 					const lease = existing.endpoint.mode === "temporary-active" && existing.endpoint.expiresAt > (options.now ?? Date.now)()
 						? temporaryEndpoints.allowToken(issued.token)
 						: await temporaryEndpoints.start({ ...issued.forwarding, token: issued.token, ttlMs });
-					await current.setTemporaryLease(lease);
+					await current.setTemporaryLease(state.pending!.candidateId, lease);
 					return { render: "text", data: lease.serverUrl };
+				},
+				"dot.refresh-credential": async (_input, _native, context) => {
+					await current.owner(context);
+					if (!running) throw new Error("dot_runtime_unavailable");
+					const before = await current.externalState();
+					const ttlDays = Number(await host.config.get("externalTokenDays") ?? 180);
+					const { state, issued } = await current.issuePending(context, ttlDays * 24 * 60 * 60);
+					const candidateId = state.pending!.candidateId;
+					if (before.endpoint.mode === "long-lived") {
+						const template = await host.config.get("longLivedServerUrlTemplate");
+						const serverUrl = longLivedServerUrl(template, issued.token, issued.forwarding);
+						await current.setLongLivedServerUrl(candidateId, serverUrl);
+						return { render: "text", data: serverUrl };
+					}
+					if (before.endpoint.mode === "temporary-active" && before.endpoint.expiresAt > (options.now ?? Date.now)()) {
+						if (!temporaryEndpoints) throw new Error("dot_temporary_endpoint_unavailable");
+						const lease = temporaryEndpoints.allowToken(issued.token);
+						await current.setTemporaryLease(candidateId, lease);
+						return { render: "text", data: lease.serverUrl };
+					}
+					await current.cancelPending();
+					throw new Error("dot_endpoint_unavailable");
 				},
 				"dot.show-server-url": async (_input, _native, context) => {
 					await current.owner(context);
@@ -223,6 +255,10 @@ export function createDotPlugin(
 				temporaryEndpoints = new TemporaryEndpointController({
 					...(options.now ? { now: options.now } : {}),
 					runtimeDirectory: join(dotHost.dataPath, "temporary-endpoint"),
+					onEnded: async (generation) => {
+						try { await current.expireTemporary(generation); }
+						catch { /* A newer exact lease owns the page now. */ }
+					},
 				});
 			running = runtime;
 			let disposeSettings: (() => void | Promise<void>) | undefined;

@@ -2,7 +2,7 @@ import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { ModulePluginSettingsHost, PluginHostActionContext } from '@clowder-ai/plugin-sdk';
 import type { DotConnectionState } from './connection-state.js';
-import type { PendingCredential, VerifiedExternalCredential } from './external-state.js';
+import type { DotExternalState, PendingCredential, VerifiedExternalCredential } from './external-state.js';
 import { DotStore, digest } from './store.js';
 import { verifyDotWebhook, type DotWebhookSend } from './dot-webhook.js';
 import { fenceAsyncPort } from './operation-fence.js';
@@ -22,6 +22,17 @@ export type DotSettingsHost = ModulePluginSettingsHost & {
         };
     };
 };
+export type ExternalOperation =
+    | 'discovery'
+    | 'pairing-subscribe'
+    | 'pairing-unsubscribe'
+    | 'verification-read'
+    | 'verification-reply'
+    | 'business'
+    | 'read'
+    | 'reply'
+    | 'publish-image'
+    | 'ask';
 export const DOT_EXTERNAL_CAPABILITY_ID = 'dot-mcp';
 export interface SharedConnectionView {
     readonly deployment:
@@ -97,6 +108,12 @@ export class DotConnection {
         const issued = await capability.issueExternal({ capabilityId: DOT_EXTERNAL_CAPABILITY_ID, ttlSeconds });
         await this.assertCurrent();
         const now = this.now();
+        const connection = await this.store.connection();
+        const inheritedPairing = Boolean(
+            connection && connection.revokedAt === null && connection.pairedAt !== null &&
+            connection.subscription &&
+            (connection.subscription.expiresAt === null || connection.subscription.expiresAt > now),
+        ) ? connection : null;
         const state = await this.store.updateExternal(previous => {
             const state = previous ?? {
                 v: 1 as const,
@@ -116,7 +133,8 @@ export class DotConnection {
                 refreshRecommendedAt: issued.refreshRecommendedAt,
                 createdAt: now,
                 discoveredAt: null,
-                pairingAttemptId: null,
+                pairingAttemptId: inheritedPairing?.attemptId ?? null,
+                pairingRequired: inheritedPairing === null,
                 verificationEventId: null,
                 verificationReadAt: null,
                 verificationReplyAt: null,
@@ -133,22 +151,27 @@ export class DotConnection {
         if (!capability) return { usable: false, reason: 'capability_unavailable' };
         return capability.inspectExternal({ token: state.current.token, capabilityId: DOT_EXTERNAL_CAPABILITY_ID });
     }
-    async setLongLivedServerUrl(serverUrl: string) {
+    async setLongLivedServerUrl(candidateId: string, serverUrl: string): Promise<DotExternalState>;
+    async setLongLivedServerUrl(serverUrl: string): Promise<DotExternalState>;
+    async setLongLivedServerUrl(candidateOrUrl: string, maybeUrl?: string) {
+        const captured = maybeUrl === undefined ? (await this.externalState()).pending?.candidateId : candidateOrUrl;
+        const serverUrl = maybeUrl ?? candidateOrUrl;
+        if (!captured) throw new Error('dot_pending_credential_required');
         return this.store.updateExternal(state => {
-            if (!state?.pending) throw new Error('dot_pending_credential_required');
+            if (!state?.pending || state.pending.candidateId !== captured) throw new Error('dot_candidate_stale');
             return { ...state, revision: state.revision + 1, endpoint: {
                 mode: 'long-lived', serverUrl, reachableAt: null,
             } };
         });
     }
-    async setTemporaryLease(lease: {
+    async setTemporaryLease(candidateId: string, lease: {
         readonly generation: string;
         readonly serverUrl: string;
         readonly startedAt: number;
         readonly expiresAt: number;
     }) {
         return this.store.updateExternal(state => {
-            if (!state?.pending) throw new Error('dot_pending_credential_required');
+            if (!state?.pending || state.pending.candidateId !== candidateId) throw new Error('dot_candidate_stale');
             return { ...state, revision: state.revision + 1, endpoint: {
                 mode: 'temporary-active', ...lease, reachableAt: this.now(),
             } };
@@ -189,7 +212,7 @@ export class DotConnection {
     }
     async authorizeExternal(
         credential: VerifiedExternalCredential | undefined,
-        lane: 'discovery' | 'pairing' | 'business',
+        operation: ExternalOperation,
         eventId?: string,
     ) {
         const state = await this.externalState();
@@ -204,8 +227,13 @@ export class DotConnection {
         const pending = state.pending;
         if (!pending || pending.tokenId !== credential.jti)
             throw new Error('dot_external_credential_rejected');
-        if (lane === 'business' && pending.verificationEventId !== eventId)
-            throw new Error('dot_pending_business_rejected');
+        const verification = operation === 'verification-read' || operation === 'verification-reply' ||
+            operation === 'read' || operation === 'reply';
+        const initialSubscribe = operation === 'pairing-subscribe' && pending.pairingRequired;
+        if (!verification && operation !== 'discovery' && !initialSubscribe)
+            throw new Error('dot_pending_operation_rejected');
+        if (verification && pending.verificationEventId !== eventId)
+            throw new Error('dot_pending_verification_rejected');
         return { lane: 'pending' as const, tokenId: credential.jti, candidateId: pending.candidateId };
     }
     async recordDiscovery(credential: VerifiedExternalCredential | undefined) {
@@ -214,13 +242,19 @@ export class DotConnection {
         await this.store.updateExternal(state => {
             if (!state?.pending || state.pending.tokenId !== authorized.tokenId || state.pending.candidateId !== authorized.candidateId)
                 throw new Error('dot_candidate_stale');
-            return { ...state, revision: state.revision + 1, pending: { ...state.pending, discoveredAt: this.now() } };
+            const discoveredAt = this.now();
+            const endpoint = state.endpoint.mode === 'long-lived'
+                ? { ...state.endpoint, reachableAt: discoveredAt }
+                : state.endpoint;
+            return { ...state, revision: state.revision + 1, endpoint, pending: { ...state.pending, discoveredAt } };
         });
         return authorized;
     }
     async bindPendingPairing(attemptId: string) {
         await this.store.updateExternal(state => {
             if (!state?.pending) throw new Error('dot_pending_credential_required');
+            if (!state.pending.pairingRequired && state.pending.pairingAttemptId !== attemptId)
+                throw new Error('dot_candidate_pairing_mismatch');
             return { ...state, revision: state.revision + 1, pending: { ...state.pending, pairingAttemptId: attemptId } };
         });
     }
@@ -241,7 +275,11 @@ export class DotConnection {
         eventId: string,
         kind: 'read' | 'reply',
     ) {
-        const authorized = await this.authorizeExternal(credential, 'business', eventId);
+        const authorized = await this.authorizeExternal(
+            credential,
+            kind === 'read' ? 'verification-read' : 'verification-reply',
+            eventId,
+        );
         if (authorized.lane !== 'pending') return;
         const updated = await this.store.updateExternal(state => {
             const pending = state?.pending;
@@ -274,6 +312,7 @@ export class DotConnection {
                     issuedAt: exact.issuedAt,
                     expiresAt: exact.expiresAt,
                     refreshRecommendedAt: exact.refreshRecommendedAt,
+                    verifiedEventId: eventId,
                 },
                 pending: null,
             };

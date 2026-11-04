@@ -44,12 +44,15 @@ function activeSubscription(state: DotConnectionState, now: number) {
 function currentTests(
 	state: DotConnectionState,
 	dispatches: readonly Dispatch[],
+	verifiedEventId?: string,
 ) {
 	const ids = new Set(state.testEventIds);
 	return dispatches
 		.filter(
 			(dispatch) =>
-				ids.has(dispatch.eventId) && dispatch.attemptId === state.attemptId,
+				ids.has(dispatch.eventId) &&
+				dispatch.attemptId === state.attemptId &&
+				(verifiedEventId === undefined || dispatch.eventId === verifiedEventId),
 		)
 		.sort((left, right) => right.occurredAt - left.occurredAt);
 }
@@ -60,6 +63,11 @@ export interface DotJourneyInput {
 	readonly connection: DotConnectionState | null;
 	readonly dispatches: readonly Dispatch[];
 	readonly now: number;
+	readonly credentialStatus?: {
+		readonly usable: boolean;
+		readonly reason: string;
+		readonly refreshRecommended?: boolean;
+	};
 }
 
 export function projectDotJourney(input: DotJourneyInput): OperationRows {
@@ -77,6 +85,9 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 
 	const external = input.external;
 	const endpoint = external?.endpoint;
+	const currentCredentialUsable = !external?.current || external.current.kind === "legacy"
+		? true
+		: input.credentialStatus?.usable ?? external.current.expiresAt * 1000 > input.now;
 	const endpointActive = Boolean(
 		endpoint &&
 			(endpoint.mode === "long-lived" ||
@@ -95,6 +106,16 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					],
 				),
 			],
+		};
+	}
+	if (!external.pending && external.current && !currentCredentialUsable) {
+		return {
+			rows: [row(
+				"credential-unavailable",
+				"外部凭据已不可用",
+				"现有连接不会被旧往返记录伪装成可用；请生成并验证新的外部凭据。",
+				[action("refresh-credential", "更新外部凭据"), action("disconnect", "断开连接")],
+			)],
 		};
 	}
 	if (!endpointActive) {
@@ -138,7 +159,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 				row(
 					"pairing-not-started",
 					"第三步：配对 Dot",
-					"ChatGPT 已识别当前待验证凭据。现在生成配对说明并订阅 dot.summoned。",
+					"外部入口已就绪。现在生成配对说明并订阅 dot.summoned。",
 					[
 						action("begin-pairing", "生成配对说明"),
 						action("cancel-pending", "放弃本次更新"),
@@ -148,7 +169,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 		};
 	}
 
-	if (!activeSubscription(current, input.now)) {
+	if ((!external.pending || external.pending.pairingRequired !== false) && !activeSubscription(current!, input.now)) {
 		if (current.pairingExpiresAt <= input.now) {
 			return {
 				rows: [
@@ -184,7 +205,34 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 		};
 	}
 
-	const tests = currentTests(current, input.dispatches);
+	if (external.pending) {
+		const pending = external.pending;
+		if (pending.pairingAttemptId !== current!.attemptId) {
+			return { rows: [row("candidate-pairing-mismatch", "待验证凭据与当前配对不一致", "请放弃本次更新后重新开始。", [action("cancel-pending", "放弃本次更新")])] };
+		}
+		const candidate = pending.verificationEventId === null
+			? undefined
+			: input.dispatches.find((dispatch) => dispatch.eventId === pending.verificationEventId && dispatch.attemptId === current!.attemptId);
+		if (pending.verificationEventId === null || !candidate) {
+			return { rows: [row("candidate-verification-required", "验证新的外部凭据", "现有配对已保留；发起一次仅属于新凭据的真实往返，成功后才会替换旧凭据。", [action("roundtrip", "验证新凭据"), action("cancel-pending", "放弃本次更新")])] };
+		}
+		if (pending.verificationReadAt !== null && pending.verificationReplyAt !== null) {
+			return { rows: [row("candidate-promoting", "正在切换外部凭据", "新凭据的 discovery、读取与校验回复均已完成，正在提交切换。", [action("check-roundtrip", "检查状态")])], pollUntil: input.now + FIVE_MINUTES_MS };
+		}
+		const deadline = candidate.occurredAt + ROUNDTRIP_DEADLINE_MS;
+		return {
+			rows: [row(
+				deadline > input.now ? "candidate-verification-pending" : "candidate-verification-timeout",
+				deadline > input.now ? "正在验证新的外部凭据" : "新凭据验证尚未完成",
+				pending.verificationReadAt !== null ? "新凭据已读取原消息，正在等待带校验码的回复。" : "正在等待新凭据读取本次测试消息。",
+				[action("check-roundtrip", "检查状态"), action("cancel-pending", "放弃本次更新")],
+			)],
+			...(deadline > input.now ? { pollUntil: deadline } : {}),
+		};
+	}
+
+	const tests = currentTests(current!, input.dispatches,
+		external.current?.kind === "signed" ? external.current.verifiedEventId : undefined);
 	const completed = tests.find(
 		(test) => test.sourceReadAt !== null && test.replyMessageId !== null,
 	);
@@ -195,7 +243,11 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					"ready",
 					"Dot 已可用",
 					`最近一次真实往返已读取原消息并回复（${new Date(completed.occurredAt).toISOString()}）。`,
-					[action("roundtrip", "再次测试"), action("disconnect", "断开连接")],
+					[
+						action("roundtrip", "再次测试"),
+						...(input.credentialStatus?.refreshRecommended ? [action("refresh-credential", "更新外部凭据")] : []),
+						action("disconnect", "断开连接"),
+					],
 				),
 			],
 		};

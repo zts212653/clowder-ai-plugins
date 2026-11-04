@@ -1,5 +1,5 @@
 pluginId: official.chatgpt-dot
-version: 0.2.0-alpha.11
+version: 0.2.0-alpha.12
 contractVersion: 0.3.1-candidate.2
 name: ChatGPT Dot
 description:
@@ -21,7 +21,7 @@ configuration:
     label: 长期公网 Server URL 模板（可选）
     kind: string
     required: false
-    description: 完整 HTTPS URL，必须且只能包含一次 {token}；例如 https://dot.example/mcp?token={token}。
+    description: 指向 Host 通用插件转发路径的完整 HTTPS URL，必须且只能包含一次 {token}；例如 https://host.example/api/plugin-runtime/handle?token={token}。
   - key: externalTokenDays
     label: 外部凭据有效天数
     kind: number
@@ -66,6 +66,12 @@ configuration:
         render: row
         resultRender: text
         action: { method: dot.show-server-url }
+      - id: refresh-credential
+        label: 更新外部凭据
+        render: row
+        resultRender: text
+        confirm: 确认签发并验证新的外部凭据？现有凭据会保留到新凭据验证成功。
+        action: { method: dot.refresh-credential }
       - id: cancel-pending
         label: 放弃本次更新
         render: row

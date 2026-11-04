@@ -6,7 +6,8 @@ import test from "node:test";
 import { createDotPlugin } from "../src/plugin-entrypoint.ts";
 import { DotConnection } from "../src/connection.ts";
 import { CONNECTION_KEY, EXTERNAL_KEY } from "../src/store.ts";
-import { fixture, mcp } from "./fixture.mjs";
+import { fixture, mcp, paired } from "./fixture.mjs";
+import { projectDotJourney } from "../src/journey-projection.ts";
 
 const secret = "whsec_" + Buffer.alloc(32, 3).toString("base64");
 
@@ -38,7 +39,7 @@ test("pending signed credential promotes only from its exact discovery, pairing 
 	let sequence = 0;
 	const f = fixture(t, {
 		config: {
-			longLivedServerUrlTemplate: "https://dot.example/mcp?token={token}",
+			longLivedServerUrlTemplate: "https://dot.example/api/plugin-runtime/handle?token={token}",
 			externalTokenDays: 30,
 		},
 		capability: {
@@ -69,7 +70,7 @@ test("pending signed credential promotes only from its exact discovery, pairing 
 	t.after(() => f.active.stop({ reason: "test" }));
 
 	const presentation = await f.settings.actions["dot.use-long-lived"]({}, undefined, f.owner);
-	assert.equal(presentation.data, "https://dot.example/mcp?token=signed-token-1");
+	assert.equal(presentation.data, "https://dot.example/api/plugin-runtime/handle?token=signed-token-1");
 	let external = f.records.get(EXTERNAL_KEY).value;
 	assert.equal(external.current, null);
 	assert.equal(external.pending.tokenId, "jti-1");
@@ -149,6 +150,45 @@ test("current credential activity cannot promote a pending replacement", async (
 	assert.equal(retained.pending.tokenId, "jti-pending");
 	assert.equal(retained.pending.verificationReadAt, null);
 	assert.equal(retained.pending.verificationReplyAt, null);
+});
+
+test("replacement inherits the exact healthy pairing and old dispatches cannot prove it ready", async (t) => {
+	const f = await paired(t);
+	const dot = new DotConnection(f.host, f.sendWebhook, new AbortController().signal);
+	f.host.capability = {
+		issueExternal: async () => ({ token: "pending", tokenId: "new-jti", issuedAt: 1, expiresAt: 2_000_000_000, refreshRecommendedAt: 1_900_000_000 }),
+	};
+	await dot.issuePending(f.owner, 3600);
+	await dot.setLongLivedServerUrl("https://dot.example/api/plugin-runtime/handle?token=pending");
+	await dot.recordDiscovery(credential("new-jti"));
+	const state = await dot.externalState();
+	const connection = { ...await dot.current(), testEventIds: ["old-test"] };
+	const rows = projectDotJourney({
+		runtimeRunning: true,
+		external: state,
+		connection,
+		dispatches: [{ eventId: "old-test", attemptId: connection.attemptId, occurredAt: Date.now(), sourceReadAt: Date.now(), replyMessageId: "old-reply" }],
+		now: Date.now(),
+	});
+	assert.equal(state.pending.pairingAttemptId, connection.attemptId);
+	assert.equal(state.pending.pairingRequired, false);
+	assert.equal(rows.rows[0].key, "candidate-verification-required");
+});
+
+test("pending credential is limited to discovery, initial subscription and its exact read/reply proof", async (t) => {
+	const f = await paired(t);
+	const dot = new DotConnection(f.host, f.sendWebhook, new AbortController().signal);
+	f.host.capability = {
+		issueExternal: async () => ({ token: "pending", tokenId: "new-jti", issuedAt: 1, expiresAt: 2_000_000_000, refreshRecommendedAt: 1_900_000_000 }),
+	};
+	await dot.issuePending(f.owner, 3600);
+	await dot.recordDiscovery(credential("new-jti"));
+	const eventId = "dot_evt_" + "b".repeat(64);
+	await dot.bindPendingVerification(eventId);
+	await assert.rejects(dot.authorizeExternal(credential("new-jti"), "publish-image", eventId), /pending_operation/);
+	await assert.rejects(dot.authorizeExternal(credential("new-jti"), "pairing-unsubscribe"), /pending_operation/);
+	await dot.authorizeExternal(credential("new-jti"), "read", eventId);
+	await dot.authorizeExternal(credential("new-jti"), "reply", eventId);
 });
 
 test("cancelling a replacement restores the current credential endpoint", async (t) => {

@@ -183,3 +183,18 @@ test("derives verification progress, timeout diagnostics, and readiness only fro
 		"verification-required",
 	);
 });
+
+test("an expired signed current credential cannot borrow historical readiness and exposes renewal", () => {
+	const expired: DotExternalState = {
+		...currentExternal,
+		current: { ...currentExternal.current!, expiresAt: 2 },
+	};
+	const subscribed = connection({
+		pairedAt: now - 10_000,
+		subscription: { id: "sub", url: "https://callback.example/dot", secret: "secret", expiresAt: null, verifiedAt: now - 10_000, previousSecret: null, rotationUntil: null },
+		testEventIds: [`dot_evt_${"a".repeat(64)}`],
+	});
+	const result = projectDotJourney({ ...base, external: expired, connection: subscribed, dispatches: [dispatch({ sourceReadAt: now - 1_000, replyMessageId: "reply" })] });
+	assert.equal(result.rows[0]?.key, "credential-unavailable");
+	assert.ok(result.rows[0]?.actions?.some((candidate) => candidate.action === "refresh-credential"));
+});

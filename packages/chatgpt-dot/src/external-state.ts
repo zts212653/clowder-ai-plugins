@@ -10,6 +10,7 @@ export const signedCredentialSchema = z
 		issuedAt: z.number().int().nonnegative(),
 		expiresAt: z.number().int().positive(),
 		refreshRecommendedAt: z.number().int().positive(),
+		verifiedEventId: ref.optional(),
 	})
 	.strict();
 
@@ -55,6 +56,7 @@ export const pendingCredentialSchema = signedCredentialSchema
 		createdAt: z.number().int().nonnegative(),
 		discoveredAt: z.number().int().nonnegative().nullable(),
 		pairingAttemptId: ref.nullable(),
+		pairingRequired: z.boolean().default(true),
 		verificationEventId: ref.nullable(),
 		verificationReadAt: z.number().int().nonnegative().nullable(),
 		verificationReplyAt: z.number().int().nonnegative().nullable(),

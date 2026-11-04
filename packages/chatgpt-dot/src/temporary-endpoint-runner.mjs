@@ -6,6 +6,8 @@ let server;
 let tunnel;
 let stopping = false;
 const acceptedTokens = new Set();
+const sockets = new Set();
+const upstreamRequests = new Set();
 
 const reply = (response, status, body) => {
 	response.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
@@ -15,14 +17,18 @@ const reply = (response, status, body) => {
 async function stop(reason) {
 	if (stopping) return;
 	stopping = true;
-	await new Promise((resolve) => server?.close(resolve) ?? resolve());
 	if (tunnel && tunnel.exitCode === null && tunnel.signalCode === null) tunnel.kill("SIGTERM");
+	for (const controller of upstreamRequests) controller.abort();
+	for (const socket of sockets) socket.destroy();
+	server?.closeAllConnections?.();
+	const closed = new Promise((resolve) => server?.close(resolve) ?? resolve());
 	const timeout = setTimeout(() => {
 		if (tunnel && tunnel.exitCode === null && tunnel.signalCode === null) tunnel.kill("SIGKILL");
 	}, 1500);
 	if (tunnel && tunnel.exitCode === null && tunnel.signalCode === null)
 		await new Promise((resolve) => tunnel.once("exit", resolve));
 	clearTimeout(timeout);
+	await Promise.race([closed, new Promise((resolve) => setTimeout(resolve, 250))]);
 	process.disconnect?.();
 	process.exit(reason === "expired" || reason === "owner_stop" || reason === "replace" ? 0 : 1);
 }
@@ -61,18 +67,30 @@ process.on("message", async (message) => {
 			for (const name of ["accept", "content-type", "mcp-protocol-version", "mcp-session-id", "last-event-id"])
 				if (typeof request.headers[name] === "string") headers[name] = request.headers[name];
 			const target = new URL(relativePath, upstream);
-			const result = await fetch(target, {
-				method: "POST",
-				headers,
-				body: Buffer.concat(chunks),
-				redirect: "manual",
-				signal: AbortSignal.timeout(30_000),
-			});
-			const responseHeaders = {};
-			for (const name of ["content-type", "cache-control", "retry-after", "x-content-type-options"])
-				if (result.headers.has(name)) responseHeaders[name] = result.headers.get(name);
-			response.writeHead(result.status, responseHeaders);
-			response.end(Buffer.from(await result.arrayBuffer()));
+			const controller = new AbortController();
+			upstreamRequests.add(controller);
+			try {
+				const result = await fetch(target, {
+					method: "POST",
+					headers,
+					body: Buffer.concat(chunks),
+					redirect: "manual",
+					signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)]),
+				});
+				const responseHeaders = {};
+				for (const name of ["content-type", "cache-control", "retry-after", "x-content-type-options"])
+					if (result.headers.has(name)) responseHeaders[name] = result.headers.get(name);
+				response.writeHead(result.status, responseHeaders);
+				response.end(Buffer.from(await result.arrayBuffer()));
+			} catch {
+				if (!stopping && !response.headersSent) reply(response, 502, { error: "upstream_unavailable" });
+			} finally {
+				upstreamRequests.delete(controller);
+			}
+		});
+		server.on("connection", (socket) => {
+			sockets.add(socket);
+			socket.once("close", () => sockets.delete(socket));
 		});
 		server.on("upgrade", (_request, socket) => socket.destroy());
 		server.on("connect", (_request, socket) => socket.destroy());

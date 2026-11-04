@@ -10,6 +10,8 @@ import { BUNDLED_TUNNEL_SHA256, TemporaryEndpointController } from "../src/tempo
 import { createHash } from "node:crypto";
 
 const runnerPath = resolve(fileURLToPath(new URL("../src/temporary-endpoint-runner.mjs", import.meta.url)));
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const live = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
 
 test("published darwin-arm64 tunnel binary matches its reviewed manifest identity", async () => {
 	const binary = fileURLToPath(new URL("../assets/bin/darwin-arm64/cloudflared", import.meta.url));
@@ -113,6 +115,61 @@ test("controller publishes owner URL without clipboard and closes its exact runn
 	);
 	await controller.stop("owner_stop");
 	assert.throws(() => controller.allowToken("late-token"), /unavailable/);
+});
+
+test("stop during binary preparation cancels publication before a runner can become active", async (t) => {
+	const root = await mkdtemp(join(tmpdir(), "dot-controller-start-stop-"));
+	t.after(() => rm(root, { recursive: true, force: true }));
+	const controller = new TemporaryEndpointController({
+		runnerPath,
+		binaryPath: await fakeTunnel(t, root),
+		fetch: async () => new Response("{}", { status: 401 }),
+		startupTimeoutMs: 2_000,
+	});
+	const starting = controller.start({
+		upstreamLoopbackOrigin: "http://127.0.0.1:5182",
+		relativePath: "/api/plugin-runtime/handle",
+		method: "POST",
+		token: "cancelled-token",
+		ttlMs: 60_000,
+	});
+	await controller.stop("owner_stop");
+	await assert.rejects(starting, /cancel/);
+	assert.throws(() => controller.allowToken("late-token"), /unavailable/);
+});
+
+test("an unfinished upload cannot keep the tunnel alive after runner stop", async (t) => {
+	const root = await mkdtemp(join(tmpdir(), "dot-runner-open-upload-"));
+	const tunnel = await fakeTunnelWithPid(root);
+	const child = fork(runnerPath, [tunnel.path], { stdio: ["ignore", "ignore", "ignore", "ipc"] });
+	let request;
+	let pid;
+	t.after(async () => {
+		request?.destroy();
+		if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+		if (pid && live(pid)) process.kill(pid, "SIGKILL");
+		await rm(root, { recursive: true, force: true });
+	});
+	const ready = new Promise((resolve, reject) => {
+		child.on("message", (message) => message?.type === "ready" && resolve(message));
+		child.once("exit", () => reject(new Error("runner exited")));
+	});
+	child.send({
+		type: "start", upstreamLoopbackOrigin: "http://127.0.0.1:1",
+		relativePath: "/api/plugin-runtime/handle", method: "POST", token: "fixture-token",
+		expiresAt: Date.now() + 60_000,
+	});
+	const info = await ready;
+	pid = Number(await readFile(tunnel.pidFile, "utf8"));
+	request = http.request(`${info.listenerOrigin}/mcp?token=fixture-token`, {
+		method: "POST", headers: { "content-type": "application/json", "content-length": "100" },
+	});
+	request.on("error", () => {});
+	request.write("{");
+	await pause(100);
+	child.send({ type: "stop", reason: "owner_stop" });
+	await new Promise((resolve) => child.once("exit", resolve));
+	assert.equal(live(pid), false);
 });
 
 test("controller materializes a verified non-executable packaged asset into private runtime storage", async (t) => {
