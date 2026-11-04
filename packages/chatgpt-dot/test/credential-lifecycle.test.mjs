@@ -69,7 +69,12 @@ test("pending signed credential promotes only from its exact discovery, pairing 
 	f.active = await f.module.start(f.host);
 	t.after(() => f.active.stop({ reason: "test" }));
 
-	const presentation = await f.settings.actions["dot.use-long-lived"]({}, undefined, f.owner);
+	const presentation = await f.settings.actions["dot.use-long-lived"]({
+		input: {
+			longLivedServerUrlTemplate: "https://dot.example/api/plugin-runtime/handle?token={token}",
+			externalTokenDays: "30",
+		},
+	}, undefined, f.owner);
 	assert.equal(presentation.data, "https://dot.example/api/plugin-runtime/handle?token=signed-token-1");
 	let external = f.records.get(EXTERNAL_KEY).value;
 	assert.equal(external.current, null);

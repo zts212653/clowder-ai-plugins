@@ -41,6 +41,13 @@ function longLivedServerUrl(
 		throw new Error("dot_long_lived_template_route_mismatch");
 	return url.toString();
 }
+function operationInput(params: unknown): Readonly<Record<string, unknown>> {
+	if (!params || typeof params !== "object" || Array.isArray(params)) return {};
+	const input = (params as { readonly input?: unknown }).input;
+	return input && typeof input === "object" && !Array.isArray(input)
+		? (input as Readonly<Record<string, unknown>>)
+		: {};
+}
 export function createDotPlugin(
 	options: DotPluginOptions = {},
 ): PluginModuleDefinition {
@@ -119,11 +126,12 @@ export function createDotPlugin(
 			};
 			const actions: Record<string, PluginActionHandler> = {
 				"dot.status": async (_input, _native, context) => statusRows(context),
-				"dot.use-long-lived": async (_input, _native, context) => {
+				"dot.use-long-lived": async (params, _native, context) => {
 					await current.owner(context);
 					if (!running) throw new Error("dot_runtime_unavailable");
-					const ttlDays = Number(await host.config.get("externalTokenDays") ?? 180);
-					const template = await host.config.get("longLivedServerUrlTemplate");
+					const input = operationInput(params);
+					const ttlDays = Number(input.externalTokenDays ?? 180);
+					const template = input.longLivedServerUrlTemplate;
 					const { state, issued } = await current.issuePending(context, ttlDays * 24 * 60 * 60);
 					const serverUrl = longLivedServerUrl(template, issued.token, issued.forwarding);
 					await current.setLongLivedServerUrl(state.pending!.candidateId, serverUrl);
@@ -132,10 +140,10 @@ export function createDotPlugin(
 						data: serverUrl,
 					};
 				},
-				"dot.start-temporary": async (_input, _native, context) => {
+				"dot.start-temporary": async (params, _native, context) => {
 					await current.owner(context);
 					if (!running || !temporaryEndpoints) throw new Error("dot_runtime_unavailable");
-					const hours = Number(await host.config.get("temporaryEndpointHours") ?? 1);
+					const hours = Number(operationInput(params).temporaryEndpointHours ?? 1);
 					if (!Number.isFinite(hours) || hours <= 0 || hours > 24)
 						throw new Error("dot_temporary_ttl_invalid");
 					const ttlMs = Math.floor(hours * 60 * 60_000);
@@ -147,15 +155,16 @@ export function createDotPlugin(
 					await current.setTemporaryLease(state.pending!.candidateId, lease);
 					return { render: "text", data: lease.serverUrl };
 				},
-				"dot.refresh-credential": async (_input, _native, context) => {
+				"dot.refresh-credential": async (params, _native, context) => {
 					await current.owner(context);
 					if (!running) throw new Error("dot_runtime_unavailable");
 					const before = await current.externalState();
-					const ttlDays = Number(await host.config.get("externalTokenDays") ?? 180);
+					const input = operationInput(params);
+					const ttlDays = Number(input.externalTokenDays ?? 180);
 					const { state, issued } = await current.issuePending(context, ttlDays * 24 * 60 * 60);
 					const candidateId = state.pending!.candidateId;
 					if (before.endpoint.mode === "long-lived") {
-						const template = await host.config.get("longLivedServerUrlTemplate");
+						const template = input.longLivedServerUrlTemplate;
 						const serverUrl = longLivedServerUrl(template, issued.token, issued.forwarding);
 						await current.setLongLivedServerUrl(candidateId, serverUrl);
 						return { render: "text", data: serverUrl };

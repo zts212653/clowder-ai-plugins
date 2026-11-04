@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createDotPlugin } from "../src/plugin-entrypoint.ts";
+import { TemporaryEndpointController } from "../src/temporary-endpoint.ts";
 import { fixture, mcp } from "./fixture.mjs";
 
 async function runningFixture(t, setup = () => {}) {
@@ -94,6 +95,93 @@ test("missing endpoint leaves entry selection to native configuration variants",
 	const result = await settings.actions["dot.status"]({}, undefined, f.owner);
 	assert.deepEqual(result.data.rows, []);
 	assert.equal(f.records.has("dot/connection/v1"), false);
+});
+
+test("entry actions consume the current configuration draft passed by the Host", async (t) => {
+	const issuedTtls = [];
+	const f = fixture(t, {
+		config: {
+			longLivedServerUrlTemplate:
+				"https://saved.invalid/api/plugin-runtime/handle?token={token}",
+			externalTokenDays: 180,
+			temporaryEndpointHours: 1,
+		},
+		capability: {
+			issueExternal: async ({ ttlSeconds }) => {
+				issuedTtls.push(ttlSeconds);
+				const id = issuedTtls.length;
+				return {
+					token: `draft-token-${id}`,
+					tokenId: `draft-jti-${id}`,
+					issuedAt: 1,
+					expiresAt: 2_000_000_000,
+					refreshRecommendedAt: 1_900_000_000,
+					forwarding: {
+						upstreamLoopbackOrigin: "http://127.0.0.1:5182",
+						relativePath: "/api/plugin-runtime/handle",
+						method: "POST",
+					},
+				};
+			},
+			inspectExternal: async () => ({
+				usable: true,
+				reason: "usable",
+				refreshRecommended: false,
+			}),
+		},
+	});
+	let temporaryInput;
+	const originalStart = TemporaryEndpointController.prototype.start;
+	TemporaryEndpointController.prototype.start = async function (input) {
+		temporaryInput = structuredClone(input);
+		return {
+			generation: "draft-generation",
+			serverUrl: `https://temporary.example/mcp?token=${input.token}`,
+			startedAt: 10,
+			expiresAt: 10 + input.ttlMs,
+		};
+	};
+	t.after(() => {
+		TemporaryEndpointController.prototype.start = originalStart;
+	});
+	const module = createDotPlugin({ sendWebhook: f.sendWebhook });
+	const settings = await module.settings(f.host);
+	const active = await module.start(f.host);
+	t.after(async () => {
+		settings.dispose();
+		await active.stop({ reason: "test" });
+	});
+
+	const longLived = await settings.actions["dot.use-long-lived"](
+		{
+			input: {
+				longLivedServerUrlTemplate:
+					"https://draft.example/api/plugin-runtime/handle?token={token}",
+				externalTokenDays: "7",
+			},
+		},
+		undefined,
+		f.owner,
+	);
+	assert.equal(
+		longLived.data,
+		"https://draft.example/api/plugin-runtime/handle?token=draft-token-1",
+	);
+	assert.equal(issuedTtls[0], 7 * 24 * 60 * 60);
+
+	const temporary = await settings.actions["dot.start-temporary"](
+		{
+			input: { temporaryEndpointHours: "2.5" },
+		},
+		undefined,
+		f.owner,
+	);
+	assert.equal(
+		temporary.data,
+		"https://temporary.example/mcp?token=draft-token-2",
+	);
+	assert.equal(temporaryInput.ttlMs, 2.5 * 60 * 60_000);
+	assert.equal(issuedTtls[1], 2.5 * 60 * 60 + 300);
 });
 
 test("pending credential cannot start pairing before its own ChatGPT discovery", async (t) => {
