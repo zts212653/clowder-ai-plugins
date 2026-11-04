@@ -1,5 +1,6 @@
 import type { RepoInboxSignal } from './business/infrastructure/connectors/github-repo-event/types.js';
 import { sanitize } from './business/domains/community/issue-analysis/CommunityIssueSanitizer.js';
+import { POST_MERGE_FOLLOWUP } from './business/domains/github-signals/post-merge-followup.js';
 
 /** Keep external prose in one bounded JSON scalar, never template syntax.
  * This is data framing, not a claim that arbitrary prose becomes trustworthy. */
@@ -30,6 +31,7 @@ export function formatProviderBriefing(signal: RepoInboxSignal, reconciliation =
     `Provider author: ${JSON.stringify(signal.authorLogin.slice(0, 128))} (${JSON.stringify(signal.authorAssociation.slice(0, 64))})`,
     `https://github.com/${repo}/${signal.subjectType === 'pr' ? 'pull' : 'issues'}/${signal.number}`,
     `Source: ${subject}`,
+    ...(signal.subjectType === 'pr' && signal.action === 'merged' ? ['', POST_MERGE_FOLLOWUP] : []),
     '',
     'Read github_repository_observations and github_inspect_subject through the installed plugin tools before summarizing.',
     'Use github_recommend_triage for a recommendation from supplied evidence, not an authenticated decision.',

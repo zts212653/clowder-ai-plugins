@@ -1,4 +1,5 @@
 import type { GitHubWaitOutcomeV1 } from '../../model/index.js';
+import { POST_MERGE_FOLLOWUP } from './post-merge-followup.js';
 
 export const REVIEW_LOOP_BRAKE_NEXT_STEP = '[review-loop-brake]';
 export const REVIEW_LOOP_HISTORY_WARN_NEXT_STEP = '[review-loop-history-unavailable] ';
@@ -37,9 +38,12 @@ export function classifyGitHubReviewLoopBrake(
 export function renderGitHubWaitOutcome(outcome: GitHubWaitOutcomeV1): string {
   const isIssue = outcome.subjectRef.startsWith('issue:');
   const kind = isIssue ? 'Issue' : 'PR';
+  const merged = !isIssue && outcome.terminalSubjectState === 'merged';
   const subjectLink = renderGitHubSubjectLink(outcome.subjectRef);
   const lines =
-    outcome.reason === 'expired'
+    merged
+      ? [`🔔 **PR merged — intake / follow-up required** — ${subjectLink}`, '']
+      : outcome.reason === 'expired'
       ? [`⏰ **${kind} tracking expired** — ${subjectLink}`, '']
       : [`🔔 **${kind} wait satisfied** — ${subjectLink}`, ''];
 
@@ -78,6 +82,7 @@ export function renderGitHubWaitOutcome(outcome: GitHubWaitOutcomeV1): string {
     );
   }
 
+  if (merged) lines.push('', POST_MERGE_FOLLOWUP);
   lines.push('', `Matched reason: \`${outcome.reason}\``);
   if (outcome.nextStep === REVIEW_LOOP_BRAKE_NEXT_STEP) {
     lines.push(
@@ -105,5 +110,8 @@ function trackingStatusLine(outcome: GitHubWaitOutcomeV1): string {
   if (outcome.renewal === 'rearm_failed') {
     return '⚠ **Event delivered; tracking not rearmed.** Nothing is watching this subject now — register again to keep tracking.';
   }
-  return `_Tracking ended (\`${outcome.reason}\`)._`;
+  const completion = outcome.subjectRef.startsWith('pr:') && outcome.terminalSubjectState === 'merged'
+    ? ' This retires the subscription only; it does not complete intake or delivery.'
+    : '';
+  return `_Tracking ended (\`${outcome.reason}\`).${completion}_`;
 }

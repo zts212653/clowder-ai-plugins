@@ -19,6 +19,28 @@ arrive as ordinary messages. Read the returned wait and notification coverage. U
 when requested; terminal PR/issue state also retires tracking automatically.
 Unregistering retains historical records.
 
+## A merged PR starts post-merge follow-up
+
+`subject_terminal`, a retired subscription and an author's merge are provider facts,
+not completion of the maintained work. On **every merged PR notification**, read the
+repository's post-merge workflow (for example `opensource-ops`) before closing the turn.
+For upstream/community changes, complete downstream intake/backport, or verify and
+record why the change is already present or public-only. Do this regardless of who
+clicked merge. A closed linked issue is not downstream delivery evidence.
+
+The responsible execution thread continues through intake. A separate review-only
+recipient hands the remaining work to that named execution owner with the existing
+work coordinates. The maintainer/routing thread arranges authorized execution and
+verifies acceptance; it does not become the implementation site. Record the owner
+and next step. Do not silently leave this to a periodic sync, create a second intake
+writer, or reopen the completed PR subscription. Continue
+already authorized work without asking for the same approval again; the notification
+does not itself grant new implementation, merge or deployment authority.
+
+Report **upstream merged / intake status / accountable owner / next step**. If another
+owner has genuinely accepted the remaining work, name that handoff instead of saying
+the whole contribution is complete. Only review/notification tracking may be finished.
+
 New tracking is a package-private notification subscription. Declared schedules poll
 GitHub and use `messaging.send` to post ordinary thread messages; the normal message
 route wakes the recipient. For new subscriptions, do not create or update Host Tasks, register a second

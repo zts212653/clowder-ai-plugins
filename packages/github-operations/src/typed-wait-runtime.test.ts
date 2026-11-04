@@ -1195,6 +1195,9 @@ test('terminal CI observation with lost private writes is not delivered and retr
     await runtime.poll('pr');
     assert.equal(f.sent.length, 1);
     assert.equal((await runtime.store.get(task.id))?.automationState?.waitOutcome?.reason, 'subject_terminal');
+    assert.match(JSON.stringify(f.sent[0]), /Post-merge: intake \/ delivery remains/);
+    assert.match(JSON.stringify(f.sent[0]), /original maintainer/);
+    assert.equal(f.hostTaskCalls(), 0, 'an intake reminder does not complete or reassign Host work');
     await runtime.poll('pr');
     assert.equal(f.sent.length, 1, 'no duplicate terminal delivery after the committed retry');
   } finally { await runtime.stop(); }

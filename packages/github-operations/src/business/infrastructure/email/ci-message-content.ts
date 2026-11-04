@@ -3,6 +3,7 @@
  * Extracted from CiCdRouter.ts so lifecycle delivery can stay small and reusable.
  */
 import type { CiPollResult } from './CiCdRouter.js';
+import { POST_MERGE_FOLLOWUP } from '../../domains/github-signals/post-merge-followup.js';
 
 export function buildCiMessageContent(poll: CiPollResult, _legacyInstructions?: string): string {
   const failedChecks = poll.checks.filter((c) => c.bucket === 'fail');
@@ -29,7 +30,7 @@ export function buildLifecycleMessageContent(
   lines.push(
     '',
     merged
-      ? '请执行 post-merge 收尾（验证 main、更新任务状态、清理分支/worktree）。'
+      ? POST_MERGE_FOLLOWUP
       : '该 PR 未合并即关闭，请确认是否需要跟进（重开、改道或收尾归档）。',
   );
 
