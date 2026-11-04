@@ -2441,57 +2441,6 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.36",
-          "contractVersion": "0.3.2-candidate.0",
-          "manifestPath": "plugin.yaml",
-          "artifact": {
-            "kind": "npm",
-            "packageName": "@clowder-ai/github-operations",
-            "version": "0.1.0-alpha.36",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.36.tgz",
-            "integrity": "sha512-BoxKCKICCcpvSIVAVO6/W0KR02trWOUrQDGfHEihcZBDslwrUyQB9LYphI8JE42uufRraMPuBCsMhRf6m2WcIQ==",
-            "shasum": "669730a543b992c401934c411b4b62ace47b78ed",
-            "provenance": {
-              "repository": "https://github.com/zts212653/clowder-ai-plugins",
-              "sourceDirectory": "packages/github-operations"
-            }
-          }
-        },
-        {
-          "version": "0.1.0-alpha.35",
-          "contractVersion": "0.3.2-candidate.0",
-          "manifestPath": "plugin.yaml",
-          "artifact": {
-            "kind": "npm",
-            "packageName": "@clowder-ai/github-operations",
-            "version": "0.1.0-alpha.35",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.35.tgz",
-            "integrity": "sha512-3uTwx1uhoTuRbaEjXLd4XMM05uN/UzJOLufZKdR8tNda9Ak8eahXlB4hZlLkUUkZaC9DhezXRApQ0nZcd+DGHA==",
-            "shasum": "d87875a9754ecd6eaa6113e55e3004fdb52b9ff4",
-            "provenance": {
-              "repository": "https://github.com/zts212653/clowder-ai-plugins",
-              "sourceDirectory": "packages/github-operations"
-            }
-          }
-        },
-        {
-          "version": "0.1.0-alpha.34",
-          "contractVersion": "0.3.2-candidate.0",
-          "manifestPath": "plugin.yaml",
-          "artifact": {
-            "kind": "npm",
-            "packageName": "@clowder-ai/github-operations",
-            "version": "0.1.0-alpha.34",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.34.tgz",
-            "integrity": "sha512-NVrjxnwbCFfDM4w5xn3Gws3cKyeHGkXKQuAq6dz2UA2R+Y1Vag7oJNZlTrU60PMC3jWgxuLa2m5wdfdOjjV/5A==",
-            "shasum": "ac640fd0917e3fa901ebcda84f895d5b4fe572e5",
-            "provenance": {
-              "repository": "https://github.com/zts212653/clowder-ai-plugins",
-              "sourceDirectory": "packages/github-operations"
-            }
-          }
-        },
-        {
           "version": "0.1.0-alpha.33",
           "contractVersion": "0.3.2-candidate.0",
           "manifestPath": "plugin.yaml",
