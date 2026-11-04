@@ -38,6 +38,7 @@ export interface StackChanListenResult {
 
 export interface StackChanGatewayClient {
   listen(request: StackChanListenRequest): Promise<StackChanListenResult>;
+  nuzzle(): Promise<void>;
   restoreSafePose(): Promise<void>;
 }
 
@@ -58,6 +59,7 @@ export type StackChanTouchReplyResult =
 
 export interface StackChanTouchReplyController {
   handleGatewayEvent(event: unknown): Promise<StackChanTouchReplyResult>;
+  isBusy(): boolean;
 }
 
 export interface StackChanTouchReplyControllerOptions {
@@ -79,6 +81,7 @@ export interface StackChanTouchReplyControllerOptions {
   readonly language?: string;
   readonly lookUpPitch?: number;
   readonly debounceMs?: number;
+  readonly beforeInteraction?: () => Promise<void>;
 }
 
 function isIdentifier(value: unknown): value is string {
@@ -164,6 +167,7 @@ export function createStackChanTouchReplyController(
   let lastAcceptedUnixMs: number | undefined;
 
   return {
+    isBusy: () => captureActive,
     async handleGatewayEvent(event: unknown): Promise<StackChanTouchReplyResult> {
       const preliminary = parseStackChanTouchEventRecord(event, {
         nodeId: options.nodeId,
@@ -208,20 +212,28 @@ export function createStackChanTouchReplyController(
       lastEventKey = parsed.eventKey;
       lastAcceptedUnixMs = parsed.eventUnixMs;
 
-      let listenPromise: Promise<StackChanListenResult>;
       try {
-        listenPromise = options.gateway.listen({
+        await options.beforeInteraction?.();
+        if (parsed.observation.payload.gesture === 'stroke') {
+          if (options.beginInteraction === undefined) {
+            await options.emitObservation(parsed.observation);
+          }
+          await options.gateway.nuzzle();
+          return { status: 'completed', interactionId };
+        }
+
+        // Start capture before Host I/O, and always consume its result even if
+        // observation persistence fails. Only tap opens the microphone.
+        const listening = options.gateway.listen({
           durationMs: listenDurationMs,
           engine: listenEngine,
           language,
           motion: 'look-up',
           lookUpPitch,
-        });
-      } catch (error) {
-        listenPromise = Promise.reject(error);
-      }
-
-      try {
+        }).then(
+          value => ({ value, error: undefined }),
+          (error: unknown) => ({ value: undefined, error }),
+        );
         let touchEmitError: unknown;
         try {
           if (options.beginInteraction === undefined) {
@@ -230,50 +242,12 @@ export function createStackChanTouchReplyController(
         } catch (error) {
           touchEmitError = error;
         }
-
-        let listenResult: StackChanListenResult | undefined;
-        let listenError: unknown;
-        try {
-          listenResult = await listenPromise;
-        } catch (error) {
-          listenError = error;
-        }
-
-        let restoreError: unknown;
-        try {
-          await options.gateway.restoreSafePose();
-        } catch (error) {
-          restoreError = error;
-        }
-
-        if (listenError !== undefined) {
-          const reason = errorMessage(listenError);
-          return {
-            status: 'failed',
-            reason:
-              restoreError === undefined
-                ? reason
-                : `${reason}; safe pose restore failed: ${errorMessage(restoreError)}`,
-          };
-        }
-        if (restoreError !== undefined) {
-          return {
-            status: 'failed',
-            reason: `safe pose restore failed: ${errorMessage(restoreError)}`,
-          };
-        }
-        if (listenResult === undefined) {
-          return { status: 'failed', reason: 'listen returned no result' };
-        }
-
-        if (touchEmitError !== undefined) {
-          return { status: 'failed', reason: errorMessage(touchEmitError) };
-        }
-
-        const validated = validateListenResult(listenResult);
-        if (validated === null) {
-          return { status: 'failed', reason: 'invalid listen result' };
-        }
+        const captured = await listening;
+        if (captured.error !== undefined) throw captured.error;
+        if (touchEmitError !== undefined) throw touchEmitError;
+        if (captured.value === undefined) throw new Error('listen returned no result');
+        const validated = validateListenResult(captured.value);
+        if (validated === null) throw new Error('invalid listen result');
 
         const text = validated.text.trim();
         if (text.length === 0) {
@@ -307,7 +281,13 @@ export function createStackChanTouchReplyController(
           transcriptObservationId,
         };
       } catch (error) {
-        return { status: 'failed', reason: errorMessage(error) };
+        let reason = errorMessage(error);
+        try {
+          await options.gateway.restoreSafePose();
+        } catch (restoreError) {
+          reason += `; safe pose restore failed: ${errorMessage(restoreError)}`;
+        }
+        return { status: 'failed', reason };
       } finally {
         captureActive = false;
       }

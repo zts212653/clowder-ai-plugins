@@ -139,9 +139,9 @@ test('retries durable observations after restart without replaying the physical 
     config.eventJsonlPath,
     `${JSON.stringify({
       event_type: 'touch',
-      subtype: 'stroke',
+      subtype: 'tap',
       duration_ms: 840,
-      action: 'head_stroke',
+      action: 'head_pat',
       ts: 12_340,
       ts_unix: 1_785_576_000.25,
       session_id: 'device-session-1',

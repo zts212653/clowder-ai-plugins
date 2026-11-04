@@ -1,3 +1,5 @@
+import { setTimeout as delay } from 'node:timers/promises';
+
 import type {
   PhysicalLimbSafePose,
 } from '@clowder-ai/plugin-contract';
@@ -156,6 +158,26 @@ export function createStackChanGatewayClient(
         look_up_pitch: request.lookUpPitch,
       });
       return parseListenResponse(result, request);
+    },
+
+    async nuzzle(): Promise<void> {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), safePose.timeoutMs);
+      const call = async (name: string, input: Readonly<Record<string, unknown>>): Promise<void> => {
+        const error = toolError(await caller.callTool(name, input, { signal: controller.signal }));
+        if (error) throw new Error(error);
+      };
+      try {
+        await call('set_avatar', { face: 'happy' });
+        await call('set_leds', { colors: Array.from({length: 12}, () => [24, 6, 12]) });
+        await call('move_head', { yaw: -8, pitch: 55, speed: 'low' });
+        await delay(250, undefined, { signal: controller.signal });
+        await call('move_head', { yaw: 8, pitch: 58, speed: 'low' });
+        await delay(250, undefined, { signal: controller.signal });
+        await call('move_head', { yaw: 0, pitch: 55, speed: 'low' });
+      } finally {
+        clearTimeout(timer);
+      }
     },
 
     async restoreSafePose(): Promise<void> {
