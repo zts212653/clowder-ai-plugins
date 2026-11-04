@@ -40,8 +40,12 @@ model replies; custom cat face packs are not installed by this command.
 intensity. It uses the robot microphone for local beat analysis. It does not upload
 or save audio. The adapter always requests microphone release when the scene ends.
 Touch or an incoming physical action interrupts play before starting the interaction.
-`stop` cancels the active scene, mutes playback, clears lights, and returns the head
-to the configured safe pose. A scene also has a 45-second deadline.
+`stop` cancels the remaining scene, releases beat capture, clears lights, and returns
+the head to the configured safe pose without muting the ordinary speaker. The
+gateway serializes hardware commands and offers no separate speech interruption
+tool: an already-started short line may finish before the stop commands execute.
+A scene also has a 45-second deadline. The original scene reports its failures;
+they do not prevent a subsequent touch or physical action from attempting recovery.
 
 The plugin needs a gateway/firmware with the named motion, avatar, LED, speech,
 and beat tools. A tool appearing in the gateway catalog alone does not prove that

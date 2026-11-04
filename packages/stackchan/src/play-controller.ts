@@ -43,20 +43,27 @@ function payload(result: unknown): Record<string, unknown> | undefined {
 }
 
 /** Gateway transport connectivity is not robot connectivity. */
-export async function readStackChanDeviceHealth(caller: StackChanMcpToolCaller): Promise<'online' | 'offline' | 'degraded'> {
+export async function readStackChanDeviceHealth(caller: StackChanMcpToolCaller, signal?: AbortSignal): Promise<'online' | 'offline' | 'degraded'> {
+  signal?.throwIfAborted();
   try {
-    const status = payload(await caller.callTool('get_status', {}));
+    const status = payload(await caller.callTool('get_status', {}, { signal }));
+    signal?.throwIfAborted();
     if (status?.connected === false) return 'offline';
     return status?.connected === true && typeof status.tools_count === 'number' && status.tools_count > 0
       ? 'online' : 'degraded';
-  } catch { return 'degraded'; }
+  } catch {
+    signal?.throwIfAborted();
+    return 'degraded';
+  }
 }
 
 const LINES = [
-  { profile: 'xianxian:local', face: 'embarrassed', yaw: -18, color: [5, 10, 28], text: '宪宪说：这个小身体，我先住进来啦。' },
-  { profile: 'shuosh:local', face: 'surprised', yaw: 18, color: [4, 24, 24], text: '烁烁说：让一让！我要坐驾驶座！' },
-  { profile: 'yanyan:local', face: 'happy', yaw: 0, color: [28, 15, 3], text: '砚砚说：都别挤，铲屎官还没摸到我呢。' },
+  { profile: 'xianxian:local', face: 'embarrassed', yaw: -18, color: [5, 10, 28], text: '宪宪：这个身体归我！' },
+  { profile: 'shuosh:local', face: 'surprised', yaw: 18, color: [4, 24, 24], text: '烁烁：让开，我来开！' },
+  { profile: 'yanyan:local', face: 'happy', yaw: 0, color: [28, 15, 3], text: '砚砚：别挤，先摸我。' },
 ] as const;
+
+class PlayCleanupError extends AggregateError {}
 
 export interface StackChanPlayController {
   run(scene: StackChanPlayScene): Promise<StackChanPlayResult>;
@@ -84,7 +91,12 @@ export function createStackChanPlayController(options: {
     let outputStarted = false;
     let completed = false;
     try {
-      if (await readStackChanDeviceHealth(options.caller) !== 'online') {
+      if (scene === 'bicker') {
+        for (const line of LINES) {
+          if (!options.voiceProfiles[line.profile]) throw new Error(`缺少短剧声线配置：${line.profile}`);
+        }
+      }
+      if (await readStackChanDeviceHealth(options.caller, signal) !== 'online') {
         throw new Error('机器人尚未连接网关；接通后再玩。');
       }
       signal.throwIfAborted();
@@ -95,9 +107,6 @@ export function createStackChanPlayController(options: {
         await call('beat_mode_start', { motion_intensity: 0.3, sensitivity: 0.5, color: [8, 24, 24], duration_sec: 20 }, signal);
         await wait(20_000, signal);
       } else {
-        for (const line of LINES) {
-          if (!options.voiceProfiles[line.profile]) throw new Error(`缺少短剧声线配置：${line.profile}`);
-        }
         outputStarted = true;
         await call('set_volume', { volume: 35 }, signal);
         for (const line of LINES) {
@@ -126,7 +135,6 @@ export function createStackChanPlayController(options: {
       if (danceStarted) cleanup.push(() => call('beat_mode_stop', {}));
       if (outputStarted && !completed) {
         cleanup.push(
-          () => call('set_volume', { volume: 0 }),
           () => call('move_head', { yaw: options.safePose.yawDeg, pitch: options.safePose.pitchDeg, speed: 'low' }),
           () => call('clear_leds', {}),
         );
@@ -135,7 +143,7 @@ export function createStackChanPlayController(options: {
       for (const action of cleanup) {
         try { await action(); } catch (error) { failures.push(error); }
       }
-      if (failures.length > 0) throw new AggregateError(failures, 'StackChan play cleanup failed');
+      if (failures.length > 0) throw new PlayCleanupError(failures, 'StackChan play cleanup failed');
     }
   }
 
@@ -143,14 +151,29 @@ export function createStackChanPlayController(options: {
     const running = active;
     if (!running) return;
     running.controller.abort();
-    await running.done;
+    try {
+      await running.done;
+    } catch (error) {
+      // The initiating request owns a scene failure. Stop owns cleanup only.
+      if (error instanceof PlayCleanupError) throw error;
+    }
   }
 
   return {
     isActive: () => active !== undefined,
     stop,
     async run(scene) {
-      if (scene === 'stop') { await stop(); return { scene, outcome: 'stopped' }; }
+      if (scene === 'stop') {
+        if (active) await stop();
+        else {
+          // Explicit owner stop can recover hardware even after a failed scene
+          // has left the controller. Ordinary interruptions remain no-ops here.
+          await call('beat_mode_stop', {});
+          await call('move_head', { yaw: options.safePose.yawDeg, pitch: options.safePose.pitchDeg, speed: 'low' });
+          await call('clear_leds', {});
+        }
+        return { scene, outcome: 'stopped' };
+      }
       if (active || !options.canPlay()) throw new Error('机器人正在互动；先停止当前动作再开新场。');
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(new Error('桌面互动超时')), 45_000);

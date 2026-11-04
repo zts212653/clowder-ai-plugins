@@ -74,7 +74,7 @@ export async function createStackChanAdapterApp(
     language: config.listen.language,
     lookUpPitch: config.listen.lookUpPitch,
     debounceMs: config.listen.debounceMs,
-    beforeInteraction: () => play.stop(),
+    beforeInteraction: interruptPlay,
   });
   let activeActions = 0;
   let shuttingDown = false;
@@ -84,6 +84,15 @@ export async function createStackChanAdapterApp(
     voiceProfiles: config.voiceProfiles,
     canPlay: () => !shuttingDown && !controller.isBusy() && activeActions === 0,
   });
+  async function interruptPlay(): Promise<void> {
+    try {
+      await play.stop();
+    } catch (error) {
+      // Report the old scene's cleanup failure and let the new action attempt
+      // recovery. Its own gateway result decides whether it can proceed.
+      overrides.onError?.(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
   const eventSource = createStackChanJsonlEventSource({
     path: config.eventJsonlPath,
     cursorStore: createFileStackChanCursorStore(config.cursorPath),
@@ -114,7 +123,7 @@ export async function createStackChanAdapterApp(
     async execute(instruction) {
       activeActions += 1;
       try {
-        await play.stop();
+        await interruptPlay();
         return await actionExecutor.execute(instruction);
       } finally {
         activeActions -= 1;
