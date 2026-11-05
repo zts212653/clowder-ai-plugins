@@ -2,8 +2,10 @@ import type { PluginStorageEntry, PluginStorageHost } from '@clowder-ai/plugin-s
 import type { CommunityEvent } from '../../model/index.js';
 import { storageEntries } from '../../../storage-pages.js';
 import { initializeJournal, publishJournalHead, type JournalHead } from './journal-census.js';
-import { JournalDirectory, JOURNAL_HEAD, SUBJECTS, eventKey, hash, storedEvent, type JournalSubject } from './journal-directory.js';
+import { JournalDirectory, JOURNAL_HEAD, SUBJECTS, eventKey, hash, storedEvent, subjectKind, type JournalSubject } from './journal-directory.js';
 import type { RecoveryNoticeSender } from '../../../recovery-owner-notice.js';
+import { readRetainedJournal } from './journal-history.js';
+import { hasWaitStorage } from '../../../typed-wait-record.js';
 
 export interface ICommunityEventLog {
   /** Idempotent append. Duplicates return sequence=-1; new events retain their 0-based subject position. */
@@ -59,17 +61,28 @@ export class SdkCommunityEventLog implements ICommunityEventLog {
   }
   async read(subject: string, from = 0): Promise<CommunityEvent[]> {
     if (!Number.isSafeInteger(from) || from < 0) throw new TypeError('Invalid journal subject cursor');
-    await this.ready(); return this.directory.read(subject, from);
+    if (hasWaitStorage(this.storage)) { await this.ready(); return this.directory.read(subject, from); }
+    return (await readRetainedJournal(this.storage)).filter(row => row.event.subjectKey === subject)
+      .slice(from).map(row => row.event);
   }
   async listSubjects(): Promise<string[]> {
+    if (!hasWaitStorage(this.storage))
+      return [...new Set((await readRetainedJournal(this.storage)).map(row => row.event.subjectKey))];
     await this.ready();
-    return (await storageEntries(this.storage, SUBJECTS)).map(([, entry]) => (entry.value as JournalSubject).subject);
+    return (await storageEntries(this.storage, SUBJECTS)).flatMap(([key, entry]) => {
+      const row = entry.value as Partial<JournalSubject> | null;
+      try {
+        if (!row?.subject || key !== SUBJECTS + hash(row.subject)) return [];
+        subjectKind(row.subject); return [row.subject];
+      } catch { return []; } // Retained invalid directory rows remain in recoveryDiagnostics.
+    });
   }
   async recoveryDiagnostics() {
     const control = (await this.storage.get(JOURNAL_HEAD))?.value as JournalHead | undefined;
     const entries = (await storageEntries(this.storage, SUBJECTS)).map(([sourceKey, entry]) => {
-      const row = entry.value as JournalSubject;
-      return { sourceKey, subjectKey: row.subject, recovery: row.recovery, noticeState: row.notice?.state };
+      const row = entry.value as (Partial<JournalSubject> & { disposition?: string; reasonCode?: string }) | null;
+      return { sourceKey, sourceRevision: entry.revision, subjectKey: row?.subject,
+        recovery: row?.recovery ?? { disposition: row?.disposition ?? 'unknown', reasonCode: row?.reasonCode ?? 'recovery_not_prepared' }, noticeState: row?.notice?.state };
     });
     return { readiness: control?.directory?.status === 'ready' ? 'ready' : 'not_ready', entries };
   }

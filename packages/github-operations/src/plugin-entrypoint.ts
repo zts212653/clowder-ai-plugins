@@ -198,7 +198,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
             ...(await migratedIssues.list()),
           ],
           diagnostics: await tracking.diagnostics(),
-          recoveryOwners: { collection: await collection.recoveryDiagnostics(), migratedIssues: await migratedIssues.recoveryDiagnostics(),
+          recoveryOwners: { typed: await tracking.store.recoveryDiagnostics(), collection: await collection.recoveryDiagnostics(), migratedIssues: await migratedIssues.recoveryDiagnostics(),
             journal: await new SdkCommunityEventLog(context.storage).recoveryDiagnostics() },
         },
       }),

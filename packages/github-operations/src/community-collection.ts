@@ -22,13 +22,15 @@ export class SdkCommunityCollectionStore implements CommunityTracking {
     await this.indexed.initialize(rebuild);
   }
   async listByKind(kind: TaskItem['kind']): Promise<readonly TaskItem[]> {
-    return (await storageEntries(this.storage, prefix)).map(([, entry]) => decode(entry.value).task).filter(task => task.kind === kind);
+    return (await storageEntries(this.storage, prefix)).flatMap(([key, entry]) => {
+      try { return [decode(entry.value, key).task]; } catch { return []; }
+    }).filter(task => task.kind === kind);
   }
   async recoveryDiagnostics() {
     return (await storageEntries(this.storage, prefix)).map(([sourceKey, entry]) => {
-      const row = entry.value as { task?: TaskItem; recovery?: unknown; notice?: { state: string } };
-      return { sourceKey, taskId: row.task?.id, subjectKey: row.task?.subjectKey,
-        recovery: row.recovery ?? { disposition: 'needs_attention', reasonCode: 'invalid_source' }, noticeState: row.notice?.state };
+      const row = entry.value as { task?: TaskItem; recovery?: unknown; notice?: { state: string }; disposition?: string; reasonCode?: string } | null;
+      return { sourceKey, sourceRevision: entry.revision, taskId: row?.task?.id, subjectKey: row?.task?.subjectKey,
+        recovery: row?.recovery ?? { disposition: row?.disposition ?? 'unknown', reasonCode: row?.reasonCode ?? 'recovery_not_prepared' }, noticeState: row?.notice?.state };
     });
   }
   async getBySubject(subject: string): Promise<TaskItem | null> {
@@ -37,7 +39,7 @@ export class SdkCommunityCollectionStore implements CommunityTracking {
   async read(id: string) {
     const entry = await this.storage.get(keyFor(id));
     if (!entry) return null;
-    const record = decode(entry.value);
+    const record = decode(entry.value, keyFor(id));
     if (record.task.id !== id) throw new Error('Collection key mismatch');
     return { revision: entry.revision, ...record };
   }
@@ -116,7 +118,8 @@ export class SdkCommunityCollectionStore implements CommunityTracking {
   }
   async due(kind: 'pr' | 'issue') {
     await this.initialize();
-    return Object.values(await this.indexed.due(collectionIndex(kind), this.now())).map(entry => ({ revision: entry.revision, ...decode(entry.value) }));
+    return Object.entries(await this.indexed.due(collectionIndex(kind), this.now()))
+      .map(([sourceKey, entry]) => ({ revision: entry.revision, ...decode(entry.value, sourceKey) }));
   }
   async deliverNotice(selected: NonNullable<Awaited<ReturnType<SdkCommunityCollectionStore['read']>>>, send?: RecoveryNoticeSender) {
     if (!selected.notice) return;

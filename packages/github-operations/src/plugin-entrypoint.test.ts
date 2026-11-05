@@ -840,7 +840,7 @@ test('preexisting issue metadata remains readable without adopting governance or
   );
   assert.equal(f.deliveries.length, 0);
   assert.deepEqual(await active.actions['github.tracking.list']!({}), { data: { tracking: [], diagnostics: [],
-    recoveryOwners: { collection: [], migratedIssues: [], journal: { readiness: 'ready', entries: [] } } } });
+    recoveryOwners: { typed: [], collection: [], migratedIssues: [], journal: { readiness: 'ready', entries: [] } } } });
   await active.stop({ reason: 'test' });
   active = await module.create(manifest).start(f.runtimeHost);
   const again = await copyLegacyIssueObservations(
@@ -2404,12 +2404,62 @@ test('an older Host keeps unrelated readonly actions available while dependent t
   delete f.runtimeHost.storage.compareAndSetIndexed;
   delete f.runtimeHost.storage.readDue;
   delete f.runtimeHost.storage.rebuildIndex;
+  const original = { sourceEventId: 'old-host-history', subjectKey: 'issue:owner/repo#1', kind: 'issue.commented',
+    classification: 'informational', at: 1, payload: { commentId: 10 } };
+  const eventKey = 'community.event.' + createHash('sha256').update(original.sourceEventId).digest('hex');
+  await f.runtimeHost.storage.set(eventKey, { sequence: 0, event: original });
+  await f.runtimeHost.storage.set('community.journal.v1', { next: 1, pending: null });
+  const retained = await f.runtimeHost.storage.list();
   const active = await createGitHubPluginModule().create(manifest).start(f.runtimeHost);
   t.after(() => active.stop({ reason: 'test' }));
   const result = await active.actions['github.repository.list']!({});
   assert.ok(result);
+  const inspected = await active.actions['github.subject.inspect']!({ subjectKey: original.subjectKey }) as { data: { events: unknown[] } };
+  assert.deepEqual(inspected.data.events, [original]);
+  const observations = await active.actions['github.repository.observations']!({ repo: 'owner/repo' }) as { data: { items: unknown[] } };
+  assert.equal(observations.data.items.length, 1);
+  assert.deepEqual(await f.runtimeHost.storage.list(), retained, 'history inspection must not initialize or repair the journal');
   const before = await f.runtimeHost.storage.list();
   await assert.rejects(async () => active.actions['github.typed-wait.register-pr']!({ registrationId: 'old-host', repoFullName: 'owner/repo', prNumber: 1 },
     { userId: 'owner', catId: 'codex61-sol', threadId: 'home', invocationId: 'native', assertCurrent: async () => {} }), /Indexed private storage is unavailable/);
   assert.deepEqual(await f.runtimeHost.storage.list(), before);
+});
+
+test('tracking inspection exposes typed recovery facts and retains malformed records without interrupting the report', async (t) => {
+  const f = host(); let now = 1000, failed = false;
+  const active = await createGitHubPluginModule({ now: () => now,
+    createProvider: () => ({ selfLogin: () => 'owner', read: async () => {
+      if (failed) throw new Error('provider observation failed');
+      return { state: 'open', headSha: 'a'.repeat(40), ci: 'pending', comments: [], reviews: [], commentsComplete: true,
+        trackingIdentity: { selfLogin: 'owner', subjectAuthorLogin: 'owner' } };
+    } }),
+  }).create(manifest).start(f.runtimeHost);
+  t.after(() => active.stop({ reason: 'test' }));
+  await active.actions['github.typed-wait.register-pr']!({ registrationId: 'recovery-inspection', repoFullName: 'owner/repo', prNumber: 1 }, caller);
+  failed = true;
+  for (let round = 0; round < 7; round++) { now += 60_001; await active.actions['github.pr-tracking']!({}); }
+  const source = Object.entries(await f.runtimeHost.storage.list()).find(([key]) => key.startsWith('github.typed-wait.v1.'))!;
+  const malformedKey = 'github.typed-wait.v1.' + createHash('sha256').update('corrupt-original').digest('hex');
+  const malformed = { schemaVersion: 1, task: { id: 'corrupt-original', kind: 'broken' } };
+  await f.runtimeHost.storage.compareAndSetIndexed!(malformedKey, null, malformed, { index: 'github-pr-waits', score: 0 });
+  now += 60_001; await active.actions['github.pr-tracking']!({});
+  const before = await f.runtimeHost.storage.list();
+  const report = await active.actions['github.tracking.list']!({}) as { data: { tracking: unknown[]; recoveryOwners: { typed: Array<{
+    sourceKey: string; sourceRevision: number; taskId?: string;
+    recovery: { failures: number; disposition: string; reasonCode: string };
+  }> } } };
+  const entries = report.data.recoveryOwners.typed;
+  const paused = entries.find((row: { sourceKey: string }) => row.sourceKey === source[0]);
+  assert.ok(paused);
+  assert.equal(paused.recovery.failures, 5);
+  assert.equal(paused.recovery.disposition, 'needs_attention');
+  assert.equal(paused.recovery.reasonCode, 'github_observation_failed');
+  assert.equal(paused.sourceRevision, before[source[0]]!.revision);
+  assert.equal(paused.taskId, (source[1].value as { task: { id: string } }).task.id);
+  const broken = entries.find((row: { sourceKey: string }) => row.sourceKey === malformedKey);
+  assert.ok(broken);
+  assert.equal(broken.recovery.disposition, 'needs_attention');
+  assert.equal(broken.recovery.reasonCode, 'invalid_wait_record');
+  assert.equal(report.data.tracking.length, 1, 'invalid business data is retained in diagnostics, not decoded as a healthy wait');
+  assert.deepEqual(await f.runtimeHost.storage.list(), before, 'inspection cannot mutate owner facts');
 });

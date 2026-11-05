@@ -4,6 +4,7 @@ import type { TaskItem } from './business/model/index.js';
 import { assertWaitStorage, decodeWaitTask, publishWaitRecord, WAIT_PREFIX, waitKey, type WaitRecordV1 } from './typed-wait-record.js';
 import { waitIndex, waitRecoveryScope, assertWaitRecovery, reconcileWaitRecovery, type GitHubWaitRecoveryFacts, type GitHubRecoveryNotice } from './typed-wait-recovery.js';
 import { parkMalformedWait } from './typed-wait-invalid-record.js';
+import { storageEntries } from './storage-pages.js';
 const CENSUS = 'github.typed-wait.recovery-census.v1';
 export interface GitHubWaitRecoveryCandidate { task: TaskItem; recovery: GitHubWaitRecoveryFacts }
 
@@ -85,6 +86,14 @@ export class GitHubWaitRecoveryStorage {
   async facts(id: string): Promise<GitHubWaitRecoveryFacts | null> {
     const entry = await this.storage.get(waitKey(id));
     return entry ? structuredClone((entry.value as WaitRecordV1).recovery ?? null) : null;
+  }
+  /** Explicit owner inspection includes retained invalid rows without running a census or a writer. */
+  async diagnostics() {
+    return (await storageEntries(this.storage, WAIT_PREFIX)).map(([sourceKey, entry]) => {
+      const row = entry.value as Partial<WaitRecordV1> | null;
+      return { sourceKey, sourceRevision: entry.revision, taskId: row?.task?.id, subjectKey: row?.task?.subjectKey,
+        recovery: structuredClone(row?.recovery ?? { disposition: 'unknown', reasonCode: 'recovery_not_prepared' }) };
+    });
   }
   async finish(candidate: GitHubWaitRecoveryCandidate, failed: boolean, nextPollAt: number): Promise<void> {
     await this.mutate(candidate.task.id, (record) => {

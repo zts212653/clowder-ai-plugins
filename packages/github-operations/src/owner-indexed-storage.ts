@@ -24,14 +24,16 @@ export class OwnerIndexedStorage {
   private preparing?: Promise<void>;
   constructor(private readonly storage: PluginStorageHost, private readonly options: {
     prefix: string; census: string; indexes: readonly string[];
-    materialize(value: unknown): unknown;
+    materialize(value: unknown, key: string, selectedIndex?: string): unknown;
+    validate(key: string, value: unknown): void;
     projection(value: unknown): PluginStorageProjection;
   }) {}
 
-  async publish(key: string, revision: number | null, value: unknown) {
+  async publish(key: string, revision: number | null, value: unknown, selectedIndex?: string) {
     assertWaitStorage(this.storage);
     if (!key.startsWith(this.options.prefix)) throw new Error('Owner storage key mismatch');
-    const record = this.options.materialize(value);
+    if (selectedIndex !== undefined && !this.options.indexes.includes(selectedIndex)) throw new Error('Owner index mismatch');
+    const record = this.options.materialize(value, key, selectedIndex);
     return this.storage.compareAndSetIndexed(key, revision, record, this.options.projection(record));
   }
 
@@ -79,6 +81,15 @@ export class OwnerIndexedStorage {
     await this.initialize(); assertWaitStorage(this.storage);
     const page = await this.storage.readDue({ index, before, limit });
     if (page.status !== 'ready') throw new Error('Owner recovery index is not_ready; explicit rebuild required');
-    return page.entries;
+    const valid: Record<string, PluginStorageEntry> = {};
+    for (const [key, entry] of Object.entries(page.entries)) {
+      try { this.options.validate(key, entry.value); }
+      catch {
+        // The original owner preserves this exact source. A newer repair wins the CAS.
+        await this.publish(key, entry.revision, entry.value, index); continue;
+      }
+      valid[key] = entry;
+    }
+    return valid;
   }
 }

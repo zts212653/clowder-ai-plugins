@@ -26,13 +26,13 @@ export class MigratedIssueRuntime {
   initialize(rebuild = false) { return this.indexed.initialize(rebuild); }
   async list(): Promise<readonly TaskItem[]> {
     return (await storageEntries(this.context.storage, MIGRATED_ISSUES, { signal: this.stopController.signal }))
-      .map(([, entry]) => (entry.value as RecordV1).task);
+      .flatMap(([key, entry]) => { try { return [decodeMigratedIssue(entry.value, key).task]; } catch { return []; } });
   }
   async recoveryDiagnostics() {
     return (await storageEntries(this.context.storage, MIGRATED_ISSUES)).map(([sourceKey, entry]) => {
-      const row = entry.value as Partial<RecordV1>;
-      return { sourceKey, taskId: row.task?.id, subjectKey: row.task?.subjectKey,
-        recovery: row.recovery ?? { disposition: 'needs_attention', reasonCode: 'invalid_source' }, noticeState: row.notice?.state };
+      const row = entry.value as (Partial<RecordV1> & { disposition?: string; reasonCode?: string }) | null;
+      return { sourceKey, sourceRevision: entry.revision, taskId: row?.task?.id, subjectKey: row?.task?.subjectKey,
+        recovery: row?.recovery ?? { disposition: row?.disposition ?? 'unknown', reasonCode: row?.reasonCode ?? 'recovery_not_prepared' }, noticeState: row?.notice?.state };
     });
   }
   poll() {

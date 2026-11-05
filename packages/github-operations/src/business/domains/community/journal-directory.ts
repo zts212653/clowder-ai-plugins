@@ -29,6 +29,18 @@ export interface JournalSubject {
     disposition?: 'needs_attention'; reasonCode?: string; lastNoticeKey?: string };
 }
 
+function pendingSubject(key: string, value: unknown, kind: 'pr' | 'issue'): JournalSubject {
+  const row = value as JournalSubject | null, facts = row?.recovery;
+  const natural = (n: unknown) => typeof n === 'number' && Number.isSafeInteger(n) && n >= 0;
+  if (!row || row.v !== 1 || subjectKind(row.subject) !== kind || key !== subjectKey(row.subject)
+    || !natural(row.next) || !natural(row.lastGlobal) || typeof row.lastSource !== 'string'
+    || !facts || typeof facts.scope !== 'string' || typeof facts.pending !== 'boolean'
+    || !natural(facts.revision) || !natural(facts.failures) || !natural(facts.nextAt)
+    || facts.disposition !== undefined && facts.disposition !== 'needs_attention')
+    throw new Error('Journal pending source identity/recovery mismatch');
+  return row;
+}
+
 export function storedEvent(value: unknown): StoredEvent {
   const row = value as StoredEvent;
   if (!row || !Number.isSafeInteger(row.sequence) || row.sequence < 0 || !row.event?.sourceEventId)
@@ -48,7 +60,9 @@ export async function immutableRef(storage: PluginStorageHost, key: string, valu
 export class JournalDirectory {
   constructor(private readonly storage: PluginStorageHost) {}
   async subject(subject: string): Promise<PluginStorageEntry | undefined> {
-    subjectKind(subject); return this.storage.get(subjectKey(subject));
+    const kind = subjectKind(subject), key = subjectKey(subject), entry = await this.storage.get(key);
+    if (entry) pendingSubject(key, entry.value, kind);
+    return entry;
   }
   private async publish(entry: PluginStorageEntry | undefined, value: JournalSubject) {
     assertWaitStorage(this.storage);
@@ -67,6 +81,10 @@ export class JournalDirectory {
       if (prior && (prior.v !== 1 || prior.subject !== event.subjectKey)) throw new Error('Journal subject identity mismatch');
       const applied = !!prior && prior.lastGlobal >= row.sequence;
       const sequence = row.subjectSequence ?? (applied ? undefined : prior?.next ?? 0);
+      if (sequence === undefined && applied) {
+        const current = await this.storage.get(eventKey(event.sourceEventId));
+        if (current && current.revision !== source.revision) { source = current; continue; }
+      }
       if (sequence === undefined) throw new Error('Journal local sequence is unknown; retain census obligation');
       if (row.subjectSequence === undefined) {
         const updated = await this.storage.compareAndSet(eventKey(event.sourceEventId), source.revision, { ...row, subjectSequence: sequence });
@@ -122,7 +140,18 @@ export class JournalDirectory {
     assertWaitStorage(this.storage);
     const page = await this.storage.readDue({ index: journalIndex(kind), before: now, limit });
     if (page.status !== 'ready') throw new Error('Journal reconciliation index is not_ready');
-    return Object.values(page.entries).map(entry => ({ entry, subject: (entry.value as JournalSubject).subject }));
+    const candidates: Array<{ entry: PluginStorageEntry; subject: string }> = [];
+    for (const [key, entry] of Object.entries(page.entries)) {
+      try {
+        const row = pendingSubject(key, entry.value, kind);
+        candidates.push({ entry, subject: row.subject });
+      } catch {
+        await this.storage.compareAndSetIndexed(key, entry.revision,
+          { _journalRecoveryCorruption: entry.value, disposition: 'needs_attention', reasonCode: 'invalid_journal_source' },
+          { index: journalIndex(kind), score: null });
+      }
+    }
+    return candidates;
   }
   async finish(selected: PluginStorageEntry, failed: boolean, now: number): Promise<void> {
     const old = selected.value as JournalSubject;

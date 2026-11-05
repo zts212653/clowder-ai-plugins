@@ -76,15 +76,23 @@ export class GitHubWaitStorage implements ITaskStore {
 
   async listByKind(kind: TaskItem['kind']): Promise<readonly TaskItem[]> {
     const records = new Map<string, { revision: number; task: TaskItem }>();
+    const revisions = new Map<string, number>();
     for await (const page of storagePages(this.storage, PREFIX)) {
       for (const [name, entry] of Object.entries(page)) {
-        if (name.startsWith(PREFIX) && entry.revision >= (records.get(name)?.revision ?? 0)) {
-          records.set(name, { revision: entry.revision, task: decode(entry.value) });
+        if (name.startsWith(PREFIX) && entry.revision >= (revisions.get(name) ?? 0)) {
+          revisions.set(name, entry.revision);
+          try {
+            const task = decode(entry.value);
+            if (name !== key(task.id)) throw new Error('GitHub typed wait key mismatch');
+            records.set(name, { revision: entry.revision, task });
+          } catch { records.delete(name); /* Original invalid rows remain visible in recovery diagnostics. */ }
         }
       }
     }
     return [...records.values()].map(record => record.task).filter(task => task.kind === kind);
   }
+
+  recoveryDiagnostics() { return this.recovery.diagnostics(); }
 
   async getBySubject(subjectKey: string, owner?: { userId: string; catId: string; threadId: string }): Promise<TaskItem | null> {
     const matches = new Map<string, { revision: number; task: TaskItem }>();

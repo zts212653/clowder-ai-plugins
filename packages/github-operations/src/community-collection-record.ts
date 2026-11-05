@@ -22,21 +22,23 @@ export interface CollectionRecord {
   readonly recovery?: { v: 1; scope: string; revision: number; failures: number; nextAt: number; disposition?: 'needs_attention'; reasonCode?: string; lastNoticeKey?: string };
   readonly notice?: RecoveryOwnerNotice;
 }
-export function decodeCollection(value: unknown): CollectionRecord {
+export function decodeCollection(value: unknown, key?: string): CollectionRecord {
   const record = value as CollectionRecord;
   if (!record || record.schemaVersion !== 1 || !record.task?.subjectKey || collectionId(record.task.subjectKey) !== record.task.id ||
     `${collectionTarget(record.task.subjectKey).kind}_tracking` !== record.task.kind || record.task.pluginWait || record.task.automationState?.await || record.task.automationState?.waitOutcome) throw new Error('Invalid private collection record');
   if (record.route && (!Number.isSafeInteger(record.route.sequence) || record.route.sequence < 0 || !record.route.sourceEventId)) throw new Error('Invalid collection route version');
+  if (key !== undefined && key !== collectionKey(record.task.id)) throw new Error('Collection source key identity mismatch');
   return record;
 }
 export const collectionIndex = (kind: 'pr' | 'issue') => `github-collection-${kind}`;
 export function collectionIndexOwner(storage: PluginStorageHost) {
   return new OwnerIndexedStorage(storage, { prefix: collectionPrefix, census: 'community.collection.census.v1',
     indexes: [collectionIndex('pr'), collectionIndex('issue')],
-    materialize(value) {
+    validate: (key, value) => { decodeCollection(value, key); },
+    materialize(value, key, selectedIndex) {
       if (value && typeof value === 'object' && '_collectionRecoveryCorruption' in value) return value;
       try {
-        const record = decodeCollection(value);
+        const record = decodeCollection(value, key);
         const scope = hash(JSON.stringify([record.task.id, record.route?.sourceEventId, record.task.threadId, record.task.ownerCatId]));
         const old = record.recovery;
         if (old && (old.v !== 1 || !Number.isSafeInteger(old.revision) || !Number.isSafeInteger(old.failures) || old.failures < 0 || !Number.isFinite(old.nextAt)))
@@ -45,11 +47,15 @@ export function collectionIndexOwner(storage: PluginStorageHost) {
         const intent = recoveryOwnerNotice('collection', scope, record.task.threadId, record.task.subjectKey!);
         const notice = record.notice ?? (recovery.disposition && intent?.key !== recovery.lastNoticeKey ? intent : undefined);
         return { ...record, recovery, notice };
-      } catch { return { _collectionRecoveryCorruption: value, disposition: 'needs_attention' }; }
+      } catch {
+        const original = value as Partial<CollectionRecord> | null;
+        return { _collectionRecoveryCorruption: value, disposition: 'needs_attention', reasonCode: 'invalid_collection_source',
+          recoveryIndex: selectedIndex ?? collectionIndex(original?.task?.kind === 'issue_tracking' ? 'issue' : 'pr') };
+      }
     },
     projection(value) {
       if (value && typeof value === 'object' && '_collectionRecoveryCorruption' in value)
-        return { index: collectionIndex('pr'), score: null };
+        return { index: (value as { recoveryIndex?: string }).recoveryIndex ?? collectionIndex('pr'), score: null };
       const record = decodeCollection(value);
       const live = record.task.status === 'doing' && !record.recovery!.disposition ? record.recovery!.nextAt : null;
       const notice = recoveryNoticeScore(record.notice);

@@ -3,7 +3,7 @@ import test from 'node:test';
 import type { FeatureContext } from '@clowder-ai/plugin-sdk';
 import { memoryStorage } from '../test/memory-storage.js';
 import { SdkCommunityEventLog } from './business/domains/community/CommunityEventLog.js';
-import { JOURNAL_HEAD, SUBJECTS, journalIndex, eventKey } from './business/domains/community/journal-directory.js';
+import { JournalDirectory, JOURNAL_HEAD, SUBJECTS, journalIndex, eventKey } from './business/domains/community/journal-directory.js';
 import { CommunityCollectionRuntime, SdkCommunityCollectionStore } from './community-collection.js';
 import { collectionIndex } from './community-collection-record.js';
 import { MigratedIssueRuntime } from './migrated-issue-runtime.js';
@@ -16,6 +16,16 @@ const route = (id: string, subject = 'issue:owner/repo#1', cat = 'cat'): Communi
   payload: { ownerThreadId: 'home', catId: cat, userId: 'owner' },
 });
 const snapshot = { state: 'open' as const, commentsComplete: true, comments: [], reviews: [] };
+
+test('journal materialization converges when a concurrent owner has already assigned this stale event its subject position', async () => {
+  const storage = memoryStorage(), event = route('concurrent-original');
+  await storage.set(eventKey(event.sourceEventId), { sequence: 0, event });
+  const original = (await storage.get(eventKey(event.sourceEventId)))!;
+  await new JournalDirectory(storage).materialize(original);
+  const canonical = await storage.list();
+  await new JournalDirectory(storage).materialize(original);
+  assert.deepEqual(await storage.list(), canonical, 'a stale selected version cannot create another logical event or sequence');
+});
 
 test('journal append/read and route recovery use direct original references after preparation; a late ack cannot clear a reroute', async () => {
   const storage = memoryStorage(), journal = new SdkCommunityEventLog(storage), store = new SdkCommunityCollectionStore(storage);

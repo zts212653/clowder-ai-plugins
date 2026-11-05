@@ -21,9 +21,12 @@ export function decodeWaitTask(value: unknown): TaskItem {
 export class IndexedWaitStorageUnavailableError extends Error {
   constructor() { super('Indexed private storage is unavailable; update the Host before registration or collection'); }
 }
+export function hasWaitStorage(storage: PluginStorageHost): boolean {
+  return !!(storage.compareAndSetIndexed && storage.readDue && storage.rebuildIndex && storage.scan);
+}
 export function assertWaitStorage(storage: PluginStorageHost): asserts storage is PluginStorageHost & Required<Pick<PluginStorageHost,
   'compareAndSetIndexed' | 'readDue' | 'rebuildIndex' | 'scan'>> {
-  if (!storage.compareAndSetIndexed || !storage.readDue || !storage.rebuildIndex || !storage.scan)
+  if (!hasWaitStorage(storage))
     throw new IndexedWaitStorageUnavailableError();
 }
 /** All native, migration, lifecycle and metadata writers use this one original-owner CAS. */
