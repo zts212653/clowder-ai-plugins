@@ -22,6 +22,7 @@ import { projectDotJourney } from "./journey-projection.js";
 import { httpRequestSchema, rpc } from "./rpc.js";
 import { DotRuntime, imageReference } from "./runtime.js";
 import { TemporaryEndpointController } from "./temporary-endpoint.js";
+import type { DotExternalState } from "./external-state.js";
 export interface DotPluginOptions {
 	readonly sendWebhook?: DotWebhookSend;
 	readonly now?: () => number;
@@ -47,6 +48,11 @@ function operationInput(params: unknown): Readonly<Record<string, unknown>> {
 	return input && typeof input === "object" && !Array.isArray(input)
 		? (input as Readonly<Record<string, unknown>>)
 		: {};
+}
+function endpointCredentialIsLive(state: DotExternalState, now: number): boolean {
+	if (state.pending) return state.pending.expiresAt > now;
+	if (!state.current) return false;
+	return state.current.kind === "legacy" || state.current.expiresAt > now;
 }
 export function createDotPlugin(
 	options: DotPluginOptions = {},
@@ -129,6 +135,12 @@ export function createDotPlugin(
 				"dot.use-long-lived": async (params, _native, context) => {
 					await current.owner(context);
 					if (!running) throw new Error("dot_runtime_unavailable");
+					const existing = await current.externalState();
+					if (
+						existing.endpoint.mode === "long-lived" &&
+						endpointCredentialIsLive(existing, (options.now ?? Date.now)())
+					)
+						return { render: "text", data: existing.endpoint.serverUrl };
 					const input = operationInput(params);
 					const ttlDays = Number(input.externalTokenDays ?? 180);
 					const template = input.longLivedServerUrlTemplate;
@@ -143,6 +155,13 @@ export function createDotPlugin(
 				"dot.start-temporary": async (params, _native, context) => {
 					await current.owner(context);
 					if (!running || !temporaryEndpoints) throw new Error("dot_runtime_unavailable");
+					const before = await current.externalState();
+					if (
+						before.endpoint.mode === "temporary-active" &&
+						before.endpoint.expiresAt > (options.now ?? Date.now)() &&
+						endpointCredentialIsLive(before, (options.now ?? Date.now)())
+					)
+						return { render: "text", data: before.endpoint.serverUrl };
 					const hours = Number(operationInput(params).temporaryEndpointHours ?? 1);
 					if (!Number.isFinite(hours) || hours <= 0 || hours > 24)
 						throw new Error("dot_temporary_ttl_invalid");

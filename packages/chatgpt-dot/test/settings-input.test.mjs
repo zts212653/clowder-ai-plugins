@@ -99,6 +99,7 @@ test("missing endpoint leaves entry selection to native configuration variants",
 
 test("entry actions consume the current configuration draft passed by the Host", async (t) => {
 	const issuedTtls = [];
+	let temporaryStarts = 0;
 	const f = fixture(t, {
 		config: {
 			longLivedServerUrlTemplate:
@@ -133,6 +134,7 @@ test("entry actions consume the current configuration draft passed by the Host",
 	let temporaryInput;
 	const originalStart = TemporaryEndpointController.prototype.start;
 	TemporaryEndpointController.prototype.start = async function (input) {
+		temporaryStarts += 1;
 		temporaryInput = structuredClone(input);
 		return {
 			generation: "draft-generation",
@@ -144,7 +146,7 @@ test("entry actions consume the current configuration draft passed by the Host",
 	t.after(() => {
 		TemporaryEndpointController.prototype.start = originalStart;
 	});
-	const module = createDotPlugin({ sendWebhook: f.sendWebhook });
+	const module = createDotPlugin({ sendWebhook: f.sendWebhook, now: () => 100 });
 	const settings = await module.settings(f.host);
 	const active = await module.start(f.host);
 	t.after(async () => {
@@ -168,6 +170,23 @@ test("entry actions consume the current configuration draft passed by the Host",
 		"https://draft.example/api/plugin-runtime/handle?token=draft-token-1",
 	);
 	assert.equal(issuedTtls[0], 7 * 24 * 60 * 60);
+	const repeatedLongLived = await settings.actions["dot.use-long-lived"](
+		{
+			input: {
+				longLivedServerUrlTemplate:
+					"https://draft.example/api/plugin-runtime/handle?token={token}",
+				externalTokenDays: "7",
+			},
+		},
+		undefined,
+		f.owner,
+	);
+	assert.equal(repeatedLongLived.data, longLived.data);
+	assert.equal(
+		issuedTtls.length,
+		1,
+		"repeating the setup action must not silently rotate the external credential",
+	);
 
 	const temporary = await settings.actions["dot.start-temporary"](
 		{
@@ -182,6 +201,20 @@ test("entry actions consume the current configuration draft passed by the Host",
 	);
 	assert.equal(temporaryInput.ttlMs, 2.5 * 60 * 60_000);
 	assert.equal(issuedTtls[1], 2.5 * 60 * 60 + 300);
+	const repeatedTemporary = await settings.actions["dot.start-temporary"](
+		{
+			input: { temporaryEndpointHours: "2.5" },
+		},
+		undefined,
+		f.owner,
+	);
+	assert.equal(repeatedTemporary.data, temporary.data);
+	assert.equal(
+		issuedTtls.length,
+		2,
+		"an active temporary endpoint must keep its existing external credential",
+	);
+	assert.equal(temporaryStarts, 1);
 });
 
 test("pending credential cannot start pairing before its own ChatGPT discovery", async (t) => {
