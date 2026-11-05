@@ -9,6 +9,10 @@ account authorization, destination choice and the interpretation of the meeting.
 This is a public prerelease candidate. Publication and catalog activation do not certify a real
 Feishu account or the complete installed journey.
 
+Installing this version, including from a local archive, requires access to the npm registry for
+its locked dependencies. Fully disconnected installation is not supported. The Host installs
+dependencies automatically; you do not install the SDK or Contract separately.
+
 ## Settings journey
 
 1. Select the exact approved catalog version in Manager, review the installation details, then enable it.

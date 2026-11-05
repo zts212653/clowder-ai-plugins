@@ -13,10 +13,16 @@ const consumer=process.cwd();
 assert.ok(!relative(consumer,packageRoot).startsWith('..'),'meeting module must be installed in this consumer');
 const metadata=JSON.parse(await readFile(join(packageRoot,'package.json'),'utf8'));
 for(const [name,entry]of [['@clowder-ai/plugin-sdk','@clowder-ai/plugin-sdk'],['@clowder-ai/plugin-contract','@clowder-ai/plugin-contract'],['@modelcontextprotocol/sdk','@modelcontextprotocol/sdk/client/index.js']]){
- const bundledRoot=join(packageRoot,'node_modules',name),resolved=fileURLToPath(import.meta.resolve(entry));
- const local=relative(bundledRoot,resolved);
- assert.ok(local!== '..'&&!local.startsWith('..'+sep)&&!isAbsolute(local),name+' must resolve from the meeting bundle');
- assert.equal(JSON.parse(await readFile(join(bundledRoot,'package.json'),'utf8')).version,metadata.dependencies[name],name+' must retain its exact declared identity');
+ const resolved=fileURLToPath(import.meta.resolve(entry));
+ const local=relative(consumer,resolved);
+ assert.ok(local!== '..'&&!local.startsWith('..'+sep)&&!isAbsolute(local),name+' must resolve from this isolated consumer');
+ let cursor=dirname(resolved),dependency;
+ while(true){
+  try{const candidate=JSON.parse(await readFile(join(cursor,'package.json'),'utf8'));if(candidate.name===name){dependency=candidate;break;}}
+  catch(error){if(error.code!=='ENOENT')throw error;}
+  const parent=dirname(cursor);assert.notEqual(parent,cursor,`missing ${name} package identity`);cursor=parent;
+ }
+ assert.equal(dependency.version,metadata.dependencies[name],name+' must retain its exact declared identity');
 }
 const manifest=JSON.parse(await readFile(join(packageRoot,'manifest.json'),'utf8'));
 assert.equal(validateManifest(manifest).valid,true);
@@ -63,5 +69,5 @@ try {
   const denied=await client.callTool({name:'cat_cafe_meeting_records_list',arguments:{}});
   assert.equal(denied.isError,true,'missing authenticated native credentials must fail closed');
  } finally {await client.close();}
- console.log(JSON.stringify({journey:'installed meeting module + runner + source operation + strict MCP',status:'PASS',platform:selected.platform,arch:selected.arch,binarySha256:selected.binarySha256}));
+ console.log(JSON.stringify({journey:'installed locked meeting module + runner + source operation + strict MCP',status:'PASS',platform:selected.platform,arch:selected.arch,binarySha256:selected.binarySha256}));
 } finally {await rm(data,{recursive:true,force:true});}

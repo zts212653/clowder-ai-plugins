@@ -162,6 +162,19 @@ test('packed public packages install and import in a fresh npm consumer', async 
     await mkdir(staged);
     run('tar', ['-xzf', tarballs[2], '-C', staged], root);
     const stagedPackage = join(staged, 'package');
+    // Catalog builtins execute the publisher-locked closure, not raw unpacked
+    // bundles. Install into the Host-shaped parent without changing package bytes.
+    const stagedMetadata = JSON.parse(await readFile(join(stagedPackage, 'package.json'), 'utf8'));
+    await writeFile(join(staged, 'package.json'), JSON.stringify({
+      private: true, name: stagedMetadata.name, version: stagedMetadata.version,
+      dependencies: stagedMetadata.dependencies, optionalDependencies: stagedMetadata.optionalDependencies,
+    }));
+    await writeFile(join(staged, 'npm-shrinkwrap.json'), await readFile(join(stagedPackage, 'npm-shrinkwrap.json')));
+    const userconfig = join(staged, '.npmrc');
+    await writeFile(userconfig, '');
+    runNpm(['ci', '--ignore-scripts', '--omit=dev', '--no-audit', '--no-fund',
+      '--registry=https://registry.npmjs.org/', '--userconfig', userconfig,
+      '--cache', join(staged, '.npm-cache')], staged);
     const stagedRunnerUrl = pathToFileURL(join(stagedPackage, 'dist/lark-cli-runner.js')).href;
     const stagedEntrypointUrl = pathToFileURL(join(stagedPackage, 'dist/plugin-entrypoint.js')).href;
     run(
@@ -463,10 +476,13 @@ test('packed public packages install and import in a fresh npm consumer', async 
     const sourceIntake = JSON.parse(await readFile(join(repoRoot, 'packages/feishu-meeting-intake/package.json'), 'utf8'));
     assert.deepEqual(feishuPackage.dependencies, sourceIntake.dependencies);
     assert.equal(feishuPackage.dependencies['@larksuite/cli'], '1.0.85');
-    assert.deepEqual(
-      [...feishuPackage.bundledDependencies].sort(),
-      Object.keys(feishuPackage.dependencies).sort(),
-    );
+    assert.equal(feishuPackage.bundledDependencies, undefined,
+      'catalog builtin dependencies must come from its publisher lock');
+    const feishuLock = JSON.parse(await readFile(
+      join(consumer, 'node_modules/@clowder-ai/feishu-meeting-intake/npm-shrinkwrap.json'), 'utf8',
+    ));
+    assert.equal(feishuLock.lockfileVersion, 3);
+    assert.deepEqual(feishuLock.packages[''].dependencies, feishuPackage.dependencies);
     assert.equal(feishuManifest.version, feishuPackage.version);
     assert.deepEqual(feishuManifest.runtime, {
       transport: 'builtin',
