@@ -45,14 +45,70 @@ test("entry mode is one selector with branch-owned long-lived and temporary cont
 	assert.deepEqual(
 		fields
 			.get("longLivedEndpoint")
-			?.actions.map(({ id, render }) => ({ id, render })),
-		[{ id: "use-long-lived", render: "button" }],
+			?.actions.map(({ id, render, resultRender, next, action }) => ({
+				id,
+				render,
+				resultRender,
+				next,
+				method: action.method,
+			})),
+		[
+			{
+				id: "use-long-lived",
+				render: "button",
+				resultRender: "text",
+				next: "begin-pairing",
+				method: "dot.use-long-lived",
+			},
+			{
+				id: "begin-pairing",
+				render: "button",
+				resultRender: "rows",
+				next: "show-instructions",
+				method: "dot.begin-pairing",
+			},
+			{
+				id: "show-instructions",
+				render: "button",
+				resultRender: "text",
+				next: undefined,
+				method: "dot.show-instructions",
+			},
+		],
 	);
 	assert.deepEqual(
 		fields
 			.get("temporaryEndpoint")
-			?.actions.map(({ id, render }) => ({ id, render })),
-		[{ id: "start-temporary", render: "button" }],
+			?.actions.map(({ id, render, resultRender, next, action }) => ({
+				id,
+				render,
+				resultRender,
+				next,
+				method: action.method,
+			})),
+		[
+			{
+				id: "start-temporary",
+				render: "button",
+				resultRender: "text",
+				next: "begin-pairing",
+				method: "dot.start-temporary",
+			},
+			{
+				id: "begin-pairing",
+				render: "button",
+				resultRender: "rows",
+				next: "show-instructions",
+				method: "dot.begin-pairing",
+			},
+			{
+				id: "show-instructions",
+				render: "button",
+				resultRender: "text",
+				next: undefined,
+				method: "dot.show-instructions",
+			},
+		],
 	);
 	const connectionActionIds =
 		fields.get("connection")?.actions.map((action) => action.id) ?? [];
