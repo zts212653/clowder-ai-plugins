@@ -7,14 +7,15 @@ import { GitHubWaitStorage } from './typed-wait-storage.js';
 import { preparePrWait, prepareIssueWait, installPreparedWait, registerPrWait, registerIssueWait,
   TrackingRegistrationError } from './typed-wait-registration.js';
 import { registerPrTrackingInputSchema, registerIssueTrackingInputSchema, unregisterTrackingInputSchema } from './tracking-mcp-schemas.js';
-import { issueBaseline, prBaseline, waitObservation, waitTarget, waitEventSnapshot } from './typed-wait-provider.js';
+import { issueBaseline, prBaseline } from './typed-wait-provider.js';
 import type { GitHubSnapshot, GitHubTarget, GitHubTrackingProvider } from './tracking-runtime.js';
 import { copyLegacyIssueProgress } from './legacy-issue-progress.js';
 import { legacyIssueOperationInput } from './legacy-issue-observations.js';
 import { readRegistrationDiagnostics, writeRegistrationDiagnostic, registrationFailureCode, diagnosticError, type DiagnosticError, type RegistrationDiagnostic } from './tracking-diagnostics.js';
-import { readNotificationFilter } from './notification-filter.js';
 import { assertMigratedWaitCurrent, projectMigratedWait } from './migration-host-wait.js';
-import { gitHubAdmissionCanContinue, gitHubObjectAdmission, gitHubObjectSignal, gitHubPollBudget } from './business/infrastructure/github/admission-budget.js';
+import { assertWaitStorage } from './typed-wait-record.js';
+import { pollGitHubDueWaits } from './typed-wait-poller.js';
+import type { GitHubWaitRecoveryCandidate } from './typed-wait-recovery-storage.js';
 import { withInteractiveGitHubRequests } from './business/infrastructure/github/request-budget.js';
 
 export interface TypedWaitRuntimeOptions {
@@ -27,6 +28,7 @@ export interface TypedWaitRuntimeOptions {
   /** Bound each PR independently inside the bounded poll; tests may shorten it. */
   readonly objectTimeoutMs?: number;
   readonly pollBudgetMs?: number;
+  readonly pollIntervalMs?: number;
 }
 
 /** Package-private subscriptions, predicates, receipts and durable notification outboxes.
@@ -47,7 +49,11 @@ export class TypedWaitRuntime {
   private guardedStore(check: () => Promise<void>) {
     const storage = this.options.context.storage;
     const scan = storage.scan?.bind(storage);
+    const indexed = storage.compareAndSetIndexed?.bind(storage), readDue = storage.readDue?.bind(storage), rebuild = storage.rebuildIndex?.bind(storage);
     return new GitHubWaitStorage({
+      ...(indexed ? { compareAndSetIndexed: async (...args: Parameters<typeof indexed>) => { await check(); return storage.compareAndSetIndexed!(...args); } } : {}),
+      ...(readDue ? { readDue: async (input: Parameters<typeof readDue>[0]) => { await check(); const result = await readDue(input); await check(); return result; } } : {}),
+      ...(rebuild ? { rebuildIndex: async (index: string) => { await check(); const result = await rebuild(index); await check(); return result; } } : {}),
       get: key => storage.get(key), list: () => storage.list(),
       ...(scan ? { scan: async (input: Parameters<typeof scan>[0]) => {
         await check(); const page = await scan(input); await check(); return page;
@@ -55,7 +61,7 @@ export class TypedWaitRuntime {
       compareAndSet: async (...args) => { await check(); return storage.compareAndSet(...args); },
       set: async (...args) => { await check(); return storage.set(...args); },
       delete: async (...args) => { await check(); return storage.delete(...args); },
-    } satisfies PluginStorageHost, this.now);
+    } satisfies PluginStorageHost, this.now, this.options.pollIntervalMs ?? 60_000);
   }
 
   private run<T>(subject: string, action: (signal: AbortSignal) => Promise<T>, timeoutMs = 30_000): Promise<T> {
@@ -102,6 +108,7 @@ export class TypedWaitRuntime {
 
   private async register(kind: 'pr' | 'issue', input: unknown, caller?: PluginActionContext): Promise<TaskItem> {
     if (!caller) throw new TrackingRegistrationError(503, 'Authenticated MCP invocation required');
+    assertWaitStorage(this.options.context.storage);
     const value = input as { repoFullName: string; prNumber?: number; issueNumber?: number;
       when?: { kind: string; reviewThreadIds?: readonly string[] }[] };
     const number = (kind === 'pr' ? value.prNumber : value.issueNumber)!;
@@ -201,14 +208,37 @@ export class TypedWaitRuntime {
   }
 
   async recover(): Promise<void> {
-    const tasks = [...await this.store.listByKind('pr_tracking'), ...await this.store.listByKind('issue_tracking')];
-    for (const task of tasks) {
-      if (!task.automationState?.waitOutcome) continue;
-      await this.run(task.subjectKey!, async signal => {
-        const check = async () => { this.assertRunning(); signal.throwIfAborted(); };
-        await this.lifecycle(task, check).recoverOutcome(task.id);
-        await this.projectImportedWait(task.id, check);
-      }).catch(() => this.options.context.log('warn', 'GitHub pending outcome retained for recovery'));
+    assertWaitStorage(this.options.context.storage);
+    for (const kind of ['pr_tracking', 'issue_tracking'] as const) {
+      for (const candidate of await this.store.recovery.listDue(kind, this.now())) {
+        const task = candidate.task;
+        if (!task.automationState?.waitOutcome || candidate.recovery.disposition) continue;
+        let failed = false;
+        await this.run(task.subjectKey!, async signal => {
+          const check = async () => { this.assertRunning(); signal.throwIfAborted(); };
+          await this.currentSubscription(task);
+          await this.lifecycle(task, check).recoverOutcome(task.id);
+          await this.projectImportedWait(task.id, check);
+        }).catch(() => { failed = true; this.options.context.log('warn', 'GitHub pending outcome retained for recovery'); });
+        await this.store.recovery.finish(candidate, failed, this.now() + (this.options.pollIntervalMs ?? 60_000));
+      }
+    }
+  }
+
+  private async recoveryNotices(candidate: GitHubWaitRecoveryCandidate): Promise<void> {
+    for (const notice of Object.values(candidate.recovery.notices)) {
+      if (notice.state !== 'pending' || notice.nextAt > this.now()) continue;
+      try {
+        const thread = await this.options.context.threads.get(notice.threadId);
+        if (!thread) { await this.store.recovery.finishNotice(candidate.task.id, notice, 'owner_unavailable'); continue; }
+        await this.options.context.messaging.send(notice.threadId, { identity: 'github-wait',
+          payload: { provenance: { epistemicStatus: 'observation' }, elements: [{ elementId: notice.key, kind: 'text',
+            payload: { text: '这条 GitHub 等待的自动检查已暂停。原记录仍保留，请检查其恢复诊断。' } }] },
+          idempotencyKey: notice.key, meta: { phase: 'status', taskId: notice.taskId } });
+        await this.store.recovery.finishNotice(candidate.task.id, notice, 'delivered');
+      } catch {
+        await this.store.recovery.finishNotice(candidate.task.id, notice, 'pending');
+      }
     }
   }
 
@@ -219,97 +249,16 @@ export class TypedWaitRuntime {
   }
 
   poll(kind: 'pr' | 'issue'): Promise<void> {
+    assertWaitStorage(this.options.context.storage);
     const running = this.polling.get(kind); if (running) return running;
     const operation = this.run(`poll:${kind}`, async signal => {
-      // Return before the next minute tick; leave time for canonical gh child
-      // cleanup and Host RPC settlement inside the 90-second carrier deadline.
-      const budget = gitHubPollBudget(signal, { now: this.now,
-        pollBudgetMs: this.options.pollBudgetMs ?? 50_000,
-        objectTimeoutMs: this.options.objectTimeoutMs ?? 40_000 });
-      const tasks = (await this.store.listByKind(kind === 'pr' ? 'pr_tracking' : 'issue_tracking'))
-        .filter(task => task.automationState?.await || task.automationState?.waitOutcome?.delivery === 'pending');
-      if (!tasks.length) return;
-      const storage = this.options.context.storage, progressKey = `github.typed-wait.poll-cursor.${kind}`;
-      const progress = (await storage.get(progressKey))?.value;
-      if (progress !== undefined && typeof progress !== 'string') throw new Error('Invalid typed poll progress');
-      const resume = typeof progress === 'string' ? tasks.findIndex(task => task.id === progress) : -1;
-      const start = (resume + 1) % tasks.length;
-      // Freeze only currently authorized, active wait targets for this tick.
-      // This is a fact read, not native completion authority. Recheck below before
-      // using it: a concurrent registration must not inherit an older snapshot.
-      const selected = Array.from({ length: Math.min(tasks.length, 20) }, (_, i) => tasks[(start + i) % tasks.length]!);
-      const batchGenerations = new Map<string, number>();
-      let provider = this.options.provider;
-      let batchError: unknown;
-      if (kind === 'pr' && provider.forCiBatch) {
-        const targets: GitHubTarget[] = [];
-        for (const task of selected) {
-          if (!gitHubAdmissionCanContinue(budget)) break;
-          const wait = task.automationState?.await;
-          if (!wait || (wait.expiresAt !== undefined && wait.expiresAt <= this.now())) continue;
-          if (task.status === 'done') continue;
-          try { await this.currentSubscription(task); }
-          catch { this.options.context.log('warn', 'GitHub imported binding is unavailable; observation remains paused'); continue; }
-          targets.push(waitTarget(task)); batchGenerations.set(task.id, wait.generation);
-        }
-        if (targets.length) {
-          try { provider = await provider.forCiBatch(targets,
-            gitHubObjectSignal(budget)!); }
-          catch (error) { batchError = error; }
-        }
-        signal.throwIfAborted();
-      }
-      for (let i = 0; i < selected.length && !signal.aborted && gitHubAdmissionCanContinue(budget); i++) {
-        const task = selected[i]!;
-        const admission = gitHubObjectAdmission(budget), objectSignal = admission.signal!;
-        let deferred = false;
-        await this.run(task.subjectKey!, async taskSignal => {
-          const check = async () => { this.assertRunning(); signal.throwIfAborted(); taskSignal.throwIfAborted(); objectSignal.throwIfAborted(); };
-          const current = await this.store.get(task.id); if (!current) return;
-          await this.currentSubscription(current);
-          const lifecycle = this.lifecycle(current, check);
-          await lifecycle.recoverOutcome(task.id); await check();
-          if (current.automationState?.waitOutcome || !current.automationState?.await) await this.projectImportedWait(task.id, check);
-          if (!current.automationState?.await) return;
-          if (current.automationState.await.expiresAt !== undefined && current.automationState.await.expiresAt <= this.now()) {
-            await lifecycle.observe({ taskId: task.id, at: this.now(), facts: {} });
-            await this.projectImportedWait(task.id, check);
-            return;
-          }
-          if (batchError) throw batchError; // Recover durable outboxes even when new facts are unavailable.
-          const target = waitTarget(current);
-          if (kind === 'pr' && this.options.provider.forCiBatch &&
-              batchGenerations.get(task.id) !== current.automationState.await.generation) return;
-          const snapshot = await provider.read(target, AbortSignal.any([signal, taskSignal, objectSignal]));
-          await check();
-          const configured = await this.options.context.config.get('cloudReviewerLogins');
-          if (configured !== undefined && typeof configured !== 'string') throw new TypeError('cloudReviewerLogins must be a string');
-          const observed = waitObservation(current, snapshot, this.now(),
-            configured === undefined ? ['chatgpt-codex-connector[bot]'] : configured.split(/[\s,]+/).filter(Boolean));
-          await this.options.observe?.(target, observed.snapshot); await check();
-          await this.options.collect?.(target, waitEventSnapshot(current, observed.snapshot)); await check();
-          await this.currentSubscription(current); await check();
-          const notificationFilter = await readNotificationFilter(this.options.context, snapshot, observed.observation.facts.review?.reviewer);
-          await lifecycle.observe({ ...observed.observation, notificationFilter });
-          await this.projectImportedWait(task.id, check);
-        }, this.options.objectTimeoutMs ?? 40_000).catch(error => {
-          // A clipped timer can fire before Date.now reaches its deadline.
-          // Preserve the admitted window's cause rather than inferring it later.
-          deferred = objectSignal.aborted ? admission.limitedByPoll : !gitHubAdmissionCanContinue(budget);
-          this.options.context.log(deferred ? 'info' : 'warn', deferred
-            ? 'GitHub poll budget used; resume this subscription next tick'
-            : 'GitHub observation failed; wait and pending delivery remain recoverable',
-            { taskId: task.id, kind, errorName: error instanceof Error && ['AbortError', 'TimeoutError'].includes(error.name) ? error.name : 'Error' });
-        });
-        if (signal.aborted || deferred) break;
-        // Failed observations advance admission fairness, never provider facts.
-        // Preserve this position across module upgrades and process restarts.
-        const cursor = await storage.get(progressKey);
-        if (!(await storage.compareAndSet(progressKey, cursor?.revision ?? null, task.id)).applied) {
-          this.options.context.log('warn', 'Typed poll progress could not be saved; retain subscriptions for retry');
-          break;
-        }
-      }
+      await pollGitHubDueWaits({ options: this.options, store: this.store, now: this.now,
+        run: (subject, action, timeoutMs) => this.run(subject, action, timeoutMs),
+        assertRunning: () => this.assertRunning(), currentSubscription: task => this.currentSubscription(task),
+        lifecycle: (task, check) => this.lifecycle(task, check),
+        projectImportedWait: (id, check) => this.projectImportedWait(id, check),
+        recoveryNotices: candidate => this.recoveryNotices(candidate),
+      }, kind, signal);
     }, 55_000);
     this.polling.set(kind, operation);
     void operation.finally(() => this.polling.delete(kind)).catch(() => undefined);

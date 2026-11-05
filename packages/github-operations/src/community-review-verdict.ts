@@ -72,6 +72,7 @@ export class CommunityReviewVerdictRuntime {
       const source = this.options.storage;
       const scan = source.scan?.bind(source);
       const storage: PluginStorageHost = {
+        ...fencedIndexedStorage(source, fence),
         get: key => source.get(key), list: () => source.list(),
         ...(scan ? { scan: async input => { await fence(); const page = await scan(input); await fence(); return page; } } : {}),
         set: async (key, value) => { await fence(); attempt.phase = 'record_verdict'; return source.set(key, value); },
@@ -101,3 +102,4 @@ export class CommunityReviewVerdictRuntime {
   }
   async stop(): Promise<void> { this.lifetime.abort(); await Promise.allSettled([...this.pending]); }
 }
+import { fencedIndexedStorage } from './owner-indexed-storage.js';

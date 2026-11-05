@@ -388,7 +388,7 @@ importers:
         specifier: 0.3.3-candidate.0
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.2-candidate.10
+        specifier: 0.3.0-beta.2-candidate.11
         version: link:../plugin-sdk
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
@@ -436,7 +436,7 @@ importers:
         version: 0.2.0-beta.24
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
-        version: 1.26.0(zod@4.4.3)
+        version: 1.26.0(zod@4.6.7)
     devDependencies:
       '@types/node':
         specifier: ^20.17.0
@@ -515,7 +515,7 @@ importers:
         version: link:../plugin-contract
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
-        version: 1.26.0(zod@4.4.3)
+        version: 1.26.0(zod@4.6.7)
       ajv:
         specifier: ^8.17.0
         version: 8.20.0
@@ -540,7 +540,7 @@ importers:
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.2-candidate.10
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.2-candidate.10
       zod:
         specifier: 4.6.7
         version: 4.6.7
@@ -728,6 +728,10 @@ packages:
 
   '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.1':
     resolution: {integrity: sha512-Drh8XMiPTMrZ9F+EhejH7hqEqv3CUoX9eEtR+CnRdyhMnzOIVAwU3uUNuX0Wlo/gMhnTMJ1HPcO63HgN0EzT8w==}
+    engines: {node: '>=20.0.0'}
+
+  '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.10':
+    resolution: {integrity: sha512-VAW/6zYJ4IAW16HEdS9l8c4m890vpTN9Y6PTIoz45Xj/inJXUiHYnZlnrGfdi464wPvArT4VKHl/KlOqs8bdig==}
     engines: {node: '>=20.0.0'}
 
   '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.9':
@@ -1258,7 +1262,6 @@ packages:
   '@larksuite/cli@1.0.85':
     resolution: {integrity: sha512-EtoX13gfn5eeqDI4oSbaMKcc2R++TyIxDVAKAw/cMXaMM7q0MKIqfWcKM0r02PCxQVC5JjBd1QPxKyra+n//Qw==}
     engines: {node: '>=16'}
-    cpu: [x64, arm64, riscv64]
     os: [darwin, linux, win32]
     hasBin: true
 
@@ -2689,6 +2692,10 @@ snapshots:
     dependencies:
       '@clowder-ai/plugin-contract': 0.3.2-candidate.0
 
+  '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.10':
+    dependencies:
+      '@clowder-ai/plugin-contract': 0.3.3-candidate.0
+
   '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.9':
     dependencies:
       '@clowder-ai/plugin-contract': 0.3.3-candidate.0
@@ -3059,6 +3066,28 @@ snapshots:
       raw-body: 3.0.2
       zod: 4.4.3
       zod-to-json-schema: 3.25.2(zod@4.4.3)
+    transitivePeerDependencies:
+      - supports-color
+
+  '@modelcontextprotocol/sdk@1.26.0(zod@4.6.7)':
+    dependencies:
+      '@hono/node-server': 1.19.17(hono@4.12.33)
+      ajv: 8.20.0
+      ajv-formats: 3.0.1(ajv@8.20.0)
+      content-type: 1.0.5
+      cors: 2.8.6
+      cross-spawn: 7.0.6
+      eventsource: 3.0.7
+      eventsource-parser: 3.1.0
+      express: 5.2.1
+      express-rate-limit: 8.6.1(express@5.2.1)
+      hono: 4.12.33
+      jose: 6.2.6
+      json-schema-typed: 8.0.2
+      pkce-challenge: 5.0.1
+      raw-body: 3.0.2
+      zod: 4.6.7
+      zod-to-json-schema: 3.25.2(zod@4.6.7)
     transitivePeerDependencies:
       - supports-color
 
@@ -4463,7 +4492,12 @@ snapshots:
     dependencies:
       zod: 4.4.3
 
+  zod-to-json-schema@3.25.2(zod@4.6.7):
+    dependencies:
+      zod: 4.6.7
+
   zod@3.25.76: {}
 
   zod@4.4.3: {}
+
   zod@4.6.7: {}
