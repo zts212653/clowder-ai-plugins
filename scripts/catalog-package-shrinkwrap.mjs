@@ -126,6 +126,12 @@ export function assertPublisherShrinkwrap(packageJson, shrinkwrap, { builtin = f
   }
 }
 
+export function assertCatalogBuiltinDependencyLayout(manifest, files) {
+  if (manifest.runtime?.transport !== 'builtin') return;
+  assert.equal(files.some(file => file.path.split('/').includes('node_modules')), false,
+    'catalog builtin artifacts must not ship node_modules; the Host materializes the publisher lock');
+}
+
 export function collectWorkspacePackageIntegrityMismatches(
   shrinkwrap,
   workspacePackages,

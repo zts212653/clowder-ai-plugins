@@ -38,7 +38,7 @@ test('one meeting archive runs its module, runner and MCP through its publisher-
     const [pack] = JSON.parse(run(process.execPath,
       ['scripts/pack-publish-artifact.mjs', 'packages/feishu-meeting-intake', packs], root,
       { XDG_CACHE_HOME: join(temp, 'cache'), npm_config_cache_dir: join(temp, 'metadata'), npm_config_offline: 'true' }));
-    assert.equal(pack.files.some(file => file.path.startsWith('node_modules/')), false,
+    assert.equal(pack.files.some(file => file.path.split('/').includes('node_modules')), false,
       'catalog archive must not duplicate the Host-owned locked dependency tree');
     assert.equal(pack.files.some(file => file.path === 'dist/lark-cli'), false,
       'a build-host binary must never define the public archive identity');

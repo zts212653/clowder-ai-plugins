@@ -7,6 +7,7 @@ import test from 'node:test';
 import { parse } from 'yaml';
 
 import {
+  assertCatalogBuiltinDependencyLayout,
   assertProductionDependencyClosure,
   assertPublisherShrinkwrap,
   collectWorkspacePackageIntegrityMismatches,
@@ -71,6 +72,22 @@ for (const { directory, pkg, builtin } of productionConsumers) test(`${directory
   );
   if (builtin) assertPublisherShrinkwrap(pkg, shrinkwrap, { builtin: true });
   else assertProductionDependencyClosure(pkg, shrinkwrap);
+});
+
+for (const path of ['node_modules/dependency/package.json', 'dist/node_modules/dependency/index.js'])
+  test(`catalog builtin rejects a competing dependency tree at ${path}`, () => {
+    assert.throws(() => assertCatalogBuiltinDependencyLayout({ runtime: { transport: 'builtin' } }, [{ path }]),
+      /catalog builtin artifacts must not ship node_modules/u);
+  });
+
+test('catalog builtin accepts package code and its publisher lock without a bundled tree', () => {
+  assert.doesNotThrow(() => assertCatalogBuiltinDependencyLayout({ runtime: { transport: 'builtin' } },
+    [{ path: 'dist/index.js' }, { path: 'npm-shrinkwrap.json' }]));
+});
+
+test('catalog builtin layout policy preserves non-builtin self-contained archives', () => {
+  assert.doesNotThrow(() => assertCatalogBuiltinDependencyLayout({ runtime: { transport: 'stdio' } },
+    [{ path: 'node_modules/dependency/package.json' }]));
 });
 
 for (const [label, mutate, error] of [

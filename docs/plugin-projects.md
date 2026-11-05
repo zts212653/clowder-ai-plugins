@@ -117,6 +117,8 @@ node scripts/pack-self-contained-artifact.mjs packages/enterprise-workflow /abso
 
 同时声明 stdio MCP 的目录 builtin 应交付包内代码和 publisher lock，由 Host 统一物化依赖；归档内再放一棵 `node_modules` 会与 MCP 资源物化冲突。Feishu Meeting Intake 的消费测试覆盖 Host 锁定安装与单个归档的标准 npm 安装，两者都实际运行模块、原生 runner 和 MCP；安装时由 npm 自动取得锁定依赖，不要求用户另装 SDK／Contract。
 
+Feishu Meeting Intake 此版本不支持零 registry 的完全离线安装，本地归档安装也需要取得锁定依赖。不要把设置页的归档文件入口等同于无需网络；镜像行为未在这次修复中验证。
+
 检查实际归档中的 `README.md`、`README.en.md` 与对应源码逐字一致，声明、资源和生产依赖均存在。运行 `pnpm test:package-inventory` 检查当前包声明、双语说明和目录／发布接线；空消费者再验证实际依赖与导出。涉及打包字节的变动仍须同步目录摘要。真实账号、浏览器、原生辅助进程和 Host 安装／启停旅程需要分别验证，不能由模拟宿主或归档导入替代。
 
 ### 源码目录安装的核验边界

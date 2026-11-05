@@ -174,7 +174,7 @@
     {
       "pluginId": "official.feishu-meeting-intake",
       "version": "0.1.0-alpha.13",
-      "integrity": "sha512-OkuXROmkW2f4AslYoT7e9xbNnGFRxD41EQ00sm1FBYeH98brMXArNYt3F0Yxn3joRclWiwcqtyTLLVvXUGABEQ==",
+      "integrity": "sha512-XVCurVPLdGVENEpqrkzNGmHQA+8pM3DrU5HfVKpxAWyXxIu1shPY5XckNO9JdYXOLTI0b8b5HEcWqNGvpGpMYg==",
       "disposition": "activate",
       "owner": "codex61-sol",
       "reviewBy": "2026-11-07T08:00:00Z",

@@ -14,6 +14,7 @@ import {
 } from '../packages/plugin-contract/dist/index.js';
 import { parse } from 'yaml';
 import {
+  assertCatalogBuiltinDependencyLayout,
   assertPublisherShrinkwrap,
 } from './catalog-package-shrinkwrap.mjs';
 import { assertStaticPackageDependencies } from './catalog-static-package.mjs';
@@ -122,6 +123,7 @@ async function verifyCatalogEntry(catalogEntry) {
     assert.deepEqual(manifestValidation.manifest.icon, catalogEntry.icon);
 
     assertPackedRuntimeEntrypoints(manifestValidation.manifest, artifact.files);
+    assertCatalogBuiltinDependencyLayout(manifestValidation.manifest, artifact.files);
 
     if (catalogEntry.pluginId.startsWith('official.connector.')) {
       connectorChecks += 1;
