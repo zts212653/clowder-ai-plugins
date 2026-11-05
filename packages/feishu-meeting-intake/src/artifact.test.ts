@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import { validateManifest } from '@clowder-ai/plugin-contract';
+import { getCatalogPlugin, validateManifest, validatePluginCatalog } from '@clowder-ai/plugin-contract';
 
 import {
   createFeishuTranscriptSourceAdapter,
@@ -30,10 +30,15 @@ test('ships the actual builtin record module and declared native MCP', async () 
     await readFile(new URL('../package.json', import.meta.url), 'utf8'),
   );
   const result = validateManifest(manifest);
+  const catalog = validatePluginCatalog(JSON.parse(
+    await readFile(new URL('../../../catalog/candidate.json', import.meta.url), 'utf8'),
+  ));
   assert.equal(result.valid, true, result.valid ? undefined : JSON.stringify(result.errors));
-  if (result.valid) {
+  assert.equal(catalog.valid, true, catalog.valid ? undefined : JSON.stringify(catalog.errors));
+  if (result.valid && catalog.valid) {
     assert.deepEqual(manifest, result.manifest, 'the public manifest export must already match the validated current descriptor');
-    assert.equal(result.manifest.version, '0.1.0-alpha.12');
+    assert.equal(getCatalogPlugin(catalog.catalog, result.manifest.pluginId)?.version, result.manifest.version,
+      'candidate catalog and shipped manifest versions must match');
     assert.equal(
       (packageMetadata as { readonly version?: unknown }).version,
       result.manifest.version,
