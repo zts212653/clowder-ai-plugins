@@ -33,7 +33,7 @@ SDK 公开方法是接口边界，不再按插件 ID 或 feature 能力数组复
 
 ## 2. Plugin → Host
 
-本轮候选新增可选 `runtimeInfo.get()`：仅在当前安装的 owner HTTP 操作中返回当前 Host 版本/修订、系统、Node、默认项目和有效日志目录，不提供完整环境或配置；旧 Host / 不支持的载体可不提供。`threads.create({title, projectRef?, parentThreadId?, participants?})` 中项目目录引用由 Host 按普通项目策略校验，不能同时指定 parent 与 projectRef；省略两者沿用默认项目。线程投影的 `projectRef` 是 Host 解析后的真实项目。`ui` command 可返回 `PluginUiPanel`（`{kind:'plugin-panel',version:1,html}`）打开隔离面板，包内 HTML 不获得 Host DOM 或任意网络访问；SDK 类型见 `runtime-info.ts`。侧栏入口来自已启用安装的 `activity-bar.bottom` 声明，图标来自插件元数据，不硬编码业务。
+本轮候选新增可选 `runtimeInfo.get()`：仅在当前安装的 owner HTTP 操作中返回当前 Host 版本/修订、系统、Node、默认项目和有效日志目录，不提供完整环境或配置；旧 Host / 不支持的载体可不提供。`threads.create({title, projectRef?, parentThreadId?, participants?})` 中项目目录引用由 Host 按普通项目策略校验，不能同时指定 parent 与 projectRef；省略两者沿用默认项目。线程投影的 `projectRef` 是 Host 解析后的真实项目。侧栏入口来自已启用安装的 `activity-bar.bottom` 声明，图标来自插件元数据；页面从对应的已声明 GET webhook 获取标准 HTTP HTML，再交给 opaque iframe 隔离渲染，不另行调用 UI action 或使用 PluginUiPanel 信封。
 
 参数与结果的完整类型以 [module-host.ts](../packages/plugin-sdk/src/module-host.ts)、[FeatureContext](../packages/plugin-sdk/src/feature-context.ts) 及相应类型入口为准。下表涵盖当前公开 surface；“实例”表示 Host 自动绑定的安装实例与 feature，不能由正文替换。
 
@@ -111,6 +111,12 @@ stateDiagram-v2
 `execute({sessionId,generation,executionId,semanticCursor,content})` 只消费既有授权。原 executionId 与完整输入绑定，未知结果沿原 ID 查询／续接；成功只能来自同一原消息的 canonical 子执行、响应与 provider teardown，不由插件正文或 CLI session ID 宣布。`get(sessionId)` 读取授权摘要；`getExecution({sessionId,generation,executionId})` 读取原有持久回执，也可在撤销／续接后读历史 generation，不发送消息、不唤醒、不恢复执行权限。安装停止、激活版本变化、账号或记忆修订变化会阻止旧行动；新的 owner 操作可以续接同一线程并升授权代次。游戏角色代次和业务动作由插件自己的权威服务负责，不由这个通用 Host 端口替代。该接口只属于 module Host，未声明 stdio、settings-only Host 或 feature-context 支持，也不意味着任一 provider 的受限载体已经可用。
 
 实现参考：[SDK 类型](../packages/plugin-sdk/src/module-host.ts)、[feature 生命周期](../packages/plugin-sdk/src/feature-context.ts)、[消息／控制 wire registry](../packages/plugin-contract/src/wire/index.ts)、[模块 action client](../packages/plugin-sdk/src/module-action-client.ts)。wire registry 说明载体消息，不替代以上作者 API。当前 stdio 的 Host 发起请求只有 `host.lifecycle.ping` 和 `host.messaging.deliver`；生命周期 hooks 由 module 载体直接调用，不是额外 stdio 方法。`streams.read` 在 stdio 内部分片传输，作者仍读取 Uint8Array 迭代器。
+
+### 插件面板挂载与业务 HTTP
+
+`ui` command 只参与发现：其 CallbackAction 的 method 与 params 必须匹配唯一的静态 GET webhook，Host 由此投影 resourcePath，不调用 command。页面 HTML、资源和业务请求统一使用既有 `/api/plugins/:pluginId/*` 分发及 `{...action.params, request}` 参数语义；页面以 `text/html` 返回，不建立另一个 UI 请求协议。opaque iframe 通过受当前插件命名空间和挂载代次限制的 HTTP 桥访问这些声明，重定向被拒绝。独立服务的页面和请求仍由插件自己的服务负责，不由 Host 增设业务协议。
+
+例如反馈插件 alpha.2 的 `feedback.page` 声明处理 `GET panel`，其 action 与侧栏 command 一致；`feedback.http` 处理 `POST feedback`，内部业务读取 `input.request.body`。两者均返回既有 status/headers/body 结构；超过普通响应预算的已保留截图通过通用流响应交付。Host 与插件桥接修订需要配套采用，这不代表候选公共 UI 方向已经获得维护者采纳或发布。
 
 ### 项目产物交付候选（未发布）
 
