@@ -9,6 +9,13 @@ const subscribeSchema = z.object({ name: z.literal('dot.summoned'), arguments: d
 const unsubscribeSchema = z.object({ name: z.literal('dot.summoned'), arguments: dotSubscriptionArguments,
     delivery: z.object({ mode: z.literal('webhook'), url: z.string().url().max(2048) }).strict(), cursor: z.null().optional(), _meta: z.record(z.unknown()).optional() }).strict();
 const callSchema = z.object({ name: z.string(), arguments: z.unknown(), _meta: z.record(z.unknown()).optional() }).strict();
+const initializeSchema = z.object({
+    protocolVersion: z.string(), capabilities: z.record(z.unknown()),
+    clientInfo: z.object({ name: z.string(), version: z.string() }).passthrough(),
+}).passthrough();
+const LEGACY_PROTOCOL_VERSIONS = new Set(['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']);
+const MODERN_PROTOCOL_VERSION = '2026-07-28';
+const serverInfo = { name: 'Clowder AI dot', version: '0.2.0' };
 export const httpRequestSchema = z.object({ request: z.object({ method: z.string(), path: z.string(), query: z.record(z.unknown()).optional(),
         headers: z.record(z.union([z.string(), z.array(z.string())])), body: z.unknown().optional(), rawBody: z.unknown().optional(), principal: z.unknown().optional() }).strict() }).strict();
 const externalRequestSchema = z.object({
@@ -30,13 +37,24 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
     const credential = request.credential as VerifiedExternalCredential | undefined;
     if (id === undefined)
         return { status: method === 'notifications/initialized' ? 202 : 400, headers, body: null };
+    const protocolHeader = Object.entries(request.headers).find(([name]) => name.toLowerCase() === 'mcp-protocol-version')?.[1];
+    const requestMeta = params && typeof params === 'object' && !Array.isArray(params) && '_meta' in params
+        ? (params as { _meta?: unknown })._meta : undefined;
+    const metaProtocol = requestMeta && typeof requestMeta === 'object' && !Array.isArray(requestMeta)
+        ? (requestMeta as Record<string, unknown>)['io.modelcontextprotocol/protocolVersion'] : undefined;
+    const modern = method === 'server/discover' || protocolHeader === MODERN_PROTOCOL_VERSION || metaProtocol === MODERN_PROTOCOL_VERSION;
     const complete = async (value: object) => {
         const current = (await runtime.connection.externalState()).current;
         const retireLegacy = credential && current?.kind === 'signed' && current.tokenId === credential.jti;
+        const result = modern ? {
+            resultType: 'complete',
+            ...value,
+            _meta: { 'io.modelcontextprotocol/serverInfo': serverInfo },
+        } : value;
         return {
             status: 200,
             headers,
-            body: { jsonrpc: '2.0', id, result: { resultType: 'complete', ...value } },
+            body: { jsonrpc: '2.0', id, result },
             ...(retireLegacy ? {
                 hostEffects: { retireLegacyCredential: { tokenId: credential.jti } },
             } : {}),
@@ -45,10 +63,13 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
     try {
         if (['initialize', 'server/discover', 'tools/list', 'events/list'].includes(method))
             await runtime.connection.recordDiscovery(credential);
-        if (method === 'initialize')
-            return complete({ protocolVersion: '2026-07-28', capabilities: { tools: {}, events: {} }, serverInfo: { name: 'Clowder AI dot', version: '0.2.0' } });
+        if (method === 'initialize') {
+            const input = initializeSchema.parse(params);
+            const protocolVersion = LEGACY_PROTOCOL_VERSIONS.has(input.protocolVersion) ? input.protocolVersion : '2025-11-25';
+            return complete({ protocolVersion, capabilities: { tools: {}, events: {} }, serverInfo });
+        }
         if (method === 'server/discover')
-            return complete({ supportedVersions: ['2026-07-28'], capabilities: { tools: {}, events: {} } });
+            return complete({ supportedVersions: [MODERN_PROTOCOL_VERSION], capabilities: { tools: {}, events: {} } });
         if (method === 'ping')
             return complete({});
         if (method === 'tools/list')

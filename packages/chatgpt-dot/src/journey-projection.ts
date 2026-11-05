@@ -127,7 +127,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 			rows: [row(
 				"waiting-discovery",
 				"第二步：添加到 ChatGPT",
-				`复制 Server URL，在 ChatGPT 添加自定义 MCP 服务器。${endpointDetail}只有真实 discovery 到达后才进入配对。`,
+				`点「显示并复制 Server URL」，打开 https://chatgpt.com/plugins，选择「+」→「Add custom MCP server」，粘贴 URL，并把 Authentication 设为「No authentication」。URL 已包含凭据；${endpointDetail}只有 ChatGPT 真实 discovery 到达后才进入配对。`,
 				[
 					action("show-server-url", "显示并复制 Server URL"),
 					action("cancel-pending", "放弃本次更新"),

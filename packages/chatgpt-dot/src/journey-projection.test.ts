@@ -91,6 +91,16 @@ test("projects endpoint, ChatGPT discovery, and pairing as separate stages", () 
 	assert.deepEqual(projectDotJourney({ ...base, external: null }).rows, []);
 });
 
+test("puts the complete ChatGPT setup path in the discovery step", () => {
+	const result = projectDotJourney({ ...base, external: pendingExternal(null) });
+	const waiting = result.rows[0];
+	assert.equal(waiting?.key, "waiting-discovery");
+	assert.match(waiting?.detail ?? "", /chatgpt\.com\/plugins/);
+	assert.match(waiting?.detail ?? "", /Add custom MCP server/);
+	assert.match(waiting?.detail ?? "", /No authentication/);
+	assert.match(waiting?.detail ?? "", /显示并复制 Server URL/);
+});
+
 test("shows the absolute temporary endpoint expiry in the owner journey", () => {
 	const temporary: DotExternalState = {
 		...pendingExternal(null),
