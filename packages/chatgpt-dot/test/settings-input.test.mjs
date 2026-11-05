@@ -52,6 +52,31 @@ test("legacy pairing remains usable while the journey asks for a real public end
 	assert.match(instructions.data, /pairing_code=/);
 });
 
+test("one owner action supplies the Work connection message without a separate pairing step", async (t) => {
+	const { f, settings } = await runningFixture(t, seedLegacyPublicEndpoint);
+	await assert.rejects(
+		() => settings.actions["dot.show-instructions"]({}, undefined, undefined),
+		/owner/,
+	);
+	assert.equal(f.records.has("dot/connection/v1"), false);
+	const first = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+	const state = structuredClone(f.records.get("dot/connection/v1").value);
+	assert.equal(first.render, "text");
+	assert.match(first.data, /events\/subscribe/);
+	assert.match(first.data, new RegExp(`attempt_id=${state.attemptId}`));
+	assert.match(first.data, new RegExp(`pairing_code=${state.pairingCode}`));
+	await assert.rejects(
+		() => settings.actions["dot.show-instructions"]({}, undefined, { ...f.owner, userId: "intruder" }),
+		/owner/,
+	);
+	const repeated = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+	assert.deepEqual(repeated, first);
+	assert.equal(f.records.get("dot/connection/v1").value.attemptId, state.attemptId);
+	assert.equal(f.records.get("dot/external/v1").value.endpoint.serverUrl, "https://dot.example/plugin/mcp?token=fixture");
+	const status = await settings.actions["dot.status"]({}, undefined, f.owner);
+	assert.equal(status.data.rows[0].key, "waiting-subscription");
+});
+
 test("a legacy credential starts when the Host exposes only a relative forwarding coordinate", async (t) => {
 	const { f, settings } = await runningFixture(t, async (f) => {
 		f.host.external.endpoint = "/plugin/mcp";
@@ -98,6 +123,7 @@ test("missing endpoint leaves entry selection to native configuration variants",
 });
 
 test("entry actions consume the current configuration draft passed by the Host", async (t) => {
+	const now = 1_800_000_000_000;
 	const issuedTtls = [];
 	let temporaryStarts = 0;
 	const f = fixture(t, {
@@ -139,14 +165,14 @@ test("entry actions consume the current configuration draft passed by the Host",
 		return {
 			generation: "draft-generation",
 			serverUrl: `https://temporary.example/mcp?token=${input.token}`,
-			startedAt: 10,
-			expiresAt: 10 + input.ttlMs,
+			startedAt: now,
+			expiresAt: now + input.ttlMs,
 		};
 	};
 	t.after(() => {
 		TemporaryEndpointController.prototype.start = originalStart;
 	});
-	const module = createDotPlugin({ sendWebhook: f.sendWebhook, now: () => 100 });
+	const module = createDotPlugin({ sendWebhook: f.sendWebhook, now: () => now });
 	const settings = await module.settings(f.host);
 	const active = await module.start(f.host);
 	t.after(async () => {
@@ -227,7 +253,23 @@ test("pending credential cannot start pairing before its own ChatGPT discovery",
 		endpoint: { mode: "long-lived", serverUrl: "https://dot.example/mcp?token=token", reachableAt: null },
 	});
 	await assert.rejects(() => settings.actions["dot.begin-pairing"]({}, undefined, f.owner), /discovery_required/);
+	await assert.rejects(() => settings.actions["dot.show-instructions"]({}, undefined, f.owner), /discovery_required/);
 	assert.equal(f.records.has("dot/connection/v1"), false);
+});
+
+test("an already promoted signed credential remains reusable at a real millisecond clock", async (t) => {
+	const { f, settings } = await runningFixture(t);
+	const now = Math.floor(Date.now() / 1000);
+	const serverUrl = "https://dot.example/api/plugin-runtime/handle?token=current-token";
+	await f.host.storage.set("dot/external/v1", {
+		v: 1, revision: 1, pending: null,
+		current: { kind: "signed", token: "current-token", tokenId: "current-jti", issuedAt: now,
+			expiresAt: now + 3600, refreshRecommendedAt: now + 1800 },
+		endpoint: { mode: "long-lived", serverUrl, reachableAt: now * 1000 },
+	});
+	const result = await settings.actions["dot.use-long-lived"]({}, undefined, f.owner);
+	assert.equal(result.data, serverUrl);
+	assert.equal(f.records.get("dot/external/v1").value.pending, null);
 });
 
 test("owner disconnect revokes Dot credentials before revoking the pairing", async (t) => {

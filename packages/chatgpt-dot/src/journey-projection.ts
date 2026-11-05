@@ -127,12 +127,13 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 			rows: [row(
 				"waiting-discovery",
 				"第二步：添加到 ChatGPT",
-				`点「显示并复制 Server URL」，打开 https://chatgpt.com/plugins，选择「+」→「Add custom MCP server」，粘贴 URL，并把 Authentication 设为「No authentication」。URL 已包含凭据；${endpointDetail}只有 ChatGPT 真实 discovery 到达后才进入配对。`,
+				`点「显示并复制 Server URL」，打开 https://chatgpt.com/plugins，选择「+」→「Add custom MCP server」，粘贴 URL，并把 Authentication 设为「No authentication」。URL 已包含凭据；${endpointDetail}正在等待 ChatGPT 发现此入口。`,
 				[
 					action("show-server-url", "显示并复制 Server URL"),
 					action("cancel-pending", "放弃本次更新"),
 				],
 			)],
+			pollUntil: input.now + FIVE_MINUTES_MS,
 		};
 	}
 
@@ -143,10 +144,10 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 			rows: [
 				row(
 					"pairing-not-started",
-					"第三步：配对 Dot",
-					"外部入口已就绪。现在生成配对说明并订阅 dot.summoned。",
+					"第三步：连接 Work 对话",
+					"打开 https://chatgpt.com 并切换到 Work。在目标对话输入 @，选择刚添加的插件，再获取并发送下方连接消息。若插件详情未显示 Dot 工具和 dot.summoned 事件，再点击 Refresh。",
 					[
-						action("begin-pairing", "生成配对说明"),
+						action("show-instructions", "获取连接消息"),
 						action("cancel-pending", "放弃本次更新"),
 					],
 				),
@@ -160,10 +161,10 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 				rows: [
 					row(
 						"pairing-expired",
-						"配对说明已过期",
-						"旧说明不能继续使用；重新生成只会旋转 Dot 配对，不会新建猫咖连接。",
+						"连接消息已过期",
+						"获取新的连接消息，再发到目标 ChatGPT Work 对话。Server URL 不会因此改变。",
 						[
-							action("reconnect", "重新生成配对说明"),
+							action("show-instructions", "获取连接消息"),
 							action("disconnect", "断开连接"),
 						],
 					),
@@ -174,11 +175,11 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 			rows: [
 				row(
 					"waiting-subscription",
-					"等待 ChatGPT 订阅",
-					"复制当前配对说明，在已有猫咖 personal plugin 中 Refresh 后订阅 dot.summoned。",
+					"等待 ChatGPT 连接",
+					"在 ChatGPT Work 的目标对话输入 @，选择刚添加的插件，发送完整连接消息并允许订阅。收到订阅后这里会自动更新；若已发送但仍未连接，请检查 ChatGPT 的回复或授权提示。",
 					[
-						action("show-instructions", "复制配对说明"),
-						action("reconnect", "重新生成配对说明"),
+						action("show-instructions", "获取连接消息"),
+						action("reconnect", "重置连接"),
 						action("disconnect", "断开连接"),
 					],
 				),
@@ -248,7 +249,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					"还需要一次真实往返，确认 ChatGPT 能读取原消息并把校验回复送回猫咖。",
 					[
 						action("roundtrip", "发起往返测试"),
-						action("show-instructions", "查看配对说明"),
+						action("show-instructions", "获取连接消息"),
 						action("disconnect", "断开连接"),
 					],
 				),

@@ -81,7 +81,8 @@ test("pending signed credential promotes only from its exact discovery, pairing 
 	assert.equal(external.pending.tokenId, "jti-1");
 
 	await request(f, { jsonrpc: "2.0", id: 1, method: "initialize", params: {} }, "jti-1");
-	await f.settings.actions["dot.begin-pairing"]({}, undefined, f.owner);
+	const message = await f.settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+	assert.equal(message.render, "text");
 	const connection = f.records.get(CONNECTION_KEY).value;
 	await request(f, {
 		jsonrpc: "2.0",

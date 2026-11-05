@@ -1,5 +1,5 @@
 pluginId: official.chatgpt-dot
-version: 0.2.0-alpha.20
+version: 0.2.0-alpha.21
 contractVersion: 0.3.3-candidate.1
 name: ChatGPT Dot
 description:
@@ -13,9 +13,11 @@ call:
   alias: dot
   displayName: Dot
 steps:
-  - text: 先选择长期公网入口，或让 Dot 自动创建最长 24 小时的临时入口；无需终端命令。
-  - text: 打开 https://chatgpt.com/plugins，选择「+」→「Add custom MCP server」，粘贴页面显示的 Server URL，并将 Authentication 设为「No authentication」；真实 discovery 到达后，页面才进入 Dot 配对。
-  - text: 完成订阅并发起真实往返测试；只有同一凭据读取原消息并回传校验回复后才显示可用。
+  - text: 选择长期或临时公网入口，点击「生成 Server URL」或「创建临时入口」，复制得到的 URL；有效期内重复点击会复用当前 URL。
+  - text: 打开 https://chatgpt.com/plugins，选择「+」→「Add custom MCP server」，粘贴 Server URL，将 Authentication 设为「No authentication」，并记住添加时使用的插件名称。
+  - text: 在刚添加的插件详情中确认已显示 Dot 工具和 dot.summoned 事件；只有未显示或工具与事件定义更新后，才点击 Refresh 重新扫描。
+  - text: 打开 https://chatgpt.com 并切换到 Work，在接收 Dot 消息的目标对话中输入 @，选择刚添加的插件；回到这里点击「获取连接消息」，将整段消息粘贴到该 Work 对话并发送，按 ChatGPT 提示允许订阅。
+  - text: 回到「Dot 连接」等待订阅结果。连接建立后发起往返测试；只有读取原消息并回复校验码成功才显示可用，此后可在 Clowder AI 对话中 @dot 发送消息。
 configuration:
   - key: endpointMode
     label: ChatGPT 入口类型
@@ -53,20 +55,14 @@ configuration:
         label: 生成 Server URL
         render: button
         resultRender: text
-        next: begin-pairing
-        confirm: 确认签发新的外部凭据并生成 Server URL？
-        action: { method: dot.use-long-lived }
-      - id: begin-pairing
-        label: 下一步：生成配对说明
-        render: button
-        resultRender: rows
         next: show-instructions
-        confirm: 确认生成一次新的 Dot 配对说明？
-        action: { method: dot.begin-pairing }
+        confirm: 生成或显示当前 Server URL？有效入口会被复用。
+        action: { method: dot.use-long-lived }
       - id: show-instructions
-        label: 复制配对说明
+        label: 获取连接消息
         render: button
         resultRender: text
+        confirm: 为目标 ChatGPT Work 对话获取连接消息？有效连接信息会被复用。
         action: { method: dot.show-instructions }
   - key: temporaryEndpoint
     label: 临时公网入口
@@ -77,20 +73,14 @@ configuration:
         label: 创建临时入口
         render: button
         resultRender: text
-        next: begin-pairing
+        next: show-instructions
         confirm: 确认启动一个有时限的临时公网入口？
         action: { method: dot.start-temporary }
-      - id: begin-pairing
-        label: 下一步：生成配对说明
-        render: button
-        resultRender: rows
-        next: show-instructions
-        confirm: 确认生成一次新的 Dot 配对说明？
-        action: { method: dot.begin-pairing }
       - id: show-instructions
-        label: 复制配对说明
+        label: 获取连接消息
         render: button
         resultRender: text
+        confirm: 为目标 ChatGPT Work 对话获取连接消息？有效连接信息会被复用。
         action: { method: dot.show-instructions }
   - key: webhookProxyUrl
     label: 回调代理（可选）
@@ -125,17 +115,19 @@ configuration:
         confirm: 放弃待验证的新凭据并关闭对应临时入口？现有凭据不会被替换。
         action: { method: dot.cancel-pending }
       - id: begin-pairing
-        label: 生成配对说明
+        label: 准备连接
         render: row
         resultRender: rows
-        confirm: 确认生成一次新的 Dot 配对说明？
+        confirm: 准备连接目标 ChatGPT Work 对话？有效连接信息会被复用。
         action: { method: dot.begin-pairing }
       - id: show-instructions
-        label: 复制配对说明
+        label: 获取连接消息
         render: row
+        resultRender: text
+        confirm: 为目标 ChatGPT Work 对话获取连接消息？有效连接信息会被复用。
         action: { method: dot.show-instructions }
       - id: reconnect
-        label: 重新生成配对说明
+        label: 重置连接
         render: row
         resultRender: rows
         confirm: 这会撤销旧配对，旧召唤将不能继续回复。

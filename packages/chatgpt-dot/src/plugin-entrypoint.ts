@@ -50,9 +50,9 @@ function operationInput(params: unknown): Readonly<Record<string, unknown>> {
 		: {};
 }
 function endpointCredentialIsLive(state: DotExternalState, now: number): boolean {
-	if (state.pending) return state.pending.expiresAt > now;
+	if (state.pending) return state.pending.expiresAt * 1000 > now;
 	if (!state.current) return false;
-	return state.current.kind === "legacy" || state.current.expiresAt > now;
+	return state.current.kind === "legacy" || state.current.expiresAt * 1000 > now;
 }
 export function createDotPlugin(
 	options: DotPluginOptions = {},
@@ -219,7 +219,7 @@ export function createDotPlugin(
 				},
 				"dot.show-instructions": async (_input, _native, context) => ({
 					render: "text",
-					data: (await current.instructions(context)).instructions,
+					data: (await current.begin(context, false)).instructions,
 				}),
 				"dot.reconnect": async (_input, _native, context) => {
 					await current.begin(context, true);

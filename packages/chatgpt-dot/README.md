@@ -10,13 +10,17 @@ Dot 把已配对的 ChatGPT 云端对话接入 Clowder AI。安装实例可作�
 
 在插件管理器选择本地插件目录或作者提供的完整归档。归档携带实际运行依赖，不需要另装 SDK。当前完整归档已在 macOS Apple Silicon 验证；其他平台的临时入口尚未提供对应 tunnel 资产。
 
-启用后打开「Dot 连接」，页面按三个步骤引导，不需要 Agent 转述或要求主人执行终端命令：
+启用后打开「Dot 连接」，完整流程在插件步骤中说明：
 
-1. 建立 ChatGPT 入口。有长期公网域名时，在配置里填写一个只含一次 `{token}` 的完整 HTTPS Server URL 模板，再点「使用长期公网入口」；没有公网入口时，选择 1–24 小时有效期并点「创建临时入口」，Dot 会自动启动随本次 activation 管理的临时入口。
-2. 页面显示并允许复制完整 Server URL，同时明确临时入口的绝对到期时间。到 <https://chatgpt.com/plugins> 选择 `+` → `Add custom MCP server`，粘贴这个 URL；URL 已携带 bearer token，因此 Authentication 选择 `No authentication`。ChatGPT 真正 discovery 到该凭据后，页面才进入下一步。
-3. 点「生成配对说明」，在 personal plugin 中 Refresh，核对 Dot 工具与 `dot.summoned`，再按说明订阅并完成真实往返测试。
+1. 选择长期或临时公网入口，点击「生成 Server URL」或「创建临时入口」，复制 URL。有效期内重复点击会复用当前入口和凭据。
+2. 打开 <https://chatgpt.com/plugins>，选择 `+` → `Add custom MCP server`，粘贴 URL；Authentication 选择 `No authentication`。记住添加时使用的插件名称。
+3. 在该插件详情确认已显示 Dot 工具和 `dot.summoned` 事件。只有未显示或定义更新后，才点击 Refresh 重新扫描。
+4. 打开 <https://chatgpt.com> 并切换到 **Work**，在目标对话中输入 `@` 并选择刚添加的插件。回到这里点「获取连接消息」，将完整消息粘贴到该 Work 对话并发送，按 ChatGPT 提示允许订阅。连接消息包含本次连接参数；不需要先做一次「生成配对说明」。
+5. 回到「Dot 连接」等待订阅结果，再发起真实往返测试。只有读取原消息并回复校验码成功才显示可用，此后可在 Clowder AI 对话中 `@dot` 发送消息。
 
-Host 只提供通用安装身份、签名凭据与固定插件转发；它不生成 Dot 专属公网地址，也不保存每个 bearer token。长期或临时 endpoint、token 更新提示和配对旅程由 Dot 管理。临时入口到期、停用或卸载时自动关闭；长期公网入口可以跨 Host 重启继续使用，但仍会被实时安装、启用、runtime 和 capability 状态拒绝。选择「重新生成配对说明」只旋转配对；「断开连接」撤销当前 Dot 凭据和配对。旧安装凭据只作为有界迁移入口保留，不会成为长期双轨认证。请勿把完整 Server URL 或 token 贴到公共对话或诊断日志。
+[OpenAI MCP Events 文档](https://developers.openai.com/plugins/build/mcp-events)要求在 ChatGPT Web 的 Work 对话中发起订阅；工具和事件定义变化后才需重新扫描。Work 的操作入口见[官方入门](https://learn.chatgpt.com/docs/get-started-with-work)。
+
+Host 只提供通用安装身份、签名凭据与固定插件转发；它不生成 Dot 专属公网地址，也不保存每个 bearer token。长期或临时 endpoint、token 更新提示和配对旅程由 Dot 管理。临时入口到期、停用或卸载时自动关闭；长期公网入口可以跨 Host 重启继续使用，但仍会被实时安装、启用、runtime 和 capability 状态拒绝。选择「重置连接」只旋转配对；「断开连接」撤销当前 Dot 凭据和配对。旧安装凭据只作为有界迁移入口保留，不会成为长期双轨认证。请勿把完整 Server URL 或 token 贴到公共对话或诊断日志。
 
 代理为可选项，仅支持本机 HTTP CONNECT 代理；默认直接使用经过地址校验和 DNS 固定的 HTTPS 回调。别名、图标与安装实例标识由 Host 管理。
 

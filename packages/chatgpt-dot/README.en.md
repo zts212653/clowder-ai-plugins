@@ -10,13 +10,17 @@ Maintainer: the Clowder AI plugin team. This is a local candidate requiring the 
 
 Choose the local plugin directory or the complete supplied archive in Plugin Manager. The archive carries its runtime dependencies; no separate SDK installation is required. The complete archive is verified on macOS Apple Silicon. Temporary ingress is not yet supplied for other platforms.
 
-After enabling Dot, open “Dot connection”. Settings owns the complete three-step journey; it does not ask an Agent to relay instructions or ask the owner to run terminal commands:
+After enabling Dot, open “Dot connection”. The plugin steps explain the complete setup:
 
-1. Establish a ChatGPT entry. With a long-lived public domain, configure one complete HTTPS Server URL template containing `{token}` exactly once and choose “Use long-lived public entry”. Without one, choose a 1–24 hour lifetime and select “Create temporary entry”; Dot starts an activation-owned temporary tunnel.
-2. Settings presents and copies the complete Server URL and shows the absolute expiry for a temporary entry. At <https://chatgpt.com/plugins>, choose `+` → `Add custom MCP server`, paste that URL, and select `No authentication` because the URL already contains the bearer token. Pairing remains unavailable until ChatGPT actually discovers that exact credential.
-3. Choose “Generate pairing instructions”, Refresh the personal plugin, verify the Dot tools and `dot.summoned`, subscribe as instructed, and complete the real roundtrip check.
+1. Choose a long-lived or temporary public endpoint and copy its Server URL. Repeating setup reuses a live endpoint and credential.
+2. Open <https://chatgpt.com/plugins>, choose `+` → `Add custom MCP server`, paste the URL, and select `No authentication`. Remember the plugin name you chose.
+3. Check the plugin details for Dot tools and the `dot.summoned` event. Refresh only if they are missing or their definitions have changed.
+4. Open <https://chatgpt.com> and switch to **Work**. In the target conversation, type `@` and select the plugin you added. Return here, choose “Get connection message”, and send the complete message in that Work conversation. Allow the subscription when prompted. A separate “Generate pairing instructions” step is not needed.
+5. Return to “Dot connection” and wait for the subscription. Run the roundtrip check; Dot is ready only after it reads the source message and replies with the verification code. Then address `@dot` in a Clowder AI conversation.
 
-The Host supplies only generic installation identity, signed credentials and fixed plugin forwarding. It does not create a Dot-specific public URL or retain every bearer token. Dot owns long-lived and temporary endpoints, refresh guidance and pairing. Temporary ingress closes on expiry, disable or uninstall. A long-lived endpoint survives Host restarts, while every request still intersects current installation, enabled runtime and capability authority. “Generate new pairing instructions” rotates only pairing; disconnect revokes the current Dot credential and pairing. A legacy credential is a bounded migration seam rather than a permanent second authentication path. Keep complete Server URLs and tokens out of public conversations and diagnostic logs.
+The [OpenAI MCP Events guide](https://developers.openai.com/plugins/build/mcp-events) uses a Work chat on ChatGPT web and requires rescanning after tool or event definitions change. See [Get started with Work](https://learn.chatgpt.com/docs/get-started-with-work) for the Work entry point.
+
+The Host supplies only generic installation identity, signed credentials and fixed plugin forwarding. It does not create a Dot-specific public URL or retain every bearer token. Dot owns long-lived and temporary endpoints, refresh guidance and pairing. Temporary ingress closes on expiry, disable or uninstall. A long-lived endpoint survives Host restarts, while every request still intersects current installation, enabled runtime and capability authority. “Reset connection” rotates only pairing; disconnect revokes the current Dot credential and pairing. A legacy credential is a bounded migration seam rather than a permanent second authentication path. Keep complete Server URLs and tokens out of public conversations and diagnostic logs.
 
 The optional proxy supports a loopback HTTP CONNECT endpoint. Direct HTTPS callbacks validate public addresses and pin DNS resolution. The Host owns the installation identity, alias and icon.
 

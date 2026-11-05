@@ -404,7 +404,7 @@ export class DotConnection {
     }
     private instructionsFor(state: DotConnectionState) {
         return { ...this.project(state), pairingCode: state.pairingCode,
-            instructions: `在 ChatGPT 已有的猫咖 personal plugin 中点 Refresh，确认出现 Dot 工具与 dot.summoned；在目标 Work 对话用 @ 选择它，然后订阅 dot.summoned：attempt_id=${state.attemptId}，pairing_code=${state.pairingCode}。每次先读取原消息，再在原对话回复。` };
+            instructions: `请把这个 ChatGPT Work 对话连接到 Clowder AI 的 Dot。请实际调用 events/subscribe 订阅 dot.summoned，参数为 attempt_id=${state.attemptId}，pairing_code=${state.pairingCode}。收到事件后，先调用 cat_cafe_dot_read_source 读取原消息，再调用 cat_cafe_dot_reply 把回复发回原对话；若原消息要求校验码，请在回复中保留校验码。请完成订阅，不要只解释操作步骤。` };
     }
     async instructions(context: PluginHostActionContext | undefined) {
         await this.owner(context);
