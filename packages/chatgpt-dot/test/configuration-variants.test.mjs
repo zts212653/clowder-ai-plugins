@@ -14,6 +14,9 @@ test("entry mode is one selector with branch-owned long-lived and temporary cont
 	);
 	const validation = validateManifest(manifest);
 	assert.equal(validation.valid, true, JSON.stringify(validation.errors));
+	assert.match(manifest.steps[1].text, /https:\/\/chatgpt\.com\/plugins/);
+	assert.match(manifest.steps[1].text, /Add custom MCP server/);
+	assert.match(manifest.steps[1].text, /No authentication/);
 	assert.deepEqual(manifest.configurationVariants, {
 		discriminator: "endpointMode",
 		branches: [

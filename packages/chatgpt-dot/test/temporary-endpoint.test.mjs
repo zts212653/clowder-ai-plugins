@@ -8,6 +8,8 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { BUNDLED_TUNNEL_SHA256, TemporaryEndpointController } from "../src/temporary-endpoint.ts";
 import { createHash } from "node:crypto";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 const runnerPath = resolve(fileURLToPath(new URL("../src/temporary-endpoint-runner.mjs", import.meta.url)));
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -89,6 +91,64 @@ test("forward-only runner rejects Host sibling paths, encoded variants and upgra
 	child.send({ type: "stop", reason: "owner_stop" });
 	await new Promise((resolve) => child.once("exit", resolve));
 	await assert.rejects(fetch(`${listenerOrigin}/mcp?token=signed-token`, { method: "POST", body: "{}" }));
+});
+
+test("forward-only runner preserves standard MCP protocol headers", async (t) => {
+	const root = await mkdtemp(join(tmpdir(), "dot-runner-mcp-headers-"));
+	t.after(() => rm(root, { recursive: true, force: true }));
+	const observed = [];
+	const upstream = http.createServer(async (request, response) => {
+		const chunks = [];
+		for await (const chunk of request) chunks.push(chunk);
+		const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+		observed.push({ method: body.method, headers: request.headers });
+		if (body.method === "notifications/initialized") {
+			response.writeHead(202).end();
+			return;
+		}
+		const result = body.method === "initialize"
+			? {
+				protocolVersion: "2025-11-25",
+				capabilities: { tools: {} },
+				serverInfo: { name: "runner-fixture", version: "1.0.0" },
+			}
+			: { tools: [] };
+		response.writeHead(200, { "content-type": "application/json" });
+		response.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result }));
+	});
+	const upstreamOrigin = await listening(upstream);
+	t.after(() => new Promise((resolve) => upstream.close(resolve)));
+	const child = fork(runnerPath, [await fakeTunnel(t, root)], { stdio: ["ignore", "ignore", "ignore", "ipc"] });
+	t.after(() => child.exitCode === null && child.kill("SIGKILL"));
+	const ready = new Promise((resolve, reject) => {
+		child.on("message", (message) => message?.type === "ready" && resolve(message));
+		child.once("exit", () => reject(new Error("runner exited")));
+	});
+	child.send({
+		type: "start",
+		upstreamLoopbackOrigin: upstreamOrigin,
+		relativePath: "/api/plugin-runtime/handle",
+		method: "POST",
+		token: "signed-token",
+		expiresAt: Date.now() + 60_000,
+	});
+	const { listenerOrigin } = await ready;
+	const transport = new StreamableHTTPClientTransport(
+		new URL(`${listenerOrigin}/mcp?token=signed-token`),
+	);
+	const client = new Client(
+		{ name: "runner-conformance-test", version: "1.0.0" },
+		{ capabilities: {} },
+	);
+	t.after(() => client.close());
+	await client.connect(transport);
+	await client.listTools();
+	const listed = observed.find((entry) => entry.method === "tools/list");
+	assert.ok(listed);
+	assert.equal(listed.headers["mcp-protocol-version"], "2025-11-25");
+	assert.equal(listed.headers.authorization, "Bearer signed-token");
+	child.send({ type: "stop", reason: "owner_stop" });
+	await new Promise((resolve) => child.once("exit", resolve));
 });
 
 test("controller publishes owner URL without clipboard and closes its exact runner", async (t) => {
