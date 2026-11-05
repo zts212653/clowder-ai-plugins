@@ -1,38 +1,37 @@
 import { storageEntries } from './storage-pages.js';
-import { createHash } from 'node:crypto';
 import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
+import { collectionPrefix as prefix, collectionId as idFor, collectionKey as keyFor, collectionTarget as parse,
+  decodeCollection as decode, collectionIndex, collectionIndexOwner } from './community-collection-record.js';
+import { advanceRecoveryNotice, type RecoveryNoticeSender } from './recovery-owner-notice.js';
 import { SdkCommunityEventLog } from './business/domains/community/CommunityEventLog.js';
 import type { TaskItem } from './business/model/index.js';
 import type { CommunityTracking } from './business/domains/community/ports/CommunityTracking.js';
-import type { GitHubSnapshot, GitHubTarget, GitHubTrackingProvider } from './tracking-runtime.js';
-
-const prefix = 'community.collection.v1.';
-const idFor = (subject: string) => 'community-collection:' + createHash('sha256').update(subject).digest('hex');
-const keyFor = (id: string) => {
-  if (!/^community-collection:[a-f0-9]{64}$/.test(id)) throw new TypeError('Invalid collection id');
-  return prefix + id.slice('community-collection:'.length);
-};
-function parse(subject: string) {
-  const match = /^(pr|issue):([a-z0-9_.-]+\/[a-z0-9_.-]+)#([1-9]\d*)$/.exec(subject);
-  if (!match || match[0] !== subject || match[2]!.split('/').some(x => x === '.' || x === '..') || !Number.isSafeInteger(Number(match[3]))) throw new TypeError('Invalid collection subject');
-  return { kind: match[1] as 'pr' | 'issue', repoFullName: match[2]!, number: Number(match[3]) };
-}
-interface RecordV1 { readonly schemaVersion: 1; readonly task: TaskItem; readonly route?: { sequence: number; sourceEventId: string } }
-function decode(value: unknown): RecordV1 {
-  const record = value as RecordV1;
-  if (!record || record.schemaVersion !== 1 || !record.task?.subjectKey || idFor(record.task.subjectKey) !== record.task.id ||
-      `${parse(record.task.subjectKey).kind}_tracking` !== record.task.kind || record.task.pluginWait || record.task.automationState?.await || record.task.automationState?.waitOutcome) throw new Error('Invalid private collection record');
-  if (record.route && (!Number.isSafeInteger(record.route.sequence) || record.route.sequence < 0 || typeof record.route.sourceEventId !== 'string' || !record.route.sourceEventId)) throw new Error('Invalid collection route version');
-  return record;
-}
+import type { JournalSubject } from './business/domains/community/journal-directory.js';
+import type { GitHubSnapshot } from './tracking-runtime.js';
 
 /** Task-shaped compatibility view for the migrated board, NOT a Host Task.
  * This namespace owns only provider collection and never updates the Host Task wait patch.
  * Cancelling retains the row and its cursors (TTL=0); rerouting reactivates it. */
 export class SdkCommunityCollectionStore implements CommunityTracking {
-  constructor(private readonly storage: PluginStorageHost, private readonly now = Date.now) {}
+  private readonly indexed: ReturnType<typeof collectionIndexOwner>;
+  constructor(private readonly storage: PluginStorageHost, private readonly now = Date.now, private readonly intervalMs = 60_000) {
+    this.indexed = collectionIndexOwner(storage);
+  }
+  async initialize(rebuild = false): Promise<void> {
+    await new SdkCommunityEventLog(this.storage).initialize();
+    await this.indexed.initialize(rebuild);
+  }
   async listByKind(kind: TaskItem['kind']): Promise<readonly TaskItem[]> {
-    return (await storageEntries(this.storage, prefix)).map(([, entry]) => decode(entry.value).task).filter(task => task.kind === kind);
+    return (await storageEntries(this.storage, prefix)).flatMap(([key, entry]) => {
+      try { return [decode(entry.value, key).task]; } catch { return []; }
+    }).filter(task => task.kind === kind);
+  }
+  async recoveryDiagnostics() {
+    return (await storageEntries(this.storage, prefix)).map(([sourceKey, entry]) => {
+      const row = entry.value as { task?: TaskItem; recovery?: unknown; notice?: { state: string }; disposition?: string; reasonCode?: string } | null;
+      return { sourceKey, sourceRevision: entry.revision, taskId: row?.task?.id, subjectKey: row?.task?.subjectKey,
+        recovery: row?.recovery ?? { disposition: row?.disposition ?? 'unknown', reasonCode: row?.reasonCode ?? 'recovery_not_prepared' }, noticeState: row?.notice?.state };
+    });
   }
   async getBySubject(subject: string): Promise<TaskItem | null> {
     parse(subject); const entry = await this.read(idFor(subject)); return entry?.task.status === 'doing' ? entry.task : null;
@@ -40,9 +39,9 @@ export class SdkCommunityCollectionStore implements CommunityTracking {
   async read(id: string) {
     const entry = await this.storage.get(keyFor(id));
     if (!entry) return null;
-    const record = decode(entry.value);
+    const record = decode(entry.value, keyFor(id));
     if (record.task.id !== id) throw new Error('Collection key mismatch');
-    return { revision: entry.revision, task: record.task, route: record.route };
+    return { revision: entry.revision, ...record };
   }
   async upsertBySubject(input: Parameters<CommunityTracking['upsertBySubject']>[0]): Promise<TaskItem> {
     const subjectKey = input.subjectKey.toLowerCase(), target = parse(subjectKey);
@@ -58,18 +57,15 @@ export class SdkCommunityCollectionStore implements CommunityTracking {
     for (let attempt = 0; attempt < 64; attempt++) {
       assertCurrent();
       const before = await this.read(id);
-      const events = await journal.read(subject);
-      let sequence = events.length - 1;
-      while (sequence >= 0 && events[sequence]!.kind !== 'case.routed') sequence--;
-      if (sequence < 0) return before?.task ?? null;
-      const event = events[sequence]!, p = event.payload;
+      const routing = await journal.routing(subject);
+      if (!routing) return before?.task ?? null;
+      const { event, sequence, terminal } = routing, p = event.payload;
       if (typeof p.ownerThreadId !== 'string' || !p.ownerThreadId || typeof p.catId !== 'string' || !p.catId) throw new Error('Invalid committed collection route');
-      const terminal = events.slice(sequence + 1).some(event => ['case.declined', 'pr.closed', 'pr.merged', 'issue.closed'].includes(event.kind));
       if (before?.route && before.route.sequence >= sequence) {
         if (before.route.sequence === sequence && before.route.sourceEventId !== event.sourceEventId) throw new Error('Collection route sequence mismatch');
         if (terminal && before.task.status !== 'done') {
           assertCurrent();
-          if (!(await this.storage.compareAndSet(keyFor(id), before.revision, { schemaVersion: 1, route: before.route, task: { ...before.task, status: 'done', updatedAt: this.now() } })).applied) continue;
+          if (!(await this.indexed.publish(keyFor(id), before.revision, { schemaVersion: 1, route: before.route, recovery: before.recovery, notice: before.notice, task: { ...before.task, status: 'done', updatedAt: this.now() } })).applied) continue;
           return { ...before.task, status: 'done' };
         }
         return before.task; // Includes cancellation: same generation never revives.
@@ -82,18 +78,31 @@ export class SdkCommunityCollectionStore implements CommunityTracking {
         ...(typeof p.userId === 'string' ? { userId: p.userId } : {}),
         automationState: before?.task.automationState ?? (seed?.routeSourceEventId === event.sourceEventId ? seed.automationState : undefined) ?? {} };
       assertCurrent();
-      if ((await this.storage.compareAndSet(keyFor(id), before?.revision ?? null, { schemaVersion: 1, task, route: { sequence, sourceEventId: event.sourceEventId } })).applied) return task;
+      if ((await this.indexed.publish(keyFor(id), before?.revision ?? null, { schemaVersion: 1, task, recovery: before?.recovery, notice: before?.notice, route: { sequence, sourceEventId: event.sourceEventId } })).applied) return task;
     }
     throw new Error('Collection reconciliation changed concurrently');
   }
-  async reconcileRoutes(kind: 'pr' | 'issue', assertCurrent: () => void = () => {}): Promise<void> {
+  async reconcileRoutes(kind: 'pr' | 'issue', assertCurrent: () => void = () => {}, notify?: RecoveryNoticeSender): Promise<void> {
     const journal = new SdkCommunityEventLog(this.storage);
-    for (const subject of await journal.listSubjects()) if (subject.startsWith(kind + ':')) await this.reconcileSubject(subject, undefined, assertCurrent);
+    await this.initialize();
+    let failure: unknown;
+    for (const selected of await journal.pendingRoutes(kind, this.now())) {
+      try {
+        await journal.deliverRouteNotice(selected.entry, notify, this.now());
+        const selectedFacts = (selected.entry.value as JournalSubject).recovery;
+        if (!selectedFacts.pending || selectedFacts.disposition || selectedFacts.nextAt > this.now()) continue;
+        await this.reconcileSubject(selected.subject, undefined, assertCurrent);
+        assertCurrent(); await journal.finishRoute(selected.entry, false, this.now());
+      } catch (error) {
+        assertCurrent(); await journal.finishRoute(selected.entry, true, this.now()); failure ??= error;
+      }
+    }
+    if (failure) throw failure;
   }
   async delete(id: string): Promise<boolean> {
     for (let attempt = 0; attempt < 64; attempt++) {
       const before = await this.read(id); if (!before || before.task.status === 'done') return false;
-      if ((await this.storage.compareAndSet(keyFor(id), before.revision, { schemaVersion: 1, ...(before.route ? { route: before.route } : {}), task: { ...before.task, status: 'done', updatedAt: this.now() } })).applied) return true;
+      if ((await this.indexed.publish(keyFor(id), before.revision, { schemaVersion: 1, recovery: before.recovery, notice: before.notice, ...(before.route ? { route: before.route } : {}), task: { ...before.task, status: 'done', updatedAt: this.now() } })).applied) return true;
     }
     throw new Error('Collection cancellation changed concurrently');
   }
@@ -104,48 +113,34 @@ export class SdkCommunityCollectionStore implements CommunityTracking {
       ? { issue: { ...task.automationState?.issue, lastCommentCursor: max('conversation', task.automationState?.issue?.lastCommentCursor), issueState: snapshot.state === 'open' ? 'open' : 'closed' } }
       : { ci: { ...task.automationState?.ci, headSha: snapshot.headSha, ...(snapshot.state === 'open' ? {} : { prState: snapshot.state }) },
         review: { ...task.automationState?.review, lastInlineCommentCursor: max('inline', task.automationState?.review?.lastInlineCommentCursor), lastConversationCommentCursor: max('conversation', task.automationState?.review?.lastConversationCommentCursor) } };
-    await this.storage.compareAndSet(keyFor(task.id), before.revision, { schemaVersion: 1, ...(before.route ? { route: before.route } : {}), task: { ...task, automationState,
+    await this.indexed.publish(keyFor(task.id), before.revision, { schemaVersion: 1, recovery: before.recovery, notice: before.notice, ...(before.route ? { route: before.route } : {}), task: { ...task, automationState,
       status: snapshot.state === 'open' ? 'doing' : 'done', updatedAt: this.now() } });
   }
-}
-interface CollectionOptions {
-  readonly store: SdkCommunityCollectionStore;
-  readonly provider: Pick<GitHubTrackingProvider, 'read'>;
-  readonly allowed: (repo: string) => Promise<boolean>;
-  readonly collect: (target: GitHubTarget, snapshot: GitHubSnapshot) => Promise<void>;
-  readonly observe: (target: GitHubTarget, snapshot: GitHubSnapshot) => Promise<void>;
-}
-export class CommunityCollectionRuntime {
-  private readonly lifetime = new AbortController();
-  private readonly running = new Map<string, Promise<void>>();
-  constructor(private readonly options: CollectionOptions) {}
-  poll(kind: 'pr' | 'issue'): Promise<void> {
-    this.lifetime.signal.throwIfAborted();
-    const existing = this.running.get(kind); if (existing) return existing;
-    const run = this.collect(kind).finally(() => { this.running.delete(kind); }); this.running.set(kind, run); return run;
+  async due(kind: 'pr' | 'issue') {
+    await this.initialize();
+    return Object.entries(await this.indexed.due(collectionIndex(kind), this.now()))
+      .map(([sourceKey, entry]) => ({ revision: entry.revision, ...decode(entry.value, sourceKey) }));
   }
-  private async collect(kind: 'pr' | 'issue'): Promise<void> {
-    await this.options.store.reconcileRoutes(kind, () => this.lifetime.signal.throwIfAborted());
-    this.lifetime.signal.throwIfAborted();
-    for (const task of await this.options.store.listByKind(`${kind}_tracking`)) {
-      this.lifetime.signal.throwIfAborted();
-      const before = await this.options.store.read(task.id); if (!before || before.task.status !== 'doing') continue;
-      const target = { ...parse(before.task.subjectKey!), threadId: before.task.threadId, catId: before.task.ownerCatId! };
-      if (!await this.options.allowed(target.repoFullName)) continue;
-      this.lifetime.signal.throwIfAborted();
-      const state = before.task.automationState;
-      const snapshot = await this.options.provider.read(target, this.lifetime.signal, { inline: state?.review?.lastInlineCommentCursor ?? 0,
-        conversation: kind === 'issue' ? state?.issue?.lastCommentCursor ?? 0 : state?.review?.lastConversationCommentCursor ?? 0 });
-      this.lifetime.signal.throwIfAborted();
-      if (!await this.options.allowed(target.repoFullName) || (await this.options.store.read(task.id))?.revision !== before.revision) continue;
-      this.lifetime.signal.throwIfAborted();
-      if (snapshot.commentsComplete !== true) throw new Error('Collection snapshot incomplete');
-      await this.options.collect(target, snapshot);
-      this.lifetime.signal.throwIfAborted();
-      await this.options.observe(target, snapshot);
-      this.lifetime.signal.throwIfAborted();
-      await this.options.store.checkpoint(before, snapshot);
+  async deliverNotice(selected: NonNullable<Awaited<ReturnType<SdkCommunityCollectionStore['read']>>>, send?: RecoveryNoticeSender) {
+    if (!selected.notice) return;
+    const notice = await advanceRecoveryNotice(this.storage, selected.notice, send, this.now());
+    const current = await this.read(selected.task.id);
+    if (!current || JSON.stringify(current.notice) !== JSON.stringify(selected.notice)) return;
+    const { revision, ...row } = current;
+    await this.indexed.publish(keyFor(current.task.id), revision, { ...row, notice, recovery: { ...current.recovery!,
+      ...(!notice && current.recovery?.scope === selected.notice.scope ? { lastNoticeKey: selected.notice.key } : {}) } });
+  }
+  async finish(selected: NonNullable<Awaited<ReturnType<SdkCommunityCollectionStore['read']>>>, failed: boolean, notBefore = 0) {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const current = await this.read(selected.task.id); if (!current) return;
+      if (!current.recovery || current.recovery.scope !== selected.recovery?.scope || current.recovery.revision !== selected.recovery.revision) return;
+      const failures = current.recovery.failures + (failed ? 1 : 0);
+      const { revision, ...row } = current;
+      if ((await this.indexed.publish(keyFor(current.task.id), revision, { ...row, recovery: { ...current.recovery,
+        revision: current.recovery.revision + 1, failures, nextAt: Math.max(notBefore, this.now() + this.intervalMs),
+        ...(failures >= 5 ? { disposition: 'needs_attention', reasonCode: 'collection_observation_failed' } : {}) } })).applied) return;
     }
+    throw new Error('Collection recovery accounting changed concurrently');
   }
-  async stop(): Promise<void> { this.lifetime.abort(); await Promise.allSettled(this.running.values()); }
 }
+export { CommunityCollectionRuntime } from './community-collection-runtime.js';

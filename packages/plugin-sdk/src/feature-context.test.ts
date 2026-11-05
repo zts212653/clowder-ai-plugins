@@ -542,3 +542,43 @@ test('Task data-controller mutations fail closed when an older Host lacks the ty
     /revocation is unavailable/,
   );
 });
+
+test('indexed private storage is optional and all three ports cross only an active SDK session', async () => {
+  const adapter = new RecordingAdapter();
+  const old = createFeatureContextSession(BINDING, adapter);
+  assert.equal(old.context.storage.compareAndSetIndexed, undefined);
+  assert.equal(old.context.storage.readDue, undefined);
+  assert.equal(old.context.storage.rebuildIndex, undefined);
+  await old.revoke();
+  const seen: unknown[] = [];
+  Object.assign(adapter.storage, {
+    compareAndSetIndexed: async (...args: unknown[]) => { seen.push(args); return { applied: true, revision: 9 }; },
+    readDue: async (input: unknown) => { seen.push(input); return { status: 'ready', version: 'exact', entries: {} }; },
+    rebuildIndex: async (index: string) => { seen.push(index); return { status: 'ready', version: 'exact' }; },
+  });
+  const session = createFeatureContextSession(BINDING, adapter), storage = session.context.storage;
+  assert.ok(storage.compareAndSetIndexed); assert.ok(storage.readDue); assert.ok(storage.rebuildIndex);
+  const projection = { index: 'waits', score: 1000 };
+  assert.deepEqual(await storage.compareAndSetIndexed('wait', 7, { id: 'original' }, projection), { applied: true, revision: 9 });
+  await storage.readDue({ index: 'waits', before: 1000, limit: 20 });
+  await storage.rebuildIndex('waits');
+  assert.deepEqual(seen, [['wait', 7, { id: 'original' }, projection], { index: 'waits', before: 1000, limit: 20 }, 'waits']);
+  await session.revoke();
+  await assert.rejects(storage.compareAndSetIndexed('wait', 9, {}, projection), FeatureContextRevokedError);
+  await assert.rejects(storage.readDue({ index: 'waits', before: 1000, limit: 20 }), FeatureContextRevokedError);
+  await assert.rejects(storage.rebuildIndex('waits'), FeatureContextRevokedError);
+  assert.equal(seen.length, 3);
+});
+
+test('activation revocation withholds a late indexed read result', async () => {
+  const adapter = new RecordingAdapter();
+  let release!: (value: unknown) => void;
+  Object.assign(adapter.storage, { readDue: () => new Promise(resolve => { release = resolve; }) });
+  const session = createFeatureContextSession(BINDING, adapter), read = session.context.storage.readDue;
+  assert.ok(read);
+  const pending = read({ index: 'waits', before: 1000, limit: 20 });
+  const stopped = session.revoke();
+  release({ status: 'ready', version: 'old', entries: { old: { revision: 1, value: {} } } });
+  await assert.rejects(pending, FeatureContextRevokedError);
+  await stopped;
+});

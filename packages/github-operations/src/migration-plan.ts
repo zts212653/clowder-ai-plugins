@@ -4,6 +4,7 @@ import { GitHubWaitStorage } from './typed-wait-storage.js';
 import { copyLegacyRepositoryProgress, legacyRepositorySnapshotBytes, restoreLegacyRepositoryProgress } from './legacy-repository-progress.js';
 import { migrationKey, canonicalBytes, sourceDigest, sourceFamilies, assertSourceEnvelope, type MigrationSource } from './migration-source.js';
 import { PlanningStorage } from './migration-storage.js';
+import { materializeMigratedIssue } from './migrated-issue-record.js';
 export type MigrationTask = { task: TaskItem; mode: 'typed' | 'legacy-issue' | 'history' };
 export interface MigrationPlan {
   readonly sourceDigest: string;
@@ -78,7 +79,7 @@ export async function planMigration(value: unknown, expectedDigest: string, cont
     || !s.coverage || sourceFamilies.some(f => s.coverage[f] !== 'complete') || !Array.isArray(s.tasks) || s.tasks.length > 1000
     || !Array.isArray(s.repositories) || s.repositories.length > 50 || !Array.isArray(s.receipts)
     || !s.retainedAuthorityRefs?.length || s.unresolvedRepositoryDeliveries !== 0) throw new Error('Incomplete or unauthorized frozen source');
-  const storage = new PlanningStorage(), waits = new GitHubWaitStorage(storage), rows: MigrationTask[] = [];
+  const storage = new PlanningStorage(), waits = new GitHubWaitStorage(storage, () => 0), rows: MigrationTask[] = [];
   const subjects = new Set<string>(), ids = new Set<string>();
   for (const raw of s.tasks) {
     if (raw.userId !== undefined && raw.userId !== userId || raw.subjectKey?.startsWith(raw.kind === 'pr_tracking' ? 'pr:' : 'issue:') !== true
@@ -119,7 +120,11 @@ export async function planMigration(value: unknown, expectedDigest: string, cont
     }
     rows.push({ task, mode });
     if (mode === 'typed') await waits.create(task);
-    else await storage.set(mode === 'history' ? historyKey(task.id) : legacyIssueKey(task.id), { schemaVersion: 1, task, sourceUpdatedAt: task.updatedAt });
+    else {
+      const row = { schemaVersion: 1, task, sourceUpdatedAt: task.updatedAt };
+      await storage.set(mode === 'history' ? historyKey(task.id) : legacyIssueKey(task.id),
+        mode === 'history' ? row : materializeMigratedIssue(row));
+    }
   }
   const repos: Record<string, Record<string, string>> = Object.create(null);
   for (const { config, progress, notificationRoute } of s.repositories) {

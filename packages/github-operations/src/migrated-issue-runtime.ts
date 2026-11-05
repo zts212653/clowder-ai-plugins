@@ -1,5 +1,10 @@
-import { storageEntries, storagePages } from './storage-pages.js';
-import type { FeatureContext } from '@clowder-ai/plugin-sdk';
+import { storageEntries } from './storage-pages.js';
+import type { FeatureContext, PluginStorageEntry } from '@clowder-ai/plugin-sdk';
+import { MIGRATED_ISSUES, MIGRATED_ISSUE_INDEX, migratedIssueKey, decodeMigratedIssue, materializeMigratedIssue,
+  migratedIssueIndexOwner, type MigratedIssueRecord as RecordV1 } from './migrated-issue-record.js';
+import { GitHubRateLimitError } from './business/infrastructure/github/request-budget.js';
+import { gitHubPollBudget, gitHubAdmissionCanContinue, gitHubObjectAdmission } from './business/infrastructure/github/admission-budget.js';
+import { advanceRecoveryNotice, sendRecoveryOwnerNotice } from './recovery-owner-notice.js';
 import type { TaskItem } from './business/model/index.js';
 import type { GitHubTrackingProvider, GitHubTarget } from './tracking-runtime.js';
 import { assertBinding } from './migration-plan.js';
@@ -8,20 +13,27 @@ import { buildIssueCommentContent } from './business/infrastructure/email/IssueC
 import { createGitHubFeedbackFilter } from './business/infrastructure/email/github-feedback-filter.js';
 import { createSetupNoiseFilter } from './business/infrastructure/email/setup-noise-filter.js';
 
-interface RecordV1 {
-  schemaVersion: 1; task: TaskItem; sourceUpdatedAt: number;
-  outbox?: { key: string; content: string; cursor: number; terminal: boolean };
-}
+class MigratedIssueChanged extends Error {}
 /** Continuous legacy issue observation is not a new typed wait: no generation,
  * live baseline or registration receipt is manufactured. */
 export class MigratedIssueRuntime {
   private readonly stopController = new AbortController();
   private pending?: Promise<void>;
+  private readonly indexed: ReturnType<typeof migratedIssueIndexOwner>;
   constructor(private readonly context: FeatureContext, private readonly provider: GitHubTrackingProvider,
-    private readonly selfLogin: () => string | undefined, private readonly now = Date.now) {}
+    private readonly selfLogin: () => string | undefined, private readonly now = Date.now,
+    private readonly intervalMs = 60_000) { this.indexed = migratedIssueIndexOwner(context.storage); }
+  initialize(rebuild = false) { return this.indexed.initialize(rebuild); }
   async list(): Promise<readonly TaskItem[]> {
-    return (await storageEntries(this.context.storage, 'github.migrated-issue.v1.', { signal: this.stopController.signal }))
-      .map(([, entry]) => (entry.value as RecordV1).task);
+    return (await storageEntries(this.context.storage, MIGRATED_ISSUES, { signal: this.stopController.signal }))
+      .flatMap(([key, entry]) => { try { return [decodeMigratedIssue(entry.value, key).task]; } catch { return []; } });
+  }
+  async recoveryDiagnostics() {
+    return (await storageEntries(this.context.storage, MIGRATED_ISSUES)).map(([sourceKey, entry]) => {
+      const row = entry.value as (Partial<RecordV1> & { disposition?: string; reasonCode?: string }) | null;
+      return { sourceKey, sourceRevision: entry.revision, taskId: row?.task?.id, subjectKey: row?.task?.subjectKey,
+        recovery: row?.recovery ?? { disposition: row?.disposition ?? 'unknown', reasonCode: row?.reasonCode ?? 'recovery_not_prepared' }, noticeState: row?.notice?.state };
+    });
   }
   poll() {
     if (this.pending) return this.pending;
@@ -30,24 +42,63 @@ export class MigratedIssueRuntime {
     return run;
   }
   private async collect() {
-    for await (const page of storagePages(this.context.storage, 'github.migrated-issue.v1.', { signal: this.stopController.signal })) {
-      for (const key of Object.keys(page)) {
+    const budget = gitHubPollBudget(this.stopController.signal, { now: this.now, pollBudgetMs: 50_000, objectTimeoutMs: 40_000 });
+    const due = await this.indexed.due(MIGRATED_ISSUE_INDEX, this.now());
+    for (const [key, source] of Object.entries(due)) {
+      this.stopController.signal.throwIfAborted();
+      if (!gitHubAdmissionCanContinue(budget)) break;
+      const admission = gitHubObjectAdmission(budget), signal = admission.signal!;
+      const attempt = { entry: source };
+      try {
+        const row = decodeMigratedIssue(attempt.entry.value);
+        if (row.notice) {
+          const notice = await advanceRecoveryNotice(this.context.storage, row.notice, sendRecoveryOwnerNotice(this.context), this.now());
+          const next = { ...row, notice, recovery: { ...row.recovery!,
+            ...(!notice && row.recovery!.scope === row.notice.scope ? { lastNoticeKey: row.notice.key } : {}) } };
+          const result = await this.indexed.publish(key, attempt.entry.revision, next);
+          if (!result.applied) continue;
+          attempt.entry = { revision: result.revision!, value: materializeMigratedIssue(next) };
+        }
+        if (row.recovery?.disposition || row.recovery!.nextAt > this.now()) continue;
+        await this.one(key, attempt, signal);
+        signal.throwIfAborted();
+        await this.finish(key, attempt.entry, false);
+      } catch (error) {
         this.stopController.signal.throwIfAborted();
-        if (!key.startsWith('github.migrated-issue.v1.')) continue;
-        try { await this.one(key); }
-        catch { this.context.log('warn', 'Migrated issue observation retained for retry'); }
+        if (error instanceof MigratedIssueChanged) continue;
+        if (signal.aborted && admission.limitedByPoll) break;
+        const limited = error instanceof GitHubRateLimitError;
+        await this.finish(key, attempt.entry, !limited, limited ? error.retryAt : 0);
+        this.context.log(limited ? 'info' : 'warn', limited ? 'Migrated issue quota deferred' : 'Migrated issue observation retained for finite recovery');
+        if (limited) break;
       }
     }
   }
-  private async one(key: string) {
-    const signal = AbortSignal.any([this.stopController.signal, AbortSignal.timeout(30_000)]);
+  private async finish(key: string, source: PluginStorageEntry, failed: boolean, notBefore = 0) {
+    const current = await this.context.storage.get(key); if (!current || current.revision !== source.revision) return;
+    const row = decodeMigratedIssue(current.value), recovery = row.recovery!;
+    const failures = recovery.failures + (failed ? 1 : 0);
+    await this.indexed.publish(key, current.revision, { ...row, recovery: { ...recovery, revision: recovery.revision + 1,
+      failures, nextAt: Math.max(this.now() + this.intervalMs, notBefore), ...(failures >= 5 ? { disposition: 'needs_attention', reasonCode: 'migrated_issue_observation_failed' } : {}) } });
+  }
+  private async one(key: string, attempt: { entry: PluginStorageEntry }, signal: AbortSignal) {
     const check = () => signal.throwIfAborted();
-    let entry = await this.context.storage.get(key);
-    if (!entry) return;
-    let row = entry.value as RecordV1;
+    let entry = attempt.entry;
+    let row = decodeMigratedIssue(entry.value);
+    if (key !== migratedIssueKey(row.task.id)) throw new Error('Migrated issue key identity mismatch');
     if (row.schemaVersion !== 1 || row.task.kind !== 'issue_tracking' || row.task.automationState?.await
       || !row.task.userId || !Number.isFinite(row.sourceUpdatedAt)) throw new Error('Invalid migrated issue record');
-    if (row.task.status === 'done') return;
+    if (row.task.status === 'done') {
+      if (row.outbox) throw new Error('Terminal migrated issue retains an unresolved delivery; no wake authority');
+      return;
+    }
+    const publish = async (next: RecordV1) => {
+      check();
+      const result = await this.indexed.publish(key, entry.revision, next);
+      if (!result.applied) throw new MigratedIssueChanged('Migrated issue changed concurrently');
+      entry = { revision: result.revision!, value: materializeMigratedIssue(next) };
+      attempt.entry = entry; row = decodeMigratedIssue(entry.value);
+    };
     const authorize = async () => { check(); await assertBinding(this.context, row.task, row.task.userId!, row.sourceUpdatedAt); check(); };
     await authorize();
     if (!row.outbox) {
@@ -75,8 +126,7 @@ export class MigratedIssueRuntime {
         ...(terminal && !content ? { status: 'done' } : {}) },
         ...(content ? { outbox: { key: `github:migrated-issue:${migrationKey(row.task.id)}:${cursor}:${snapshot.state}`, content, cursor, terminal } } : {}) };
       await authorize();
-      if (!(await this.context.storage.compareAndSet(key, entry.revision, next)).applied) throw new Error('Legacy issue changed during observation');
-      entry = await this.context.storage.get(key); if (!entry) throw new Error('Legacy issue disappeared'); row = entry.value as RecordV1;
+      await publish(next);
     }
     if (!row.outbox) return;
     await authorize();
@@ -86,9 +136,9 @@ export class MigratedIssueRuntime {
       payload: { provenance: { epistemicStatus: 'observation' }, elements: [{ elementId: outbox.key, kind: 'text', payload: { text: outbox.content } }] } });
     await authorize();
     const { outbox: _sent, ...settled } = row;
-    if (!(await this.context.storage.compareAndSet(key, entry.revision, { ...settled, task: { ...row.task,
+    await publish({ ...settled, task: { ...row.task,
       ...(outbox.terminal ? { status: 'done' } : {}), automationState: { issue: { ...row.task.automationState!.issue,
-        lastDeliveredCursor: outbox.cursor, lastNotifiedAt: this.now() } } } })).applied) throw new Error('Delivery acknowledgement changed; retry the same outbox key');
+        lastDeliveredCursor: outbox.cursor, lastNotifiedAt: this.now() } } } });
   }
   async stop() { this.stopController.abort(); await this.pending?.catch(() => {}); }
 }

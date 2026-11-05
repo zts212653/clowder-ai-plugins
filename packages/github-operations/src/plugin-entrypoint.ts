@@ -1,3 +1,6 @@
+import { IndexedWaitStorageUnavailableError } from './typed-wait-record.js';
+import { sendRecoveryOwnerNotice } from './recovery-owner-notice.js';
+import { SdkCommunityEventLog } from './business/domains/community/CommunityEventLog.js';
 import { createGitHubSourcePublication } from './source-publication.js';
 import { MigratedIssueRuntime } from './migrated-issue-runtime.js';
 import { GitHubMigrationRuntime } from './migration-runtime.js';
@@ -41,6 +44,7 @@ interface Provider extends GitHubTrackingProvider {
 export interface GitHubPluginOptions {
   readonly settingsExecFileAsync?: GitHubRequestOptions['execFileAsync'];
   readonly now?: () => number;
+  readonly pollIntervalMs?: number;
   readonly createReviewEvidenceProvider?: (
     context: FeatureContext,
   ) => Pick<GitHubProvider, 'observeReviewHead' | 'observeReviewDelivery'>;
@@ -88,7 +92,9 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
     projectionOperations: community.projectionOperations,
   });
   const collection = new CommunityCollectionRuntime({
-    store: new SdkCommunityCollectionStore(context.storage),
+    notify: sendRecoveryOwnerNotice(context),
+    store: new SdkCommunityCollectionStore(context.storage, options.now, options.pollIntervalMs),
+    now: options.now,
     provider,
     allowed: async (repo) => !!(await community.configs.getByRepo(repo)),
     collect: (target, snapshot) => community.collectTracking(target, snapshot),
@@ -97,14 +103,21 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   const tracking = new TypedWaitRuntime({
     context,
     provider,
+    ...(options.pollIntervalMs !== undefined ? { pollIntervalMs: options.pollIntervalMs } : {}),
     ...(options.now ? { now: options.now } : {}),
     coverage: (repoFullName, prNumber, triggerCommentId) =>
       reviewTriggers.observe({ repoFullName, prNumber, triggerCommentId }),
     collect: (target, snapshot) => community.collectTracking(target, snapshot),
     observe: (target, snapshot) => community.observeTracking(target, snapshot),
   });
-  const migratedIssues = new MigratedIssueRuntime(context, provider, () => provider.selfLogin(), options.now);
-  if (!(await migration.held())) await tracking.recover();
+  const migratedIssues = new MigratedIssueRuntime(context, provider, () => provider.selfLogin(), options.now, options.pollIntervalMs);
+  const recoverOwners = async () => { await Promise.all([tracking.recover(), collection.prepare(), migratedIssues.initialize()]); };
+  if (!(await migration.held())) {
+    try { await recoverOwners(); } catch (error) {
+      if (!(error instanceof IndexedWaitStorageUnavailableError)) throw error;
+      context.log('warn', 'GitHub tracking needs indexed Host storage; existing records and unrelated reads remain available');
+    }
+  }
   const http = await createCommunityHttpRouter({
     storage: context.storage,
     threads: context.threads,
@@ -143,7 +156,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   };
   return {
     actions: migration.guard({
-      ...migrationActions(context, migration, () => tracking.recover()),
+      ...migrationActions(context, migration, recoverOwners),
       ...connectionSettings.actions,
       'github.sourceMaterial': createGitHubSourcePublication({
         storage: context.storage,
@@ -185,6 +198,8 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
             ...(await migratedIssues.list()),
           ],
           diagnostics: await tracking.diagnostics(),
+          recoveryOwners: { typed: await tracking.store.recoveryDiagnostics(), collection: await collection.recoveryDiagnostics(), migratedIssues: await migratedIssues.recoveryDiagnostics(),
+            journal: await new SdkCommunityEventLog(context.storage).recoveryDiagnostics() },
         },
       }),
       'github.pr-tracking': () => poll('pr'),

@@ -1,3 +1,4 @@
+import { withIndexedMemoryStorage } from './indexed-memory-storage.js';
 import type { PluginStorageEntry, PluginStorageHost, PluginStorageScanInput } from '@clowder-ai/plugin-sdk';
 
 /** In-memory paging for test adapters; production callers never use a full-list shim. */
@@ -13,7 +14,7 @@ export function scanMemory(entries: ReadonlyMap<string, PluginStorageEntry>, inp
 export function memoryStorage(): PluginStorageHost {
   const entries = new Map<string, { revision: number; value: unknown }>();
   let revision = 0;
-  return {
+  return withIndexedMemoryStorage({
     get: async key => structuredClone(entries.get(key)),
     list: async () => structuredClone(Object.fromEntries(entries)),
     scan: async input => scanMemory(entries, input),
@@ -26,5 +27,5 @@ export function memoryStorage(): PluginStorageHost {
       if (expected !== undefined && entries.get(key)?.revision !== expected) return { deleted: false };
       return { deleted: entries.delete(key) };
     },
-  };
+  });
 }

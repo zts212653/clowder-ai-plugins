@@ -44,10 +44,10 @@ for (const nextCat of ['old-cat', 'new-cat']) test(`real resolve cancel and same
 
 test('real router committed route survives collection CAS failure and a fresh runtime recovers it', async t => {
   const f = await fixture(); t.after(() => f.router.stop());
-  const cas = f.storage.compareAndSet; let fail = true;
-  f.storage.compareAndSet = async (key, revision, value) => {
+  const cas = f.storage.compareAndSetIndexed!; let fail = true;
+  f.storage.compareAndSetIndexed = async (key, revision, value, projection) => {
     if (fail && key.startsWith('community.collection.v1.')) throw new Error('collection write unavailable');
-    return cas(key, revision, value);
+    return cas(key, revision, value, projection);
   };
   await f.route('new-cat');
   assert.equal((await f.events.read('issue:org/repo#1')).filter(e => e.kind === 'case.routed').length, 1);
@@ -60,19 +60,19 @@ test('real router committed route survives collection CAS failure and a fresh ru
 
 test('delayed old reconciliation loses CAS to the latest committed route and cannot roll its owner back', async t => {
   const f = await fixture(); t.after(() => f.router.stop());
-  const cas = f.storage.compareAndSet; let fail = true;
-  f.storage.compareAndSet = async (key, revision, value) => {
+  const cas = f.storage.compareAndSetIndexed!; let fail = true;
+  f.storage.compareAndSetIndexed = async (key, revision, value, projection) => {
     if (fail && key.startsWith('community.collection.v1.')) throw new Error('initial collection unavailable');
-    return cas(key, revision, value);
+    return cas(key, revision, value, projection);
   };
   await f.route('old-cat'); fail = false;
   const old = (await f.events.read('issue:org/repo#1')).find(e => e.kind === 'case.routed')!;
   let entered!: () => void, release!: () => void, blocked = false;
   const reached = new Promise<void>(resolve => { entered = resolve; });
   const gate = new Promise<void>(resolve => { release = resolve; });
-  f.storage.compareAndSet = async (key, revision, value) => {
+  f.storage.compareAndSetIndexed = async (key, revision, value, projection) => {
     if (!blocked && key.startsWith('community.collection.v1.')) { blocked = true; entered(); await gate; }
-    return cas(key, revision, value);
+    return cas(key, revision, value, projection);
   };
   const pending = registerRoutingTracking(old, f.store); await reached;
   try { assert.equal((await f.route('new-cat')).status, 200); }
