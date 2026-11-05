@@ -338,6 +338,12 @@ export interface PluginMessagingHost {
     readonly messageId: string;
     readonly threadId: string;
   }>;
+  /** Optional module-only additional rejection fence. The Host keeps every
+   * existing check; this callback must return undefined synchronously. */
+  sendWithAdmission?(
+    input: Parameters<PluginMessagingHost['send']>[0],
+    assertCurrent: () => undefined,
+  ): ReturnType<PluginMessagingHost['send']>;
   subscribe(input: {
     readonly threadId: string;
     readonly method: string;
