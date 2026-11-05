@@ -14,7 +14,7 @@ import {
 } from '../packages/plugin-contract/dist/index.js';
 import { parse } from 'yaml';
 import {
-  assertProductionDependencyClosure,
+  assertPublisherShrinkwrap,
 } from './catalog-package-shrinkwrap.mjs';
 import { assertStaticPackageDependencies } from './catalog-static-package.mjs';
 import { assertPackedRuntimeEntrypoints } from './catalog-runtime-entrypoints.mjs';
@@ -314,11 +314,6 @@ async function verifyCatalogEntry(catalogEntry) {
         declaredDependencies,
         'bundled runtime must name every declared direct dependency exactly once',
       );
-      assert.equal(
-        artifact.files.some(file => file.path === 'npm-shrinkwrap.json'),
-        false,
-        'materialized bundled archives must not expose workspace install metadata',
-      );
       for (const dependency of declaredDependencies) {
         const dependencyManifest = `node_modules/${dependency}/package.json`;
         assert.ok(
@@ -345,7 +340,12 @@ async function verifyCatalogEntry(catalogEntry) {
         0,
         [installedTree.stdout, installedTree.stderr].filter(Boolean).join('\n'),
       );
-    } else if (!staticSurfaces || runtimeDependencies) {
+    }
+    // Catalog builtin runtimes are materialized by the Host from their publisher
+    // lock even when an offline consumer can use the bundled node_modules.
+    const builtin = manifestValidation.manifest.runtime.transport === 'builtin';
+    const bundled = Array.isArray(bundledDependencies) && bundledDependencies.length > 0;
+    if ((!bundled && (!staticSurfaces || runtimeDependencies)) || (builtin && runtimeDependencies)) {
       assert.ok(
         artifact.files.some((file) => file.path === 'npm-shrinkwrap.json'),
         'packed artifact is missing npm-shrinkwrap.json',
@@ -354,32 +354,8 @@ async function verifyCatalogEntry(catalogEntry) {
       const shrinkwrap = JSON.parse(
         await readFile(join(unpackedDirectory, 'package', 'npm-shrinkwrap.json'), 'utf8'),
       );
-      assert.ok(shrinkwrap.lockfileVersion === 2 || shrinkwrap.lockfileVersion === 3);
-      assert.equal(shrinkwrap.name, packageJson.name);
-      assert.equal(shrinkwrap.version, packageJson.version);
-      assert.deepEqual(shrinkwrap.packages?.['']?.dependencies ?? {}, packageJson.dependencies ?? {});
-      assert.deepEqual(
-        shrinkwrap.packages?.['']?.optionalDependencies ?? {},
-        packageJson.optionalDependencies ?? {},
-      );
-      assertProductionDependencyClosure(packageJson, shrinkwrap);
-      for (const [packagePath, entry] of Object.entries(shrinkwrap.packages ?? {})) {
-        if (packagePath.length === 0) continue;
-        assert.match(packagePath, /^node_modules\//u);
-        assert.notEqual(entry.link, true);
-        assert.match(
-          entry.version,
-          /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u,
-        );
-        assert.match(entry.resolved, /^https:\/\/registry\.npmjs\.org\//u);
-        assert.match(entry.integrity, /^sha512-[A-Za-z0-9+/]{86}==$/u);
-        const encoded = entry.integrity.slice('sha512-'.length);
-        const decoded = Buffer.from(encoded, 'base64');
-        assert.equal(decoded.byteLength, 64);
-        assert.equal(decoded.toString('base64'), encoded);
-      }
-
-    } else {
+      assertPublisherShrinkwrap(packageJson, shrinkwrap, { builtin });
+    } else if (!bundled) {
       const packageJson = JSON.parse(await readFile(join(unpackedDirectory, 'package', 'package.json'), 'utf8'));
       assertStaticPackageDependencies(packageJson, contributions);
       assert.equal(manifestValidation.manifest.runtime.transport, 'builtin');

@@ -8,6 +8,7 @@ import { parse } from 'yaml';
 
 import {
   assertProductionDependencyClosure,
+  assertPublisherShrinkwrap,
   collectWorkspacePackageIntegrityMismatches,
 } from './catalog-package-shrinkwrap.mjs';
 
@@ -21,6 +22,9 @@ const workspaceSdk = JSON.parse(
 );
 // Inventory the actual installable packages, including held/private modules and
 // editor providers. A presentation contribution does not erase Node dependencies.
+const catalogPluginIds = new Set(JSON.parse(
+  await readFile(new URL('../catalog/candidate.json', import.meta.url), 'utf8'),
+).plugins.map(entry => entry.pluginId));
 const productionConsumers = [];
 for (const directory of (await readdir(new URL('../packages/', import.meta.url))).sort()) {
   const root = new URL(`../packages/${directory}/`, import.meta.url);
@@ -28,9 +32,10 @@ for (const directory of (await readdir(new URL('../packages/', import.meta.url))
   try { manifest = parse(await readFile(new URL('plugin.yaml', root), 'utf8')); }
   catch (error) { if (error.code === 'ENOENT') continue; throw error; }
   const pkg = JSON.parse(await readFile(new URL('package.json', root), 'utf8'));
-  if (manifest.runtime && !pkg.bundledDependencies?.length &&
+  if (manifest.runtime && (!pkg.bundledDependencies?.length ||
+      (manifest.runtime.transport === 'builtin' && catalogPluginIds.has(manifest.pluginId))) &&
       Object.keys({ ...pkg.dependencies, ...pkg.optionalDependencies }).length > 0)
-    productionConsumers.push({ directory, pkg });
+    productionConsumers.push({ directory, pkg, builtin: manifest.runtime.transport === 'builtin' });
 }
 
 async function packWorkspacePackage(packageDirectory) {
@@ -60,11 +65,26 @@ async function packWorkspacePackage(packageDirectory) {
   }
 }
 
-for (const { directory, pkg } of productionConsumers) test(`${directory} ships a locked production dependency closure`, async () => {
+for (const { directory, pkg, builtin } of productionConsumers) test(`${directory} ships a locked production dependency closure`, async () => {
   const shrinkwrap = JSON.parse(
     await readFile(new URL(`../packages/${directory}/npm-shrinkwrap.json`, import.meta.url), 'utf8'),
   );
-  assertProductionDependencyClosure(pkg, shrinkwrap);
+  if (builtin) assertPublisherShrinkwrap(pkg, shrinkwrap, { builtin: true });
+  else assertProductionDependencyClosure(pkg, shrinkwrap);
+});
+
+for (const [label, mutate, error] of [
+  ['old lock format', lock => { lock.lockfileVersion = 2; }, /lockfile version 3/u],
+  ['wrong root version', lock => { lock.packages[''].version = '0.0.0'; }, /0\.0\.0/u],
+  ['untrusted registry', lock => { Object.values(lock.packages)[1].resolved = 'https://example.com/package.tgz'; }, /registry\.npmjs\.org/u],
+  ['invalid integrity', lock => { Object.values(lock.packages)[1].integrity = 'sha512-invalid'; }, /sha512/u],
+]) test(`catalog builtin publisher lock rejects ${label} even with bundled dependencies`, async () => {
+  const directory = new URL('../packages/feishu-meeting-intake/', import.meta.url);
+  const pkg = JSON.parse(await readFile(new URL('package.json', directory), 'utf8'));
+  const lock = JSON.parse(await readFile(new URL('npm-shrinkwrap.json', directory), 'utf8'));
+  assert.ok(pkg.bundledDependencies.length > 0);
+  mutate(lock);
+  assert.throws(() => assertPublisherShrinkwrap(pkg, lock, { builtin: true }), error);
 });
 
 test('current workspace contract and SDK shrinkwrap entries pin exact-head packed bytes', async () => {

@@ -170,6 +170,15 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/196",
       "reason": "alpha.36 requires Host storage.scan through SDK candidate.10. The shared public catalog reaches Hosts without that port, so home-only compatibility evidence does not justify global activation. The published artifact remains available for an explicitly owner-authorized local-archive update of the verified home instance.",
       "condition": "Before public catalog activation, verify a compatible delivery path for supported public Hosts that fetch this catalog, including Host storage.scan and the SDK10 consumer; a newer home Host alone is insufficient. Local instance replacement remains separately owner-authorized and must preserve its data."
+    },
+    {
+      "pluginId": "official.feishu-meeting-intake",
+      "version": "0.1.0-alpha.13",
+      "integrity": "sha512-e18RggsJBcPeRWo3MqYDBBC6PA1iHA2aaETLoUgfiCYoJHrRzH6zU4ripgsSy5wqFAsrPLGH09Yc77gEtP62Lw==",
+      "disposition": "activate",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-07T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/issues/23"
     }
   ]
 }

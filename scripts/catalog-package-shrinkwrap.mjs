@@ -98,6 +98,34 @@ export function assertProductionDependencyClosure(packageJson, shrinkwrap) {
   }
 }
 
+export function assertPublisherShrinkwrap(packageJson, shrinkwrap, { builtin = false } = {}) {
+  if (builtin) assert.equal(shrinkwrap.lockfileVersion, 3, 'catalog builtin runtimes require lockfile version 3');
+  else assert.ok(shrinkwrap.lockfileVersion === 2 || shrinkwrap.lockfileVersion === 3);
+  assert.equal(shrinkwrap.name, packageJson.name);
+  assert.equal(shrinkwrap.version, packageJson.version);
+  if (builtin) {
+    assert.equal(shrinkwrap.packages?.['']?.name, packageJson.name);
+    assert.equal(shrinkwrap.packages?.['']?.version, packageJson.version);
+    assert.deepEqual(packageJson.peerDependencies ?? {}, {}, 'catalog builtin runtimes cannot require Host peers');
+    for (const version of Object.values({ ...packageJson.dependencies, ...packageJson.optionalDependencies })) {
+      assert.match(version, exactVersionPattern, 'catalog builtin dependencies must use exact registry versions');
+    }
+  }
+  assertProductionDependencyClosure(packageJson, shrinkwrap);
+  for (const [packagePath, entry] of Object.entries(shrinkwrap.packages ?? {})) {
+    if (packagePath.length === 0) continue;
+    assert.match(packagePath, /^node_modules\//u);
+    assert.notEqual(entry.link, true);
+    assert.match(entry.version, exactVersionPattern);
+    assertRegistryResolution(packagePath, entry);
+    assert.match(entry.integrity, /^sha512-[A-Za-z0-9+/]{86}==$/u);
+    const encoded = entry.integrity.slice('sha512-'.length);
+    const decoded = Buffer.from(encoded, 'base64');
+    assert.equal(decoded.byteLength, 64);
+    assert.equal(decoded.toString('base64'), encoded);
+  }
+}
+
 export function collectWorkspacePackageIntegrityMismatches(
   shrinkwrap,
   workspacePackages,

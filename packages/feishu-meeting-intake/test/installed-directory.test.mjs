@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cp, lstat, mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { assertPublisherShrinkwrap } from '../../../scripts/catalog-package-shrinkwrap.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
 function run(command,args,cwd,envOverrides={}){const env={...process.env,...envOverrides};delete env.NODE_PATH;delete env.NODE_OPTIONS;const result=spawnSync(command,args,{cwd,env,encoding:'utf8',timeout:120_000,maxBuffer:8*1024*1024});assert.equal(result.status,0,[command,...args,result.stdout,result.stderr].join('\n'));return result.stdout;}
 async function fileBytes(directory){let bytes=0;for(const name of await readdir(directory)){const path=join(directory,name),stat=await lstat(path);if(stat.isDirectory())bytes+=await fileBytes(path);else{assert.ok(stat.isFile(),'archive has a non-regular member');bytes+=stat.size;}}return bytes;}
-test('one meeting archive installs offline with an empty npm cache and runs its bundled module, runner and MCP',async()=>{
+test('one meeting archive supports locked Host materialization and offline bundled installation',async()=>{
  const temp=await mkdtemp(join(tmpdir(),'meeting-empty-consumer-')),packs=join(temp,'packs'),consumer=join(temp,'consumer');
  try {
   await mkdir(packs);await mkdir(consumer);const artifacts=[];
@@ -30,6 +31,26 @@ test('one meeting archive installs offline with an empty npm cache and runs its 
     ]);
     const budget=join(temp,'budget');await mkdir(budget);run('tar',['-xzf',join(packs,pack.filename),'-C',budget],temp);
     assert.ok(await fileBytes(budget)<=64*1024*1024,'meeting archive exceeds Host uncompressed budget');
+    // Catalog Hosts deliberately ignore bundled dependencies. Consume the same
+    // published lock through script-free npm ci from a separate, empty root.
+    const packed=join(budget,'package');
+    const pkg=JSON.parse(await readFile(join(packed,'package.json'),'utf8'));
+    const lock=JSON.parse(await readFile(join(packed,'npm-shrinkwrap.json'),'utf8'));
+    assertPublisherShrinkwrap(pkg,lock,{builtin:true});
+    const host=join(temp,'host-dependencies');await mkdir(host);
+    const home=join(temp,'host-home');await mkdir(home);
+    await writeFile(join(host,'package.json'),JSON.stringify({name:pkg.name,version:pkg.version,
+     dependencies:pkg.dependencies,optionalDependencies:pkg.optionalDependencies}));
+    await cp(join(packed,'npm-shrinkwrap.json'),join(host,'npm-shrinkwrap.json'));
+    run('npm',['ci','--ignore-scripts','--omit=dev','--no-audit','--no-fund',
+     '--registry=https://registry.npmjs.org/','--cache',join(temp,'host-cache')],host,
+     {HOME:home,npm_config_userconfig:join(home,'.npmrc'),npm_config_offline:'false'});
+    for(const [dependency,version] of Object.entries(pkg.dependencies)){
+     const installed=JSON.parse(await readFile(join(host,'node_modules',dependency,'package.json'),'utf8'));
+     assert.equal(installed.version,version,`Host lock must install ${dependency} at its declared version`);
+    }
+    await assert.rejects(lstat(join(host,'node_modules/@larksuite/cli/bin/lark-cli')),{code:'ENOENT'},
+     'Host install must not run the upstream runner download script');
    }
    artifacts.push(join(packs,pack.filename));console.log(JSON.stringify({name,sha1:pack.shasum,integrity:pack.integrity,members:pack.files.length}));
   }
