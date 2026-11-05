@@ -92,7 +92,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 				(endpoint.mode === "temporary-active" && endpoint.expiresAt > input.now)),
 	);
 	if (!external?.pending && !external?.current) {
-		return { rows: [] };
+		return { rows: [], pollUntil: input.now + FIVE_MINUTES_MS };
 	}
 	if (!external.pending && external.current && !currentCredentialUsable) {
 		return {
@@ -105,7 +105,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 		};
 	}
 	if (!external.pending && !endpointActive) {
-		return { rows: [] };
+		return { rows: [], pollUntil: input.now + FIVE_MINUTES_MS };
 	}
 	if (!endpointActive) {
 		return {
@@ -152,6 +152,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					],
 				),
 			],
+			pollUntil: input.now + FIVE_MINUTES_MS,
 		};
 	}
 
@@ -169,6 +170,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 						],
 					),
 				],
+				pollUntil: input.now + FIVE_MINUTES_MS,
 			};
 		}
 		return {

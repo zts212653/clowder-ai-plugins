@@ -38,7 +38,9 @@ test("status is a pure rows projection and does not manufacture authorization, p
 	const second = await settings.actions["dot.status"]({}, undefined, f.owner);
 	assert.equal(first.render, "rows");
 	assert.deepEqual(first.data.rows, []);
-	assert.deepEqual(second, first);
+	assert.deepEqual(second.data.rows, first.data.rows);
+	assert.ok(first.data.pollUntil > Date.now());
+	assert.ok(second.data.pollUntil <= Date.now() + 5 * 60_000);
 	assert.deepEqual(Object.fromEntries(f.records), before);
 });
 
