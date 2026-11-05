@@ -174,11 +174,11 @@
     {
       "pluginId": "official.feishu-meeting-intake",
       "version": "0.1.0-alpha.13",
-      "integrity": "sha512-e18RggsJBcPeRWo3MqYDBBC6PA1iHA2aaETLoUgfiCYoJHrRzH6zU4ripgsSy5wqFAsrPLGH09Yc77gEtP62Lw==",
+      "integrity": "sha512-OkuXROmkW2f4AslYoT7e9xbNnGFRxD41EQ00sm1FBYeH98brMXArNYt3F0Yxn3joRclWiwcqtyTLLVvXUGABEQ==",
       "disposition": "activate",
       "owner": "codex61-sol",
       "reviewBy": "2026-11-07T08:00:00Z",
-      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/issues/23"
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/198"
     }
   ]
 }

@@ -307,12 +307,17 @@ async function verifyCatalogEntry(catalogEntry) {
       ...packageJson.dependencies, ...packageJson.optionalDependencies,
     }).length > 0;
     const bundledDependencies = packageJson.bundledDependencies;
+    const builtin = manifestValidation.manifest.runtime.transport === 'builtin';
     if (Array.isArray(bundledDependencies) && bundledDependencies.length > 0) {
       const declaredDependencies = Object.keys(packageJson.dependencies ?? {}).sort();
       assert.deepEqual(
         [...bundledDependencies].sort(),
         declaredDependencies,
         'bundled runtime must name every declared direct dependency exactly once',
+      );
+      if (!builtin) assert.equal(
+        artifact.files.some(file => file.path === 'npm-shrinkwrap.json'), false,
+        'materialized bundled archives must not expose workspace install metadata',
       );
       for (const dependency of declaredDependencies) {
         const dependencyManifest = `node_modules/${dependency}/package.json`;
@@ -343,7 +348,6 @@ async function verifyCatalogEntry(catalogEntry) {
     }
     // Catalog builtin runtimes are materialized by the Host from their publisher
     // lock even when an offline consumer can use the bundled node_modules.
-    const builtin = manifestValidation.manifest.runtime.transport === 'builtin';
     const bundled = Array.isArray(bundledDependencies) && bundledDependencies.length > 0;
     if ((!bundled && (!staticSurfaces || runtimeDependencies)) || (builtin && runtimeDependencies)) {
       assert.ok(

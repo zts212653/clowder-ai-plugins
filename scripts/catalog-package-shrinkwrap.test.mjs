@@ -78,12 +78,19 @@ for (const [label, mutate, error] of [
   ['wrong root version', lock => { lock.packages[''].version = '0.0.0'; }, /0\.0\.0/u],
   ['untrusted registry', lock => { Object.values(lock.packages)[1].resolved = 'https://example.com/package.tgz'; }, /registry\.npmjs\.org/u],
   ['invalid integrity', lock => { Object.values(lock.packages)[1].integrity = 'sha512-invalid'; }, /sha512/u],
+  ['non-canonical base64', lock => { Object.values(lock.packages)[1].integrity = `sha512-${'A'.repeat(85)}B==`; }, /canonical sha512/u],
+  ['Host peer dependency', (_lock, pkg) => { pkg.peerDependencies = { host: '1.0.0' }; }, /cannot require Host peers/u],
+  ['direct version range', (lock, pkg) => {
+    pkg.dependencies.zod = '^3.25.76';
+    lock.packages[''].dependencies.zod = '^3.25.76';
+  }, /exact registry versions/u],
 ]) test(`catalog builtin publisher lock rejects ${label} even with bundled dependencies`, async () => {
   const directory = new URL('../packages/feishu-meeting-intake/', import.meta.url);
   const pkg = JSON.parse(await readFile(new URL('package.json', directory), 'utf8'));
   const lock = JSON.parse(await readFile(new URL('npm-shrinkwrap.json', directory), 'utf8'));
-  assert.ok(pkg.bundledDependencies.length > 0);
-  mutate(lock);
+  // Bundle metadata must never exempt a catalog builtin from this contract.
+  pkg.bundledDependencies = Object.keys(pkg.dependencies);
+  mutate(lock, pkg);
   assert.throws(() => assertPublisherShrinkwrap(pkg, lock, { builtin: true }), error);
 });
 

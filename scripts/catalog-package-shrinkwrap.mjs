@@ -122,7 +122,7 @@ export function assertPublisherShrinkwrap(packageJson, shrinkwrap, { builtin = f
     const encoded = entry.integrity.slice('sha512-'.length);
     const decoded = Buffer.from(encoded, 'base64');
     assert.equal(decoded.byteLength, 64);
-    assert.equal(decoded.toString('base64'), encoded);
+    assert.equal(decoded.toString('base64'), encoded, 'integrity must use canonical sha512 base64');
   }
 }
 

@@ -2438,8 +2438,8 @@
             "packageName": "@clowder-ai/feishu-meeting-intake",
             "version": "0.1.0-alpha.13",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/feishu-meeting-intake/-/feishu-meeting-intake-0.1.0-alpha.13.tgz",
-            "integrity": "sha512-e18RggsJBcPeRWo3MqYDBBC6PA1iHA2aaETLoUgfiCYoJHrRzH6zU4ripgsSy5wqFAsrPLGH09Yc77gEtP62Lw==",
-            "shasum": "9a75cd3e105e2761894611e9632e9fcf00ed30c6",
+            "integrity": "sha512-OkuXROmkW2f4AslYoT7e9xbNnGFRxD41EQ00sm1FBYeH98brMXArNYt3F0Yxn3joRclWiwcqtyTLLVvXUGABEQ==",
+            "shasum": "2e5fffcc74e679c744ce1626d72e9adf8c767463",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/feishu-meeting-intake"
