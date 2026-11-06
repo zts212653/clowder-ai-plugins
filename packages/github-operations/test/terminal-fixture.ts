@@ -49,4 +49,3 @@ export function nativeHistory(review: ExternalReviewAggregate | null | undefined
   const { currentHeadSha, currentHeadObservedAt, headGeneration, ci, cloud, ...history } = review;
   return history;
 }
-
