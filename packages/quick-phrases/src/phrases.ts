@@ -39,8 +39,8 @@ function json(status: number, payload: object) {
 export function createQuickPhrases(storage: PhraseStorage) {
   return async (input: unknown, context: OwnerContext | undefined) => {
     if (context?.kind !== 'owner-http-request') return json(403, { error: 'Owner request required' });
-    if (!isRecord(input)) return json(400, { error: 'Invalid request' });
-    const { method, body, query } = input;
+    if (!isRecord(input) || !isRecord(input.request)) return json(400, { error: 'Invalid request' });
+    const { method, body, query } = input.request;
     if (method !== 'GET' && method !== 'POST' && method !== 'DELETE') return json(405, { error: 'Invalid method' });
     if (context.operation !== (method === 'GET' ? 'read' : 'write'))
       return json(403, { error: 'Invalid owner operation' });

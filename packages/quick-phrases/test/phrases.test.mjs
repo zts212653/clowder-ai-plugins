@@ -16,7 +16,7 @@ function fixture() {
     },
   };
   const invoke = (method, { userId = 'owner-a', body, query, active = true } = {}) =>
-    createQuickPhrases(storage)({ method, body, query }, active ? {
+    createQuickPhrases(storage)({ request: { method, body, query } }, active ? {
       kind: 'owner-http-request',
       userId,
       operation: method === 'GET' ? 'read' : 'write',
