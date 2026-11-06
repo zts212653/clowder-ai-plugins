@@ -119,9 +119,6 @@ export function createDotPlugin(
 					? await current.inspectCurrentCredential()
 					: undefined;
 				const now = (options.now ?? Date.now)();
-				const connectionMessage = state?.revokedAt === null &&
-					(state.pairedAt !== null || state.pairingExpiresAt > now)
-					? (await current.instructions(context)).instructions : undefined;
 				return {
 					render: "rows" as const,
 					data: projectDotJourney({
@@ -130,16 +127,15 @@ export function createDotPlugin(
 						connection: state,
 						dispatches,
 						now,
-						...(connectionMessage ? { connectionMessage } : {}),
 						...(credentialStatus ? { credentialStatus } : {}),
 					}),
 				};
 			};
 			const endpointResult = async (context?: PluginHostActionContext) => {
-				const connection = await current.begin(context, false);
+				await current.owner(context);
 				return {
 					render: "text" as const,
-					data: `Server URL（添加插件时填写）\n${await current.serverUrl()}\n\nChatGPT Work 连接消息（发送以下内容）\n${connection.instructions}`,
+					data: await current.serverUrl(),
 				};
 			};
 			const actions: Record<string, PluginActionHandler> = {

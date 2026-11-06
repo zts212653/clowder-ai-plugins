@@ -12,10 +12,10 @@ Choose the local plugin directory or the complete supplied archive in Plugin Man
 
 After enabling Dot, open “Dot connection”. The plugin steps explain the complete setup:
 
-1. Choose a long-lived or temporary public endpoint. One result displays separate Server URL and connection-message sections: use the URL when adding the plugin and send only the message section to Work. The result's copy button copies the entire result. Repeating setup reuses a live endpoint and credential.
+1. Choose a long-lived or temporary public endpoint and copy the returned Server URL. Repeating setup reuses a live endpoint and credential.
 2. Open <https://chatgpt.com/plugins>, choose `+` → `Add custom MCP server`, paste the URL, and select `No authentication`. Remember the plugin name you chose.
 3. Check the plugin details for Dot tools and the `dot.summoned` event. Refresh only if they are missing or their definitions have changed.
-4. Open <https://chatgpt.com> and switch to **Work**. In the target conversation, type `@` and select the plugin you added. The connection message appears automatically when you generate the endpoint. Send the complete message in that Work conversation. Allow the subscription when prompted. A separate “Generate pairing instructions” step is not needed.
+4. Click “生成订阅消息” (Generate subscription message) and copy its result. Open <https://chatgpt.com> and switch to **Work**. In the target conversation, type `@`, select the plugin you added, and send the message. Allow the subscription when prompted; a separate pairing-preparation action is not needed.
 5. Return to “Dot connection” and wait for the subscription. Run the roundtrip check; Dot is ready only after it reads the source message and replies with the verification code. Then address `@dot` in a Clowder AI conversation.
 
 The [OpenAI MCP Events guide](https://developers.openai.com/plugins/build/mcp-events) uses a Work chat on ChatGPT web and requires rescanning after tool or event definitions change. See [Get started with Work](https://learn.chatgpt.com/docs/get-started-with-work) for the Work entry point.

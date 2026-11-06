@@ -78,6 +78,8 @@ test("one owner action supplies the Work connection message without a separate p
 	assert.equal(f.records.get("dot/external/v1").value.endpoint.serverUrl, "https://dot.example/plugin/mcp?token=fixture");
 	const status = await settings.actions["dot.status"]({}, undefined, f.owner);
 	assert.equal(status.data.rows[0].key, "waiting-subscription");
+	assert.equal(status.data.rows.some((row) => row.key === "connection-message"), false);
+	assert.equal(JSON.stringify(status.data).includes(state.pairingCode), false, "status must not repeat the subscription message");
 });
 
 test("a legacy credential starts when the Host exposes only a relative forwarding coordinate", async (t) => {
@@ -195,15 +197,16 @@ test("entry actions consume the current configuration draft passed by the Host",
 		f.owner,
 	);
 	assert.equal(longLived.label, undefined, "required setup content must not rely on label rendering");
-	assert.match(longLived.data, /Server URL[^\n]*\nhttps:\/\/draft\.example\/api\/plugin-runtime\/handle\?token=draft-token-1\n\n/);
-	assert.match(longLived.data, /events\/subscribe/);
+	assert.equal(longLived.data, "https://draft.example/api/plugin-runtime/handle?token=draft-token-1");
+	assert.equal(f.records.has("dot/connection/v1"), false, "URL generation is separate from subscription message generation");
 	assert.equal(issuedTtls[0], 7 * 24 * 60 * 60);
 	const afterGeneration = await settings.actions["dot.status"]({}, undefined, f.owner);
-	const messageRow = afterGeneration.data.rows.find((row) => row.key === "connection-message");
-	assert.ok(messageRow, "generating the URL must also display the connection message before discovery");
-	assert.match(messageRow.detail, /events\/subscribe/);
+	assert.equal(afterGeneration.data.rows.some((row) => row.key === "connection-message"), false);
+	assert.ok(afterGeneration.data.rows[0].actions.some((action) => action.action === "show-instructions" && action.label === "生成订阅消息"));
 	assert.equal(f.records.get("dot/external/v1").value.pending.discoveredAt, null);
-	assert.doesNotMatch(messageRow.detail, /draft-token-1/);
+	const subscriptionMessage = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+	assert.match(subscriptionMessage.data, /dot\.summoned/);
+	assert.doesNotMatch(subscriptionMessage.data, /draft-token-1|https:\/\//);
 	const repeatedLongLived = await settings.actions["dot.use-long-lived"](
 		{
 			input: {
@@ -230,8 +233,7 @@ test("entry actions consume the current configuration draft passed by the Host",
 		f.owner,
 	);
 	assert.equal(temporary.label, undefined);
-	assert.match(temporary.data, /Server URL[^\n]*\nhttps:\/\/temporary\.example\/mcp\?token=draft-token-2\n\n/);
-	assert.match(temporary.data, /events\/subscribe/);
+	assert.equal(temporary.data, "https://temporary.example/mcp?token=draft-token-2");
 	assert.equal(temporaryInput.ttlMs, 2.5 * 60 * 60_000);
 	assert.equal(issuedTtls[1], 2.5 * 60 * 60 + 300);
 	const repeatedTemporary = await settings.actions["dot.start-temporary"](

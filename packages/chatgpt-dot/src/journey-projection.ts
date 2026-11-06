@@ -61,7 +61,6 @@ export interface DotJourneyInput {
 	readonly connection: DotConnectionState | null;
 	readonly dispatches: readonly Dispatch[];
 	readonly now: number;
-	readonly connectionMessage?: string;
 	readonly credentialStatus?: {
 		readonly usable: boolean;
 		readonly reason: string;
@@ -70,10 +69,6 @@ export interface DotJourneyInput {
 }
 
 export function projectDotJourney(input: DotJourneyInput): OperationRows {
-	const messageRows = input.connectionMessage
-		? [row("connection-message", "发送到 ChatGPT Work 的连接消息", input.connectionMessage,
-			[action("show-instructions", "复制连接消息")])]
-		: [];
 	if (!input.runtimeRunning) {
 		return {
 			rows: [
@@ -123,12 +118,11 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 			rows: [row(
 				"waiting-discovery",
 				"第二步：添加到 ChatGPT",
-				`点「显示并复制 Server URL」，打开 https://chatgpt.com/plugins，选择「+」→「Add custom MCP server」，粘贴 URL，并把 Authentication 设为「No authentication」。URL 已包含凭据；${endpointDetail}正在等待 ChatGPT 发现此入口。`,
+				`把上方生成的 Server URL 添加到 https://chatgpt.com/plugins，Authentication 选择「No authentication」。添加后点「生成订阅消息」，在目标 Work 对话中 @ 刚添加的插件并发送消息。${endpointDetail}`,
 				[
-					action("show-server-url", "显示并复制 Server URL"),
-					action("cancel-pending", "放弃本次更新"),
+					action("show-instructions", "生成订阅消息"),
 				],
-			), ...messageRows],
+			)],
 			pollUntil: input.now + FIVE_MINUTES_MS,
 		};
 	}
@@ -140,10 +134,10 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 			rows: [
 				row(
 					"pairing-not-started",
-					"第三步：连接 Work 对话",
-					"在上方生成入口后，连接消息会自动显示。打开 https://chatgpt.com 并切换到 Work，在目标对话输入 @，选择刚添加的插件并发送连接消息。",
+					"第四步：生成订阅消息",
+					"点「生成订阅消息」并复制结果。在 ChatGPT Work 的目标对话输入 @，选择刚添加的插件，再发送这条消息。",
 					[
-						action("cancel-pending", "放弃本次更新"),
+						action("show-instructions", "生成订阅消息"),
 					],
 				),
 			],
@@ -157,10 +151,10 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 				rows: [
 					row(
 						"pairing-expired",
-						"连接消息已过期",
-						"在上方重新生成入口，会同时准备新的连接消息；再将消息发到目标 ChatGPT Work 对话。",
+						"订阅消息已过期",
+						"重新生成订阅消息，发送到目标 ChatGPT Work 对话；无需重新生成仍有效的 Server URL。",
 						[
-							action("disconnect", "断开连接"),
+							action("show-instructions", "生成订阅消息"),
 						],
 					),
 				],
@@ -171,14 +165,12 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 			rows: [
 				row(
 					"waiting-subscription",
-					"等待 ChatGPT 连接",
-					"在 ChatGPT Work 的目标对话输入 @，选择刚添加的插件，发送完整连接消息并允许订阅。收到订阅后这里会自动更新；若已发送但仍未连接，请检查 ChatGPT 的回复或授权提示。",
+					"第五步：等待 ChatGPT 订阅",
+					"将生成的订阅消息发送到目标 Work 对话并允许订阅。这里会自动更新；若已发送但仍未连接，请查看 ChatGPT 调用详情中的错误。",
 					[
-						action("reconnect", "重置连接"),
-						action("disconnect", "断开连接"),
+						action("show-instructions", "生成订阅消息"),
 					],
 				),
-				...messageRows,
 			],
 			pollUntil: Math.min(
 				input.now + FIVE_MINUTES_MS,
@@ -245,7 +237,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					"还需要一次真实往返，确认 ChatGPT 能读取原消息并把校验回复送回猫咖。",
 					[
 						action("roundtrip", "发起往返测试"),
-						action("show-instructions", "获取连接消息"),
+						action("show-instructions", "生成订阅消息"),
 						action("disconnect", "断开连接"),
 					],
 				),

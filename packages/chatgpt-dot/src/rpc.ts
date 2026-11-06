@@ -34,6 +34,8 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
     if (!parsed.success)
         return { status: 400, headers, body: { jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Invalid request' } } };
     const { id, method, params } = parsed.data;
+    const eventRpc = ['events/list', 'events/subscribe', 'events/unsubscribe'].includes(method);
+    if (eventRpc) runtime.connection.host.log?.('info', 'dot_event_rpc_received', { method });
     const credential = request.credential as VerifiedExternalCredential | undefined;
     if (id === undefined)
         return { status: method === 'notifications/initialized' ? 202 : 400, headers, body: null };
@@ -79,7 +81,10 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
         if (method !== 'tools/call' && method !== 'events/subscribe' && method !== 'events/unsubscribe')
             return { status: 200, headers, body: { jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' } } };
         try { await runtime.connection.current(); }
-        catch { return { status: 409, headers, body: { error: 'dot_connection_unavailable' } }; }
+        catch {
+            if (eventRpc) runtime.connection.host.log?.('warn', 'dot_event_rpc_failed', { method, code: 409, reason: 'dot_connection_unavailable' });
+            return { status: 409, headers, body: { error: 'dot_connection_unavailable' } };
+        }
         if (method === 'events/subscribe') {
             await runtime.connection.authorizeExternal(credential, 'pairing-subscribe');
             const input = subscribeSchema.parse(params);
@@ -122,7 +127,9 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
     catch (error) {
         const invalid = error instanceof z.ZodError;
         const reason = error instanceof Error && /^[a-z_]+$/.test(error.message) ? error.message : 'dot_operation_unavailable';
-        return { status: 200, headers, body: { jsonrpc: '2.0', id, error: { code: invalid ? -32602 : /callback|challenge/.test(reason) ? -32015 : -32000,
+        const code = invalid ? -32602 : /callback|challenge/.test(reason) ? -32015 : -32000;
+        if (eventRpc) runtime.connection.host.log?.('warn', 'dot_event_rpc_failed', { method, code, reason: invalid ? 'invalid_parameters' : reason });
+        return { status: 200, headers, body: { jsonrpc: '2.0', id, error: { code,
                     message: invalid ? 'Invalid parameters' : 'Dot operation failed', ...invalid ? {} : { data: { reason } } } } };
     }
 }

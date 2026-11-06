@@ -9,6 +9,29 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { createDotPlugin } from "../src/plugin-entrypoint.ts";
 import { fixture, mcp } from "./fixture.mjs";
 
+test("subscription failure diagnostics distinguish arrival and RPC rejection without credentials", async (t) => {
+	const f = fixture(t);
+	const logs = [];
+	f.host.log = (level, message, fields) => logs.push({ level, message, fields });
+	const module = createDotPlugin({ sendWebhook: async () => { throw new Error("callback_connect_timeout"); } });
+	const settings = await module.settings(f.host);
+	const active = await module.start(f.host);
+	t.after(async () => { settings.dispose(); await active.stop({ reason: "test" }); });
+	await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+	const state = f.records.get("dot/connection/v1").value;
+	const response = await mcp(active, request("events/subscribe", {
+		name: "dot.summoned", arguments: { attempt_id: state.attemptId, pairing_code: state.pairingCode },
+		delivery: { mode: "webhook", url: "https://callbacks.example/private-path", secret: "whsec_" + Buffer.alloc(32, 3).toString("base64") },
+	}));
+	assert.equal(response.body.error.code, -32015);
+	assert.deepEqual(logs, [
+		{ level: "info", message: "dot_event_rpc_received", fields: { method: "events/subscribe" } },
+		{ level: "warn", message: "dot_event_rpc_failed", fields: { method: "events/subscribe", code: -32015, reason: "callback_connect_timeout" } },
+	]);
+	assert.doesNotMatch(JSON.stringify(logs), /private-path|whsec_|pairing_code/);
+	assert.equal(JSON.stringify(logs).includes(state.pairingCode), false);
+});
+
 function request(method, params, id = 1) {
 	return {
 		request: {
