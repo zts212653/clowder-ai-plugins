@@ -137,7 +137,10 @@ export function createDotPlugin(
 			};
 			const endpointResult = async (context?: PluginHostActionContext) => {
 				const connection = await current.begin(context, false);
-				return { render: "text" as const, label: await current.serverUrl(), data: connection.instructions };
+				return {
+					render: "text" as const,
+					data: `Server URL（添加插件时填写）\n${await current.serverUrl()}\n\nChatGPT Work 连接消息（发送以下内容）\n${connection.instructions}`,
+				};
 			};
 			const actions: Record<string, PluginActionHandler> = {
 				"dot.status": async (_input, _native, context) => statusRows(context),

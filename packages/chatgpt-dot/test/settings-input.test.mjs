@@ -194,10 +194,9 @@ test("entry actions consume the current configuration draft passed by the Host",
 		undefined,
 		f.owner,
 	);
-	assert.equal(
-		longLived.label,
-		"https://draft.example/api/plugin-runtime/handle?token=draft-token-1",
-	);
+	assert.equal(longLived.label, undefined, "required setup content must not rely on label rendering");
+	assert.match(longLived.data, /Server URL[^\n]*\nhttps:\/\/draft\.example\/api\/plugin-runtime\/handle\?token=draft-token-1\n\n/);
+	assert.match(longLived.data, /events\/subscribe/);
 	assert.equal(issuedTtls[0], 7 * 24 * 60 * 60);
 	const afterGeneration = await settings.actions["dot.status"]({}, undefined, f.owner);
 	const messageRow = afterGeneration.data.rows.find((row) => row.key === "connection-message");
@@ -230,10 +229,9 @@ test("entry actions consume the current configuration draft passed by the Host",
 		undefined,
 		f.owner,
 	);
-	assert.equal(
-		temporary.label,
-		"https://temporary.example/mcp?token=draft-token-2",
-	);
+	assert.equal(temporary.label, undefined);
+	assert.match(temporary.data, /Server URL[^\n]*\nhttps:\/\/temporary\.example\/mcp\?token=draft-token-2\n\n/);
+	assert.match(temporary.data, /events\/subscribe/);
 	assert.equal(temporaryInput.ttlMs, 2.5 * 60 * 60_000);
 	assert.equal(issuedTtls[1], 2.5 * 60 * 60 + 300);
 	const repeatedTemporary = await settings.actions["dot.start-temporary"](
@@ -282,7 +280,7 @@ test("an already promoted signed credential remains reusable at a real milliseco
 		endpoint: { mode: "long-lived", serverUrl, reachableAt: now * 1000 },
 	});
 	const result = await settings.actions["dot.use-long-lived"]({}, undefined, f.owner);
-	assert.equal(result.label, serverUrl);
+	assert.ok(result.data.includes(serverUrl));
 	assert.equal(f.records.get("dot/external/v1").value.pending, null);
 });
 

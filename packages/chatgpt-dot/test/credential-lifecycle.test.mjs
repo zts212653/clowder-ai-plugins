@@ -75,7 +75,7 @@ test("pending signed credential promotes only from its exact discovery, pairing 
 			externalTokenDays: "30",
 		},
 	}, undefined, f.owner);
-	assert.equal(presentation.label, "https://dot.example/api/plugin-runtime/handle?token=signed-token-1");
+	assert.ok(presentation.data.includes("https://dot.example/api/plugin-runtime/handle?token=signed-token-1"));
 	let external = f.records.get(EXTERNAL_KEY).value;
 	assert.equal(external.current, null);
 	assert.equal(external.pending.tokenId, "jti-1");

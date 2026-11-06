@@ -12,7 +12,7 @@ Choose the local plugin directory or the complete supplied archive in Plugin Man
 
 After enabling Dot, open “Dot connection”. The plugin steps explain the complete setup:
 
-1. Choose a long-lived or temporary public endpoint and copy its Server URL. Repeating setup reuses a live endpoint and credential.
+1. Choose a long-lived or temporary public endpoint. One result displays separate Server URL and connection-message sections: use the URL when adding the plugin and send only the message section to Work. The result's copy button copies the entire result. Repeating setup reuses a live endpoint and credential.
 2. Open <https://chatgpt.com/plugins>, choose `+` → `Add custom MCP server`, paste the URL, and select `No authentication`. Remember the plugin name you chose.
 3. Check the plugin details for Dot tools and the `dot.summoned` event. Refresh only if they are missing or their definitions have changed.
 4. Open <https://chatgpt.com> and switch to **Work**. In the target conversation, type `@` and select the plugin you added. The connection message appears automatically when you generate the endpoint. Send the complete message in that Work conversation. Allow the subscription when prompted. A separate “Generate pairing instructions” step is not needed.

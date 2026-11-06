@@ -12,7 +12,7 @@ Dot 把已配对的 ChatGPT 云端对话接入 Clowder AI。安装实例可作�
 
 启用后打开「Dot 连接」，完整流程在插件步骤中说明：
 
-1. 选择长期或临时公网入口，点击「生成 Server URL」或「创建临时入口」，复制 URL。有效期内重复点击会复用当前入口和凭据。
+1. 选择长期或临时公网入口，点击「生成 Server URL」或「创建临时入口」，结果中会分段显示 Server URL 和连接消息。将 URL 段填入插件地址，消息段发到 Work 对话；结果的复制按钮会复制整段。有效期内重复点击会复用当前入口和凭据。
 2. 打开 <https://chatgpt.com/plugins>，选择 `+` → `Add custom MCP server`，粘贴 URL；Authentication 选择 `No authentication`。记住添加时使用的插件名称。
 3. 在该插件详情确认已显示 Dot 工具和 `dot.summoned` 事件。只有未显示或定义更新后，才点击 Refresh 重新扫描。
 4. 打开 <https://chatgpt.com> 并切换到 **Work**，在目标对话中输入 `@` 并选择刚添加的插件。生成入口时连接消息已自动显示，将完整消息粘贴到该 Work 对话并发送，按 ChatGPT 提示允许订阅。连接消息包含本次连接参数；不需要先做一次「生成配对说明」。
