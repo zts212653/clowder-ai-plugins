@@ -97,12 +97,25 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 		? [action("cancel-pending", "放弃本次更新")]
 		: [];
 	const connectedActions = external.current ? replacementActions : [action("disconnect", "断开连接")];
+	if (!endpointActive && (external.current?.kind === "signed" || external.pending || endpoint?.mode === "temporary-expired")) {
+		const temporary = endpoint?.mode === "temporary-active" || endpoint?.mode === "temporary-expired";
+		return {
+			rows: [row(
+				"endpoint-unavailable",
+				temporary ? "临时入口已停止或到期" : "公网入口尚不可用",
+				temporary
+					? "请在上方点击「创建临时入口」，用返回的新 Server URL 在 ChatGPT 添加连接。"
+					: "请在上方生成 Server URL，再将该 URL 添加到 ChatGPT。",
+				[...replacementActions, action("disconnect", "断开连接")],
+			)],
+		};
+	}
 	if (!external.pending && external.current && !currentCredentialUsable) {
 		return {
 			rows: [row(
 				"credential-unavailable",
 				"外部凭据已不可用",
-				"现有连接不会被旧往返记录伪装成可用；请生成并验证新的外部凭据。",
+				"凭据已到期或失效。更新后请使用新 Server URL 在 ChatGPT 添加连接，并完成往返验证。",
 				[action("refresh-credential", "更新外部凭据"), action("disconnect", "断开连接")],
 			)],
 		};

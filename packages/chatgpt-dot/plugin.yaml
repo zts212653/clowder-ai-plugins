@@ -1,5 +1,5 @@
 pluginId: official.chatgpt-dot
-version: 0.2.0-alpha.27
+version: 0.2.0-alpha.28
 contractVersion: 0.3.3-candidate.1
 name: ChatGPT Dot
 description:
@@ -44,7 +44,7 @@ configuration:
     kind: number
     required: false
     default: 1
-    description: 最长 24 小时；到期、停用或卸载会自动关闭。
+    description: 最长 24 小时；到期、重启、停用或卸载都会关闭。新 URL 需在 ChatGPT 重新添加连接。
   - key: longLivedEndpoint
     label: Server URL（长期入口）
     description: 生成后复制 URL，按上方第 2、3 步添加到 ChatGPT 并确认工具与事件。

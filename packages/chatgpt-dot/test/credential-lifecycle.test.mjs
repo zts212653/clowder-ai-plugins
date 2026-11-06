@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { createDotPlugin } from "../src/plugin-entrypoint.ts";
 import { DotConnection } from "../src/connection.ts";
+import { TemporaryEndpointController } from "../src/temporary-endpoint.ts";
 import { CONNECTION_KEY, EXTERNAL_KEY } from "../src/store.ts";
 import { fixture, mcp, paired } from "./fixture.mjs";
 import { projectDotJourney } from "../src/journey-projection.ts";
@@ -279,3 +280,56 @@ test("setup rows retain replacement cancellation and its owner action restores t
 	assert.deepEqual((await dot.externalState()).endpoint, previousEndpoint);
 	assert.deepEqual((await dot.current()).subscription, connection.subscription);
 });
+
+for (const remainingLeaseMs of [-60_000, 24 * 60 * 60_000]) {
+  test(`stopped temporary endpoint recovers through URL generation without renewing a dead lease (${remainingLeaseMs})`, async (t) => {
+    const f = await paired(t);
+    const now = Date.now();
+    const subscription = structuredClone(f.records.get(CONNECTION_KEY).value.subscription);
+    const attemptId = f.records.get(CONNECTION_KEY).value.attemptId;
+    await f.active.stop({ reason: "test-restart" });
+    let issued = 0;
+    f.host.capability = {
+      issueExternal: async () => {
+        issued++;
+        return { token: "recovered-token", tokenId: "recovered-jti", issuedAt: Math.floor(now / 1000), expiresAt: Math.floor(now / 1000) + 86400 + 300, refreshRecommendedAt: Math.floor(now / 1000) + 86000,
+          forwarding: { upstreamLoopbackOrigin: "http://127.0.0.1:5182", relativePath: "/api/plugin-runtime/handle", method: "POST" } };
+      },
+      inspectExternal: async () => ({ usable: false, reason: "expired", refreshRecommended: true }),
+    };
+    await f.host.storage.set(EXTERNAL_KEY, {
+      v: 1, revision: 1, pending: null,
+      current: { kind: "signed", token: "expired-token", tokenId: "old-jti", issuedAt: 1, expiresAt: Math.floor(now / 1000) - 1, refreshRecommendedAt: 1 },
+      endpoint: { mode: "temporary-active", generation: "old-lease", startedAt: now - 3600_000, expiresAt: now + remainingLeaseMs, reachableAt: now - 3600_000, serverUrl: "https://old.example/mcp?token=expired-token" },
+    });
+    const originalStart = TemporaryEndpointController.prototype.start;
+    let started;
+    TemporaryEndpointController.prototype.start = async function(input) {
+      started = input;
+      return { generation: "new-lease", serverUrl: `https://new.example/mcp?token=${input.token}`, startedAt: now, expiresAt: now + input.ttlMs };
+    };
+    t.after(() => { TemporaryEndpointController.prototype.start = originalStart; });
+    f.active = await f.module.start(f.host);
+    const status = await f.settings.actions["dot.status"]({}, undefined, f.owner);
+    assert.equal(status.data.rows[0].key, "endpoint-unavailable");
+    assert.match(status.data.rows[0].label, /临时入口/);
+    assert.match(status.data.rows[0].detail, /创建临时入口/);
+    assert.equal(status.data.rows[0].actions?.some(a => a.action === "refresh-credential") ?? false, false);
+    const before = structuredClone(f.records.get(EXTERNAL_KEY));
+    const staleRefresh = await f.settings.actions["dot.refresh-credential"]({}, undefined, f.owner);
+    assert.equal(staleRefresh.render, "rows");
+    assert.equal(staleRefresh.data.rows[0].key, "endpoint-unavailable");
+    assert.equal(issued, 0, "a stale refresh must not issue or cancel a candidate on an unavailable endpoint");
+    assert.deepEqual(f.records.get(EXTERNAL_KEY), before);
+    const url = await f.settings.actions["dot.start-temporary"]({ input: { temporaryEndpointHours: "24" } }, undefined, f.owner);
+    assert.equal(url.data, "https://new.example/mcp?token=recovered-token");
+    assert.equal(started.ttlMs, 24 * 60 * 60_000);
+    assert.equal(issued, 1);
+    assert.deepEqual(f.records.get(CONNECTION_KEY).value.subscription, subscription);
+    assert.equal(f.records.get(CONNECTION_KEY).value.attemptId, attemptId);
+    const external = f.records.get(EXTERNAL_KEY).value;
+    assert.equal(external.pending.pairingRequired, false);
+    assert.equal(external.pending.discoveredAt, null, "new URL must still be discovered before candidate verification");
+    assert.equal(external.current.tokenId, "old-jti", "old state is retained until exact new candidate verification");
+  });
+}

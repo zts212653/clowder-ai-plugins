@@ -184,6 +184,9 @@ export function createDotPlugin(
 					if (!running) throw new Error("dot_runtime_unavailable");
 					const before = await current.externalState();
 					const input = operationInput(params);
+					if (before.endpoint.mode !== "long-lived" &&
+						!(before.endpoint.mode === "temporary-active" && before.endpoint.expiresAt > (options.now ?? Date.now)()))
+						return statusRows(context);
 					const ttlDays = Number(input.externalTokenDays ?? 180);
 					const { state, issued } = await current.issuePending(context, ttlDays * 24 * 60 * 60);
 					const candidateId = state.pending!.candidateId;
@@ -200,7 +203,7 @@ export function createDotPlugin(
 						return { render: "text", data: lease.serverUrl };
 					}
 					await current.cancelPending();
-					throw new Error("dot_endpoint_unavailable");
+					return statusRows(context);
 				},
 				"dot.show-server-url": async (_input, _native, context) => {
 					await current.owner(context);
