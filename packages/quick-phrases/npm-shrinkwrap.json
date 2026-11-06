@@ -1,0 +1,14 @@
+{
+  "name": "@clowder-ai/quick-phrases",
+  "version": "0.1.0-alpha.1",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "@clowder-ai/quick-phrases",
+      "version": "0.1.0-alpha.1",
+      "license": "MIT",
+      "engines": { "node": ">=22.18.0" }
+    }
+  }
+}
