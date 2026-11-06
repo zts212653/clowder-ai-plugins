@@ -18,13 +18,14 @@ test("local title projection survives reader recreation and never consults crede
 		draft: false,
 	});
 	let queries = 0;
-	const reader = new GitHubPrTitleReader({
+	const options = {
 		records,
 		token: async () => {
 			queries++;
 			throw new Error("local reads must not ask for a credential");
 		},
-	});
+	};
+	const reader = new GitHubPrTitleReader(options);
 	t.after(() => reader.stop());
 	const owner = {
 		kind: "owner-http-request",
@@ -50,6 +51,14 @@ test("local title projection survives reader recreation and never consults crede
 	assert.equal(queries, 0);
 	const missing = await reader.readLocal("org/repo#13");
 	assert.equal(missing, null);
+	assert.equal(queries, 0);
+	await reader.stop();
+	const restored = new GitHubPrTitleReader({
+		...options,
+		records: new SdkCommunityPrStore(storage),
+	});
+	t.after(() => restored.stop());
+	assert.equal(await restored.readLocal("org/repo#12"), "Locally observed title");
 	assert.equal(queries, 0);
 });
 
