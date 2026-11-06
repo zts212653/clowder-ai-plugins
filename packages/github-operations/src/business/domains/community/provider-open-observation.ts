@@ -7,7 +7,9 @@ export const openObservationSchema = providerOpenSchema;
 export type ProviderOpenObservation = z.infer<typeof openObservationSchema>;
 export interface ProviderStateEvidence {
   state: 'open' | 'closed' | 'merged'; event: CommunityEvent;
-  observedAt?: number; updatedAt?: string; headSha?: string;
+  // Every source constructor must map both comparison clocks explicitly.
+  // Undefined is meaningful only when that legacy source lacks the clock.
+  observedAt: number | undefined; updatedAt: string | undefined; headSha?: string;
 }
 
 /** Native case events never change the provider's open/close period. */
@@ -20,7 +22,7 @@ export function providerStateEvidence(history: readonly CommunityEvent[]): Provi
       const facts = parsed.data;
       if (current?.state === 'merged' && facts.state !== 'merged') continue;
       current = { state: facts.state, event, headSha: facts.headSha ?? undefined,
-        ...(facts.source === 'github-api' ? { observedAt: facts.observedAt } : {}),
+        observedAt: facts.source === 'github-api' ? facts.observedAt : undefined,
         updatedAt: facts.mergedAt ?? facts.closedAt ?? undefined };
     } else if (event.kind === 'pr.closed' || event.kind === 'pr.merged') {
       if (current?.state === 'merged' && event.kind !== 'pr.merged') continue;
@@ -31,7 +33,8 @@ export function providerStateEvidence(history: readonly CommunityEvent[]): Provi
         updatedAt: typeof event.payload.closedAt === 'string' ? event.payload.closedAt : same?.updatedAt };
     } else if (event.kind === 'pr.open_observed' && current?.state !== 'merged') {
       const parsed = openObservationSchema.safeParse(event.payload);
-      if (parsed.success) current = { state: 'open', event, ...parsed.data };
+      if (parsed.success) current = { state: 'open', event, headSha: parsed.data.headSha,
+        observedAt: parsed.data.observedAt, updatedAt: parsed.data.providerUpdatedAt };
     }
   }
   return current;

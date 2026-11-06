@@ -32,7 +32,7 @@ Final package validation:
 
 - `pnpm --filter @clowder-ai/github-operations typecheck`: exit 0.
 - `pnpm --filter @clowder-ai/github-operations build`: exit 0.
-- `pnpm --filter @clowder-ai/github-operations test`: **858/858**, zero failures or skips.
+- `pnpm --filter @clowder-ai/github-operations test`: **860/860**, zero failures or skips.
 - `git diff --check`: exit 0.
 
 Coverage includes same-batch final HEAD/review/merge, closed without merge, explicitly reconciled terminal history, sparse/concurrent/out-of-order observations, CI rerun ordering, stable rebuild, wrong subject/commit/review parent, incomplete and paginated CI, unknown CI, caller/configuration revocation and shutdown. Existing review dismissal, notification and tracking tests also pass.
@@ -42,6 +42,8 @@ Independent review found three additional failures: reversed append/apply order 
 The second independent review supplied six further counterexamples: a future link backdated into an earlier merge, a lost pending cascade after tail failure, historical review/activity append, admission during a missing-cache rebuild window, a new provider merge after native decline, and unchanged observations growing the journal. Expected-behavior regressions failed 6/6 before their fixes. Further checks cover fresh-projector recovery, child-write/parent-ack failure, reciprocal concurrency, unchanged-read watermarks across rebuild and review dismissal, same-clock return to pass, and the historical action's restricted scope. The action preserves original pending or not-yet-projected work without performing it.
 
 The third independent review found native terminal reactivation through the real observe→collect order, a missed new close after an observed provider reopening, and sparse merged input erasing prior closing review/CI evidence. The three expected-behavior assertions failed 3/3 before their fixes and now pass. The sibling sweep covers native decline/close/merge, quiet repository baselines, signed reopened deliveries with a fresh provider read, old open/close ordering, current versus historical CI, exact provider identity, and rebuild. An additional two production-entry checks failed when whole-observation admission was removed and pass with it restored; neither a stale webhook nor reconciliation may append the rejected closure’s lifecycle tail. Old transport fixtures now include actual PR numbers, URLs and complete HEADs instead of bypassing identity validation.
+
+The fourth independent review exposed an interrupted-write gap: the open event was committed but its provider-update clock was not normalized into the comparison field, while the successful checkpoint normally supplied it. A failed checkpoint allowed an old signed close to reach lifecycle/notification handling. Two expected recovery regressions failed before repair, with an old checkpoint and with none. Explicit journal-clock normalization and required internal comparison keys now preserve the ordering fence without a successful checkpoint. The cases recreate the consumers, reject the stale signed webhook without new facts/lifecycle/notifications, rebuild the open view consistently, and still accept a genuinely later merge while retaining native history. Other clock constructors and their projector/checkpoint consumers were checked; no additional store, fallback, or recovery service was added.
 
 ## Installed consumer
 
@@ -75,7 +77,7 @@ Optional `CLOWDER_GITHUB_TERMINAL_SNAPSHOT` supplies a private provider-captured
 
 Candidate archive SHA256:
 
-`d3bf2122bf2e0bb91979e4b854135b9f03afeab2ceb48ab88438362b8f41098f`
+`0eda6f0511a2f66040c86c70aa19c46801bc3e0b68d543d89dfa986a94cc2f43`
 
 This archive still carries the source version `0.1.0-alpha.37`; it is an unpublished review candidate, not the immutable published alpha.37 package. Exact archive identity distinguishes it. A separately authorized release must allocate the new version and align its release/catalog metadata before publication; the old published version must never be overwritten. The full release/catalog gate is not claimed here.
 
