@@ -10,6 +10,7 @@ import type { ICommunityEventLog } from '../CommunityEventLog.js';
 import type { ICommunityObjectStore } from '../CommunityObjectStore.js';
 import type { ICommunityRepoConfigStore } from '../CommunityRepoConfigStore.js';
 import { decideExternalReviewReadiness, type ExternalReviewReadinessDecision } from './external-review-aggregate.js';
+import { hasExternalReviewTerminalHistory } from './external-review-projector.js';
 
 interface ExternalReviewProjectorPort {
   apply(event: CommunityEvent): Promise<void>;
@@ -73,6 +74,7 @@ export class ExternalReviewCoordinator {
   async shouldContinueTracking(repoFullName: string, prNumber: number): Promise<boolean> {
     const config = await this.opts.repoConfigStore.getByRepo(repoFullName);
     if (config?.reviewMode !== 'maintainer_review') return false;
+    if (hasExternalReviewTerminalHistory(await this.opts.eventLog.read(prSubjectKey(repoFullName, prNumber)))) return false;
     const projection = await this.opts.objectStore.get(prSubjectKey(repoFullName, prNumber));
     return projection?.externalReview?.lifecycle !== 'terminal';
   }
@@ -158,6 +160,7 @@ export class ExternalReviewCoordinator {
     const config = await this.opts.repoConfigStore.getByRepo(repoFullName);
     if (!config) return null;
     const subjectKey = prSubjectKey(repoFullName, prNumber);
+    if (hasExternalReviewTerminalHistory(await this.opts.eventLog.read(subjectKey))) return null;
     await this.appendAndApply(
       makeEvent(
         `f168:external-review-assigned:${subjectKey}:${config.updatedAt}`,
@@ -173,6 +176,7 @@ export class ExternalReviewCoordinator {
       ),
     );
     const current = await this.readAggregate(subjectKey);
+    if (current?.lifecycle === 'terminal') return null;
     const currentGeneration =
       typeof current?.headGeneration === 'number' && current.headGeneration > 0
         ? current.headGeneration
@@ -194,6 +198,7 @@ export class ExternalReviewCoordinator {
       ),
     );
     const projected = await this.readAggregate(subjectKey);
+    if (projected?.lifecycle === 'terminal') return null;
     return {
       subjectKey,
       headGeneration:

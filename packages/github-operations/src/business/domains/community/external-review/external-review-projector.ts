@@ -1,4 +1,5 @@
 import type { CommunityEvent, ExternalReviewAggregate } from '../../../model/index.js';
+import { terminalFactsSchema } from '../terminal-provider-facts.js';
 import {
   applyExternalReviewEvent,
   createExternalReviewAggregate,
@@ -29,6 +30,16 @@ export function isExternalReviewEventKind(kind: CommunityEvent['kind']): boolean
 
 export function isExternalReviewTerminalEventKind(kind: CommunityEvent['kind']): boolean {
   return EXTERNAL_REVIEW_TERMINAL_EVENT_KINDS.has(kind);
+}
+
+/** Provider reopening never revokes a completed native review's fence. */
+export function hasExternalReviewTerminalHistory(events: readonly CommunityEvent[]): boolean {
+  return events.some(event => {
+    if (isExternalReviewTerminalEventKind(event.kind)) return true;
+    if (event.kind === 'case.bootstrap' && ['fixed', 'reported', 'closed', 'declined'].includes(String(event.payload.mappedState))) return true;
+    const facts = event.kind === 'pr.terminal_observed' ? terminalFactsSchema.safeParse(event.payload.terminalFacts) : null;
+    return !!facts?.success && facts.data.subjectKey === event.subjectKey;
+  });
 }
 
 function isOptionalString(value: unknown): boolean {

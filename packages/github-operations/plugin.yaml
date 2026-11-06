@@ -1,5 +1,5 @@
 pluginId: official.github-operations
-version: 0.1.0-alpha.37
+version: 0.1.0-alpha.38
 contractVersion: 0.3.2-candidate.0
 name: GitHub Operations
 description:
@@ -316,6 +316,26 @@ contributions:
       required: [ subjectKey ]
     action: { method: github.subject.inspect }
   - type: tool
+    id: reconcile-terminal-pr
+    name: github_reconcile_terminal_pr
+    description: >-
+      Re-read and persist final GitHub facts for one existing terminal PR.
+      Use when authorized historical repair needs final HEAD, review commit associations, merge identity or CI provenance.
+      NOT for active review, publishing, assignment changes, restarting tracking or native delivery.
+      Output: appends a provider-only observation to this installation's journal and returns terminal facts, preserving native review and failure history.
+      GOTCHA: GitHub approval is external evidence, never native delivered. This mutates private state; use github_inspect_subject for read-only inspection.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ subjectKey ]
+      properties:
+        subjectKey:
+          type: string
+          maxLength: 300
+          pattern: '^pr:[a-z0-9_.-]+/[a-z0-9_.-]+#[1-9][0-9]*$'
+          description: One existing terminal PR, such as pr:owner/repository#12; provider facts and caller identity are not inputs.
+    action: { method: github.subject.reconcile-terminal }
+  - type: tool
     id: inspect-legacy-history
     name: github_inspect_legacy_history
     description: Read copied historical GitHub event metadata. This is archived
@@ -576,6 +596,7 @@ features:
       - { type: webhook, id: community-http-29 }
       - { type: tool, id: refresh-pull-requests }
       - { type: tool, id: observe-review-trigger }
+      - { type: tool, id: reconcile-terminal-pr }
       - { type: tool, id: issue-metadata }
       - { type: tool, id: get-issue-draft }
       - { type: tool, id: create-issue-draft }

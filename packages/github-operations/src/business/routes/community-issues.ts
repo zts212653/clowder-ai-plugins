@@ -35,6 +35,7 @@ import type { ICommunityObjectStore } from '../domains/community/CommunityObject
 import type { ICommunityRepoConfigStore } from '../domains/community/CommunityRepoConfigStore.js';
 import { registerRoutingTracking } from '../domains/community/community-auto-tracking.js';
 import { computeClosureChecklist } from '../domains/community/community-closure-checklist.js';
+import { providerProjectionFields } from '../domains/community/terminal-provider-facts.js';
 import { parseRouteRecommendation } from '../domains/community/community-route-recommendation.js';
 import { derivePrGroup } from '../domains/community/derivePrGroup.js';
 import { type GhIssueFull, mapGitHubIssue } from '../domains/community/github/GitHubIssueFetcher.js';
@@ -1377,6 +1378,7 @@ export const communityIssueRoutes: FastifyPluginAsync<CommunityIssuesRoutesOptio
               closureWaiver: proj.closureWaiver,
               closureChecklist: computeClosureChecklist(proj),
               externalReview: proj.externalReview,
+              ...providerProjectionFields(proj),
             };
           } catch {
             return item;
@@ -1424,6 +1426,7 @@ export const communityIssueRoutes: FastifyPluginAsync<CommunityIssuesRoutesOptio
               closureWaiver: proj.closureWaiver,
               closureChecklist: computeClosureChecklist(proj),
               externalReview: proj.externalReview,
+              ...providerProjectionFields(proj),
             });
           } catch {
             /* best-effort */

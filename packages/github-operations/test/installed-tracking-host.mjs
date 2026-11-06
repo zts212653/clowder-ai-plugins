@@ -7,7 +7,7 @@ import { parse } from 'yaml';
 
 /** Complete packed GitHub factory, installed SDK, native Host worker/facades and owned Redis.
  * Provider snapshots and message/wake receiving are controlled; no model or GitHub network is invoked. */
-export async function installedTrackingHost(t, { hostRoot, artifact, redisFixture, held = false, indexedCapabilities = true }) {
+export async function installedTrackingHost(t, { hostRoot, artifact, redisFixture, held = false, indexedCapabilities = true, providerSnapshot }) {
   const host = path => import(pathToFileURL(join(hostRoot, 'packages/api', path)).href);
   const [{ ModulePluginRuntime }, { RedisPluginPrivateStorage, createPluginStorageHost },
     { RedisTaskStore }, { RedisMessageStore }, { ThreadStore }, { withPluginCallContext }] = await Promise.all([
@@ -24,15 +24,54 @@ export async function installedTrackingHost(t, { hostRoot, artifact, redisFixtur
   const actual = pathToFileURL(join(artifact, 'dist/index.js')).href;
   const source = `import { createGitHubPluginModule } from ${JSON.stringify(actual)};
 let clock=1000;
+function terminalSnapshot(mode) {
+  const value=${JSON.stringify(providerSnapshot ?? null)};
+  if(value && mode==='provider-open-same-second') return {state:'open',headSha:value.headSha,ci:'pending',
+    observedAt:value.terminalFacts.observedAt+500,providerUpdatedAt:value.terminalFacts.closedAt,
+    commentsComplete:true,reviews:[],comments:[],trackingIdentity:{selfLogin:'owner',subjectAuthorLogin:'contributor'}};
+  if(value && ['provider-close-same-second','provider-old-close'].includes(mode)) return {...value,
+    terminalFacts:{...value.terminalFacts,observedAt:value.terminalFacts.observedAt+(mode==='provider-old-close'?200:900)}};
+  if(value && mode==='provider-open') return {state:'open',headSha:'e'.repeat(40),ci:'pending',
+    observedAt:value.terminalFacts.observedAt+10000,providerUpdatedAt:new Date(value.terminalFacts.observedAt+10000).toISOString(),
+    commentsComplete:true,reviews:[],comments:[],trackingIdentity:{selfLogin:'owner',subjectAuthorLogin:'contributor'}};
+  if(value && mode==='provider-merged') {
+    const at=value.terminalFacts.observedAt+20000,headSha='e'.repeat(40);
+    const reviews=[{id:20,author:'reviewer',state:'APPROVED',commitId:headSha,submittedAt:new Date(at-1000).toISOString()}];
+    return {...value,state:'merged',headSha,ci:'pass',reviews,comments:[],observedAt:at+1000,
+      providerUpdatedAt:new Date(at).toISOString(),trackingIdentity:{selfLogin:'owner',subjectAuthorLogin:'contributor'},
+      terminalFacts:{...value.terminalFacts,state:'merged',headSha,reviews,closedAt:new Date(at).toISOString(),
+        mergedAt:new Date(at).toISOString(),mergeCommitSha:'f'.repeat(40),observedAt:at+1000,
+        ci:{...value.terminalFacts.ci,headSha,observedAt:at+1000}}};
+  }
+  if (!value || !['terminal-fresh-same','terminal-fail','terminal-unknown'].includes(mode)) return value;
+  const delta=mode==='terminal-fresh-same'?500:mode==='terminal-fail'?1000:2000;
+  const facts=value.terminalFacts;
+  if(mode==='terminal-fresh-same') return {...value,terminalFacts:{...facts,observedAt:facts.observedAt+delta,
+    ci:{...facts.ci,observedAt:facts.ci.observedAt+delta}}};
+  return {...value,terminalFacts:{...facts,observedAt:facts.observedAt+delta,ci:{...facts.ci,
+    observedAt:facts.ci.observedAt+delta,status:mode==='terminal-fail'?'fail':'unknown',
+    checkRollup:mode==='terminal-fail'?'present':'empty',checks:mode==='terminal-fail'?[{name:'controlled-rerun',bucket:'fail'}]:[]}}};
+}
 const module=createGitHubPluginModule({now:()=>clock,createProvider:context=>({selfLogin:()=> 'owner',
   read:async(target,_signal,cursor)=>{ context.log('info','fixture-provider-read',{kind:target.kind,number:target.number});
     const mode=await context.config.get('fixtureScenario');
     if(mode==='provider-error') throw new Error('isolated provider observation failed');
+    const terminal=terminalSnapshot(mode); if(terminal) return terminal;
     const id=mode==='event' ? 11:mode?.startsWith('event:')?Number(mode.slice(6)):0;
     return {state:'open',headSha:'a'.repeat(40),ci:'pending',commentsComplete:true,reviews:[],
       trackingIdentity:{selfLogin:'owner',subjectAuthorLogin:'contributor'},
       comments:id>(cursor?.conversation??0)?[{id,author:'contributor',body:'isolated event',commentType:'conversation'}]:[]};
-  }}),createCommunityProvider:()=>({selfLogin:()=> 'owner',listOpen:async()=>[],repoComments:async()=>[],state:async()=>null})});
+  }}),createCommunityProvider:context=>({selfLogin:()=> 'owner',listOpen:async()=>[],repoComments:async()=>[],
+    state:async(_repo,kind,_number,_signal,includeFacts)=>{
+      const value=terminalSnapshot(await context.config.get('fixtureScenario')); if(!value) return null;
+      if(kind==='issue') { context.log('info','fixture-issue-state-read',{number:_number,state:'open'});
+        return {state:'open',closedAt:null,mergedAt:null}; }
+      context.log('info','fixture-terminal-state-read',{includeFacts,kind,number:_number});
+      if(value.state==='open') return {state:'open',headSha:value.headSha,observedAt:value.observedAt,
+        providerUpdatedAt:value.providerUpdatedAt,closedAt:null,mergedAt:null};
+      return {state:'closed',closedAt:value.terminalFacts.closedAt,mergedAt:value.terminalFacts.mergedAt,
+        ...(includeFacts?{terminalFacts:value.terminalFacts}:{})};
+    }})});
 export default {create(manifest){ const plugin=module.create(manifest);return {...plugin,async start(host){
   const active=await plugin.start(host),actions={...active.actions};
   for(const name of ['github.pr-tracking','github.issue-tracking']){const run=actions[name];

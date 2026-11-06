@@ -23,6 +23,8 @@ import { copyLegacyIssueObservations, legacyIssueOperationInput } from './legacy
 import { communityProgressKey as stateKey, copyLegacyRepositoryProgress, restoreLegacyRepositoryProgress } from './legacy-repository-progress.js';
 import { copyLegacyProviderHistory, inspectLegacyProviderHistory } from './legacy-provider-history.js';
 import { readReviewVerdictFailure } from './review-verdict-failure.js';
+import { parseTerminalFacts } from './business/domains/community/terminal-provider-facts.js';
+import { TerminalFactCollection } from './terminal-fact-collection.js';
 
 export interface RepoSubject {
   kind: 'pr' | 'issue'; number: number; title: string; url: string;
@@ -31,7 +33,7 @@ export interface RepoSubject {
 export interface CommunityProvider {
   listOpen(repo: string, signal: AbortSignal): Promise<RepoSubject[]>;
   repoComments(repo: string, since: string | undefined, signal: AbortSignal): Promise<RepoIssueComment[]>;
-  state(repo: string, kind: 'pr' | 'issue', number: number, signal: AbortSignal): Promise<ReconciliationSnapshot | null>;
+  state(repo: string, kind: 'pr' | 'issue', number: number, signal: AbortSignal, includeTerminalFacts?: boolean): Promise<ReconciliationSnapshot | null>;
   selfLogin(): string | undefined;
 }
 
@@ -241,6 +243,11 @@ export class CommunityRuntime {
   collectTracking(target: GitHubTarget, snapshot: GitHubSnapshot): Promise<void> {
     return this.serialize(async () => {
       const subjectKey = `${target.kind}:${target.repoFullName}#${target.number}`;
+      const collection = new TerminalFactCollection(this.context.storage, this.events, this.projector, this.projectionOperations, this.lifetime.signal);
+      const open = snapshot.state === 'open' && snapshot.headSha ? { headSha: snapshot.headSha,
+        ...(snapshot.observedAt !== undefined ? { observedAt: snapshot.observedAt } : {}),
+        ...(snapshot.providerUpdatedAt ? { providerUpdatedAt: snapshot.providerUpdatedAt } : {}) } : undefined;
+      if (target.kind === 'pr' && !open && !await collection.allowed(subjectKey)) { await this.projector.resumeFollowUps(subjectKey); return; }
       const events: CommunityEvent[] = [];
       const noise = await this.context.config.get('setupNoiseBotLogins');
       if (noise !== undefined && typeof noise !== 'string') throw new TypeError('setupNoiseBotLogins must be a string');
@@ -268,13 +275,27 @@ export class CommunityRuntime {
         sourceEventId: reviewEventId(target.repoFullName, target.number, review.id, review.state), subjectKey, kind: 'pr.review_submitted',
         classification: 'informational', at: timestamp(review.submittedAt), payload: {
           reviewId: review.id, author: review.author, reviewState: review.state,
+          ...(review.commitId ? { commitId: review.commitId } : {}),
+          ...(review.submittedAt ? { submittedAt: review.submittedAt } : {}),
           ...(review.actorType ? { actorType: review.actorType } : {}), ...(review.authorAssociation ? { authorAssociation: review.authorAssociation } : {}),
         },
       });
+      let terminalFacts = snapshot.terminalFacts;
+      if (terminalFacts) {
+        const facts = parseTerminalFacts(snapshot.terminalFacts, subjectKey);
+        if (target.kind !== 'pr' || facts.state !== snapshot.state || facts.headSha !== (snapshot.headSha ?? null)) throw new TypeError('terminal snapshot identity mismatch');
+        terminalFacts = facts;
+      }
+      const providerObservedAt = snapshot.observedAt ?? (terminalFacts?.source === 'github-api' ? terminalFacts.observedAt : undefined);
       if (snapshot.state !== 'open') events.push({
         sourceEventId: `lifecycle:${subjectKey}:${snapshot.state}`, subjectKey, classification: 'state-changing',
-        kind: target.kind === 'issue' ? 'issue.closed' : snapshot.state === 'merged' ? 'pr.merged' : 'pr.closed', payload: {}, at: Date.now(),
+        kind: target.kind === 'issue' ? 'issue.closed' : snapshot.state === 'merged' ? 'pr.merged' : 'pr.closed',
+        payload: { ...(providerObservedAt !== undefined ? { providerObservedAt } : {}),
+          ...(terminalFacts?.closedAt ? { closedAt: terminalFacts.closedAt } : {}),
+          ...(terminalFacts?.mergedAt ? { mergedAt: terminalFacts.mergedAt } : {}),
+          ...(snapshot.headSha ? { headSha: snapshot.headSha } : {}) }, at: Date.now(),
       });
+      if (target.kind === 'pr') { await collection.collect(subjectKey, events, terminalFacts, false, open); return; }
       for (const event of events) {
         this.lifetime.signal.throwIfAborted();
         const appended = await this.events.append(event);
@@ -305,6 +326,19 @@ export class CommunityRuntime {
       const configs = await this.configs.listAll();
       const handler = new GitHubRepoWebhookHandler({ webhookSecret: secret, repoAllowlist: configs.map(c => c.repo) }, {
         dedup: new SdkDeliveryDedup(this.context.storage), eventLog: this.events, projector: this.projector,
+        mayObserveTerminalFacts: subject => new TerminalFactCollection(this.context.storage, this.events, this.projector, this.projectionOperations).allowed(subject),
+        collectTerminalFacts: async facts => !(await new TerminalFactCollection(this.context.storage, this.events, this.projector, this.projectionOperations, this.lifetime.signal).collect(facts.subjectKey, [], facts)).denied,
+        observeProviderOpen: async subject => {
+          const match = /^pr:(.+)#([1-9][0-9]*)$/.exec(subject);
+          if (!match) throw new TypeError('Invalid provider PR subject');
+          const snapshot = await this.provider.state(match[1]!, 'pr', Number(match[2]),
+            AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(30_000)]));
+          if (snapshot?.state !== 'open' || !snapshot.headSha) return;
+          await new TerminalFactCollection(this.context.storage, this.events, this.projector, this.projectionOperations, this.lifetime.signal)
+            .collect(subject, [], undefined, false, { headSha: snapshot.headSha,
+              ...(snapshot.observedAt !== undefined ? { observedAt: snapshot.observedAt } : {}),
+              ...(snapshot.providerUpdatedAt ? { providerUpdatedAt: snapshot.providerUpdatedAt } : {}) });
+        },
         reconciliationDedup: { markNotified: async (repo, kind, number) => {
           await this.context.storage.set(stateKey('scan-notified', `${kind}:${repo}#${number}`), true);
         } },
@@ -345,12 +379,16 @@ export class CommunityRuntime {
       // Only configured repositories remain active; historical projections are retained.
       const active = new Set(this.repos);
       await runCommunityReconciliation({
+        terminalCollection: new TerminalFactCollection(this.context.storage, this.events, this.projector, this.projectionOperations, this.lifetime.signal),
         ...this.pollProgress('community-reconciler'),
         objectStore: { get: subject => this.objects.get(subject), listSubjectKeys: async () =>
           (await this.objects.listSubjectKeys()).filter(subject => active.has(subject.replace(/^(?:pr|issue):/, '').replace(/#\d+$/, ''))) },
         eventLog: this.events, projector: this.projector, findingStore: this.findings,
         fetchIssueState: (repo, number, signal) => this.provider.state(repo, 'issue', number, signal ?? this.lifetime.signal),
-        fetchPrState: (repo, number, signal) => this.provider.state(repo, 'pr', number, signal ?? this.lifetime.signal),
+        fetchPrState: async (repo, number, signal) => {
+          const allowed = await new TerminalFactCollection(this.context.storage, this.events, this.projector, this.projectionOperations).allowed(`pr:${repo}#${number}`);
+          return this.provider.state(repo, 'pr', number, signal ?? this.lifetime.signal, allowed);
+        },
         isBaselineEstablished: async subject => !!await this.context.storage.get(stateKey('reconciler-baseline', subject)),
         markBaselineEstablished: async subject => { await this.context.storage.set(stateKey('reconciler-baseline', subject), true); },
         log: this.log,
