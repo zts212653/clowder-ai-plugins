@@ -1,6 +1,14 @@
 import { z } from "zod";
+import { dotSubscriptionSchema } from "./connection-state.js";
 
 const ref = z.string().min(1).max(512);
+
+export const callbackBindingSchema = z.object({
+  attemptId: ref, pairingCode: ref, pairingExpiresAt: z.number(), version: z.number().int().positive(),
+  pairedCallbackUrl: z.string().url().nullable(), pairedAt: z.number().nullable(),
+  subscription: dotSubscriptionSchema.nullable(),
+}).strict();
+export type CallbackBinding = z.infer<typeof callbackBindingSchema>;
 
 export const signedCredentialSchema = z
 	.object({
@@ -11,6 +19,7 @@ export const signedCredentialSchema = z
 		expiresAt: z.number().int().positive(),
 		refreshRecommendedAt: z.number().int().positive(),
 		verifiedEventId: ref.optional(),
+        binding: callbackBindingSchema.optional(),
 	})
 	.strict();
 
@@ -48,9 +57,12 @@ export const endpointLeaseSchema = z.discriminatedUnion("mode", [
 ]);
 
 export const pendingCredentialSchema = signedCredentialSchema
-	.omit({ kind: true })
+	.omit({ kind: true, binding: true })
 	.extend({
 		kind: z.literal("pending"),
+        binding: callbackBindingSchema.nullable().optional(),
+        pairingIntent: z.object({ code: ref, expiresAt: z.number(), attemptId: ref }).strict().optional(),
+        verificationBindingVersion: z.number().int().positive().optional(),
 		candidateId: ref,
 		revision: z.number().int().positive(),
 		createdAt: z.number().int().nonnegative(),

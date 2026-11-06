@@ -103,7 +103,7 @@ export class DotRuntime {
 		record: Dispatch,
 		state: Awaited<ReturnType<DotConnection["ready"]>>,
 	) {
-		const current = await this.connection.ready();
+		const current = await this.connection.forDispatch(record);
 		if (
 			current.attemptId !== record.attemptId ||
 			current.ownerUserId !== record.ownerUserId
@@ -126,9 +126,9 @@ export class DotRuntime {
 		return source;
 	}
 	async authorize(id: string, read = false) {
-		const state = await this.connection.ready(),
-			record = await this.connection.store.dispatch(id);
+		const record = await this.connection.store.dispatch(id);
 		if (!record) throw new Error("dot_dispatch_unavailable");
+		const state = await this.connection.forDispatch(record);
 		const source = await this.source(record, state);
 		if (read && record.sourceReadAt === null)
 			throw new Error("dot_source_not_read");
@@ -139,7 +139,7 @@ export class DotRuntime {
 		expectedAttemptId?: string,
 	): Promise<PluginDeliveryReceipt> {
 		this.connection.assertLive();
-		const state = await this.connection.store.connection();
+		const state = await this.connection.current();
 		if (!state) throw new Error("dot_subscription_required");
 		if (
 			expectedAttemptId !== undefined &&
@@ -249,6 +249,8 @@ export class DotRuntime {
 		throw new Error("dot_webhook_unacknowledged");
 	}
 	async read(id: string, credential?: VerifiedExternalCredential) {
+        const proof = (await this.connection.store.dispatch(id))?.candidateProof;
+        if (proof && credential?.jti !== proof.tokenId) throw new Error("dot_candidate_stale");
 		const { state, record, source } = await this.authorize(id);
 		const context = await this.host.threads.readMessages(record.threadId, {
 			before: { timestamp: source.timestamp, id: source.id },
@@ -275,6 +277,8 @@ export class DotRuntime {
 	}
 	async reply(id: string, content: string, credential?: VerifiedExternalCredential) {
 		return this.serial(id, async () => {
+            const proof = (await this.connection.store.dispatch(id))?.candidateProof;
+            if (proof && credential?.jti !== proof.tokenId) throw new Error("dot_candidate_stale");
 			const { state, record, source } = await this.authorize(id, true);
 			if (record.expectedNonce && !content.includes(record.expectedNonce))
 				throw new Error("dot_test_nonce_mismatch");
@@ -282,8 +286,10 @@ export class DotRuntime {
 			const contentDigest = digest(content);
 			if (record.replyDigest && record.replyDigest !== contentDigest)
 				throw new Error("dot_reply_conflict");
-			if (record.replyMessageId)
+			if (record.replyMessageId) {
+				await this.connection.recordPendingEvidence(credential, id, "reply");
 				return { messageId: record.replyMessageId, duplicate: true };
+			}
 			await this.connection.store.updateDispatch(id, (current) => {
 				this.connection.assertLive();
 				if (!current) throw new Error("dot_dispatch_unavailable");
@@ -601,7 +607,7 @@ export class DotRuntime {
 		return null;
 	}
 	async testRoundtrip() {
-		const state = await this.connection.ready(),
+		const state = await this.connection.testState(),
 			nonce = randomBytes(8).toString("hex");
 		const thread = await this.host.threads.create({
 			title: "Dot connection test",
@@ -633,6 +639,11 @@ export class DotRuntime {
 			replyMessageId: null,
 			imagePublicationIds: [],
 			connectionTest: true,
+			...(state.bindingAuthority?.candidateId ? { candidateProof: {
+				candidateId: state.bindingAuthority.candidateId,
+				tokenId: state.bindingAuthority.tokenId!,
+				bindingVersion: state.bindingAuthority.version!,
+			} } : {}),
 			expectedNonce: nonce,
 			deliveryError: null,
 		}));
@@ -647,7 +658,7 @@ export class DotRuntime {
 			};
 		});
 		const external = await this.connection.externalState();
-		if (external.pending) await this.connection.bindPendingVerification(id);
+		if (external.pending) await this.connection.bindPendingVerification(id, state);
 		try {
 			await this.sendEvent((await this.connection.store.dispatch(id))!);
 			return { eventId: id, nonce, complete: false };

@@ -108,7 +108,7 @@ export function createDotPlugin(
 				[current] = await connection(host as DotSettingsHost, controller);
 			const statusRows = async (context?: PluginHostActionContext) => {
 				await current.owner(context);
-				const state = await current.store.connection();
+				const state = await current.statusState();
 				const external = await current.externalState();
 				const dispatches = state
 					? (await Promise.all(state.testEventIds.map((id) => current.store.dispatch(id)))).filter(

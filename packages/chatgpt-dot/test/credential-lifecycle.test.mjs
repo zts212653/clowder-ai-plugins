@@ -179,7 +179,7 @@ test("replacement inherits the exact healthy pairing and old dispatches cannot p
 	});
 	assert.equal(state.pending.pairingAttemptId, connection.attemptId);
 	assert.equal(state.pending.pairingRequired, false);
-	assert.equal(rows.rows[0].key, "candidate-verification-required");
+	assert.equal(rows.rows[0].key, "waiting-subscription");
 });
 
 test("pending credential is limited to discovery, initial subscription and its exact read/reply proof", async (t) => {
@@ -268,7 +268,7 @@ test("setup rows retain replacement cancellation and its owner action restores t
 	]) {
 		for (const hasCurrent of [true, false]) {
 			const rows = projectDotJourney({ runtimeRunning: true, external: { ...external, current: hasCurrent ? external.current : null,
-				pending: { ...external.pending, discoveredAt, pairingRequired: true } }, connection: candidateConnection, dispatches: [], now });
+				pending: { ...external.pending, binding: undefined, discoveredAt, pairingRequired: true } }, connection: candidateConnection, dispatches: [], now });
 			assert.equal(rows.rows[0].key, key);
 			assert.equal((rows.rows[0].actions?.some((action) => action.action === "cancel-pending") ?? false), hasCurrent, `${key}: only replacements need old-connection recovery`);
 		}
@@ -331,5 +331,31 @@ for (const remainingLeaseMs of [-60_000, 24 * 60 * 60_000]) {
     assert.equal(external.pending.pairingRequired, false);
     assert.equal(external.pending.discoveredAt, null, "new URL must still be discovered before candidate verification");
     assert.equal(external.current.tokenId, "old-jti", "old state is retained until exact new candidate verification");
+    const discovery = await request(f, { jsonrpc: "2.0", id: 41, method: "server/discover", params: {} }, "recovered-jti");
+    assert.equal(discovery.body.error, undefined);
+    const message = await f.settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+    assert.equal(message.render, "text");
+    const restored = f.records.get(CONNECTION_KEY).value;
+    const subscribe = await request(f, { jsonrpc: "2.0", id: 42, method: "events/subscribe",
+      params: { name: "dot.summoned", arguments: { attempt_id: restored.attemptId, pairing_code: message.data.match(/pairing_code=([a-f0-9]+)/)[1] },
+        delivery: { mode: "webhook", url: "https://callbacks.example/recovered", secret }, ttlMs: null }
+    }, "recovered-jti");
+    assert.equal(subscribe.body.error, undefined, JSON.stringify(subscribe.body));
+    const dot = new DotConnection(f.host, f.sendWebhook, new AbortController().signal);
+    assert.deepEqual((await dot.current()).subscription, subscription, "new subscription must not replace the current binding before proof");
+    await f.settings.actions["dot.roundtrip"]({}, undefined, f.owner);
+    const testId = f.records.get(CONNECTION_KEY).value.testEventIds.at(-1);
+    assert.equal(f.webhooks.filter(w => w.data.eventId === testId).at(-1)?.url, "https://callbacks.example/recovered", "verification must reach the new ChatGPT connection");
+    await call(f, "cat_cafe_dot_read_source", { event_id: testId }, "recovered-jti");
+    assert.deepEqual((await dot.current()).subscription, subscription, "source read alone cannot promote a callback");
+    const dispatch = f.records.get(`dot/dispatch/${testId}`).value;
+    const wrong = await call(f, "cat_cafe_dot_reply", { event_id: testId, content: "no nonce" }, "recovered-jti");
+    assert.ok(wrong.body.error, "a reply without the nonce cannot promote");
+    assert.deepEqual((await dot.current()).subscription, subscription);
+    const replied = await call(f, "cat_cafe_dot_reply", { event_id: testId, content: `ok ${dispatch.expectedNonce}` }, "recovered-jti");
+    assert.equal(replied.body.error, undefined, JSON.stringify(replied.body));
+    assert.equal(f.records.get(EXTERNAL_KEY).value.pending, null);
+    assert.equal(f.records.get(EXTERNAL_KEY).value.current.tokenId, "recovered-jti");
+    assert.equal((await dot.current()).subscription.url, "https://callbacks.example/recovered");
   });
 }

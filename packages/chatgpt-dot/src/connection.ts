@@ -61,6 +61,9 @@ export interface SharedProposalView {
     };
     readonly connection: SharedConnectionView;
 }
+type BoundConnection = DotConnectionState & { bindingAuthority?: {
+    key: string; candidateId?: string; tokenId?: string; version?: number; eventId?: string;
+} };
 export class DotConnection {
     readonly store: DotStore;
     private readonly operations = new AsyncLocalStorage<PluginHostActionContext | undefined>();
@@ -106,7 +109,8 @@ export class DotConnection {
         const issued = await capability.issueExternal({ capabilityId: DOT_EXTERNAL_CAPABILITY_ID, ttlSeconds });
         await this.assertCurrent();
         const now = this.now();
-        const connection = await this.store.connection();
+        const identity = await this.store.connection();
+        const connection = identity?.revokedAt === null ? await this.current() : null;
         const inheritedPairing = Boolean(
             connection && connection.revokedAt === null && connection.pairedAt !== null &&
             connection.subscription &&
@@ -133,6 +137,7 @@ export class DotConnection {
                 discoveredAt: null,
                 pairingAttemptId: inheritedPairing?.attemptId ?? null,
                 pairingRequired: inheritedPairing === null,
+                binding: null,
                 verificationEventId: null,
                 verificationReadAt: null,
                 verificationReplyAt: null,
@@ -227,7 +232,7 @@ export class DotConnection {
             throw new Error('dot_external_credential_rejected');
         const verification = operation === 'verification-read' || operation === 'verification-reply' ||
             operation === 'read' || operation === 'reply';
-        const initialSubscribe = operation === 'pairing-subscribe' && pending.pairingRequired;
+        const initialSubscribe = operation === 'pairing-subscribe' && (pending.binding !== undefined || pending.pairingRequired);
         if (!verification && operation !== 'discovery' && !initialSubscribe)
             throw new Error('dot_pending_operation_rejected');
         if (verification && pending.verificationEventId !== eventId)
@@ -253,16 +258,18 @@ export class DotConnection {
             if (!state?.pending) throw new Error('dot_pending_credential_required');
             if (!state.pending.pairingRequired && state.pending.pairingAttemptId !== attemptId)
                 throw new Error('dot_candidate_pairing_mismatch');
-            return { ...state, revision: state.revision + 1, pending: { ...state.pending, pairingAttemptId: attemptId } };
+            return { ...state, revision: state.revision + 1, pending: { ...state.pending, ...(state.pending.binding !== undefined && state.pending.pairingAttemptId !== attemptId ? {binding:null,pairingIntent:undefined,verificationEventId:null,verificationReadAt:null,verificationReplyAt:null,verificationBindingVersion:undefined} : {}), pairingAttemptId: attemptId } };
         });
     }
-    async bindPendingVerification(eventId: string) {
+    async bindPendingVerification(eventId: string, captured?: BoundConnection) {
         await this.store.updateExternal(state => {
             if (!state?.pending || state.pending.discoveredAt === null)
                 throw new Error('dot_pending_discovery_required');
+            if (captured?.bindingAuthority?.candidateId && (state.pending.candidateId!==captured.bindingAuthority.candidateId || state.pending.binding?.version!==captured.bindingAuthority.version)) throw new Error('dot_candidate_stale');
             return { ...state, revision: state.revision + 1, pending: {
                 ...state.pending,
                 verificationEventId: eventId,
+                ...(state.pending.binding ? {verificationBindingVersion:state.pending.binding.version} : {}),
                 verificationReadAt: null,
                 verificationReplyAt: null,
             } };
@@ -279,9 +286,11 @@ export class DotConnection {
             eventId,
         );
         if (authorized.lane !== 'pending') return;
+        const record = await this.store.dispatch(eventId);
+        if (record?.candidateProof) await this.forDispatch(record);
         const updated = await this.store.updateExternal(state => {
             const pending = state?.pending;
-            if (!pending || pending.tokenId !== authorized.tokenId || pending.candidateId !== authorized.candidateId || pending.verificationEventId !== eventId)
+            if (!pending || pending.tokenId !== authorized.tokenId || pending.candidateId !== authorized.candidateId || pending.verificationEventId !== eventId || record?.candidateProof && (pending.binding?.version !== record.candidateProof.bindingVersion || pending.candidateId!==record.candidateProof.candidateId || pending.tokenId!==record.candidateProof.tokenId))
                 throw new Error('dot_candidate_stale');
             return { ...state, revision: state.revision + 1, pending: {
                 ...pending,
@@ -291,14 +300,15 @@ export class DotConnection {
         const pending = updated.pending;
         if (!pending || pending.discoveredAt === null || pending.verificationReadAt === null || pending.verificationReplyAt === null)
             return;
-        const connection = await this.ready();
+        const connection = record?.candidateProof ? await this.forDispatch(record) : await this.ready();
         if (pending.pairingAttemptId !== connection.attemptId)
             throw new Error('dot_candidate_pairing_mismatch');
         await this.store.updateExternal(state => {
             const exact = state?.pending;
             if (!exact || exact.candidateId !== pending.candidateId || exact.revision !== pending.revision ||
                 exact.tokenId !== pending.tokenId || exact.verificationEventId !== eventId ||
-                exact.discoveredAt === null || exact.verificationReadAt === null || exact.verificationReplyAt === null)
+                exact.expiresAt*1000 <= this.now() || exact.discoveredAt === null || exact.verificationReadAt === null || exact.verificationReplyAt === null ||
+                exact.binding !== undefined && (!exact.binding?.subscription || exact.binding.version!==exact.verificationBindingVersion || exact.binding.subscription.expiresAt!==null && exact.binding.subscription.expiresAt<=this.now()))
                 throw new Error('dot_candidate_stale');
             return {
                 ...state,
@@ -311,6 +321,7 @@ export class DotConnection {
                     expiresAt: exact.expiresAt,
                     refreshRecommendedAt: exact.refreshRecommendedAt,
                     verifiedEventId: eventId,
+                    ...(exact.binding ? {binding:exact.binding} : {}),
                 },
                 pending: null,
             };
@@ -324,15 +335,17 @@ export class DotConnection {
         const context = this.operations.getStore();
         return context ? AbortSignal.any([this.signal, context.signal]) : this.signal;
     }
-    async sameAttempt(state: DotConnectionState, requireReady = true) {
-        const current = await (requireReady ? this.ready() : this.current());
+    async sameAttempt(state: BoundConnection, requireReady = true) {
+        const a = state.bindingAuthority;
+        const current = a?.candidateId ? await this.candidateReady({ candidateId: a.candidateId, tokenId: a.tokenId!, bindingVersion: a.version! }, a.eventId) : await (requireReady ? this.ready() : this.current());
+        if (a && !a.candidateId && a.key !== current.bindingAuthority?.key) throw new Error('dot_binding_stale');
         if (current.attemptId !== state.attemptId || current.ownerUserId !== state.ownerUserId || current.agentKeyId !== state.agentKeyId || current.pluginInstanceId !== state.pluginInstanceId)
             throw new Error('dot_stale_connection');
         if (!requireReady && current.pairedAt === null && current.pairingExpiresAt <= this.now())
             throw new Error('dot_pairing_expired_or_mismatched');
         return current;
     }
-    pairingFence(state: DotConnectionState, requireReady = true) {
+    pairingFence(state: BoundConnection, requireReady = true) {
         const requestFence = this.captureFence();
         return async () => {
             await requestFence();
@@ -351,19 +364,49 @@ export class DotConnection {
             throw new Error('dot_owner_mismatch');
         return context.userId;
     }
-    async current() {
+    private applyBinding(state: DotConnectionState, binding: import('./external-state.js').CallbackBinding, authority: NonNullable<BoundConnection['bindingAuthority']>): BoundConnection {
+        if (binding.attemptId !== state.attemptId) throw new Error('dot_binding_attempt_mismatch');
+        return { ...state, subscription: binding.subscription, pairedAt: binding.pairedAt, pairedCallbackUrl: binding.pairedCallbackUrl, pairingCode:binding.pairingCode,pairingExpiresAt:binding.pairingExpiresAt, bindingAuthority: authority };
+    }
+    async current(): Promise<BoundConnection> {
         this.assertLive();
         const state = await this.store.connection();
-        this.assertLive();
-        if (!state || state.revokedAt !== null || state.pluginInstanceId !== this.host.pluginInstanceId)
-            throw new Error('dot_connection_unavailable');
+        if (!state || state.revokedAt !== null || state.pluginInstanceId !== this.host.pluginInstanceId) throw new Error('dot_connection_unavailable');
+        const external = await this.store.external();
+        if (external?.current?.kind === 'signed' && external.current.binding !== undefined) {
+            const binding = external.current.binding;
+            return this.applyBinding(state, binding, { key: digest([external.current.tokenId, binding.version]), tokenId: external.current.tokenId, version: binding.version });
+        }
+        return { ...state, bindingAuthority: { key: digest(['legacy',state.attemptId,state.subscription,state.pairedCallbackUrl]) } };
+    }
+    private requireSubscription(state: BoundConnection) {
+        if (state.pairedAt === null || !state.subscription || state.subscription.expiresAt !== null && state.subscription.expiresAt <= this.now()) throw new Error('dot_subscription_required');
         return state;
     }
-    async ready() {
-        const state = await this.current();
-        if (state.pairedAt === null || !state.subscription || state.subscription.expiresAt !== null && state.subscription.expiresAt <= this.now())
-            throw new Error('dot_subscription_required');
-        return state;
+    async ready() { return this.requireSubscription(await this.current()); }
+    async candidateReady(proof?: { candidateId: string; tokenId: string; bindingVersion: number }, eventId?: string): Promise<BoundConnection> {
+        const identity = await this.current();
+        const external = await this.externalState();
+        const pending = external.pending;
+        if (proof && !pending && external.current?.kind === 'signed' && external.current.tokenId === proof.tokenId && external.current.verifiedEventId === eventId && external.current.binding?.version === proof.bindingVersion) return this.requireSubscription(identity);
+        if (!pending || !pending.binding || pending.expiresAt*1000<=this.now() || pending.discoveredAt === null || pending.pairingAttemptId !== identity.attemptId) throw new Error('dot_candidate_binding_required');
+        if (proof && (pending.candidateId !== proof.candidateId || pending.tokenId !== proof.tokenId || pending.binding.version !== proof.bindingVersion || eventId !== undefined && (pending.verificationEventId !== eventId || pending.verificationBindingVersion !== proof.bindingVersion))) throw new Error('dot_candidate_stale');
+        return this.requireSubscription(this.applyBinding(identity, pending.binding, { key: digest([pending.candidateId,pending.tokenId,pending.binding.version]), candidateId: pending.candidateId, tokenId: pending.tokenId, version: pending.binding.version, ...(eventId ? {eventId} : {}) }));
+    }
+    async forDispatch(record: import('./store.js').Dispatch) {
+        return record.candidateProof ? this.candidateReady(record.candidateProof, record.eventId) : this.ready();
+    }
+    async testState() {
+        const external = await this.externalState();
+        return external.pending?.binding !== undefined ? this.candidateReady() : this.ready();
+    }
+    async statusState() {
+        const state = await this.store.connection();
+        if (!state || state.revokedAt !== null) return state;
+        const external = await this.externalState();
+        if (external.pending?.binding) return this.applyBinding(state, external.pending.binding, {key:'status'});
+        if (external.pending?.binding === null && external.pending.pairingIntent) return {...state,pairedAt:null,subscription:null,pairingExpiresAt:external.pending.pairingIntent.expiresAt};
+        return this.current();
     }
     async begin(
         context: PluginHostActionContext | undefined,
@@ -372,12 +415,20 @@ export class DotConnection {
     ) {
         await assertAuthority();
         const owner = await this.owner(context);
+        if (reconnect) {
+            const e = await this.externalState();
+            if (e.current?.kind === 'signed' && e.current.binding !== undefined) await this.revokeExternal();
+            else await this.cancelPending();
+        }
         await assertAuthority();
+        const priorIdentity=await this.store.connection();
+        const effective=priorIdentity?.revokedAt===null ? await this.current() : null;
+        const bound=(await this.externalState()).current;
         const state = await this.store.updateConnection(previous => {
             this.assertLive();
             if (previous && previous.ownerUserId !== owner)
                 throw new Error('dot_owner_mismatch');
-            if (!reconnect && previous?.revokedAt === null && previous.pluginInstanceId === this.host.pluginInstanceId && (previous.pairedAt !== null || previous.pairingExpiresAt > this.now()))
+            if (!reconnect && previous?.revokedAt === null && previous.pluginInstanceId === this.host.pluginInstanceId && ((effective?.attemptId===previous.attemptId && (effective.pairedAt !== null || effective.pairingExpiresAt > this.now())) || (bound?.kind==='signed' && bound.binding?.attemptId===previous.attemptId)))
                 return previous;
             return { v: 1, revision: (previous?.revision ?? 0) + 1, ownerUserId: owner, pluginInstanceId: this.host.pluginInstanceId,
                 agentKeyId: `plugin:${randomUUID()}`, attemptId: randomUUID(),
@@ -397,7 +448,28 @@ export class DotConnection {
             });
             throw error;
         }
-        return this.instructionsFor(state);
+        const external = await this.externalState();
+        if (external.pending?.binding !== undefined) {
+            const pending = external.pending;
+            const intent = pending.pairingIntent && pending.pairingIntent.attemptId === state.attemptId && pending.pairingIntent.expiresAt > this.now() ? pending.pairingIntent : { code: state.pairedAt === null ? state.pairingCode : randomBytes(16).toString('hex'), expiresAt: this.now() + 30*60000, attemptId: state.attemptId };
+            await this.store.updateExternal(value => {
+                if (!value?.pending || value.pending.candidateId !== pending.candidateId) throw new Error('dot_candidate_stale');
+                const changed=value.pending.pairingIntent?.code!==intent.code;
+                return {...value, revision:value.revision+1, pending:{...value.pending,pairingIntent:intent,...(changed && value.pending.binding ? {binding:{...value.pending.binding,version:value.pending.binding.version+1,pairingCode:intent.code,pairingExpiresAt:intent.expiresAt},verificationEventId:null,verificationReadAt:null,verificationReplyAt:null,verificationBindingVersion:undefined} : {})}};
+            });
+            return this.instructionsFor({...state,pairingCode:intent.code});
+        }
+        const established = await this.current();
+        if (external.current?.kind === 'signed' && external.current.binding && !established.subscription) {
+            const binding=external.current.binding, tokenId=external.current.tokenId;
+            const code=randomBytes(16).toString('hex'), expiresAt=this.now()+30*60000;
+            await this.store.updateExternal(value=>{
+                if (value?.current?.kind!=='signed'||value.current.tokenId!==tokenId||value.current.binding?.version!==binding.version) throw new Error('dot_binding_stale');
+                return {...value,revision:value.revision+1,current:{...value.current,binding:{...binding,version:binding.version+1,pairingCode:code,pairingExpiresAt:expiresAt}}};
+            });
+            return this.instructionsFor(await this.current());
+        }
+        return this.instructionsFor(established);
     }
     private instructionsFor(state: DotConnectionState) {
         return { ...this.project(state), pairingCode: state.pairingCode,
@@ -410,14 +482,43 @@ export class DotConnection {
             throw new Error('dot_pairing_expired_or_mismatched');
         return this.instructionsFor(state);
     }
+    private async subscribeCandidate(input: {attemptId:string;pairingCode:string;url:string;secret:string;ttlMs?:number|null}, credential: VerifiedExternalCredential) {
+        const captured = (await this.externalState()).pending;
+        if (!captured?.pairingIntent || captured.discoveredAt === null) throw new Error('dot_pending_pairing_intent_required');
+        const intent = captured.pairingIntent;
+        const validate = async () => {
+            await this.assertCurrent();
+            const identity = await this.current(), p = (await this.externalState()).pending;
+            if (!p || p.candidateId !== captured.candidateId || p.tokenId !== credential.jti || p.binding?.version !== captured.binding?.version || p.discoveredAt === null || p.expiresAt*1000<=this.now() || p.pairingIntent?.code !== intent.code || intent.expiresAt <= this.now() || identity.attemptId !== intent.attemptId || input.attemptId !== intent.attemptId || !equalSecret(input.pairingCode,intent.code)) throw new Error('dot_candidate_stale');
+        };
+        await validate();
+        const ttl = input.ttlMs == null ? null : Math.min(input.ttlMs,7*24*60*60000);
+        if (ttl !== null && (!Number.isSafeInteger(ttl)||ttl<=0)) throw new Error('dot_invalid_subscription_ttl');
+        const state = await this.current();
+        const id = 'dot_'+digest([state.ownerUserId,state.agentKeyId,state.attemptId,input.url]);
+        await verifyDotWebhook(input.url,id,input.secret,this.send,this.operationSignal,validate);
+        await validate();
+        const old = captured.binding?.subscription;
+        if (old?.url === input.url && old.secret === input.secret && (old.expiresAt===null||old.expiresAt>this.now())) return {id:old.id,refreshBefore:old.expiresAt===null?null:new Date(old.expiresAt).toISOString(),cursor:null,truncated:false};
+        const expiresAt=ttl===null?null:this.now()+ttl;
+        await this.store.updateExternal(value=>{
+            const p=value?.pending;
+            if (!value||!p||p.candidateId!==captured.candidateId||p.tokenId!==credential.jti||p.binding?.version!==captured.binding?.version||p.pairingIntent?.code!==intent.code||p.expiresAt*1000<=this.now()||intent.expiresAt<=this.now()) throw new Error('dot_candidate_stale');
+            const pending=p;
+            return {...value,revision:value.revision+1,pending:{...pending,revision:p.revision+1,binding:{attemptId:state.attemptId,pairingCode:intent.code,pairingExpiresAt:intent.expiresAt,version:(p.binding?.version??0)+1,pairedCallbackUrl:input.url,pairedAt:this.now(),subscription:{id,url:input.url,secret:input.secret,expiresAt,verifiedAt:this.now(),previousSecret:null,rotationUntil:null}},verificationEventId:null,verificationReadAt:null,verificationReplyAt:null,verificationBindingVersion:undefined}};
+        });
+        return {id,refreshBefore:expiresAt===null?null:new Date(expiresAt).toISOString(),cursor:null,truncated:false};
+    }
     async subscribe(input: {
         attemptId: string;
         pairingCode: string;
         url: string;
         secret: string;
         ttlMs?: number | null;
-    }) {
+    }, credential?: VerifiedExternalCredential) {
         const state = await this.current();
+        const lane = credential ? await this.authorizeExternal(credential, 'pairing-subscribe') : undefined;
+        if (lane?.lane === 'pending' && (await this.externalState()).pending?.binding !== undefined) return this.subscribeCandidate(input, credential!);
         if (state.attemptId !== input.attemptId)
             throw new Error('dot_attempt_mismatch');
         const pinned = state.pairedCallbackUrl ?? state.subscription?.url;
@@ -431,8 +532,19 @@ export class DotConnection {
         const id = `dot_${digest([state.ownerUserId, state.agentKeyId, state.attemptId, input.url])}`;
         await verifyDotWebhook(input.url, id, input.secret, this.send, this.operationSignal, this.pairingFence(state, false));
         this.assertLive();
-        await this.current();
+        await this.sameAttempt(state, false);
+        if (credential) await this.authorizeExternal(credential, 'pairing-subscribe');
         const expiresAt = ttl === null ? null : this.now() + ttl;
+        if (state.bindingAuthority?.tokenId) {
+            const external = await this.externalState();
+            const binding = external.current?.kind === 'signed' ? external.current.binding : undefined;
+            if (!binding) throw new Error('dot_binding_stale');
+            await this.store.updateExternal(value => {
+                if (value?.current?.kind !== 'signed' || value.current.tokenId !== state.bindingAuthority!.tokenId || value.current.binding?.version !== binding.version) throw new Error('dot_binding_stale');
+                return {...value,revision:value.revision+1,pending:null,current:{...value.current,binding:{...binding,version:binding.version+1,pairedAt:this.now(),pairedCallbackUrl:input.url,subscription:{id,url:input.url,secret:input.secret,expiresAt,verifiedAt:this.now(),previousSecret:state.subscription?.secret ?? null,rotationUntil:this.now()+5*60000}}}};
+            });
+            return {id,refreshBefore:expiresAt===null?null:new Date(expiresAt).toISOString(),cursor:null,truncated:false};
+        }
         await this.store.updateConnection(current => {
             this.assertLive();
             if (!current || current.revision !== state.revision || current.revokedAt !== null)
@@ -448,10 +560,20 @@ export class DotConnection {
         attemptId: string;
         pairingCode: string;
         url: string;
-    }) {
+    }, credential?: VerifiedExternalCredential) {
+        if (credential) await this.authorizeExternal(credential, 'pairing-unsubscribe');
         const state = await this.current();
         if (state.attemptId !== input.attemptId || !equalSecret(state.pairingCode, input.pairingCode) || state.subscription && state.subscription.url !== input.url)
             throw new Error('dot_subscription_mismatch');
+        await this.store.updateExternal(value => {
+            if (!value) throw new Error('dot_binding_stale');
+            if (state.bindingAuthority?.tokenId) {
+                if (value.current?.kind !== 'signed' || value.current.tokenId !== state.bindingAuthority.tokenId || (!value.current.binding || value.current.binding.version !== state.bindingAuthority.version)) throw new Error('dot_binding_stale');
+                return {...value,revision:value.revision+1,pending:null,current:{...value.current,binding:{...value.current.binding,version:value.current.binding.version+1,subscription:null,pairedAt:null}}};
+            }
+            return {...value,revision:value.revision+1,pending:null};
+        });
+        if (state.bindingAuthority?.tokenId) return {};
         await this.store.updateConnection(current => {
             this.assertLive();
             if (!current || current.revision !== state.revision)

@@ -141,6 +141,9 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 		};
 	}
 
+    if (external.pending?.binding === null) {
+        return { rows: [row("waiting-subscription", "等待新连接订阅", "生成订阅消息并在使用新 Server URL 的 ChatGPT 连接中发送。", replacementActions)], pollUntil: Math.min(input.now + FIVE_MINUTES_MS, external.pending.pairingIntent?.expiresAt ?? input.now + FIVE_MINUTES_MS) };
+    }
 	const connection = input.connection;
 	const current = connection?.revokedAt === null ? connection : null;
 	if (!current) {
