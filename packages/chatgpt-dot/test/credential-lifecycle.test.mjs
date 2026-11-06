@@ -269,7 +269,7 @@ test("setup rows retain replacement cancellation and its owner action restores t
 			const rows = projectDotJourney({ runtimeRunning: true, external: { ...external, current: hasCurrent ? external.current : null,
 				pending: { ...external.pending, discoveredAt, pairingRequired: true } }, connection: candidateConnection, dispatches: [], now });
 			assert.equal(rows.rows[0].key, key);
-			assert.equal(rows.rows[0].actions.some((action) => action.action === "cancel-pending"), hasCurrent, `${key}: only replacements need old-connection recovery`);
+			assert.equal((rows.rows[0].actions?.some((action) => action.action === "cancel-pending") ?? false), hasCurrent, `${key}: only replacements need old-connection recovery`);
 		}
 	}
 	const before = await f.settings.actions["dot.status"]({}, undefined, f.owner);

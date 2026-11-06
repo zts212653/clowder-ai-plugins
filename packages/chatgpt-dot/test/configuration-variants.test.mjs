@@ -82,8 +82,13 @@ test("entry mode is one selector with branch-owned long-lived and temporary cont
 			},
 		],
 	);
+	const subscription = fields.get("subscription");
+	assert.equal(subscription?.label, "订阅消息");
+	assert.match(subscription?.description ?? "", /Work/);
+	assert.deepEqual(subscription?.actions.map(a => [a.id, a.render, a.resultRender, a.next]), [["show-instructions", "button", "text", undefined]]);
 	const connectionActionIds =
 		fields.get("connection")?.actions.map((action) => action.id) ?? [];
 	assert.equal(connectionActionIds.includes("use-long-lived"), false);
 	assert.equal(connectionActionIds.includes("start-temporary"), false);
+	assert.equal(connectionActionIds.includes("show-instructions"), false);
 });

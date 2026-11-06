@@ -1,5 +1,5 @@
 pluginId: official.chatgpt-dot
-version: 0.2.0-alpha.26
+version: 0.2.0-alpha.27
 contractVersion: 0.3.3-candidate.1
 name: ChatGPT Dot
 description:
@@ -46,7 +46,8 @@ configuration:
     default: 1
     description: 最长 24 小时；到期、停用或卸载会自动关闭。
   - key: longLivedEndpoint
-    label: 长期公网入口
+    label: Server URL（长期入口）
+    description: 生成后复制 URL，按上方第 2、3 步添加到 ChatGPT 并确认工具与事件。
     kind: operation
     required: false
     target: [longLivedServerUrlTemplate]
@@ -58,7 +59,8 @@ configuration:
         confirm: 生成或显示当前 Server URL？有效入口会被复用。
         action: { method: dot.use-long-lived }
   - key: temporaryEndpoint
-    label: 临时公网入口
+    label: Server URL（临时入口）
+    description: 创建后复制 URL，按上方第 2、3 步添加到 ChatGPT 并确认工具与事件。
     kind: operation
     required: false
     actions:
@@ -73,6 +75,17 @@ configuration:
     kind: string
     required: false
     description: 仅支持本机 HTTP CONNECT 代理；留空直接连接。保存后更新连接。
+  - key: subscription
+    label: 订阅消息
+    description: 在目标 ChatGPT Work 对话中输入 @ 选择刚添加的插件，粘贴生成的消息并发送，允许订阅。
+    kind: operation
+    required: false
+    actions:
+      - id: show-instructions
+        label: 生成订阅消息
+        render: button
+        resultRender: text
+        action: { method: dot.show-instructions }
   - key: connection
     label: Dot 连接
     kind: operation
@@ -106,12 +119,6 @@ configuration:
         resultRender: rows
         confirm: 准备连接目标 ChatGPT Work 对话？有效连接信息会被复用。
         action: { method: dot.begin-pairing }
-      - id: show-instructions
-        label: 生成订阅消息
-        render: row
-        resultRender: text
-        next: status
-        action: { method: dot.show-instructions }
       - id: reconnect
         label: 重置连接
         render: row

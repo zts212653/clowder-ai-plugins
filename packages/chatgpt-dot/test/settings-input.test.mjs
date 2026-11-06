@@ -202,7 +202,7 @@ test("entry actions consume the current configuration draft passed by the Host",
 	assert.equal(issuedTtls[0], 7 * 24 * 60 * 60);
 	const afterGeneration = await settings.actions["dot.status"]({}, undefined, f.owner);
 	assert.equal(afterGeneration.data.rows.some((row) => row.key === "connection-message"), false);
-	assert.ok(afterGeneration.data.rows[0].actions.some((action) => action.action === "show-instructions" && action.label === "生成订阅消息"));
+	assert.equal(afterGeneration.data.rows[0].actions?.some((action) => action.action === "show-instructions") ?? false, false);
 	assert.equal(f.records.get("dot/external/v1").value.pending.discoveredAt, null);
 	const subscriptionMessage = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
 	assert.match(subscriptionMessage.data, /dot\.summoned/);
