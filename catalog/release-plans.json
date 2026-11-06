@@ -201,6 +201,15 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/201",
       "reason": "The terminal-facts release uses SDK candidate.11 atomic indexed private storage. Verified home Host acceptance supports its owner-authorized archive upgrade; compatibility of all public catalog consumers remains unverified, so global discovery stays on the existing version.",
       "condition": "Verify the paired public Host indexed-storage/native-action compatibility and complete a separate scoped activation review before changing global discovery."
+    },
+    {
+      "pluginId": "official.companion.personal-chrome",
+      "version": "0.1.0-alpha.10",
+      "integrity": "sha512-N6mohK+qmgNW08yRGa2g1N4Ja6hMbpfLOGg6IPqHB/HgzlUvqwm9/6AQqt56umDqeoe19OtgqlegMz2p0eeVMA==",
+      "disposition": "activate",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-08T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/203"
     }
   ]
 }
