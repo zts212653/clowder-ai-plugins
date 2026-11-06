@@ -45,7 +45,7 @@ export function migrationFixture() {
     log: (_level, message) => { logs.push(message); },
   };
   const module = createGitHubPluginModule({ pollIntervalMs: 0, now: () => 1000, createProvider: () => ({ selfLogin: () => 'self',
-    read: async target => { reads++; return { state: 'open', headSha: 'new', ci: 'pass', comments: target.kind === 'issue'
+    read: async target => { reads++; return { state: 'open', headSha: 'b'.repeat(40), ci: 'pass', comments: target.kind === 'issue'
       ? [{ id: 24, author: 'external', body: 'New external update', commentType: 'conversation', createdAt: '2026-10-21T00:00:00Z' }] : [], reviews: [], commentsComplete: true }; } }) });
   const owner = (read = false): PluginHostActionContext => ({ kind: 'owner-http-request', userId: 'owner', pluginInstanceId: 'instance',
     operation: read ? 'read' : 'write', signal, assertCurrent: async () => {} });

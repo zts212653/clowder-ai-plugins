@@ -1,4 +1,5 @@
 import type { CommunityEvent, CommunityObjectProjection } from './business/model/index.js';
+import { currentProviderFacts, reduceProviderHistory } from './business/domains/community/provider-period.js';
 import { sanitize } from './business/domains/community/issue-analysis/CommunityIssueSanitizer.js';
 
 /** Provider portion of the old Community board. Host assignment/closure actions
@@ -13,17 +14,24 @@ export function providerObservation(subjectKey: string, events: readonly Communi
       lastObservedAt = Math.max(lastObservedAt ?? 0, event.at);
       if (typeof event.payload.title === 'string') title = event.payload.title;
       if (['issue.opened', 'issue.reopened', 'pr.opened', 'pr.ready_for_review'].includes(event.kind)) state = 'open';
-      if (['issue.closed', 'pr.closed'].includes(event.kind)) state = 'closed';
-      if (event.kind === 'pr.merged') state = 'merged';
+      if (event.kind === 'issue.closed') state = 'closed';
     }
   }
   const review = projection?.externalReview;
+  const reduced = reduceProviderHistory(events), period = reduced.state;
+  const open = period?.state === 'open' ? { headSha: period.headSha! } : !period ? projection?.providerOpen : undefined;
+  const terminal = period ? currentProviderFacts(reduced) : open ? undefined : projection?.terminalFacts;
+  const summary = period?.enrolled && !terminal;
   return {
-    subjectKey, title, state, lastObservedAt, eventCount: events.length,
+    subjectKey, title, state: period?.state ?? (open ? 'open' : terminal?.state ?? state), lastObservedAt, eventCount: events.length,
     // Deliberate field projection: no callback principal, verdict or lease.
-    headSha: review?.currentHeadSha ?? null,
-    ci: review?.ci?.headSha === review?.currentHeadSha ? review?.ci?.status ?? null : null,
-    cloud: review?.cloud?.headSha === review?.currentHeadSha ? review?.cloud?.status ?? null : null,
+    headSha: period?.enrolled ? period.headSha : open ? open.headSha : terminal ? terminal.headSha : review?.currentHeadSha ?? null,
+    ci: summary || open ? 'unknown' : terminal ? terminal.ci?.status ?? 'unknown' : review?.ci?.headSha === review?.currentHeadSha ? review?.ci?.status ?? null : null,
+    cloud: !summary && !open && review?.cloud?.headSha === (terminal ? terminal.headSha : review?.currentHeadSha) ? review?.cloud?.status ?? null : null,
+    ...((summary || open) && reduced.facts ? { historicalTerminalFacts: reduced.facts } : {}),
+    ...(terminal ? { terminalFacts: terminal,
+      finalReviews: terminal.headSha ? terminal.reviews.filter(item => item.commitId === terminal.headSha) : [],
+    } : {}),
   };
 }
 

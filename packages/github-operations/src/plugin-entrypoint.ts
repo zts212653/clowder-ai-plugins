@@ -33,6 +33,7 @@ import { GitHubPrTitleReader, prTitleHttp } from './pr-title-reader.js';
 import { createGitHubSettings } from './settings.js';
 import { findThreadMetadata } from './metadata-thread.js';
 import type { GitHubRequestOptions } from './business/infrastructure/github/request-budget.js';
+import { TerminalReconciliationRuntime, TERMINAL_RECONCILIATION_METHOD } from './terminal-reconciliation.js';
 
 // Host declared webhook dispatch nests the request under action params. The
 // webhook handlers declare no static params; flat requests are invalid.
@@ -83,6 +84,8 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   const publisher = options.createIssuePublisher?.(context) ?? transport;
   const drafts = new NativeIssueDraftRuntime(context, publisher);
   const community = new CommunityRuntime(context, options.createCommunityProvider?.(context) ?? transport);
+  const terminalReconciliation = new TerminalReconciliationRuntime({ storage: context.storage, provider,
+    projectionOperations: community.projectionOperations });
   const narrator = new CommunityNarratorRuntime(context);
   const reviewEvidence = options.createReviewEvidenceProvider?.(context) ?? transport;
   const reviewVerdicts = new CommunityReviewVerdictRuntime({
@@ -166,6 +169,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
       }),
       'github.pr-title.http': prTitleHttp(prTitles),
       [REVIEW_VERDICT_METHOD]: (input: unknown, caller?: PluginActionContext) => reviewVerdicts.record(input, caller),
+      [TERMINAL_RECONCILIATION_METHOD]: (input: unknown, caller?: PluginActionContext) => terminalReconciliation.reconcile(input, caller),
       ...Object.fromEntries(
         communityNativeMethods.map((method) => [
           method,
@@ -252,6 +256,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
         migratedIssues.stop(),
         prTitles.stop(),
         reviewVerdicts.stop(),
+        terminalReconciliation.stop(),
         narrator.stop(),
         http.stop(),
         collection.stop(),

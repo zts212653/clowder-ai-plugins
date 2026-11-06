@@ -1,3 +1,4 @@
+import { normalizeProviderLifecycle, reduceProviderEvent, reduceProviderHistory } from '../../../domains/community/provider-period.js';
 /**
  * F141: GitHub Repo Webhook Handler
  *
@@ -5,7 +6,10 @@
  */
 import type { CommunityEvent, CommunityEventKind } from '../../../model/index.js';
 import type { ICommunityEventLog } from '../../../domains/community/CommunityEventLog.js';
-import { issueCommentEventId } from '../../../domains/community/community-keys.js';
+import { issueCommentEventId, reviewEventId } from '../../../domains/community/community-keys.js';
+import { terminalFactsFromProvider } from '../../../../github-terminal-facts.js';
+import { terminalObservationEvent, terminalReviews } from '../../../domains/community/terminal-provider-facts.js';
+import type { PrTerminalFacts } from '../../../model/types/provider-terminal.js';
 import {
   classifyIssueComment as classifyIssueCommentActivity,
   type IssueCommentClassification,
@@ -26,7 +30,7 @@ const CONNECTOR_ID = 'github-repo-event';
 const SKIP_AUTHOR_ASSOCIATIONS = new Set(['OWNER']);
 
 const ALLOWED_EVENTS: Record<string, readonly string[]> = {
-  pull_request: ['opened', 'ready_for_review', 'closed'],
+  pull_request: ['opened', 'ready_for_review', 'closed', 'reopened'],
   // F168 Phase A: lifecycle; Phase B: labeled/unlabeled activity signals
   issues: ['opened', 'closed', 'reopened', 'labeled', 'unlabeled'],
   // F168 Phase B: activity signal events (log-only, no inbox notification)
@@ -44,6 +48,7 @@ const LOG_ONLY_EVENTS = new Set([
   'issues.labeled',
   'issues.unlabeled',
   'pull_request_review.submitted',
+  'pull_request.reopened',
 ]);
 
 export type WebhookHandleResult =
@@ -60,6 +65,9 @@ export interface GitHubRepoHandlerDeps {
   readonly reconciliationDedup?: Pick<ReconciliationDedup, 'markNotified'>;
   readonly eventLog?: ICommunityEventLog;
   readonly projector?: ICommunityProjectorApply;
+  readonly mayObserveTerminalFacts?: (subjectKey: string) => Promise<boolean>;
+  readonly collectTerminalFacts?: (facts: PrTerminalFacts) => Promise<void | boolean>;
+  readonly observeProviderOpen?: (subjectKey: string) => Promise<void>;
   readonly classifyIssueComment?: (comment: { author: string; body: string }) => IssueCommentClassification;
 }
 
@@ -101,6 +109,11 @@ export class GitHubRepoWebhookHandler {
     const deliveryId = headers['x-github-delivery'];
     if (!deliveryId) {
       return { kind: 'error', status: 400, message: 'Missing x-github-delivery header' };
+    }
+    const prNumber = (payload.pull_request as { number?: number } | undefined)?.number;
+    if (action !== 'reopened' && Number.isSafeInteger(prNumber) && prNumber! > 0 && this.deps.mayObserveTerminalFacts &&
+        !await this.deps.mayObserveTerminalFacts(`pr:${repo}#${prNumber}`)) {
+      return { kind: 'skipped', reason: 'Historical terminal facts require explicit reconciliation' };
     }
     if (!(await this.deps.dedup.claim(deliveryId))) {
       return { kind: 'skipped', reason: `Duplicate delivery: ${deliveryId}` };
@@ -146,7 +159,10 @@ export class GitHubRepoWebhookHandler {
     // 5.6. Skip repo owner's own PRs/issues — not community contributions
     // (Applied after log-only check: owner activity signals are still logged above)
     const authorAssociation = (subject.author_association as string) ?? '';
-    if (SKIP_AUTHOR_ASSOCIATIONS.has(authorAssociation)) {
+    const ownerAuthored = SKIP_AUTHOR_ASSOCIATIONS.has(authorAssociation);
+    const knownTerminal = ownerAuthored && eventType === 'pull_request' && action === 'closed' &&
+      !!(await this.deps.eventLog?.read(`pr:${repo}#${subject.number}`))?.length;
+    if (ownerAuthored && !knownTerminal) {
       return { kind: 'skipped', reason: `Skipping ${authorAssociation} event` };
     }
 
@@ -192,6 +208,28 @@ export class GitHubRepoWebhookHandler {
 
         if (eventKind) {
           const subjectKey = `${signal.subjectType}:${signal.repoFullName}#${signal.number}`;
+          if ((eventKind === 'pr.merged' || eventKind === 'pr.closed') && (subject.head || subject.state === 'closed') &&
+              (!this.deps.mayObserveTerminalFacts || await this.deps.mayObserveTerminalFacts(subjectKey))) {
+            const facts = terminalFactsFromProvider({ repo: signal.repoFullName, number: signal.number,
+              metadata: subject, reviews: [], ci: null, source: 'github-webhook', observedAt: Date.now() });
+            const observation = terminalObservationEvent({ ...facts,
+              reviews: terminalReviews(await this.deps.eventLog.read(subjectKey)) });
+            if (this.deps.collectTerminalFacts) {
+              if (await this.deps.collectTerminalFacts(facts) === false) {
+                try { await this.deps.dedup.confirm(deliveryId); } catch { /* Retain the existing claim. */ }
+                return { kind: 'processed', messageId: '' };
+              }
+            }
+            else {
+              if (!reduceProviderEvent(reduceProviderHistory(await this.deps.eventLog.read(subjectKey)), observation).accepted) {
+                try { await this.deps.dedup.confirm(deliveryId); } catch { /* Retain claim. */ }
+                return { kind: 'processed', messageId: '' };
+              }
+              const recorded = await this.deps.eventLog.append(observation);
+              if (recorded.appended) await this.deps.projector?.apply(observation);
+              else await this.deps.projector?.rebuild(subjectKey);
+            }
+          }
           // P1-1: pr.merged / pr.closed must use lifecycle sourceEventId to dedup with polling paths
           // (CiCdRouter + ReviewFeedbackTaskSpec both emit lifecycle:${subjectKey}:merged|closed).
           // All other inbox-notification events remain delivery-ID keyed.
@@ -219,7 +257,13 @@ export class GitHubRepoWebhookHandler {
             // If baseBranch or defaultBranch unknown → omit isDefaultBranchPr
             // (projector treats undefined as backward-compat default: parse as normal)
           }
-          const communityEvent: CommunityEvent = {
+          if (eventKind === 'pr.closed' || eventKind === 'pr.merged') {
+            if (typeof subject.closed_at === 'string') eventPayload.closedAt = subject.closed_at;
+            if (typeof subject.merged_at === 'string') eventPayload.mergedAt = subject.merged_at;
+            const head = subject.head as { sha?: string } | undefined;
+            if (head?.sha) eventPayload.headSha = head.sha;
+          }
+          let communityEvent: CommunityEvent = {
             sourceEventId,
             subjectKey,
             kind: eventKind,
@@ -227,6 +271,12 @@ export class GitHubRepoWebhookHandler {
             payload: eventPayload,
             at: Date.now(),
           };
+          const period = reduceProviderHistory(await this.deps.eventLog.read(subjectKey));
+          communityEvent = normalizeProviderLifecycle(communityEvent, period);
+          if (!reduceProviderEvent(period, communityEvent).accepted) {
+            try { await this.deps.dedup.confirm(deliveryId); } catch { /* Retain claim. */ }
+            return { kind: 'processed', messageId: '' };
+          }
           const { appended } = await this.deps.eventLog.append(communityEvent);
           if (appended && this.deps.projector) {
             await this.deps.projector.apply(communityEvent);
@@ -259,7 +309,7 @@ export class GitHubRepoWebhookHandler {
 
       // Routing and wake use the installation's authorized repository config.
       // No Host-specific inbox creation, thread-kind stamp or custody authority.
-      delivered = await this.deps.deliver(signal, this.formatMessage(signal));
+      delivered = knownTerminal ? { messageId: '' } : await this.deps.deliver(signal, this.formatMessage(signal));
     } catch (err) {
       // Permit retry; SDK delivery uses a stable idempotency key even if the
       // transport failed after persisting the message.
@@ -328,6 +378,14 @@ export class GitHubRepoWebhookHandler {
     if (!this.deps.eventLog) return;
 
     const repo = (payload.repository as { full_name: string }).full_name;
+    if (eventType === 'pull_request' && action === 'reopened') {
+      const pr = payload.pull_request as { number?: number; html_url?: string } | undefined;
+      if (!pr || typeof pr.number !== 'number' || !Number.isSafeInteger(pr.number) || pr.number < 1 ||
+          pr.html_url?.toLowerCase() !== `https://github.com/${repo}/pull/${pr.number}`.toLowerCase()) throw new TypeError('webhook reopen subject identity mismatch');
+      if (!this.deps.observeProviderOpen) throw new Error('Provider reopening requires a current provider read');
+      await this.deps.observeProviderOpen(`pr:${repo}#${pr.number}`);
+      return;
+    }
 
     let kind: CommunityEventKind | undefined;
     let subjectKey: string | undefined;
@@ -388,16 +446,24 @@ export class GitHubRepoWebhookHandler {
             id?: number;
             user?: { login?: string };
             author_association?: string;
+            commit_id?: string;
+            state?: string;
+            submitted_at?: string;
+            pull_request_url?: string;
           }
         | undefined;
       if (!pr) return;
       kind = 'pr.review_submitted';
       subjectKey = `pr:${repo}#${pr.number}`;
       // P1-4b: stable sourceEventId for dedup with future polling path
-      sourceEventId = `review:${repo}#${pr.number}:${review?.id ?? deliveryId}`;
+      if (review?.pull_request_url && review.pull_request_url.toLowerCase() !== `https://api.github.com/repos/${repo}/pulls/${pr.number}`.toLowerCase()) throw new TypeError('webhook review subject identity mismatch');
+      sourceEventId = review?.id && review.state ? reviewEventId(repo, pr.number, review.id, review.state) : `review:${repo}#${pr.number}:${review?.id ?? deliveryId}`;
       eventPayload = {
         reviewId: review?.id,
         reviewerLogin: review?.user?.login ?? '',
+        ...(review?.state ? { reviewState: review.state } : {}),
+        ...(review?.commit_id ? { commitId: review.commit_id } : {}),
+        ...(review?.submitted_at ? { submittedAt: review.submitted_at } : {}),
         title: pr.title ?? '',
         // P1-4a: required by delivery policy (OWNER/MEMBER review → silent-log in awaiting_external)
         authorAssociation: review?.author_association ?? 'NONE',

@@ -1104,7 +1104,7 @@ test('real CI transport isolates detail/truncation deadlines and resolves the co
         throw new Error('unreachable');
       }
       if (path === 'user') return { stdout: 'self' };
-      if (/\/pulls\/(1|2)$/.test(path)) return { stdout: JSON.stringify({ state: 'open', head: { sha: head }, user: { login: 'self' } }) };
+      if (/\/pulls\/(1|2)$/.test(path)) return { stdout: JSON.stringify({ number: Number(path.split('/').at(-1)), html_url: 'https://github.com/owner/repo/pull/' + path.split('/').at(-1), state: 'open', head: { sha: head }, user: { login: 'self' } }) };
       if (path.includes('/comments?') || path.includes('/reviews?')) return { stdout: '' };
       throw new Error('Unexpected CI request ' + args.join(' '));
     } });

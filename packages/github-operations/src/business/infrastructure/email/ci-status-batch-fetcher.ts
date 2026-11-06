@@ -2,7 +2,7 @@
 import { GitHubRateLimitError } from '../github/request-budget.js';
 import type { CiPollResult } from './ci-cd-contract.js';
 import { executeGh, type FetchPrCiStatusOptions } from './ci-status-common.js';
-import { ciRollupFields, graphQlPrToPollResult, rollupPage, type GraphQlPr, type GraphQlRollupContext } from './ci-status-rollup.js';
+import { ciRollupFields, graphQlPrToPollResult, graphQlSubjectMatches, rollupPage, type GraphQlPr, type GraphQlRollupContext } from './ci-status-rollup.js';
 
 export interface PrCiStatusTarget {
   readonly repoFullName: string;
@@ -79,8 +79,8 @@ function buildBatchQuery(targets: readonly PrCiStatusTarget[], after?: string): 
     const pullRequests = group.targets
       .map(
         (target) => `${target.prAlias}: pullRequest(number: ${target.prNumber}) {
-          headRefOid state mergedAt mergedBy { login }
-          commits(last: 1) { nodes { commit { statusCheckRollup {
+          number repository { nameWithOwner } headRefOid state mergedAt mergedBy { login }
+          commits(last: 1) { nodes { commit { oid statusCheckRollup {
             contexts(first: 100${after ? `, after: ${JSON.stringify(after)}` : ''}) { nodes {
               ${ciRollupFields}
             } pageInfo { hasNextPage endCursor } }
@@ -166,13 +166,14 @@ export async function fetchExactPrCiStatus(
     }
     const pr = parsed?.data?.[ref.repoAlias]?.[ref.prAlias];
     if (!parsed || !pr?.headRefOid || hasPrErrors(parsed, ref) || (first && first.headRefOid !== pr.headRefOid)) return null;
+    if (pr.state !== 'OPEN' && !graphQlSubjectMatches(target, pr)) return null;
     first ??= pr;
     const page = rollupPage(pr);
-    if (pr.state !== 'OPEN' || !page) return graphQlPrToPollResult(target, pr);
+    if (!page) return graphQlPrToPollResult(target, pr);
     if (!page.nodes || typeof page.pageInfo?.hasNextPage !== 'boolean') return null;
     contexts.push(...page.nodes);
     if (!page.pageInfo.hasNextPage) return graphQlPrToPollResult(target, {
-      ...pr, commits: { nodes: [{ commit: { statusCheckRollup: {
+      ...pr, commits: { nodes: [{ commit: { oid: pr.commits?.nodes?.at(-1)?.commit?.oid, statusCheckRollup: {
         contexts: { nodes: contexts, pageInfo: { hasNextPage: false } },
       } } }] },
     });
