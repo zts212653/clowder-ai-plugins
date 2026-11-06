@@ -140,6 +140,14 @@ export function applyTerminalProviderFacts(state: ExternalReviewAggregate | null
     cloud: sameHead ? state.cloud : null, wake: null, pendingVerdict: null };
 }
 
+/** A reopened provider subject is still the original terminal native review. */
+export function applyProviderOpenObservation(state: ExternalReviewAggregate | null, headSha: string, observedAt: number): ExternalReviewAggregate | null {
+  if (!state) return null;
+  return { ...state, lifecycle: 'terminal', currentHeadSha: headSha,
+    headGeneration: currentHeadGeneration(state) + (state.currentHeadSha === headSha ? 0 : 1),
+    currentHeadObservedAt: observedAt, ci: null, cloud: null, wake: null, pendingVerdict: null };
+}
+
 function eventHeadGeneration(state: ExternalReviewAggregate, payload: Record<string, unknown>): number | null {
   if (payload.headGeneration === undefined) return currentHeadGeneration(state);
   return readPositiveInteger(payload.headGeneration) ?? null;

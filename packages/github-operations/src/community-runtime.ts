@@ -244,7 +244,10 @@ export class CommunityRuntime {
     return this.serialize(async () => {
       const subjectKey = `${target.kind}:${target.repoFullName}#${target.number}`;
       const collection = new TerminalFactCollection(this.context.storage, this.events, this.projector, this.projectionOperations, this.lifetime.signal);
-      if (target.kind === 'pr' && !await collection.allowed(subjectKey)) { await this.projector.resumeFollowUps(subjectKey); return; }
+      const open = snapshot.state === 'open' && snapshot.headSha ? { headSha: snapshot.headSha,
+        ...(snapshot.observedAt !== undefined ? { observedAt: snapshot.observedAt } : {}),
+        ...(snapshot.providerUpdatedAt ? { providerUpdatedAt: snapshot.providerUpdatedAt } : {}) } : undefined;
+      if (target.kind === 'pr' && !open && !await collection.allowed(subjectKey)) { await this.projector.resumeFollowUps(subjectKey); return; }
       const events: CommunityEvent[] = [];
       const noise = await this.context.config.get('setupNoiseBotLogins');
       if (noise !== undefined && typeof noise !== 'string') throw new TypeError('setupNoiseBotLogins must be a string');
@@ -285,9 +288,11 @@ export class CommunityRuntime {
       }
       if (snapshot.state !== 'open') events.push({
         sourceEventId: `lifecycle:${subjectKey}:${snapshot.state}`, subjectKey, classification: 'state-changing',
-        kind: target.kind === 'issue' ? 'issue.closed' : snapshot.state === 'merged' ? 'pr.merged' : 'pr.closed', payload: {}, at: Date.now(),
+        kind: target.kind === 'issue' ? 'issue.closed' : snapshot.state === 'merged' ? 'pr.merged' : 'pr.closed',
+        payload: { ...(snapshot.observedAt !== undefined ? { providerObservedAt: snapshot.observedAt } : {}),
+          ...(terminalFacts?.closedAt ? { closedAt: terminalFacts.closedAt } : {}) }, at: Date.now(),
       });
-      if (target.kind === 'pr') { await collection.collect(subjectKey, events, terminalFacts); return; }
+      if (target.kind === 'pr') { await collection.collect(subjectKey, events, terminalFacts, false, open); return; }
       for (const event of events) {
         this.lifetime.signal.throwIfAborted();
         const appended = await this.events.append(event);
@@ -319,7 +324,18 @@ export class CommunityRuntime {
       const handler = new GitHubRepoWebhookHandler({ webhookSecret: secret, repoAllowlist: configs.map(c => c.repo) }, {
         dedup: new SdkDeliveryDedup(this.context.storage), eventLog: this.events, projector: this.projector,
         mayObserveTerminalFacts: subject => new TerminalFactCollection(this.context.storage, this.events, this.projector, this.projectionOperations).allowed(subject),
-        collectTerminalFacts: facts => new TerminalFactCollection(this.context.storage, this.events, this.projector, this.projectionOperations, this.lifetime.signal).collect(facts.subjectKey, [], facts).then(() => {}),
+        collectTerminalFacts: async facts => !(await new TerminalFactCollection(this.context.storage, this.events, this.projector, this.projectionOperations, this.lifetime.signal).collect(facts.subjectKey, [], facts)).denied,
+        observeProviderOpen: async subject => {
+          const match = /^pr:(.+)#([1-9][0-9]*)$/.exec(subject);
+          if (!match) throw new TypeError('Invalid provider PR subject');
+          const snapshot = await this.provider.state(match[1]!, 'pr', Number(match[2]),
+            AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(30_000)]));
+          if (snapshot?.state !== 'open' || !snapshot.headSha) return;
+          await new TerminalFactCollection(this.context.storage, this.events, this.projector, this.projectionOperations, this.lifetime.signal)
+            .collect(subject, [], undefined, false, { headSha: snapshot.headSha,
+              ...(snapshot.observedAt !== undefined ? { observedAt: snapshot.observedAt } : {}),
+              ...(snapshot.providerUpdatedAt ? { providerUpdatedAt: snapshot.providerUpdatedAt } : {}) });
+        },
         reconciliationDedup: { markNotified: async (repo, kind, number) => {
           await this.context.storage.set(stateKey('scan-notified', `${kind}:${repo}#${number}`), true);
         } },

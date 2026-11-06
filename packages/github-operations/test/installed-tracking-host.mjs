@@ -26,6 +26,18 @@ export async function installedTrackingHost(t, { hostRoot, artifact, redisFixtur
 let clock=1000;
 function terminalSnapshot(mode) {
   const value=${JSON.stringify(providerSnapshot ?? null)};
+  if(value && mode==='provider-open') return {state:'open',headSha:'e'.repeat(40),ci:'pending',
+    observedAt:value.terminalFacts.observedAt+10000,providerUpdatedAt:new Date(value.terminalFacts.observedAt+10000).toISOString(),
+    commentsComplete:true,reviews:[],comments:[],trackingIdentity:{selfLogin:'owner',subjectAuthorLogin:'contributor'}};
+  if(value && mode==='provider-merged') {
+    const at=value.terminalFacts.observedAt+20000,headSha='e'.repeat(40);
+    const reviews=[{id:20,author:'reviewer',state:'APPROVED',commitId:headSha,submittedAt:new Date(at-1000).toISOString()}];
+    return {...value,state:'merged',headSha,ci:'pass',reviews,comments:[],observedAt:at+1000,
+      providerUpdatedAt:new Date(at).toISOString(),trackingIdentity:{selfLogin:'owner',subjectAuthorLogin:'contributor'},
+      terminalFacts:{...value.terminalFacts,state:'merged',headSha,reviews,closedAt:new Date(at).toISOString(),
+        mergedAt:new Date(at).toISOString(),mergeCommitSha:'f'.repeat(40),observedAt:at+1000,
+        ci:{...value.terminalFacts.ci,headSha,observedAt:at+1000}}};
+  }
   if (!value || !['terminal-fresh-same','terminal-fail','terminal-unknown'].includes(mode)) return value;
   const delta=mode==='terminal-fresh-same'?500:mode==='terminal-fail'?1000:2000;
   const facts=value.terminalFacts;
@@ -48,6 +60,8 @@ const module=createGitHubPluginModule({now:()=>clock,createProvider:context=>({s
     state:async(_repo,_kind,_number,_signal,includeFacts)=>{
       const value=terminalSnapshot(await context.config.get('fixtureScenario')); if(!value) return null;
       context.log('info','fixture-terminal-state-read',{includeFacts});
+      if(value.state==='open') return {state:'open',headSha:value.headSha,observedAt:value.observedAt,
+        providerUpdatedAt:value.providerUpdatedAt,closedAt:null,mergedAt:null};
       return {state:'closed',closedAt:value.terminalFacts.closedAt,mergedAt:value.terminalFacts.mergedAt,
         ...(includeFacts?{terminalFacts:value.terminalFacts}:{})};
     }})});

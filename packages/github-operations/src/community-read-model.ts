@@ -12,19 +12,21 @@ export function providerObservation(subjectKey: string, events: readonly Communi
     if (event.kind.startsWith('issue.') || event.kind.startsWith('pr.')) {
       lastObservedAt = Math.max(lastObservedAt ?? 0, event.at);
       if (typeof event.payload.title === 'string') title = event.payload.title;
-      if (['issue.opened', 'issue.reopened', 'pr.opened', 'pr.ready_for_review'].includes(event.kind)) state = 'open';
+      if (['issue.opened', 'issue.reopened', 'pr.opened', 'pr.ready_for_review', 'pr.open_observed'].includes(event.kind)) state = 'open';
       if (['issue.closed', 'pr.closed'].includes(event.kind)) state = 'closed';
       if (event.kind === 'pr.merged') state = 'merged';
     }
   }
   const review = projection?.externalReview;
-  const terminal = projection?.terminalFacts;
+  const open = projection?.providerOpen;
+  const terminal = open ? undefined : projection?.terminalFacts;
   return {
-    subjectKey, title, state: terminal?.state ?? state, lastObservedAt, eventCount: events.length,
+    subjectKey, title, state: open ? 'open' : terminal?.state ?? state, lastObservedAt, eventCount: events.length,
     // Deliberate field projection: no callback principal, verdict or lease.
-    headSha: terminal ? terminal.headSha : review?.currentHeadSha ?? null,
-    ci: terminal ? terminal.ci?.status ?? 'unknown' : review?.ci?.headSha === review?.currentHeadSha ? review?.ci?.status ?? null : null,
-    cloud: review?.cloud?.headSha === (terminal ? terminal.headSha : review?.currentHeadSha) ? review?.cloud?.status ?? null : null,
+    headSha: open ? open.headSha : terminal ? terminal.headSha : review?.currentHeadSha ?? null,
+    ci: open ? 'unknown' : terminal ? terminal.ci?.status ?? 'unknown' : review?.ci?.headSha === review?.currentHeadSha ? review?.ci?.status ?? null : null,
+    cloud: !open && review?.cloud?.headSha === (terminal ? terminal.headSha : review?.currentHeadSha) ? review?.cloud?.status ?? null : null,
+    ...(open && projection?.terminalFacts ? { historicalTerminalFacts: projection.terminalFacts } : {}),
     ...(terminal ? { terminalFacts: terminal,
       finalReviews: terminal.headSha ? terminal.reviews.filter(item => item.commitId === terminal.headSha) : [],
     } : {}),

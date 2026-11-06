@@ -6,9 +6,12 @@ import type { ICommunityEventLog } from './business/domains/community/CommunityE
 import type { CommunityProjector, CommunityProjectionOperations } from './business/domains/community/community-projector.js';
 import { mergeTerminalFacts, parseTerminalFacts, shouldObserveTerminalFacts, terminalContent, terminalObservationEvent, terminalReviews } from './business/domains/community/terminal-provider-facts.js';
 import { communityProgressKey } from './legacy-repository-progress.js';
+import { observationIsOlder, providerOpenEvent, providerStateEvidence, type ProviderOpenObservation } from './business/domains/community/provider-open-observation.js';
 
 const checkpointSchema = z.object({ v: z.literal(1), sourceEventId: z.string(),
-  observedAt: z.number().int().nonnegative().safe(), ciObservedAt: z.number().int().nonnegative().safe().nullable() }).strict();
+  observedAt: z.number().int().nonnegative().safe(), ciObservedAt: z.number().int().nonnegative().safe().nullable(),
+  stateSourceEventId: z.string().optional(), stateObservedAt: z.number().int().nonnegative().safe().optional(),
+  stateUpdatedAt: z.string().datetime().optional() }).strict();
 
 function finalHistory(history: readonly CommunityEvent[]) {
   let facts: PrTerminalFacts | undefined, sourceEventId: string | undefined;
@@ -38,15 +41,24 @@ export class TerminalFactCollection {
     return shouldObserveTerminalFacts(await this.events.read(subject));
   }
 
-  async collect(subject: string, batch: readonly CommunityEvent[], incoming?: PrTerminalFacts, historicalAuthorized = false) {
+  async collect(subject: string, batch: readonly CommunityEvent[], incoming?: PrTerminalFacts, historicalAuthorized = false, open?: ProviderOpenObservation) {
     const result = await this.operations.run(subject, async () => {
       this.signal?.throwIfAborted();
       const history = await this.events.read(subject);
-      if (!historicalAuthorized && !shouldObserveTerminalFacts(history)) return { denied: true, recorded: false };
       const previous = finalHistory(history);
       const key = communityProgressKey('terminal-observation', subject);
-      const raw = incoming ? await this.storage.get(key) : null;
+      const raw = incoming || open ? await this.storage.get(key) : null;
       const checkpoint = raw ? checkpointSchema.parse(raw.value) : undefined;
+      const state = providerStateEvidence(history);
+      const stateMatched = checkpoint?.stateSourceEventId === state?.event.sourceEventId;
+      const currentState = state && { ...state,
+        observedAt: stateMatched ? checkpoint?.stateObservedAt ?? state.observedAt : state.observedAt,
+        updatedAt: stateMatched ? checkpoint?.stateUpdatedAt ?? state.updatedAt : state.updatedAt };
+      const reopening = open ? providerOpenEvent(subject, currentState, open) : undefined;
+      if (reopening?.denied || !historicalAuthorized && !shouldObserveTerminalFacts(history) && !reopening?.event) return { denied: true, recorded: false };
+      if (currentState?.state === 'open' && incoming && observationIsOlder(currentState, {
+        ...(incoming.source === 'github-api' ? { observedAt: incoming.observedAt } : {}),
+        providerUpdatedAt: incoming.mergedAt ?? incoming.closedAt ?? undefined })) return { denied: true, recorded: false };
       const matched = checkpoint?.sourceEventId === previous.sourceEventId;
       const baseline = previous.facts && { ...previous.facts,
         observedAt: matched ? Math.max(previous.facts.observedAt, checkpoint!.observedAt) : previous.facts.observedAt,
@@ -57,6 +69,7 @@ export class TerminalFactCollection {
       const observation = facts && (!previous.facts || terminalContent(facts) !== terminalContent(previous.facts))
         ? terminalObservationEvent(facts, previous.sourceEventId) : undefined;
       const rows = [...batch];
+      if (reopening?.event) rows.unshift(reopening.event);
       if (observation) {
         const close = rows.findIndex(event => event.kind === 'pr.merged' || event.kind === 'pr.closed');
         rows.splice(close < 0 ? rows.length : close, 0, observation);
@@ -67,10 +80,21 @@ export class TerminalFactCollection {
         const result = await this.events.append(event);
         if (event === observation) recorded = result.appended;
       }
-      const sourceEventId = observation?.sourceEventId ?? previous.sourceEventId;
-      if (facts && sourceEventId) {
+      const after = providerStateEvidence(await this.events.read(subject));
+      const sourceEventId = observation?.sourceEventId ?? previous.sourceEventId ?? after?.event.sourceEventId;
+      if ((facts || open && after?.state === 'open') && sourceEventId) {
         this.signal?.throwIfAborted();
-        await this.storage.set(key, { v: 1, sourceEventId, observedAt: facts.observedAt, ciObservedAt: facts.ci?.observedAt ?? null });
+        const observedAt = open?.observedAt ?? (incoming?.source === 'github-api' ? incoming.observedAt : undefined);
+        const updatedAt = open?.providerUpdatedAt ?? incoming?.mergedAt ?? incoming?.closedAt ?? undefined;
+        await this.storage.set(key, { v: 1, sourceEventId,
+          observedAt: facts?.observedAt ?? previous.facts?.observedAt ?? checkpoint?.observedAt ?? after!.event.at,
+          ciObservedAt: facts?.ci?.observedAt ?? (open ? checkpoint?.ciObservedAt ?? previous.facts?.ci?.observedAt ?? null : null),
+          ...(after ? { stateSourceEventId: after.event.sourceEventId,
+            ...((observedAt ?? (stateMatched ? checkpoint?.stateObservedAt : after.observedAt)) !== undefined
+              ? { stateObservedAt: Math.max(observedAt ?? after.observedAt ?? 0, stateMatched ? checkpoint?.stateObservedAt ?? 0 : 0) } : {}),
+            ...((updatedAt ?? currentState?.updatedAt) ? { stateUpdatedAt: updatedAt && (!currentState?.updatedAt || Date.parse(updatedAt) >= Date.parse(currentState.updatedAt)) ? updatedAt : currentState?.updatedAt } : {}),
+          } : {}),
+        });
       }
       return { denied: false, recorded };
     });

@@ -88,6 +88,7 @@ export class TerminalReconciliationRuntime {
       const events = new SdkCommunityEventLog(storage), guardedObjects = new SdkCommunityObjectStore(storage);
       const projector = new CommunityProjector(events, guardedObjects, this.options.projectionOperations, 'projection-only');
       const result = await new TerminalFactCollection(storage, events, projector, this.options.projectionOperations, signal).collect(subjectKey, [], facts, true);
+      if (result.denied) throw new Error('Provider observation is older than the current provider state');
       if (!result.recorded) await projector.rebuild(subjectKey);
       await fence();
       return { data: { subjectKey, outcome: result.recorded ? 'recorded' : 'unchanged',

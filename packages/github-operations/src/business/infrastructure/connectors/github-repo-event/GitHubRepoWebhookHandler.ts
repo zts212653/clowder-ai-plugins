@@ -29,7 +29,7 @@ const CONNECTOR_ID = 'github-repo-event';
 const SKIP_AUTHOR_ASSOCIATIONS = new Set(['OWNER']);
 
 const ALLOWED_EVENTS: Record<string, readonly string[]> = {
-  pull_request: ['opened', 'ready_for_review', 'closed'],
+  pull_request: ['opened', 'ready_for_review', 'closed', 'reopened'],
   // F168 Phase A: lifecycle; Phase B: labeled/unlabeled activity signals
   issues: ['opened', 'closed', 'reopened', 'labeled', 'unlabeled'],
   // F168 Phase B: activity signal events (log-only, no inbox notification)
@@ -47,6 +47,7 @@ const LOG_ONLY_EVENTS = new Set([
   'issues.labeled',
   'issues.unlabeled',
   'pull_request_review.submitted',
+  'pull_request.reopened',
 ]);
 
 export type WebhookHandleResult =
@@ -64,7 +65,8 @@ export interface GitHubRepoHandlerDeps {
   readonly eventLog?: ICommunityEventLog;
   readonly projector?: ICommunityProjectorApply;
   readonly mayObserveTerminalFacts?: (subjectKey: string) => Promise<boolean>;
-  readonly collectTerminalFacts?: (facts: PrTerminalFacts) => Promise<void>;
+  readonly collectTerminalFacts?: (facts: PrTerminalFacts) => Promise<void | boolean>;
+  readonly observeProviderOpen?: (subjectKey: string) => Promise<void>;
   readonly classifyIssueComment?: (comment: { author: string; body: string }) => IssueCommentClassification;
 }
 
@@ -108,7 +110,7 @@ export class GitHubRepoWebhookHandler {
       return { kind: 'error', status: 400, message: 'Missing x-github-delivery header' };
     }
     const prNumber = (payload.pull_request as { number?: number } | undefined)?.number;
-    if (Number.isSafeInteger(prNumber) && prNumber! > 0 && this.deps.mayObserveTerminalFacts &&
+    if (action !== 'reopened' && Number.isSafeInteger(prNumber) && prNumber! > 0 && this.deps.mayObserveTerminalFacts &&
         !await this.deps.mayObserveTerminalFacts(`pr:${repo}#${prNumber}`)) {
       return { kind: 'skipped', reason: 'Historical terminal facts require explicit reconciliation' };
     }
@@ -205,13 +207,18 @@ export class GitHubRepoWebhookHandler {
 
         if (eventKind) {
           const subjectKey = `${signal.subjectType}:${signal.repoFullName}#${signal.number}`;
-          if ((eventKind === 'pr.merged' || eventKind === 'pr.closed') && subject.head &&
+          if ((eventKind === 'pr.merged' || eventKind === 'pr.closed') && (subject.head || subject.state === 'closed') &&
               (!this.deps.mayObserveTerminalFacts || await this.deps.mayObserveTerminalFacts(subjectKey))) {
             const facts = terminalFactsFromProvider({ repo: signal.repoFullName, number: signal.number,
               metadata: subject, reviews: [], ci: null, source: 'github-webhook', observedAt: Date.now() });
             const observation = terminalObservationEvent({ ...facts,
               reviews: terminalReviews(await this.deps.eventLog.read(subjectKey)) });
-            if (this.deps.collectTerminalFacts) await this.deps.collectTerminalFacts(facts);
+            if (this.deps.collectTerminalFacts) {
+              if (await this.deps.collectTerminalFacts(facts) === false) {
+                try { await this.deps.dedup.confirm(deliveryId); } catch { /* Retain the existing claim. */ }
+                return { kind: 'processed', messageId: '' };
+              }
+            }
             else {
               const recorded = await this.deps.eventLog.append(observation);
               if (recorded.appended) await this.deps.projector?.apply(observation);
@@ -354,6 +361,14 @@ export class GitHubRepoWebhookHandler {
     if (!this.deps.eventLog) return;
 
     const repo = (payload.repository as { full_name: string }).full_name;
+    if (eventType === 'pull_request' && action === 'reopened') {
+      const pr = payload.pull_request as { number?: number; html_url?: string } | undefined;
+      if (!pr || typeof pr.number !== 'number' || !Number.isSafeInteger(pr.number) || pr.number < 1 ||
+          pr.html_url?.toLowerCase() !== `https://github.com/${repo}/pull/${pr.number}`.toLowerCase()) throw new TypeError('webhook reopen subject identity mismatch');
+      if (!this.deps.observeProviderOpen) throw new Error('Provider reopening requires a current provider read');
+      await this.deps.observeProviderOpen(`pr:${repo}#${pr.number}`);
+      return;
+    }
 
     let kind: CommunityEventKind | undefined;
     let subjectKey: string | undefined;

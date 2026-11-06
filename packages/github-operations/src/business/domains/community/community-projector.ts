@@ -36,7 +36,8 @@ import { selectIssueFixReadiness } from './issue-analysis/issue-fix-evidence.js'
 import { mergeTerminalFacts, parseTerminalFacts, terminalReviews } from './terminal-provider-facts.js';
 import { ZodError } from 'zod';
 import type { PrTerminalFacts } from '../../model/types/provider-terminal.js';
-import { applyTerminalProviderFacts } from './external-review/external-review-aggregate.js';
+import { applyProviderOpenObservation, applyTerminalProviderFacts } from './external-review/external-review-aggregate.js';
+import { observationIsOlder, openObservationSchema, providerStateEvidence } from './provider-open-observation.js';
 
 function issueFixEvidenceFromEvent(event: CommunityEvent): IssueFixEvidence | null {
   if (event.kind === 'issue.commented' || event.kind === 'case.fix_evidence_recorded') {
@@ -278,6 +279,19 @@ export class CommunityProjector {
       return this.objectStore.save({ ...projection, journalCursor, ...(pending.length ? { pendingFollowUps: pending } : {}) });
     };
 
+    if (event.kind === 'pr.open_observed') {
+      const parsed = openObservationSchema.safeParse(event.payload);
+      if (!parsed.success || proj.type !== 'pr') return { accepted: false, followUps };
+      const prior = providerStateEvidence((await this.eventLog.read(event.subjectKey)).slice(0, journalCursor - 1));
+      if (prior?.state === 'merged' || observationIsOlder(prior, parsed.data)) return { accepted: false, followUps };
+      await save({ ...proj, providerOpen: { headSha: parsed.data.headSha, observedAt: event.at,
+        ...(parsed.data.observedAt !== undefined ? { providerObservedAt: parsed.data.observedAt } : {}),
+        ...(parsed.data.providerUpdatedAt ? { providerUpdatedAt: parsed.data.providerUpdatedAt } : {}) },
+        externalReview: applyProviderOpenObservation(proj.externalReview, parsed.data.headSha, event.at),
+        appliedEventCount: proj.appliedEventCount + 1, updatedAt: Math.max(proj.updatedAt, event.at) });
+      return { accepted: true, followUps };
+    }
+
     if (event.kind === 'pr.issue_linked') {
       const number = event.payload.issueNumber;
       if (proj.type !== 'pr' || !Number.isSafeInteger(number) || (number as number) < 1) return { accepted: false, followUps };
@@ -309,12 +323,16 @@ export class CommunityProjector {
       let terminalFacts: PrTerminalFacts;
       try {
         const incoming = parseTerminalFacts(event.payload.terminalFacts, event.subjectKey);
+        if (proj.providerOpen && observationIsOlder({ observedAt: proj.providerOpen.providerObservedAt,
+          updatedAt: proj.providerOpen.providerUpdatedAt }, { ...(incoming.source === 'github-api' ? { observedAt: incoming.observedAt } : {}),
+          providerUpdatedAt: incoming.mergedAt ?? incoming.closedAt ?? undefined })) return { accepted: false, followUps };
         terminalFacts = mergeTerminalFacts(proj.terminalFacts, incoming);
       } catch (error) {
         if (error instanceof TypeError || error instanceof ZodError) return { accepted: false, followUps };
         throw error;
       }
-      await save({ ...proj, terminalFacts, externalReview: applyTerminalProviderFacts(proj.externalReview, terminalFacts),
+      const { providerOpen, ...closed } = proj;
+      await save({ ...closed, terminalFacts, externalReview: applyTerminalProviderFacts(proj.externalReview, terminalFacts),
         appliedEventCount: proj.appliedEventCount + 1, updatedAt: Math.max(proj.updatedAt, now) });
       return { accepted: true, followUps };
     }
@@ -325,7 +343,8 @@ export class CommunityProjector {
     if (isExternalReviewEventKind(event.kind)) {
       // An open-subject observation/assignment may have been queued before the
       // terminal snapshot. It cannot reopen work after the provider fence.
-      if (proj.terminalFacts) return { accepted: false, followUps };
+      if (proj.terminalFacts || proj.externalReview?.lifecycle === 'terminal' ||
+          ['fixed', 'reported', 'closed', 'declined'].includes(proj.state)) return { accepted: false, followUps };
       const result = applyExternalReviewProjectionEvent(proj.externalReview, event);
       if (!result.ok) return { accepted: false, followUps };
       const externalReviewUpdated: CommunityObjectProjection = {

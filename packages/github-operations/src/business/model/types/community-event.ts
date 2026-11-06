@@ -26,6 +26,7 @@ export type CommunityEventKind =
   | 'issue.labeled' // webhook issues.labeled | unlabeled (payload.label carries name)
   | 'pr.review_submitted' // webhook pull_request_review.submitted
   | 'pr.terminal_observed' // provider-only final facts, independent of native delivery
+  | 'pr.open_observed' // provider reopening/head observation; never reopens native review
   | 'pr.issue_linked' // source-bound cross-subject association, in PR journal order
   // Internal decision events
   | 'case.triaged'
@@ -280,6 +281,7 @@ export interface CommunityObjectProjection {
   externalReview: ExternalReviewAggregate | null;
   /** Rebuildable provider facts; never a native review/delivery assertion. */
   terminalFacts?: import('./provider-terminal.js').PrTerminalFacts;
+  providerOpen?: { headSha: string; observedAt: number; providerObservedAt?: number; providerUpdatedAt?: string };
   /** Number of journal positions folded in canonical order, including rejected
    * events. Saved atomically with the derived state; old projections rebuild once. */
   journalCursor?: number;

@@ -23,6 +23,10 @@ interface ApiReview {
   commit_id?: string; submitted_at?: string; author_association?: string;
   pull_request_url?: string;
 }
+function assertPrSubject(metadata: { number?: number; html_url?: string; state: string; head?: { sha: string } }, repo: string, number: number) {
+  if (metadata.number !== number || metadata.html_url?.toLowerCase() !== `https://github.com/${repo}/pull/${number}`.toLowerCase() ||
+      !['open', 'closed'].includes(metadata.state) || metadata.state === 'open' && !/^[a-f0-9]{40}$/i.test(metadata.head?.sha ?? '')) throw new TypeError('GitHub provider subject identity mismatch');
+}
 function commentOf(value: ApiComment, commentType: GitHubComment['commentType']): GitHubComment {
   return { id: value.id, author: value.user.login, body: value.body ?? '', commentType,
     ...(value.commit_id ? { commitId: value.commit_id } : {}),
@@ -132,14 +136,18 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
   }
 
   async state(repo: string, kind: 'pr' | 'issue', number: number, signal: AbortSignal, includeTerminalFacts = false) {
+    const observedAt = Date.now();
     const options = await this.requestOptions(signal);
     const data = JSON.parse((await executeGitHubRequest(['api', `/repos/${repo}/${kind === 'pr' ? 'pulls' : 'issues'}/${number}`], options)).stdout);
+    if (kind === 'pr') assertPrSubject(data, repo, number);
     const snapshot = kind === 'pr' && data.state === 'closed' && includeTerminalFacts
       ? await this.read({ kind, repoFullName: repo, number, threadId: '', catId: '' }, signal) : null;
     if (snapshot) return { state: snapshot.state === 'open' ? 'open' as const : 'closed' as const,
+      observedAt: snapshot.observedAt, headSha: snapshot.headSha, providerUpdatedAt: snapshot.providerUpdatedAt,
       closedAt: snapshot.terminalFacts?.closedAt ?? null, mergedAt: snapshot.terminalFacts?.mergedAt ?? null,
       ...(snapshot.terminalFacts ? { terminalFacts: snapshot.terminalFacts } : {}) };
     return { state: data.state === 'closed' ? 'closed' as const : 'open' as const,
+      ...(kind === 'pr' ? { observedAt, headSha: data.head?.sha, providerUpdatedAt: data.updated_at } : {}),
       closedAt: data.closed_at ?? null, mergedAt: data.merged_at ?? null };
   }
 
@@ -156,8 +164,9 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
     const path = `/repos/${target.repoFullName}`;
     const metadata = JSON.parse((await executeGitHubRequest(
       ['api', `${path}/${target.kind === 'pr' ? 'pulls' : 'issues'}/${target.number}`], options,
-    )).stdout) as { state: string; user?: { login: string }; merged_at?: string | null; merged_by?: { login: string } | null; mergeable_state?: string; head?: { sha: string };
+    )).stdout) as { number?: number; html_url?: string; state: string; updated_at?: string; user?: { login: string }; merged_at?: string | null; merged_by?: { login: string } | null; mergeable_state?: string; head?: { sha: string };
       requested_reviewers?: { login: string }[]; base?: { repo?: { permissions?: { push?: boolean } } } };
+    if (target.kind === 'pr') assertPrSubject(metadata, target.repoFullName, target.number);
     const complete = !!target.cloudReviewRequest || cursor === undefined;
     const conversation = await fetchPaginated(`${path}/issues/${target.number}/comments`, { ...options, sinceId: complete ? undefined : cursor?.conversation }) as ApiComment[];
     const comments: GitHubComment[] = conversation.map(c => commentOf(c, 'conversation'));
@@ -201,6 +210,7 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
       : reviews.some(review => matchesSelf(review.author)) ? 'review_submitted'
       : metadata.base?.repo?.permissions?.push === true ? 'repo_write_access' : undefined;
     return {
+      observedAt, ...(metadata.updated_at ? { providerUpdatedAt: metadata.updated_at } : {}),
       trackingIdentity: { ...(selfLogin ? { selfLogin } : {}),
         ...(metadata.user?.login ? { subjectAuthorLogin: metadata.user.login } : {}),
         ...(reviewerGround ? { reviewerGround } : {}) },

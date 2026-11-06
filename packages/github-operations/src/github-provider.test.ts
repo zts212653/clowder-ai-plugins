@@ -135,7 +135,7 @@ test('cloud observation fetches complete paginated comment history and retains r
     const path = args[1]!; calls.push(path);
     if (path === 'graphql') return ciJson(head);
     if (path === 'user') return { stdout: 'owner' };
-    if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ state: 'open', head: { sha: head } }) };
+    if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ number: 12, html_url: 'https://github.com/example/project/pull/12', state: 'open', head: { sha: head } }) };
     if (path.includes('/pulls/12/comments?')) {
       const row = (id: number) => JSON.stringify({ id, user: { login: 'bot' }, body: 'P2', pull_request_review_id: 77, commit_id: head });
       return { stdout: path.includes('page=2') ? row(101) : Array.from({ length: 100 }, (_, i) => row(i + 1)).join('\n') };
@@ -165,7 +165,7 @@ test('one scoped CI batch serves multiple real provider snapshots without a cros
       return { stdout: JSON.stringify({ data: { r0: { p0: pr, p1: pr } } }) };
     }
     if (path === 'user') return { stdout: 'owner' };
-    if (/\/pulls\/(12|13)$/.test(path)) return { stdout: JSON.stringify({ state: 'open', head: { sha: head } }) };
+    if (/\/pulls\/(12|13)$/.test(path)) return { stdout: JSON.stringify({ number: Number(path.split('/').at(-1)), html_url: 'https://github.com/example/project/pull/' + path.split('/').at(-1), state: 'open', head: { sha: head } }) };
     if (path.includes('/comments?') || path.includes('/reviews?')) return { stdout: '' };
     throw new Error(`Unexpected request ${args.join(' ')}`);
   } });
@@ -189,7 +189,7 @@ function fixture() {
     if (args[0] === 'pr' && args[1] === 'checks') return { stdout: '[]' };
     const path = args[1]!;
     if (path === 'user') return { stdout: 'owner\n' };
-    if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ state: 'open', head: { sha: 'a'.repeat(40) }, mergeable_state: 'clean' }) };
+    if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ number: 12, html_url: 'https://github.com/example/project/pull/12', state: 'open', head: { sha: 'a'.repeat(40) }, mergeable_state: 'clean' }) };
     if (path === '/repos/example/project/issues/comments/99') return { stdout: JSON.stringify({ id: 99, created_at: '2026-10-01T10:00:00Z' }) };
     if (path.includes('/issues/12/comments?')) return { stdout: JSON.stringify({ id: 100, user: { login: 'maintainer' }, body: 'new comment' }) };
     if (path.includes('/pulls/12/comments?') || path.includes('/pulls/12/reviews?')) return { stdout: '' };
@@ -221,7 +221,7 @@ test('real provider derives notification identity from account, author and posit
       execFileAsync: async (_file, args) => {
         const path = args[1];
         if (path === 'user') return { stdout: 'Reviewer\n' };
-        if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ state: 'open', head: { sha: head },
+        if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ number: 12, html_url: 'https://github.com/example/project/pull/12', state: 'open', head: { sha: head },
           user: { login: 'author' }, requested_reviewers: ground === 'review_requested' ? [{ login: 'reviewer' }] : [],
           base: { repo: { permissions: { push: ground === 'repo_write_access' } } } }) };
         if (path?.includes('/reviews?')) return { stdout: ground === 'review_submitted'
@@ -259,7 +259,7 @@ test('real provider preserves billing-only infrastructure classification and ref
       ]);
       const path = args[1]!;
       if (path === 'user') return { stdout: 'owner' };
-      if (path === '/repos/example/project/pulls/12') return json({ state: 'open', head: { sha: head } });
+      if (path === '/repos/example/project/pulls/12') return json({ number: 12, html_url: 'https://github.com/example/project/pull/12', state: 'open', head: { sha: head } });
       if (path.includes('/comments?') || path.includes('/reviews?')) return { stdout: '' };
       if (path.includes('/check-runs?')) return json({ check_runs: [{ id: 7, name: 'build', conclusion: 'failure' }] });
       if (path.includes('/actions/runs?')) return json({ workflow_runs: [{ id: 8, conclusion: 'failure' }] });

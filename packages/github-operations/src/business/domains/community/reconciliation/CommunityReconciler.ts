@@ -32,6 +32,9 @@ export interface GitHubSnapshot {
   closedAt: string | null;
   mergedAt: string | null;
   terminalFacts?: PrTerminalFacts;
+  headSha?: string;
+  observedAt?: number;
+  providerUpdatedAt?: string;
 }
 
 export interface ReconcilerInput {
@@ -164,7 +167,8 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
       });
     }
 
-    // D3.7: GitHub reopened after internal close (issues only — PRs can't reopen)
+    // Issue reopening changes its case. PR reopening is a provider fact owned
+    // by collection and never revokes its original native review fence.
     // Takes priority over D3.6 for closed issues — the reopened event is the
     // concrete fact; D3.6 is the generic drift signal for PRs/declined.
     if (projection.state === 'closed' && ghIsOpen && projection.type === 'issue') {
@@ -194,7 +198,7 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
 
     // D3.6: Case closed/declined while GitHub is open — no fake event, just finding.
     // Skipped for closed issues (handled by D3.7 above).
-    else if (!caseIsActive && ghIsOpen) {
+    else if (!caseIsActive && ghIsOpen && !(projection.type === 'pr' && projection.providerOpen)) {
       findings.push({
         findingId: `reconcile:${projection.subjectKey}:case-closed-github-open`,
         subjectKey: projection.subjectKey,

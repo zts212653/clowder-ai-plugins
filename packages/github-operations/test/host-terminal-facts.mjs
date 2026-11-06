@@ -120,3 +120,68 @@ test('fresh tarball → installed SDK → actual Host worker: terminal repair pr
     nativeDeliveredHistoryPreserved: true, oldSubscriptionDone: true, originalNotRecordedRetained: true,
     noAutomaticHistoricalEnrollment: true, unchangedReadsCoalesced: true, scheduledCiChangesObserved: true, notifications: f.sends.length }));
 });
+
+test('installed Host observe→collect records a reopened provider period without reviving the old native review or done wait', async t => {
+  const closed = { ...synthetic, state: 'closed', terminalFacts: { ...synthetic.terminalFacts,
+    state: 'closed', mergedAt: null, mergeCommitSha: null } };
+  const f = await installedTrackingHost(t, { hostRoot, artifact, redisFixture, providerSnapshot: closed });
+  const { SdkCommunityEventLog } = await load('business/domains/community/CommunityEventLog.js');
+  const { SdkCommunityObjectStore } = await load('business/domains/community/CommunityObjectStore.js');
+  const { SdkCommunityRepoConfigStore } = await load('business/domains/community/CommunityRepoConfigStore.js');
+  const { CommunityProjector } = await load('business/domains/community/community-projector.js');
+  const { GitHubWaitStorage } = await load('typed-wait-storage.js');
+  const subjectKey = closed.terminalFacts.subjectKey;
+  const journal = new SdkCommunityEventLog(f.facade), objects = new SdkCommunityObjectStore(f.facade), projector = new CommunityProjector(journal, objects);
+  await new SdkCommunityRepoConfigStore(f.facade).upsert({ repo: 'example/project', guardThreadId: f.thread.id,
+    guardCatId: 'codex61-sol', reviewMode: 'maintainer_review' });
+  const seeds = [
+    ['case.external_review_assigned', { mode: 'maintainer_review', cloudPolicy: 'optional', reviewerCatId: 'original-reviewer', reviewerThreadId: 'original-thread' }],
+    ['case.head_observed', { headSha: old }], ['case.ci_observed', { headSha: old, status: 'pending' }],
+    ['pr.closed', { closedAt: closed.terminalFacts.closedAt }],
+  ];
+  for (const [i, [kind, payload]] of seeds.entries()) {
+    const event = { sourceEventId: `reopen-consumer-seed-${i}`, subjectKey, kind, payload, classification: 'state-changing', at: i + 1 };
+    await journal.append(event); await projector.apply(event);
+  }
+  const waits = new GitHubWaitStorage(f.facade);
+  const oldWait = await waits.create({ id: 'old-done', kind: 'pr_tracking', subjectKey,
+    userId: 'owner', threadId: 'original-review-thread', ownerCatId: 'original-reviewer', status: 'done', title: 'Ended wait',
+    why: '', createdBy: 'system', createdAt: 1, updatedAt: 2, automationState: {} });
+  const native = (await objects.get(subjectKey)).externalReview;
+  await f.runtime.start('instance', f.record);
+  const denied = await f.call('github.review.record-verdict', { repoFullName: 'example/project', prNumber: 12,
+    reviewedHeadSha: old, verdict: 'approved', summary: 'Old native case is terminal',
+    delivery: { kind: 'delivered', githubUrl: 'https://github.com/example/project/pull/12#pullrequestreview-1' } });
+  assert.equal(denied.status, 409);
+  const refusal = (await f.call('github.subject.inspect', { subjectKey })).data.lastReviewVerdictFailure;
+  f.mode.scenario = 'provider-open';
+  // This is a newly authorized subscription, with a new identity. The old one
+  // remains done and is never renewed to drive the test.
+  await f.call('github.typed-wait.register-pr', { registrationId: 'new-provider-cycle', repoFullName: 'example/project',
+    prNumber: 12, when: [{ kind: 'pr_ci_terminal' }] });
+  f.mode.now += 60_001; await f.call('github.pr-tracking');
+  const opened = (await f.call('github.subject.inspect', { subjectKey })).data;
+  assert.equal(opened.projection.providerOpen.headSha, 'e'.repeat(40));
+  assert.equal(opened.projection.terminalFacts, undefined, 'new opening does not backfill old closing facts');
+  assert.deepEqual(nativeHistory(opened.projection.externalReview), nativeHistory(native));
+  assert.equal(opened.projection.externalReview.lifecycle, 'terminal');
+  assert.equal(opened.projection.externalReview.wake, null);
+  assert.deepEqual(await waits.get(oldWait.id), oldWait); assert.equal(f.sends.length, 0);
+  f.mode.scenario = 'provider-merged'; f.mode.now += 60_001; await f.call('github.pr-tracking');
+  const merged = (await f.call('github.subject.inspect', { subjectKey })).data;
+  assert.equal(merged.projection.terminalFacts.state, 'merged');
+  assert.equal(merged.projection.terminalFacts.headSha, 'e'.repeat(40));
+  assert.equal(merged.projection.terminalFacts.reviews[0].commitId, 'e'.repeat(40));
+  assert.equal(merged.projection.terminalFacts.ci.status, 'pass');
+  assert.equal(merged.projection.providerOpen, undefined);
+  assert.deepEqual(nativeHistory(merged.projection.externalReview), nativeHistory(native));
+  assert.deepEqual(merged.lastReviewVerdictFailure, refusal);
+  assert.deepEqual(await waits.get(oldWait.id), oldWait);
+  assert.equal(merged.events.filter(event => event.kind.startsWith('case.')).length, 3);
+  assert.equal(f.sends.length, 1, 'only the explicitly new wait receives its own terminal outcome');
+  await projector.rebuild(subjectKey);
+  assert.deepEqual(await objects.get(subjectKey), merged.projection);
+  console.log(JSON.stringify({ installedProviderReopen: true, actualObserveThenCollect: true,
+    newMergeFactsCaptured: true, oldNativeReviewUnchanged: true, oldDoneWaitUnchanged: true,
+    refusalRetained: true, newWaitNotifications: f.sends.length }));
+});

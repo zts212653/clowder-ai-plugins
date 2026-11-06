@@ -46,6 +46,8 @@ export interface GitHubReview {
   readonly authorAssociation?: string;
 }
 export interface GitHubSnapshot {
+  readonly observedAt?: number;
+  readonly providerUpdatedAt?: string;
   readonly terminalFacts?: import('./business/model/types/provider-terminal.js').PrTerminalFacts;
   readonly trackingIdentity?: import('./business/model/index.js').GitHubTrackingIdentityV1;
   readonly state: 'open' | 'closed' | 'merged';
