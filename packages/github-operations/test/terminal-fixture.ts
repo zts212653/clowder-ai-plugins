@@ -28,7 +28,8 @@ export function terminalSnapshot(state: 'merged' | 'closed' = 'merged'): GitHubS
 
 export async function terminalFixture() {
   const storage = memoryStorage(); let sends = 0;
-  const context = { storage, config: { get: async () => undefined }, log() {},
+  const context = { storage, config: { get: async () => undefined },
+    secrets: { get: async (key: string) => key === 'webhookSecret' ? 'isolated-test-secret' : undefined }, log() {},
     messaging: { send: async () => { sends++; throw new Error('fact collection cannot deliver'); } } } as unknown as FeatureContext;
   const community = new CommunityRuntime(context, { selfLogin: () => 'self', listOpen: async () => [], repoComments: async () => [], state: async () => null });
   const projector = new CommunityProjector(community.events, community.objects, community.projectionOperations);

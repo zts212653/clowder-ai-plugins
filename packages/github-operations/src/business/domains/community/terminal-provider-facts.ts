@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import type { CommunityEvent } from '../../model/index.js';
+import type { CommunityEvent, CommunityObjectProjection } from '../../model/index.js';
 import type { PrTerminalFacts } from '../../model/types/provider-terminal.js';
 
 const sha = z.string().regex(/^[a-f0-9]{40}$/);
@@ -64,12 +64,22 @@ export function mergeTerminalFacts(previous: PrTerminalFacts | undefined, next: 
     const preferred = old.state === 'DISMISSED' || item.state !== 'DISMISSED' && old.state !== 'PENDING' ? old : item;
     reviews.set(item.id, { ...preferred, commitId: known(old.commitId, item.commitId), submittedAt: old.submittedAt ?? item.submittedAt });
   }
-  const ci = !previous.ci ? next.ci : !next.ci || next.ci.observedAt < previous.ci.observedAt || next.ci.status === 'unknown' ? previous.ci : next.ci;
+  const ci = !previous.ci ? next.ci : !next.ci || next.ci.observedAt < previous.ci.observedAt ? previous.ci : next.ci;
   return { ...previous, state: next.state, headSha, closedAt: known(previous.closedAt, next.closedAt),
     mergedAt: known(previous.mergedAt, next.mergedAt), mergeCommitSha: known(previous.mergeCommitSha, next.mergeCommitSha),
     reviews: [...reviews.values()].sort((a, b) => a.id - b.id), ci,
     source: previous.source === 'github-api' || next.source === 'github-api' ? 'github-api' : 'github-webhook',
     observedAt: Math.max(previous.observedAt, next.observedAt) };
+}
+
+/** A pre-existing terminal case is not enrolled by loading new code. A live
+ * first terminal observation, or explicitly reconciled final facts, keeps the
+ * existing repository observation lane current without opening review work. */
+export function shouldObserveTerminalFacts(projection: CommunityObjectProjection | null): boolean {
+  if (!projection) return true;
+  if (projection.terminalFacts) return true;
+  return projection.externalReview?.lifecycle !== 'terminal' &&
+    !['fixed', 'reported', 'closed', 'declined'].includes(projection.state);
 }
 
 /** Old journal entries may have no commit association. Retain that uncertainty. */

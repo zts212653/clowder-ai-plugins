@@ -20,7 +20,7 @@
 import type { CommunityEvent, CommunityObjectProjection } from '../../../model/index.js';
 import { DEFAULT_SLA_POLICY, evaluateSlaFindings, type SlaPolicy } from '../community-sla-policy.js';
 import type { PrTerminalFacts } from '../../../model/types/provider-terminal.js';
-import { terminalObservationEvent } from '../terminal-provider-facts.js';
+import { shouldObserveTerminalFacts, terminalObservationEvent } from '../terminal-provider-facts.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -124,7 +124,7 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
       continue;
     }
 
-    if (ghSnap.terminalFacts && ghSnap.state === 'closed' && projection.type === 'pr') {
+    if (ghSnap.terminalFacts && ghSnap.state === 'closed' && projection.type === 'pr' && shouldObserveTerminalFacts(projection)) {
       if (ghSnap.terminalFacts.subjectKey !== projection.subjectKey) throw new TypeError('reconciler terminal subject mismatch');
       events.push(terminalObservationEvent(ghSnap.terminalFacts));
     }

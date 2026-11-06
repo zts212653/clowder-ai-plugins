@@ -151,18 +151,58 @@ export class CommunityProjector {
     await this.applyChecked(event);
   }
 
-  /** Return the transition decision made inside this projector's subject queue. */
+  /** Fold the committed prefix in journal order, regardless of producer apply
+   * order. The requested event's decision is its decision at that position. */
   async applyChecked(event: CommunityEvent): Promise<boolean> {
-    const result = await this.runSubjectOperation(event.subjectKey, () => this.applySubject(event));
+    const result = await this.runSubjectOperation(event.subjectKey, async () => {
+      const current = await this.objectStore.get(event.subjectKey);
+      const cursor = current?.journalCursor;
+      if (cursor !== undefined && (!Number.isSafeInteger(cursor) || cursor < 0)) throw new Error('Invalid projection journal cursor; rebuild required');
+      const pending = await this.eventLog.read(event.subjectKey, cursor ?? 0);
+      if (cursor === undefined || !pending.some(item => item.sourceEventId === event.sourceEventId)) {
+        const history = cursor === undefined ? pending : await this.eventLog.read(event.subjectKey);
+        if (!history.some(item => item.sourceEventId === event.sourceEventId)) throw new Error('Projection event must be committed to its subject journal');
+        await this.resetProjection(event.subjectKey, history[0]?.at ?? event.at, current);
+        return this.fold(history, 0, event.sourceEventId);
+      }
+      return this.fold(pending, cursor, event.sourceEventId);
+    });
     await this.runFollowUps(result.followUps);
     return result.accepted;
   }
 
-  private async applySubject(event: CommunityEvent): Promise<{ accepted: boolean; followUps: Array<() => Promise<void>> }> {
+  private async resetProjection(subjectKey: string, now: number, existing: CommunityObjectProjection | null): Promise<void> {
+    // Bootstrap cross-population belongs to an issue's journal, not this PR's.
+    // Keep those monotonic links when replaying the PR's own journal.
+    if (existing?.type === 'pr' && existing.linkedIssues.length) {
+      await this.objectStore.save({ ...createProjection(subjectKey, 'new', Math.min(now, existing.createdAt)), linkedIssues: existing.linkedIssues, journalCursor: 0 });
+    } else await this.objectStore.delete(subjectKey);
+  }
+
+  private async fold(events: readonly CommunityEvent[], cursor: number, requestedId?: string) {
+    let accepted = false;
+    const followUps: Array<() => Promise<void>> = [];
+    for (const [index, event] of events.entries()) {
+      const nextCursor = cursor + index + 1;
+      const result = await this.applySubject(event, nextCursor);
+      if (event.sourceEventId === requestedId) accepted = result.accepted;
+      followUps.push(...result.followUps);
+      // Ignored/rejected events which made no state write still consume one
+      // journal position. State-changing writes carry this cursor atomically.
+      const projected = await this.objectStore.get(event.subjectKey);
+      if (projected?.journalCursor !== nextCursor) await this.objectStore.save({
+        ...(projected ?? createProjection(event.subjectKey, 'new', event.at)), journalCursor: nextCursor,
+      });
+    }
+    return { accepted, followUps };
+  }
+
+  private async applySubject(event: CommunityEvent, journalCursor: number): Promise<{ accepted: boolean; followUps: Array<() => Promise<void>> }> {
     const followUps: Array<() => Promise<void>> = [];
     const now = event.at;
     const existing = await this.objectStore.get(event.subjectKey);
     let proj: CommunityObjectProjection = existing ?? createProjection(event.subjectKey, 'new', now);
+    const save = (projection: CommunityObjectProjection) => this.objectStore.save({ ...projection, journalCursor });
 
     if (event.kind === 'pr.review_submitted' && proj.terminalFacts) {
       const reviews = terminalReviews([event]);
@@ -184,7 +224,7 @@ export class CommunityProjector {
         if (error instanceof TypeError || error instanceof ZodError) return { accepted: false, followUps };
         throw error;
       }
-      await this.objectStore.save({ ...proj, terminalFacts, externalReview: applyTerminalProviderFacts(proj.externalReview, terminalFacts),
+      await save({ ...proj, terminalFacts, externalReview: applyTerminalProviderFacts(proj.externalReview, terminalFacts),
         appliedEventCount: proj.appliedEventCount + 1, updatedAt: Math.max(proj.updatedAt, now) });
       return { accepted: true, followUps };
     }
@@ -214,7 +254,7 @@ export class CommunityProjector {
         if (typeof p.reviewerThreadId === 'string') externalReviewUpdated.ownerThreadId = p.reviewerThreadId;
         if (typeof p.reviewerCatId === 'string') externalReviewUpdated.ownerRole = p.reviewerCatId;
       }
-      await this.objectStore.save(externalReviewUpdated);
+      await save(externalReviewUpdated);
       return { accepted: true, followUps };
     }
 
@@ -243,7 +283,7 @@ export class CommunityProjector {
           issueFixEvidence: issueFixEvidenceFromEvent(event) ?? proj.issueFixEvidence,
           updatedAt: now,
         };
-        await this.objectStore.save(updated);
+        await save(updated);
         return { accepted: true, followUps };
       }
       // State-changing event rejected — record for observability, do not change state
@@ -252,7 +292,7 @@ export class CommunityProjector {
         lastRejectedEvent: event,
         updatedAt: now,
       };
-      await this.objectStore.save(updated);
+      await save(updated);
       return { accepted: false, followUps };
     }
 
@@ -349,7 +389,7 @@ export class CommunityProjector {
       }
     }
 
-    await this.objectStore.save(updated);
+    await save(updated);
 
     // F168 Phase A: cascade pr.merged → linked issues → fixed
     // linkedIssues contains issue NUMBERS (same repo as PR). Cascade only on fresh apply.
@@ -372,7 +412,7 @@ export class CommunityProjector {
         const prSubjectKey = `pr:${issueRepo}#${prNum}`;
         await this.runSubjectOperation(prSubjectKey, async () => {
           const existingPrProj = await this.objectStore.get(prSubjectKey);
-          const prProj = existingPrProj ?? createProjection(prSubjectKey, 'new', now);
+          const prProj = existingPrProj ?? { ...createProjection(prSubjectKey, 'new', now), journalCursor: 0 };
           if (!prProj.linkedIssues.includes(issueNum)) {
             // Do NOT override updatedAt — cross-populate is metadata, not a state change.
             // The PR's own events already set updatedAt correctly. Overriding with
@@ -445,11 +485,10 @@ export class CommunityProjector {
 
   private async rebuildSubject(subjectKey: string): Promise<void> {
     const followUps = await this.runSubjectOperation(subjectKey, async () => {
-      await this.objectStore.delete(subjectKey);
+      const existing = await this.objectStore.get(subjectKey);
       const events = await this.eventLog.read(subjectKey);
-      const pending: Array<() => Promise<void>> = [];
-      for (const event of events) pending.push(...(await this.applySubject(event)).followUps);
-      return pending;
+      await this.resetProjection(subjectKey, events[0]?.at ?? existing?.createdAt ?? 0, existing);
+      return (await this.fold(events, 0)).followUps;
     });
     await this.runFollowUps(followUps);
   }

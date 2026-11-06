@@ -36,7 +36,7 @@ test('verified webhook HEAD and review associations survive either arrival order
   }
 });
 
-test('existing repository reconciler enriches terminal historical cases after its quiet baseline', async t => {
+test('repository reconciliation cannot backfill an existing terminal case even when a provider supplies unsolicited facts', async t => {
   const f = await terminalFixture(); t.after(() => f.community.stop());
   await f.community.collectTracking(target, { state: 'closed', comments: [], reviews: [] });
   const native = (await f.community.objects.get(subject))!.externalReview;
@@ -50,8 +50,35 @@ test('existing repository reconciler enriches terminal historical cases after it
   assert.deepEqual(await f.community.events.read(subject), initial);
   await runCommunityReconciliation(options, new AbortController().signal);
   const read = providerObservation(subject, await f.community.events.read(subject), await f.community.objects.get(subject));
-  assert.equal(read.headSha, head); assert.equal(read.ci, 'pass');
+  assert.equal(read.headSha, native?.currentHeadSha); assert.equal(read.ci, 'pending');
+  assert.equal(read.terminalFacts, undefined);
   assert.deepEqual(nativeHistory((await f.community.objects.get(subject))?.externalReview), nativeHistory(native));
   await f.projector.rebuild(subject);
   assert.deepEqual(providerObservation(subject, await f.community.events.read(subject), await f.community.objects.get(subject)), read);
+});
+
+for (const source of ['tracking', 'webhook'] as const) test(`${source} retries cannot enroll historical terminal facts`, async t => {
+  const f = await terminalFixture(); t.after(() => f.community.stop());
+  await f.community.collectTracking(target, { state: 'merged', comments: [], reviews: [] });
+  const before = (await f.community.objects.get(subject))!.externalReview;
+  if (source === 'tracking') await f.community.collectTracking(target, terminalSnapshot());
+  else {
+    await f.community.configs.upsert({ repo: target.repoFullName, guardCatId: 'guard', guardThreadId: 'guard' });
+    const body = { action: 'closed', repository: { full_name: target.repoFullName }, pull_request: {
+      number: 12, title: 'Terminal', html_url: 'https://github.com/example/project/pull/12', user: { login: 'owner' },
+      author_association: 'OWNER', state: 'closed', merged: true, head: { sha: head },
+      closed_at: new Date(time).toISOString(), merged_at: new Date(time).toISOString(), merge_commit_sha: 'c'.repeat(40),
+    } };
+    const raw = Buffer.from(JSON.stringify(body));
+    const response = await f.community.webhook({ method: 'POST', rawBody: raw, headers: {
+      'x-github-event': 'pull_request', 'x-github-delivery': 'retry-old-terminal',
+      'x-hub-signature-256': 'sha256=' + createHmac('sha256', 'isolated-test-secret').update(raw).digest('hex'),
+    } });
+    assert.equal(response.status, 200);
+  }
+  const after = await f.community.objects.get(subject);
+  assert.equal(after?.terminalFacts, undefined);
+  assert.deepEqual(after?.externalReview, before);
+  assert.equal((await f.community.events.read(subject)).filter(event => event.kind === 'pr.terminal_observed').length, 0);
+  assert.equal(f.sends(), 0);
 });

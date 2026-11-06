@@ -64,6 +64,10 @@ test('fresh tarball → installed SDK → actual Host worker: terminal repair pr
   const native = (await objects.get(subjectKey)).externalReview;
   assert.equal(native.lifecycle, 'terminal'); assert.equal(native.lastDeliveredHeadSha, delivered);
   await f.runtime.start('instance', f.record);
+  await f.call('github.community-reconciler'); await f.call('github.community-reconciler');
+  const legacy = await f.call('github.subject.inspect', { subjectKey });
+  assert.equal(legacy.data.projection.terminalFacts, undefined, 'loading and scheduling cannot enroll unreconciled historical terminal data');
+  assert.equal(legacy.data.projection.externalReview.currentHeadSha, old);
   const denied = await f.call('github.review.record-verdict', { repoFullName: repo, prNumber: number,
     reviewedHeadSha: snapshot.headSha, verdict: 'approved', summary: 'Original final review URL',
     delivery: { kind: 'delivered', githubUrl: `https://github.com/${repo}/pull/${number}#pullrequestreview-10` } });
@@ -83,15 +87,29 @@ test('fresh tarball → installed SDK → actual Host worker: terminal repair pr
   assert.deepEqual(after.data.events.slice(0, before.data.events.length), before.data.events);
   assert.equal(after.data.events.length, before.data.events.length + 1);
   assert.equal(f.sends.length, 0); assert.equal(f.providerCalls(), 1);
+  f.mode.scenario = 'terminal-fail'; await f.call('github.community-reconciler');
+  const failed = await f.call('github.subject.inspect', { subjectKey });
+  assert.equal(failed.data.projection.terminalFacts.ci.status, 'fail');
+  assert.equal(failed.data.projection.externalReview.ci.status, 'fail');
+  f.mode.scenario = 'terminal-unknown'; await f.call('github.community-reconciler');
+  const latest = await f.call('github.subject.inspect', { subjectKey });
+  assert.equal(latest.data.projection.terminalFacts.ci.status, 'unknown');
+  assert.equal(latest.data.projection.externalReview.ci, null);
+  assert.deepEqual(nativeHistory(latest.data.projection.externalReview), nativeHistory(native));
+  assert.deepEqual(latest.data.lastReviewVerdictFailure, before.data.lastReviewVerdictFailure);
   await f.runtime.stop('instance', 'candidate-restart-check');
+  f.mode.scenario = 'quiet';
   await f.runtime.start('instance', f.record);
   const replay = await f.call('github.subject.reconcile-terminal', { subjectKey });
   assert.equal(replay.data.outcome, 'unchanged');
   const rebuilt = await f.call('github.subject.inspect', { subjectKey });
-  assert.deepEqual(rebuilt.data.projection, after.data.projection);
+  assert.deepEqual(rebuilt.data.projection, latest.data.projection);
+  assert.deepEqual(rebuilt.data.events, latest.data.events);
   assert.deepEqual(rebuilt.data.lastReviewVerdictFailure, before.data.lastReviewVerdictFailure);
+  assert.deepEqual(await waits.get(originalWait.id), originalWait);
   assert.equal(f.sends.length, 0);
   console.log(JSON.stringify({ installedCandidate: true, hostWorker: true, restartAndRebuild: true,
     finalHeadMatches: true, ciSource: repaired.data.terminalFacts.ci.source,
-    nativeDeliveredHistoryPreserved: true, oldSubscriptionDone: true, originalNotRecordedRetained: true, notifications: f.sends.length }));
+    nativeDeliveredHistoryPreserved: true, oldSubscriptionDone: true, originalNotRecordedRetained: true,
+    noAutomaticHistoricalEnrollment: true, scheduledCiChangesObserved: true, notifications: f.sends.length }));
 });

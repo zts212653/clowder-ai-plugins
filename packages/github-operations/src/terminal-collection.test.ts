@@ -36,13 +36,14 @@ test('new HEAD, final review and merge arriving in one batch survive inspection 
   assert.deepEqual(providerObservation(subject, await f.community.events.read(subject), await f.community.objects.get(subject)), read);
 });
 
-test('closed without merge and already-terminal history are enriched without reviving native work', async t => {
+test('closed without merge preserves final facts across terminal retries without reviving native work', async t => {
   const f = await fixture(); t.after(() => f.community.stop());
-  await f.community.collectTracking(target, { state: 'closed', comments: [], reviews: [] });
+  await f.community.collectTracking(target, terminalSnapshot('closed'));
   const before = (await f.community.objects.get(subject))!.externalReview;
   await Promise.all([f.community.collectTracking(target, terminalSnapshot('closed')), f.community.collectTracking(target, terminalSnapshot('closed'))]);
   const events = await f.community.events.read(subject), projection = await f.community.objects.get(subject);
   assert.equal(providerObservation(subject, events, projection).headSha, head);
+  assert.equal(projection?.terminalFacts?.mergedAt, null); assert.equal(projection?.terminalFacts?.mergeCommitSha, null);
   assert.deepEqual(nativeHistory(projection?.externalReview), nativeHistory(before));
   assert.equal(events.filter(event => event.kind === 'pr.terminal_observed').length, 1);
   assert.equal(f.sends(), 0);

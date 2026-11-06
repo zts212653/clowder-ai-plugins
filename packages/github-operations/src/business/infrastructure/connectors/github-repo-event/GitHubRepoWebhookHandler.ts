@@ -62,6 +62,7 @@ export interface GitHubRepoHandlerDeps {
   readonly reconciliationDedup?: Pick<ReconciliationDedup, 'markNotified'>;
   readonly eventLog?: ICommunityEventLog;
   readonly projector?: ICommunityProjectorApply;
+  readonly mayObserveTerminalFacts?: (subjectKey: string) => Promise<boolean>;
   readonly classifyIssueComment?: (comment: { author: string; body: string }) => IssueCommentClassification;
 }
 
@@ -197,7 +198,8 @@ export class GitHubRepoWebhookHandler {
 
         if (eventKind) {
           const subjectKey = `${signal.subjectType}:${signal.repoFullName}#${signal.number}`;
-          if ((eventKind === 'pr.merged' || eventKind === 'pr.closed') && subject.head) {
+          if ((eventKind === 'pr.merged' || eventKind === 'pr.closed') && subject.head &&
+              (!this.deps.mayObserveTerminalFacts || await this.deps.mayObserveTerminalFacts(subjectKey))) {
             const facts = terminalFactsFromProvider({ repo: signal.repoFullName, number: signal.number,
               metadata: subject, reviews: [], ci: null, source: 'github-webhook', observedAt: Date.now() });
             const observation = terminalObservationEvent({ ...facts,

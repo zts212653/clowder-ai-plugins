@@ -6,17 +6,17 @@ import { TerminalReconciliationRuntime } from './terminal-reconciliation.js';
 import type { GitHubTrackingProvider } from './tracking-runtime.js';
 
 const caller: PluginActionContext = { catId: 'repair-cat', threadId: 'repair-thread', userId: 'owner', invocationId: 'repair-invocation', assertCurrent: async () => {} };
-async function fixture(read: GitHubTrackingProvider['read'] = async () => terminalSnapshot()) {
+async function fixture(read: GitHubTrackingProvider['read'] = async () => terminalSnapshot(state), state: 'merged' | 'closed' = 'merged') {
   const f = await terminalFixture();
   await f.community.configs.upsert({ repo: target.repoFullName, guardThreadId: 'guard', guardCatId: 'guard-cat' });
-  await f.community.collectTracking(target, { state: 'merged', comments: [], reviews: [] });
+  await f.community.collectTracking(target, { state, comments: [], reviews: [] });
   const runtime = new TerminalReconciliationRuntime({ storage: f.storage, provider: { read }, projectionOperations: f.community.projectionOperations });
   return { ...f, runtime };
 }
 
-test('terminal repair re-reads one exact provider subject and preserves native, subscription and refusal history', async t => {
+for (const state of ['merged', 'closed'] as const) test(`${state} terminal repair re-reads one exact subject and preserves native, subscription and refusal history`, async t => {
   let reads = 0;
-  const f = await fixture(async requested => { assert.deepEqual(requested, { ...target, catId: caller.catId, threadId: caller.threadId }); reads++; return terminalSnapshot(); });
+  const f = await fixture(async requested => { assert.deepEqual(requested, { ...target, catId: caller.catId, threadId: caller.threadId }); reads++; return terminalSnapshot(state); }, state);
   t.after(async () => { await f.runtime.stop(); await f.community.stop(); });
   await f.storage.set('github.wait.existing-done', { status: 'done', generation: 5 });
   await f.storage.set('historical.not-recorded', { outcome: 'not_recorded', code: 'subject_terminal' });

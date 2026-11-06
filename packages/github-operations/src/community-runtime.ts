@@ -23,7 +23,7 @@ import { copyLegacyIssueObservations, legacyIssueOperationInput } from './legacy
 import { communityProgressKey as stateKey, copyLegacyRepositoryProgress, restoreLegacyRepositoryProgress } from './legacy-repository-progress.js';
 import { copyLegacyProviderHistory, inspectLegacyProviderHistory } from './legacy-provider-history.js';
 import { readReviewVerdictFailure } from './review-verdict-failure.js';
-import { mergeTerminalFacts, parseTerminalFacts, terminalObservationEvent, terminalReviews } from './business/domains/community/terminal-provider-facts.js';
+import { mergeTerminalFacts, parseTerminalFacts, shouldObserveTerminalFacts, terminalObservationEvent, terminalReviews } from './business/domains/community/terminal-provider-facts.js';
 
 export interface RepoSubject {
   kind: 'pr' | 'issue'; number: number; title: string; url: string;
@@ -277,8 +277,10 @@ export class CommunityRuntime {
       if (snapshot.terminalFacts) {
         const facts = parseTerminalFacts(snapshot.terminalFacts, subjectKey);
         if (target.kind !== 'pr' || facts.state !== snapshot.state || facts.headSha !== (snapshot.headSha ?? null)) throw new TypeError('terminal snapshot identity mismatch');
-        const history = terminalReviews(await this.events.read(subjectKey));
-        events.push(terminalObservationEvent(mergeTerminalFacts({ ...facts, reviews: history }, facts)));
+        if (shouldObserveTerminalFacts(await this.objects.get(subjectKey))) {
+          const history = terminalReviews(await this.events.read(subjectKey));
+          events.push(terminalObservationEvent(mergeTerminalFacts({ ...facts, reviews: history }, facts)));
+        }
       }
       if (snapshot.state !== 'open') events.push({
         sourceEventId: `lifecycle:${subjectKey}:${snapshot.state}`, subjectKey, classification: 'state-changing',
@@ -314,6 +316,7 @@ export class CommunityRuntime {
       const configs = await this.configs.listAll();
       const handler = new GitHubRepoWebhookHandler({ webhookSecret: secret, repoAllowlist: configs.map(c => c.repo) }, {
         dedup: new SdkDeliveryDedup(this.context.storage), eventLog: this.events, projector: this.projector,
+        mayObserveTerminalFacts: async subject => shouldObserveTerminalFacts(await this.objects.get(subject)),
         reconciliationDedup: { markNotified: async (repo, kind, number) => {
           await this.context.storage.set(stateKey('scan-notified', `${kind}:${repo}#${number}`), true);
         } },
@@ -360,9 +363,8 @@ export class CommunityRuntime {
         eventLog: this.events, projector: this.projector, findingStore: this.findings,
         fetchIssueState: (repo, number, signal) => this.provider.state(repo, 'issue', number, signal ?? this.lifetime.signal),
         fetchPrState: async (repo, number, signal) => {
-          const facts = (await this.objects.get(`pr:${repo}#${number}`))?.terminalFacts;
-          const incomplete = !facts || facts.source !== 'github-api' || !facts.ci || ['pending', 'unknown'].includes(facts.ci.status);
-          return this.provider.state(repo, 'pr', number, signal ?? this.lifetime.signal, incomplete);
+          const projection = await this.objects.get(`pr:${repo}#${number}`);
+          return this.provider.state(repo, 'pr', number, signal ?? this.lifetime.signal, shouldObserveTerminalFacts(projection));
         },
         isBaselineEstablished: async subject => !!await this.context.storage.get(stateKey('reconciler-baseline', subject)),
         markBaselineEstablished: async subject => { await this.context.storage.set(stateKey('reconciler-baseline', subject), true); },

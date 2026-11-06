@@ -279,6 +279,9 @@ export interface CommunityObjectProjection {
   externalReview: ExternalReviewAggregate | null;
   /** Rebuildable provider facts; never a native review/delivery assertion. */
   terminalFacts?: import('./provider-terminal.js').PrTerminalFacts;
+  /** Number of journal positions folded in canonical order, including rejected
+   * events. Saved atomically with the derived state; old projections rebuild once. */
+  journalCursor?: number;
   /**
    * Count of events consumed to build this projection.
    * Used for rebuild consistency verification.
