@@ -8,6 +8,7 @@ import type { DotConnectionState } from "./connection-state.js";
 import {
 	credentialLive,
 	currentCredentialSchema,
+	REVOKED_PLUGIN_TOKEN_ERROR,
 	type DotExternalState,
 	type PendingCredential,
 	type VerifiedExternalCredential,
@@ -193,6 +194,8 @@ export class DotConnection {
 		if (configured !== undefined && !/^[A-Za-z0-9_-]{43,256}$/.test(configured))
 			throw new Error("dot_mcp_token_invalid");
 		const token = configured ?? randomBytes(32).toString("base64url");
+		if (captured.retiredPluginTokenDigests?.includes(digest(token)))
+			throw new Error(REVOKED_PLUGIN_TOKEN_ERROR);
 		const previous = captured;
 		if (
 			previous.current?.kind === "plugin" &&
@@ -419,6 +422,8 @@ export class DotConnection {
 		)
 			throw new Error("dot_mcp_unauthorized");
 		const external = await this.externalState();
+		if (external.retiredPluginTokenDigests?.includes(digest(token)))
+			throw new Error("dot_mcp_unauthorized");
 		const credential =
 			external.pending?.issuer === "plugin" &&
 			equalSecret(external.pending.token, token)

@@ -3,6 +3,9 @@ import { dotSubscriptionSchema } from "./connection-state.js";
 
 const ref = z.string().min(1).max(512);
 
+export const REVOKED_PLUGIN_TOKEN_ERROR =
+	"dot_mcp_token_revoked: 已撤销的访问密钥不能再次使用；请更换或清空自定义访问密钥，保存配置后重新生成。";
+
 export const callbackBindingSchema = z
 	.object({
 		attemptId: ref,
@@ -120,6 +123,7 @@ export const dotExternalStateSchema = z
 		current: currentCredentialSchema.nullable(),
 		pending: pendingCredentialSchema.nullable(),
 		endpoint: endpointLeaseSchema,
+		retiredPluginTokenDigests: z.array(z.string().regex(/^[a-f0-9]{64}$/)).optional(),
 	})
 	.strict();
 

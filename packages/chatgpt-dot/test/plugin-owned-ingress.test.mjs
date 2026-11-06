@@ -6,7 +6,7 @@ import { TemporaryEndpointController } from "../src/temporary-endpoint.ts";
 
 const path = "/api/plugins/official.chatgpt-dot/mcp";
 
-async function setup(t) {
+async function setup(t, customSecret) {
 	const f = fixture(t, {
 		config: {
 			endpointMode: "long-lived",
@@ -18,6 +18,7 @@ async function setup(t) {
 		inspectExternal: async () =>
 			assert.fail("Host must not inspect Dot credentials"),
 	};
+	if (customSecret !== undefined) f.host.secrets.get = async () => customSecret;
 	let now = Date.now();
 	const makeModule = () =>
 		createDotPlugin({ sendWebhook: f.sendWebhook, now: () => now });
@@ -151,6 +152,70 @@ test("same plugin credential and callback survive time and restart, then explici
 	assert.equal((await x.request("server/discover", {})).status, 401);
 	await x.restart();
 	assert.equal((await x.request("server/discover", {})).status, 401);
+});
+
+for (const recovery of ["change", "clear"]) {
+	test(`revoked saved custom key remains denied after restart and recovers by ${recovery}`, async (t) => {
+		const old = "r".repeat(43), replacement = "s".repeat(43);
+		const x = await setup(t, old);
+		await completePairing(x);
+		await x.active.actions["dot.disconnect"]({}, undefined, x.f.owner);
+		assert.equal((await x.request("server/discover", {})).status, 401);
+		await x.restart();
+		const input = { input: { longLivedServerUrlTemplate: `https://dot.example${path}?token={token}` } };
+		const before = structuredClone(x.f.records.get("dot/external/v1"));
+		await assert.rejects(x.active.actions["dot.use-long-lived"](input, undefined, x.f.owner), /dot_mcp_token_revoked.*更换.*清空/);
+		assert.deepEqual(x.f.records.get("dot/external/v1"), before);
+		x.f.host.secrets.get = async () => recovery === "change" ? replacement : undefined;
+		const generated = await x.active.actions["dot.use-long-lived"](input, undefined, x.f.owner);
+		const token = new URL(generated.data).searchParams.get("token");
+		assert.notEqual(token, old);
+		if (recovery === "change") assert.equal(token, replacement);
+		await completePairing({ ...x, request: (method, params) => x.request(method, params, token) });
+		assert.equal((await x.request("server/discover", {}, old)).status, 401);
+		await x.restart();
+		assert.equal((await x.request("server/discover", {}, token)).status, 200);
+		assert.equal((await x.request("server/discover", {}, old)).status, 401);
+		await x.active.actions["dot.disconnect"]({}, undefined, x.f.owner);
+		x.f.host.secrets.get = async () => old;
+		await x.restart();
+		await assert.rejects(x.active.actions["dot.use-long-lived"](input, undefined, x.f.owner), /dot_mcp_token_revoked/);
+	});
+}
+
+test("cancelled custom candidate stays retired across restart without discarding its revocation history", async (t) => {
+	const old = "r".repeat(43);
+	const x = await setup(t, old);
+	await x.restart();
+	assert.equal((await x.request("server/discover", {})).status, 200);
+	await x.active.actions["dot.cancel-pending"]({}, undefined, x.f.owner);
+	await x.restart();
+	const input = { input: { longLivedServerUrlTemplate: `https://dot.example${path}?token={token}` } };
+	await assert.rejects(x.active.actions["dot.use-long-lived"](input, undefined, x.f.owner), /dot_mcp_token_revoked/);
+	assert.equal((await x.request("server/discover", {})).status, 401);
+});
+
+test("promotion retires the replaced custom key and cancellation retires only the candidate", async (t) => {
+	const old = "r".repeat(43), next = "s".repeat(43), cancelled = "t".repeat(43);
+	const x = await setup(t, old);
+	await completePairing(x);
+	const input = { input: { longLivedServerUrlTemplate: `https://dot.example${path}?token={token}` } };
+	x.f.host.secrets.get = async () => next;
+	await x.active.actions["dot.refresh-credential"](input, undefined, x.f.owner);
+	assert.equal((await x.request("server/discover", {}, old)).status, 200);
+	await completePairing({ ...x, request: (method, params) => x.request(method, params, next) });
+	assert.equal((await x.request("server/discover", {}, old)).status, 401);
+	x.f.host.secrets.get = async () => cancelled;
+	await x.active.actions["dot.refresh-credential"](input, undefined, x.f.owner);
+	await x.active.actions["dot.cancel-pending"]({}, undefined, x.f.owner);
+	await x.restart();
+	for (const secret of [old, cancelled]) {
+		x.f.host.secrets.get = async () => secret;
+		await assert.rejects(x.active.actions["dot.refresh-credential"](input, undefined, x.f.owner), /dot_mcp_token_revoked/);
+		assert.equal((await x.request("server/discover", {}, secret)).status, 401);
+	}
+	assert.equal((await x.request("server/discover", {}, next)).status, 200);
+	assert.equal(x.f.records.get("dot/external/v1").value.current.binding.subscription.url, "https://callbacks.example/plugin-owned");
 });
 
 test("explicit setup after disconnect supports discovery before the next pairing step", async (t) => {

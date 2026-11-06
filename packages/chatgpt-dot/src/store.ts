@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { z } from 'zod';
 import { dotConnectionStateSchema } from './connection-state.js';
-import { dotExternalStateSchema } from './external-state.js';
+import { dotExternalStateSchema, REVOKED_PLUGIN_TOKEN_ERROR, type DotExternalState } from './external-state.js';
 export const CONNECTION_KEY = 'dot/connection/v1';
 export const EXTERNAL_KEY = 'dot/external/v1';
 const ref = z.string().min(1).max(512);
@@ -51,7 +51,21 @@ export class DotStore {
         return this.update(CONNECTION_KEY, dotConnectionStateSchema, change);
     }
     updateExternal(change: (value: z.infer<typeof dotExternalStateSchema> | null) => z.infer<typeof dotExternalStateSchema>) {
-        return this.update(EXTERNAL_KEY, dotExternalStateSchema, change);
+        const keys = (state: DotExternalState | null) => new Set([
+            ...(state?.current?.kind === 'plugin' ? [digest(state.current.token)] : []),
+            ...(state?.pending?.issuer === 'plugin' ? [digest(state.pending.token)] : []),
+        ]);
+        return this.update(EXTERNAL_KEY, dotExternalStateSchema, value => {
+            const previousKeys = keys(value);
+            const retired = new Set(value?.retiredPluginTokenDigests ?? []);
+            const next = change(value);
+            const nextKeys = keys(next);
+            for (const key of next.retiredPluginTokenDigests ?? []) retired.add(key);
+            for (const key of previousKeys) if (!nextKeys.has(key)) retired.add(key);
+            for (const key of nextKeys) if (retired.has(key)) throw new Error(REVOKED_PLUGIN_TOKEN_ERROR);
+            // Removal and its durable denial history commit in the same CAS, including retries.
+            return retired.size ? { ...next, retiredPluginTokenDigests: [...retired] } : next;
+        });
     }
     updateDispatch(id: string, change: (value: Dispatch | null) => Dispatch) {
         return this.update(eventKey(id), dispatchSchema, value => {

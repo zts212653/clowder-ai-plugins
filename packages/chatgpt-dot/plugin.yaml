@@ -1,5 +1,5 @@
 pluginId: official.chatgpt-dot
-version: 0.2.0-alpha.31
+version: 0.2.0-alpha.32
 contractVersion: 0.3.3-candidate.1
 name: ChatGPT Dot
 description:
@@ -37,7 +37,7 @@ configuration:
     label: 自定义访问密钥（可选）
     kind: secret
     required: false
-    description: 留空由 Dot 自动生成并持久保存；自定义时使用 43–256 位字母、数字、下划线或短横线，先保存配置再生成并验证新入口。仅用于长期入口。
+    description: 留空由 Dot 自动生成并持久保存；自定义时使用 43–256 位字母、数字、下划线或短横线，先保存配置再生成并验证新入口。已撤销的密钥不能复用，请更换或清空后保存。仅用于长期入口。
   - key: temporaryEndpointHours
     label: 临时入口有效小时数
     kind: number
