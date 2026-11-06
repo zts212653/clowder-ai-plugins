@@ -10,6 +10,7 @@ import { NativeIssueDraftRuntime } from './native-issue-drafts.js';
 import { SdkCommunityEventLog } from './business/domains/community/CommunityEventLog.js';
 import { SdkCommunityObjectStore } from './business/domains/community/CommunityObjectStore.js';
 import { CommunityReconciliationFindingStore } from './business/domains/community/reconciliation/CommunityReconciliationFindingStore.js';
+import { GitHubPrTitleReader } from './pr-title-reader.js';
 
 function options(): CommunityHttpRouterOptions {
   const storage=memoryStorage();
@@ -28,6 +29,52 @@ function options(): CommunityHttpRouterOptions {
   };
 }
 const principal = { kind: 'owner', id: 'owner' } as const;
+
+for (const changedHead of [false, true]) {
+  test(`delayed production PR sync retains a newer title and syncs workflow fields (changed HEAD: ${changedHead})`, async t => {
+    const deps = options(), records = new SdkCommunityPrStore(deps.storage);
+    const reviewedHead = 'a'.repeat(40), head = changedHead ? 'b'.repeat(40) : reviewedHead;
+    let entered!: () => void, release!: () => void;
+    const began = new Promise<void>(resolve => { entered = resolve; });
+    const resume = new Promise<void>(resolve => { release = resolve; });
+    deps.issues.fetchPrs = async () => {
+      entered(); await resume;
+      return [{ number: 12, title: 'Old title', state: 'open', merged_at: null, user: 'author',
+        head_sha: head, draft: false, labels: [], updated_at: new Date(1000).toISOString() }];
+    };
+    deps.issues.fetchPrReviews = async () => [{ user: 'reviewer', state: 'APPROVED', commit_id: reviewedHead }];
+    const router = await createCommunityHttpRouter(deps);
+    t.after(async () => { release(); await router.stop(); });
+    const reader = new GitHubPrTitleReader({ records, token: async () => { throw new Error('No title-provider call'); } });
+    t.after(() => reader.stop());
+    const request = { principal, method: 'POST', path: 'github/community-issues/sync-prs', query: { repo: 'org/repo' } };
+    const pending = router.forwardOwner(request);
+    await began;
+    await reader.observe({ kind: 'pr', repoFullName: 'org/repo', number: 12, threadId: 'thread', catId: 'codex' }, {
+      title: 'New title', observedAt: 2000, providerUpdatedAt: new Date(2000).toISOString(),
+      authorLogin: 'author', headSha: reviewedHead, draft: false, state: 'open', comments: [], reviews: [],
+    });
+    release();
+    const result = await pending;
+    assert.equal(result.status, 200);
+    assert.equal(result.body.updated, 1);
+    const saved = await records.getByRepoAndNumber('org/repo', 12);
+    assert.equal(saved?.titleObservation?.providerUpdatedAt, 2000);
+    assert.equal(saved?.state, 'open');
+    assert.equal(saved?.headSha, head);
+    assert.equal(saved?.lastReviewedSha, reviewedHead);
+    assert.equal(saved?.replyState, changedHead ? 'has-new-activity' : 'replied');
+    assert.equal(await reader.readLocal('org/repo#12'), 'New title');
+    deps.issues.fetchPrs = async () => [{ number: 12, title: 'Newest title', state: 'closed',
+      merged_at: new Date(4000).toISOString(), user: 'author', head_sha: head, draft: false, labels: [],
+      updated_at: new Date(4000).toISOString() }];
+    const refreshed = await createCommunityHttpRouter(deps);
+    t.after(() => refreshed.stop());
+    assert.equal((await refreshed.forwardOwner(request)).status, 200);
+    assert.equal(await reader.readLocal('org/repo#12'), 'Newest title');
+    assert.equal((await records.getByRepoAndNumber('org/repo', 12))?.state, 'merged');
+  });
+}
 
 async function seedReportProjection(deps: CommunityHttpRouterOptions, thread = 'thread') {
   const events = new SdkCommunityEventLog(deps.storage), objects = new SdkCommunityObjectStore(deps.storage);

@@ -1,6 +1,7 @@
 import { IndexedWaitStorageUnavailableError } from './typed-wait-record.js';
 import { sendRecoveryOwnerNotice } from './recovery-owner-notice.js';
 import { SdkCommunityEventLog } from './business/domains/community/CommunityEventLog.js';
+import { SdkCommunityPrStore } from './business/domains/community/CommunityWorkflowStores.js';
 import { createGitHubSourcePublication } from './source-publication.js';
 import { MigratedIssueRuntime } from './migrated-issue-runtime.js';
 import { GitHubMigrationRuntime } from './migration-runtime.js';
@@ -70,7 +71,8 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   });
   const provider = options.createProvider?.(context) ?? transport;
   const prTitles =
-    options.createPrTitleReader?.(context) ?? new GitHubPrTitleReader({ token: () => context.secrets.get('token') });
+    options.createPrTitleReader?.(context) ?? new GitHubPrTitleReader({ token: () => context.secrets.get('token'),
+      records: new SdkCommunityPrStore(context.storage) });
   const reviewTriggers =
     options.createReviewTriggerReader?.(context) ??
     new ReviewTriggerReader({
@@ -101,7 +103,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
     provider,
     allowed: async (repo) => !!(await community.configs.getByRepo(repo)),
     collect: (target, snapshot) => community.collectTracking(target, snapshot),
-    observe: (target, snapshot) => community.observeTracking(target, snapshot),
+    observe: async (target, snapshot) => { await community.observeTracking(target, snapshot); await prTitles.observe(target, snapshot); },
   });
   const tracking = new TypedWaitRuntime({
     context,
@@ -111,7 +113,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
     coverage: (repoFullName, prNumber, triggerCommentId) =>
       reviewTriggers.observe({ repoFullName, prNumber, triggerCommentId }),
     collect: (target, snapshot) => community.collectTracking(target, snapshot),
-    observe: (target, snapshot) => community.observeTracking(target, snapshot),
+    observe: async (target, snapshot) => { await community.observeTracking(target, snapshot); await prTitles.observe(target, snapshot); },
   });
   const migratedIssues = new MigratedIssueRuntime(context, provider, () => provider.selfLogin(), options.now, options.pollIntervalMs);
   const recoverOwners = async () => { await Promise.all([tracking.recover(), collection.prepare(), migratedIssues.initialize()]); };

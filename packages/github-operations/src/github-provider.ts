@@ -164,7 +164,7 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
     const path = `/repos/${target.repoFullName}`;
     const metadata = JSON.parse((await executeGitHubRequest(
       ['api', `${path}/${target.kind === 'pr' ? 'pulls' : 'issues'}/${target.number}`], options,
-    )).stdout) as { number?: number; html_url?: string; state: string; updated_at?: string; user?: { login: string }; merged_at?: string | null; merged_by?: { login: string } | null; mergeable_state?: string; head?: { sha: string };
+    )).stdout) as { number?: number; html_url?: string; title?: string; draft?: boolean; state: string; updated_at?: string; user?: { login: string }; merged_at?: string | null; merged_by?: { login: string } | null; mergeable_state?: string; head?: { sha: string };
       requested_reviewers?: { login: string }[]; base?: { repo?: { permissions?: { push?: boolean } } } };
     if (target.kind === 'pr') assertPrSubject(metadata, target.repoFullName, target.number);
     const complete = !!target.cloudReviewRequest || cursor === undefined;
@@ -215,6 +215,8 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
         ...(metadata.user?.login ? { subjectAuthorLogin: metadata.user.login } : {}),
         ...(reviewerGround ? { reviewerGround } : {}) },
       state: metadata.merged_at ? 'merged' : metadata.state === 'closed' ? 'closed' : 'open',
+      ...(typeof metadata.title === 'string' ? { title: metadata.title } : {}),
+      ...(typeof metadata.draft === 'boolean' ? { draft: metadata.draft } : {}),
       ...(metadata.user?.login ? { authorLogin: metadata.user.login } : {}),
       ...(metadata.merged_by?.login ? { mergedByLogin: metadata.merged_by.login } : {}),
       ...(metadata.head ? { headSha: metadata.head.sha } : {}),
