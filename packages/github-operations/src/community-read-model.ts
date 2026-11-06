@@ -18,12 +18,16 @@ export function providerObservation(subjectKey: string, events: readonly Communi
     }
   }
   const review = projection?.externalReview;
+  const terminal = projection?.terminalFacts;
   return {
-    subjectKey, title, state, lastObservedAt, eventCount: events.length,
+    subjectKey, title, state: terminal?.state ?? state, lastObservedAt, eventCount: events.length,
     // Deliberate field projection: no callback principal, verdict or lease.
-    headSha: review?.currentHeadSha ?? null,
-    ci: review?.ci?.headSha === review?.currentHeadSha ? review?.ci?.status ?? null : null,
-    cloud: review?.cloud?.headSha === review?.currentHeadSha ? review?.cloud?.status ?? null : null,
+    headSha: terminal ? terminal.headSha : review?.currentHeadSha ?? null,
+    ci: terminal ? terminal.ci?.status ?? 'unknown' : review?.ci?.headSha === review?.currentHeadSha ? review?.ci?.status ?? null : null,
+    cloud: review?.cloud?.headSha === (terminal ? terminal.headSha : review?.currentHeadSha) ? review?.cloud?.status ?? null : null,
+    ...(terminal ? { terminalFacts: terminal,
+      finalReviews: terminal.headSha ? terminal.reviews.filter(item => item.commitId === terminal.headSha) : [],
+    } : {}),
   };
 }
 

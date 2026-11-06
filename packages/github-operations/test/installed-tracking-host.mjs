@@ -7,7 +7,7 @@ import { parse } from 'yaml';
 
 /** Complete packed GitHub factory, installed SDK, native Host worker/facades and owned Redis.
  * Provider snapshots and message/wake receiving are controlled; no model or GitHub network is invoked. */
-export async function installedTrackingHost(t, { hostRoot, artifact, redisFixture, held = false, indexedCapabilities = true }) {
+export async function installedTrackingHost(t, { hostRoot, artifact, redisFixture, held = false, indexedCapabilities = true, providerSnapshot }) {
   const host = path => import(pathToFileURL(join(hostRoot, 'packages/api', path)).href);
   const [{ ModulePluginRuntime }, { RedisPluginPrivateStorage, createPluginStorageHost },
     { RedisTaskStore }, { RedisMessageStore }, { ThreadStore }, { withPluginCallContext }] = await Promise.all([
@@ -28,6 +28,7 @@ const module=createGitHubPluginModule({now:()=>clock,createProvider:context=>({s
   read:async(target,_signal,cursor)=>{ context.log('info','fixture-provider-read',{kind:target.kind,number:target.number});
     const mode=await context.config.get('fixtureScenario');
     if(mode==='provider-error') throw new Error('isolated provider observation failed');
+    ${providerSnapshot ? `return ${JSON.stringify(providerSnapshot)};` : ''}
     const id=mode==='event' ? 11:mode?.startsWith('event:')?Number(mode.slice(6)):0;
     return {state:'open',headSha:'a'.repeat(40),ci:'pending',commentsComplete:true,reviews:[],
       trackingIdentity:{selfLogin:'owner',subjectAuthorLogin:'contributor'},

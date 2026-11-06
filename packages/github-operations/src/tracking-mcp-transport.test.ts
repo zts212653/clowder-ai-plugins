@@ -32,7 +32,7 @@ for (const kind of ['registration', 'migration'] as const) test(`${kind}: real s
   try {
     await writeFile(credentials, JSON.stringify({ invocationId: 'first', callbackToken: 'token1' }));
     await client.connect(transport);
-    assert.equal((await client.listTools()).tools.length, 11);
+    assert.equal((await client.listTools()).tools.length, 12);
     const name = kind === 'registration' ? 'cat_cafe_register_pr_tracking' : 'github_bind_migrated_wait';
     const method = kind === 'registration' ? 'github.typed-wait.register-pr' : 'github.migration.bind-wait';
     const args = kind === 'registration' ? { registrationId: 'stable', repoFullName: 'owner/repo', prNumber: 1 }

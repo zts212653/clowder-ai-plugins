@@ -32,6 +32,10 @@ import {
   isExternalReviewTerminalEventKind,
 } from './external-review/external-review-projector.js';
 import { selectIssueFixReadiness } from './issue-analysis/issue-fix-evidence.js';
+import { mergeTerminalFacts, parseTerminalFacts, terminalReviews } from './terminal-provider-facts.js';
+import { ZodError } from 'zod';
+import type { PrTerminalFacts } from '../../model/types/provider-terminal.js';
+import { applyTerminalProviderFacts } from './external-review/external-review-aggregate.js';
 
 function issueFixEvidenceFromEvent(event: CommunityEvent): IssueFixEvidence | null {
   if (event.kind === 'issue.commented' || event.kind === 'case.fix_evidence_recorded') {
@@ -158,12 +162,40 @@ export class CommunityProjector {
     const followUps: Array<() => Promise<void>> = [];
     const now = event.at;
     const existing = await this.objectStore.get(event.subjectKey);
-    const proj: CommunityObjectProjection = existing ?? createProjection(event.subjectKey, 'new', now);
+    let proj: CommunityObjectProjection = existing ?? createProjection(event.subjectKey, 'new', now);
+
+    if (event.kind === 'pr.review_submitted' && proj.terminalFacts) {
+      const reviews = terminalReviews([event]);
+      if (reviews.length) {
+        try { proj = { ...proj, terminalFacts: mergeTerminalFacts(proj.terminalFacts, { ...proj.terminalFacts,
+          reviews, source: 'github-webhook', observedAt: event.at }) }; }
+        catch (error) { if (!(error instanceof TypeError)) throw error; }
+      }
+    }
+
+    if (event.kind === 'pr.terminal_observed') {
+      // This observation has no state-machine, assignment, verdict or wake effects.
+      // Invalid historical input remains in the journal but never becomes a fact.
+      let terminalFacts: PrTerminalFacts;
+      try {
+        const incoming = parseTerminalFacts(event.payload.terminalFacts, event.subjectKey);
+        terminalFacts = mergeTerminalFacts(proj.terminalFacts, incoming);
+      } catch (error) {
+        if (error instanceof TypeError || error instanceof ZodError) return { accepted: false, followUps };
+        throw error;
+      }
+      await this.objectStore.save({ ...proj, terminalFacts, externalReview: applyTerminalProviderFacts(proj.externalReview, terminalFacts),
+        appliedEventCount: proj.appliedEventCount + 1, updatedAt: Math.max(proj.updatedAt, now) });
+      return { accepted: true, followUps };
+    }
 
     // F168 Phase F-Step3: external review lifecycle is an orthogonal aggregate
     // on the same rebuildable projection. It does not mutate the generic case
     // state and never executes wake/GitHub side effects during replay.
     if (isExternalReviewEventKind(event.kind)) {
+      // An open-subject observation/assignment may have been queued before the
+      // terminal snapshot. It cannot reopen work after the provider fence.
+      if (proj.terminalFacts) return { accepted: false, followUps };
       const result = applyExternalReviewProjectionEvent(proj.externalReview, event);
       if (!result.ok) return { accepted: false, followUps };
       const externalReviewUpdated: CommunityObjectProjection = {

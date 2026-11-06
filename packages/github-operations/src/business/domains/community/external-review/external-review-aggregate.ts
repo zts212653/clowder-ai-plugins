@@ -7,6 +7,7 @@ import type {
   PendingExternalReviewVerdict,
   ReviewDeliveryOutcome,
 } from '../../../model/index.js';
+import type { PrTerminalFacts } from '../../../model/types/provider-terminal.js';
 
 export interface CreateExternalReviewAggregateInput {
   readonly mode: ExternalReviewMode;
@@ -122,6 +123,21 @@ function cloudVerdictSubmissionEpoch(state: ExternalReviewAggregate, status: Ext
 
 function currentHeadGeneration(state: ExternalReviewAggregate): number {
   return readPositiveInteger(state.headGeneration) ?? (state.currentHeadSha ? 1 : 0);
+}
+
+/** Existing read consumers use these provider fields. Observing closure never
+ * records a native review/delivery, changes its principal or opens active work. */
+export function applyTerminalProviderFacts(state: ExternalReviewAggregate | null, facts: PrTerminalFacts): ExternalReviewAggregate | null {
+  if (!state) return null;
+  const sameHead = state.currentHeadSha === facts.headSha;
+  const headGeneration = currentHeadGeneration(state) + (sameHead ? 0 : 1);
+  const ci = facts.ci;
+  const status = ci?.status;
+  return { ...state, lifecycle: 'terminal', currentHeadSha: facts.headSha, headGeneration,
+    currentHeadObservedAt: facts.observedAt,
+    ci: ci && (status === 'pass' || status === 'fail' || status === 'pending')
+      ? { headSha: ci.headSha, headGeneration, status, observedAt: ci.observedAt } : null,
+    cloud: sameHead ? state.cloud : null, wake: null, pendingVerdict: null };
 }
 
 function eventHeadGeneration(state: ExternalReviewAggregate, payload: Record<string, unknown>): number | null {

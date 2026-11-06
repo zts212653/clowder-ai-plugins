@@ -1377,6 +1377,7 @@ export const communityIssueRoutes: FastifyPluginAsync<CommunityIssuesRoutesOptio
               closureWaiver: proj.closureWaiver,
               closureChecklist: computeClosureChecklist(proj),
               externalReview: proj.externalReview,
+              ...(proj.terminalFacts ? { terminalFacts: proj.terminalFacts, headSha: proj.terminalFacts.headSha ?? '' } : {}),
             };
           } catch {
             return item;
@@ -1424,6 +1425,7 @@ export const communityIssueRoutes: FastifyPluginAsync<CommunityIssuesRoutesOptio
               closureWaiver: proj.closureWaiver,
               closureChecklist: computeClosureChecklist(proj),
               externalReview: proj.externalReview,
+              ...(proj.terminalFacts ? { terminalFacts: proj.terminalFacts, headSha: proj.terminalFacts.headSha ?? '' } : {}),
             });
           } catch {
             /* best-effort */

@@ -5,7 +5,9 @@
  */
 import type { CommunityEvent, CommunityEventKind } from '../../../model/index.js';
 import type { ICommunityEventLog } from '../../../domains/community/CommunityEventLog.js';
-import { issueCommentEventId } from '../../../domains/community/community-keys.js';
+import { issueCommentEventId, reviewEventId } from '../../../domains/community/community-keys.js';
+import { terminalFactsFromProvider } from '../../../../github-terminal-facts.js';
+import { terminalObservationEvent, terminalReviews } from '../../../domains/community/terminal-provider-facts.js';
 import {
   classifyIssueComment as classifyIssueCommentActivity,
   type IssueCommentClassification,
@@ -146,7 +148,10 @@ export class GitHubRepoWebhookHandler {
     // 5.6. Skip repo owner's own PRs/issues — not community contributions
     // (Applied after log-only check: owner activity signals are still logged above)
     const authorAssociation = (subject.author_association as string) ?? '';
-    if (SKIP_AUTHOR_ASSOCIATIONS.has(authorAssociation)) {
+    const ownerAuthored = SKIP_AUTHOR_ASSOCIATIONS.has(authorAssociation);
+    const knownTerminal = ownerAuthored && eventType === 'pull_request' && action === 'closed' &&
+      !!(await this.deps.eventLog?.read(`pr:${repo}#${subject.number}`))?.length;
+    if (ownerAuthored && !knownTerminal) {
       return { kind: 'skipped', reason: `Skipping ${authorAssociation} event` };
     }
 
@@ -192,6 +197,15 @@ export class GitHubRepoWebhookHandler {
 
         if (eventKind) {
           const subjectKey = `${signal.subjectType}:${signal.repoFullName}#${signal.number}`;
+          if ((eventKind === 'pr.merged' || eventKind === 'pr.closed') && subject.head) {
+            const facts = terminalFactsFromProvider({ repo: signal.repoFullName, number: signal.number,
+              metadata: subject, reviews: [], ci: null, source: 'github-webhook', observedAt: Date.now() });
+            const observation = terminalObservationEvent({ ...facts,
+              reviews: terminalReviews(await this.deps.eventLog.read(subjectKey)) });
+            const recorded = await this.deps.eventLog.append(observation);
+            if (recorded.appended) await this.deps.projector?.apply(observation);
+            else await this.deps.projector?.rebuild(subjectKey);
+          }
           // P1-1: pr.merged / pr.closed must use lifecycle sourceEventId to dedup with polling paths
           // (CiCdRouter + ReviewFeedbackTaskSpec both emit lifecycle:${subjectKey}:merged|closed).
           // All other inbox-notification events remain delivery-ID keyed.
@@ -259,7 +273,7 @@ export class GitHubRepoWebhookHandler {
 
       // Routing and wake use the installation's authorized repository config.
       // No Host-specific inbox creation, thread-kind stamp or custody authority.
-      delivered = await this.deps.deliver(signal, this.formatMessage(signal));
+      delivered = knownTerminal ? { messageId: '' } : await this.deps.deliver(signal, this.formatMessage(signal));
     } catch (err) {
       // Permit retry; SDK delivery uses a stable idempotency key even if the
       // transport failed after persisting the message.
@@ -388,16 +402,24 @@ export class GitHubRepoWebhookHandler {
             id?: number;
             user?: { login?: string };
             author_association?: string;
+            commit_id?: string;
+            state?: string;
+            submitted_at?: string;
+            pull_request_url?: string;
           }
         | undefined;
       if (!pr) return;
       kind = 'pr.review_submitted';
       subjectKey = `pr:${repo}#${pr.number}`;
       // P1-4b: stable sourceEventId for dedup with future polling path
-      sourceEventId = `review:${repo}#${pr.number}:${review?.id ?? deliveryId}`;
+      if (review?.pull_request_url && review.pull_request_url.toLowerCase() !== `https://api.github.com/repos/${repo}/pulls/${pr.number}`.toLowerCase()) throw new TypeError('webhook review subject identity mismatch');
+      sourceEventId = review?.id && review.state ? reviewEventId(repo, pr.number, review.id, review.state) : `review:${repo}#${pr.number}:${review?.id ?? deliveryId}`;
       eventPayload = {
         reviewId: review?.id,
         reviewerLogin: review?.user?.login ?? '',
+        ...(review?.state ? { reviewState: review.state } : {}),
+        ...(review?.commit_id ? { commitId: review.commit_id } : {}),
+        ...(review?.submitted_at ? { submittedAt: review.submitted_at } : {}),
         title: pr.title ?? '',
         // P1-4a: required by delivery policy (OWNER/MEMBER review → silent-log in awaiting_external)
         authorAssociation: review?.author_association ?? 'NONE',

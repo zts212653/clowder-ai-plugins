@@ -23,6 +23,7 @@ import { copyLegacyIssueObservations, legacyIssueOperationInput } from './legacy
 import { communityProgressKey as stateKey, copyLegacyRepositoryProgress, restoreLegacyRepositoryProgress } from './legacy-repository-progress.js';
 import { copyLegacyProviderHistory, inspectLegacyProviderHistory } from './legacy-provider-history.js';
 import { readReviewVerdictFailure } from './review-verdict-failure.js';
+import { mergeTerminalFacts, parseTerminalFacts, terminalObservationEvent, terminalReviews } from './business/domains/community/terminal-provider-facts.js';
 
 export interface RepoSubject {
   kind: 'pr' | 'issue'; number: number; title: string; url: string;
@@ -31,7 +32,7 @@ export interface RepoSubject {
 export interface CommunityProvider {
   listOpen(repo: string, signal: AbortSignal): Promise<RepoSubject[]>;
   repoComments(repo: string, since: string | undefined, signal: AbortSignal): Promise<RepoIssueComment[]>;
-  state(repo: string, kind: 'pr' | 'issue', number: number, signal: AbortSignal): Promise<ReconciliationSnapshot | null>;
+  state(repo: string, kind: 'pr' | 'issue', number: number, signal: AbortSignal, includeTerminalFacts?: boolean): Promise<ReconciliationSnapshot | null>;
   selfLogin(): string | undefined;
 }
 
@@ -268,9 +269,17 @@ export class CommunityRuntime {
         sourceEventId: reviewEventId(target.repoFullName, target.number, review.id, review.state), subjectKey, kind: 'pr.review_submitted',
         classification: 'informational', at: timestamp(review.submittedAt), payload: {
           reviewId: review.id, author: review.author, reviewState: review.state,
+          ...(review.commitId ? { commitId: review.commitId } : {}),
+          ...(review.submittedAt ? { submittedAt: review.submittedAt } : {}),
           ...(review.actorType ? { actorType: review.actorType } : {}), ...(review.authorAssociation ? { authorAssociation: review.authorAssociation } : {}),
         },
       });
+      if (snapshot.terminalFacts) {
+        const facts = parseTerminalFacts(snapshot.terminalFacts, subjectKey);
+        if (target.kind !== 'pr' || facts.state !== snapshot.state || facts.headSha !== (snapshot.headSha ?? null)) throw new TypeError('terminal snapshot identity mismatch');
+        const history = terminalReviews(await this.events.read(subjectKey));
+        events.push(terminalObservationEvent(mergeTerminalFacts({ ...facts, reviews: history }, facts)));
+      }
       if (snapshot.state !== 'open') events.push({
         sourceEventId: `lifecycle:${subjectKey}:${snapshot.state}`, subjectKey, classification: 'state-changing',
         kind: target.kind === 'issue' ? 'issue.closed' : snapshot.state === 'merged' ? 'pr.merged' : 'pr.closed', payload: {}, at: Date.now(),
@@ -350,7 +359,11 @@ export class CommunityRuntime {
           (await this.objects.listSubjectKeys()).filter(subject => active.has(subject.replace(/^(?:pr|issue):/, '').replace(/#\d+$/, ''))) },
         eventLog: this.events, projector: this.projector, findingStore: this.findings,
         fetchIssueState: (repo, number, signal) => this.provider.state(repo, 'issue', number, signal ?? this.lifetime.signal),
-        fetchPrState: (repo, number, signal) => this.provider.state(repo, 'pr', number, signal ?? this.lifetime.signal),
+        fetchPrState: async (repo, number, signal) => {
+          const facts = (await this.objects.get(`pr:${repo}#${number}`))?.terminalFacts;
+          const incomplete = !facts || facts.source !== 'github-api' || !facts.ci || ['pending', 'unknown'].includes(facts.ci.status);
+          return this.provider.state(repo, 'pr', number, signal ?? this.lifetime.signal, incomplete);
+        },
         isBaselineEstablished: async subject => !!await this.context.storage.get(stateKey('reconciler-baseline', subject)),
         markBaselineEstablished: async subject => { await this.context.storage.set(stateKey('reconciler-baseline', subject), true); },
         log: this.log,

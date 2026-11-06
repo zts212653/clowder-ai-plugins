@@ -11,6 +11,7 @@ import type { CommunityProvider, RepoSubject } from './community-runtime.js';
 import type { RepoIssueComment } from './business/infrastructure/connectors/github-repo-event/RepoCommentPollTaskSpec.js';
 import { publicationBody, type NativeIssueDraft, type NativeIssuePublisher, type PublishedIssue } from './native-issue-drafts.js';
 import { observeReviewDelivery, observeReviewHead, type GitHubReviewSubject } from './github-review-evidence.js';
+import { terminalFactsFromProvider } from './github-terminal-facts.js';
 
 interface ApiComment {
   id: number; user: { login: string; type?: string }; body?: string;
@@ -20,6 +21,7 @@ interface ApiComment {
 interface ApiReview {
   id: number; user: { login: string; type?: string }; state: string;
   commit_id?: string; submitted_at?: string; author_association?: string;
+  pull_request_url?: string;
 }
 function commentOf(value: ApiComment, commentType: GitHubComment['commentType']): GitHubComment {
   return { id: value.id, author: value.user.login, body: value.body ?? '', commentType,
@@ -129,14 +131,20 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
     }).fetchRepoComments(repo, since, signal);
   }
 
-  async state(repo: string, kind: 'pr' | 'issue', number: number, signal: AbortSignal) {
+  async state(repo: string, kind: 'pr' | 'issue', number: number, signal: AbortSignal, includeTerminalFacts = false) {
     const options = await this.requestOptions(signal);
     const data = JSON.parse((await executeGitHubRequest(['api', `/repos/${repo}/${kind === 'pr' ? 'pulls' : 'issues'}/${number}`], options)).stdout);
+    const snapshot = kind === 'pr' && data.state === 'closed' && includeTerminalFacts
+      ? await this.read({ kind, repoFullName: repo, number, threadId: '', catId: '' }, signal) : null;
+    if (snapshot) return { state: snapshot.state === 'open' ? 'open' as const : 'closed' as const,
+      closedAt: snapshot.terminalFacts?.closedAt ?? null, mergedAt: snapshot.terminalFacts?.mergedAt ?? null,
+      ...(snapshot.terminalFacts ? { terminalFacts: snapshot.terminalFacts } : {}) };
     return { state: data.state === 'closed' ? 'closed' as const : 'open' as const,
       closedAt: data.closed_at ?? null, mergedAt: data.merged_at ?? null };
   }
 
   async read(target: GitHubTarget, signal: AbortSignal, cursor?: { inline: number; conversation: number }, batchCi?: CiPollResult | null): Promise<GitHubSnapshot> {
+    const observedAt = Date.now();
     signal.throwIfAborted();
     const options: GitHubRequestOptions = {
       ghToken: await this.options.token(), signal, log: this.options.log,
@@ -156,11 +164,15 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
     const reviews: GitHubReview[] = [];
     let ci: GitHubSnapshot['ci'];
     let ciBlockerCount: number | undefined;
+    let ciStatus: CiPollResult | null = null;
     let reviewThreads: GitHubSnapshot['reviewThreads'];
     if (target.kind === 'pr') {
       const inline = await fetchPaginated(`${path}/pulls/${target.number}/comments`, { ...options, sinceId: complete ? undefined : cursor?.inline }) as ApiComment[];
       comments.push(...inline.map(c => commentOf(c, 'inline')));
       const decisions = await fetchPaginated(`${path}/pulls/${target.number}/reviews`, options) as ApiReview[];
+      if (metadata.state === 'closed') for (const review of decisions) {
+        if (review.pull_request_url?.toLowerCase() !== `https://api.github.com${path}/pulls/${target.number}`.toLowerCase()) throw new TypeError('terminal review provider subject identity mismatch');
+      }
       reviews.push(...decisions.map(r => ({ id: r.id, author: r.user.login, state: r.state,
         ...(r.commit_id ? { commitId: r.commit_id } : {}),
         ...(r.submitted_at ? { submittedAt: r.submitted_at } : {}),
@@ -177,6 +189,8 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
         : await enrichPrCiStatus(batchCi, ciLog, ciRequest);
       if (!status) throw new Error('GitHub CI snapshot unavailable');
       if (status.headSha !== metadata.head?.sha) throw new Error('GitHub HEAD changed during snapshot; retry without advancing cursors');
+      if (status.repoFullName.toLowerCase() !== target.repoFullName.toLowerCase() || status.prNumber !== target.number) throw new TypeError('GitHub CI subject identity mismatch');
+      ciStatus = status;
       // Preserve CiCdRouter's empty-rollup rule: absence of checks is not a pass.
       ci = status.checkRollup === 'empty' ? 'pending' : classifyCiWaitBucket(status);
       ciBlockerCount = status.checks.filter(check => check.bucket === 'fail').length;
@@ -198,6 +212,9 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
       ...(ciBlockerCount !== undefined ? { ciBlockerCount } : {}),
       ...(target.kind === 'pr' ? { mergeState: (metadata.mergeable_state ?? 'unknown').toUpperCase() } : {}),
       comments, reviews, commentsComplete: complete, ...(reviewThreads ? { reviewThreads } : {}),
+      ...(target.kind === 'pr' && metadata.state === 'closed' ? { terminalFacts: terminalFactsFromProvider({
+        repo: target.repoFullName, number: target.number, metadata, reviews, ci: ciStatus, source: 'github-api', observedAt,
+      }) } : {}),
     };
   }
 }

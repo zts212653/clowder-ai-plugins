@@ -19,6 +19,8 @@
 
 import type { CommunityEvent, CommunityObjectProjection } from '../../../model/index.js';
 import { DEFAULT_SLA_POLICY, evaluateSlaFindings, type SlaPolicy } from '../community-sla-policy.js';
+import type { PrTerminalFacts } from '../../../model/types/provider-terminal.js';
+import { terminalObservationEvent } from '../terminal-provider-facts.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -29,6 +31,7 @@ export interface GitHubSnapshot {
   state: 'open' | 'closed';
   closedAt: string | null;
   mergedAt: string | null;
+  terminalFacts?: PrTerminalFacts;
 }
 
 export interface ReconcilerInput {
@@ -119,6 +122,11 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
     if (!ghSnap) {
       warnings.push(`No GitHub snapshot for ${projection.subjectKey} — skipped reconciliation`);
       continue;
+    }
+
+    if (ghSnap.terminalFacts && ghSnap.state === 'closed' && projection.type === 'pr') {
+      if (ghSnap.terminalFacts.subjectKey !== projection.subjectKey) throw new TypeError('reconciler terminal subject mismatch');
+      events.push(terminalObservationEvent(ghSnap.terminalFacts));
     }
 
     // ── Drift detection ─────────────────────────────────────────────────

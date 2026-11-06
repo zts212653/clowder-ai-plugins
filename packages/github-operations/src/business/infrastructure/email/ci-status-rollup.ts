@@ -34,12 +34,14 @@ export interface RollupPage {
 }
 
 export interface GraphQlPr {
+  readonly number?: number;
+  readonly repository?: { readonly nameWithOwner?: string };
   readonly headRefOid: string;
   readonly state: string;
   readonly mergedAt: string | null;
   readonly mergedBy: { readonly login?: string | null } | null;
   readonly commits?: { readonly nodes?: ReadonlyArray<{
-    readonly commit?: { readonly statusCheckRollup?: { readonly contexts?: RollupPage | null } | null } | null;
+    readonly commit?: { readonly oid?: string; readonly statusCheckRollup?: { readonly contexts?: RollupPage | null } | null } | null;
   } | null> } | null;
 }
 
@@ -97,17 +99,19 @@ function effectiveContexts(contexts: readonly GraphQlRollupContext[], headSha: s
   });
 }
 
-function mapCheck(context: GraphQlRollupContext): CiCheckDetail {
+function mapCheck(context: GraphQlRollupContext, terminal: boolean): CiCheckDetail {
   if (context.__typename === 'StatusContext') return {
     name: context.context, bucket: normalizeBucket(context.state),
     ...(context.targetUrl ? { link: context.targetUrl } : {}),
     ...(context.description ? { description: context.description } : {}),
+    ...(terminal ? { providerStatus: context.state, providerConclusion: null } : {}),
   };
   const conclusion = context.conclusion?.toLowerCase();
   const bucket = conclusion === 'skipped' || conclusion === 'neutral' ? 'pass' :
     conclusion === 'timed_out' ? 'fail' : normalizeBucket(context.conclusion ?? context.status);
   const workflow = context.checkSuite?.workflowRun?.workflow?.name;
   return { name: context.name, bucket,
+    ...(terminal ? { providerStatus: context.status, providerConclusion: context.conclusion } : {}),
     ...(context.detailsUrl ? { link: context.detailsUrl } : {}), ...(workflow ? { workflow } : {}) };
 }
 
@@ -116,10 +120,14 @@ export function graphQlPrToPollResult(
 ): CiPollResult | null {
   const prState = normalizePrState(pr.state, pr.mergedAt);
   const base = { repoFullName: target.repoFullName, prNumber: target.prNumber, headSha: pr.headRefOid, prState };
-  if (prState !== 'open') return { ...base, aggregateBucket: 'pending', checks: [],
-    ...(pr.mergedBy?.login ? { mergedByLogin: pr.mergedBy.login } : {}) };
+  const identityVerified = graphQlSubjectMatches(target, pr);
+  if (prState !== 'open' && !identityVerified) return null;
+  if (pr.number !== undefined && pr.number !== target.prNumber ||
+    pr.repository?.nameWithOwner !== undefined && pr.repository.nameWithOwner.toLowerCase() !== target.repoFullName.toLowerCase() ||
+    pr.commits?.nodes?.at(-1)?.commit?.oid !== undefined && pr.commits.nodes.at(-1)!.commit!.oid !== pr.headRefOid) return null;
   const page = rollupPage(pr);
   if (page && (page.pageInfo?.hasNextPage !== false || !page.nodes || page.nodes.some(x => !x))) return null;
+  if (prState !== 'open' && page?.nodes?.some(check => check?.__typename === 'CheckRun' && check.checkSuite?.commit?.oid !== pr.headRefOid)) return null;
   const contexts = effectiveContexts((page?.nodes ?? []) as readonly GraphQlRollupContext[], pr.headRefOid);
   const rollup = contexts.map(context => ({
     status: context.__typename === 'StatusContext' ? context.state : context.status,
@@ -127,5 +135,12 @@ export function graphQlPrToPollResult(
     __typename: context.__typename,
   }));
   return { ...base, aggregateBucket: computeAggregateBucket(rollup),
-    checkRollup: contexts.length === 0 ? 'empty' : 'present', checks: contexts.map(mapCheck) };
+    checkRollup: contexts.length === 0 ? 'empty' : 'present', checks: contexts.map(context => mapCheck(context, prState !== 'open')),
+    ...(identityVerified ? { identityVerified: true as const } : {}),
+    ...(pr.mergedBy?.login ? { mergedByLogin: pr.mergedBy.login } : {}) };
+}
+
+export function graphQlSubjectMatches(target: { repoFullName: string; prNumber: number }, pr: GraphQlPr): boolean {
+  return pr.number === target.prNumber && pr.repository?.nameWithOwner?.toLowerCase() === target.repoFullName.toLowerCase() &&
+    pr.commits?.nodes?.at(-1)?.commit?.oid === pr.headRefOid;
 }

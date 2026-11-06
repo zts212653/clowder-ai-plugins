@@ -25,6 +25,7 @@ export type CommunityEventKind =
   | 'issue.commented' // webhook issue_comment.created / polling IssueCommentTaskSpec
   | 'issue.labeled' // webhook issues.labeled | unlabeled (payload.label carries name)
   | 'pr.review_submitted' // webhook pull_request_review.submitted
+  | 'pr.terminal_observed' // provider-only final facts, independent of native delivery
   // Internal decision events
   | 'case.triaged'
   | 'case.routed'
@@ -276,6 +277,8 @@ export interface CommunityObjectProjection {
   issueFixEvidence: IssueFixEvidence | null;
   /** F168 Phase F-Step3 external review lifecycle; absent for ordinary community objects. */
   externalReview: ExternalReviewAggregate | null;
+  /** Rebuildable provider facts; never a native review/delivery assertion. */
+  terminalFacts?: import('./provider-terminal.js').PrTerminalFacts;
   /**
    * Count of events consumed to build this projection.
    * Used for rebuild consistency verification.
