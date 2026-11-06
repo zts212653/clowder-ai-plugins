@@ -94,6 +94,9 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 	if (!external?.pending && !external?.current) {
 		return { rows: [], pollUntil: input.now + FIVE_MINUTES_MS };
 	}
+	const replacementActions = external.current && external.pending
+		? [action("cancel-pending", "放弃本次更新")]
+		: [];
 	if (!external.pending && external.current && !currentCredentialUsable) {
 		return {
 			rows: [row(
@@ -121,6 +124,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 				`把上方生成的 Server URL 添加到 https://chatgpt.com/plugins，Authentication 选择「No authentication」。添加后点「生成订阅消息」，在目标 Work 对话中 @ 刚添加的插件并发送消息。${endpointDetail}`,
 				[
 					action("show-instructions", "生成订阅消息"),
+					...replacementActions,
 				],
 			)],
 			pollUntil: input.now + FIVE_MINUTES_MS,
@@ -138,6 +142,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					"点「生成订阅消息」并复制结果。在 ChatGPT Work 的目标对话输入 @，选择刚添加的插件，再发送这条消息。",
 					[
 						action("show-instructions", "生成订阅消息"),
+						...replacementActions,
 					],
 				),
 			],
@@ -155,6 +160,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 						"重新生成订阅消息，发送到目标 ChatGPT Work 对话；无需重新生成仍有效的 Server URL。",
 						[
 							action("show-instructions", "生成订阅消息"),
+							...replacementActions,
 						],
 					),
 				],
@@ -169,6 +175,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					"将生成的订阅消息发送到目标 Work 对话并允许订阅。这里会自动更新；若已发送但仍未连接，请查看 ChatGPT 调用详情中的错误。",
 					[
 						action("show-instructions", "生成订阅消息"),
+						...replacementActions,
 					],
 				),
 			],

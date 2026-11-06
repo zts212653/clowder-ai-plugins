@@ -246,3 +246,36 @@ test("cancelling a replacement restores the current credential endpoint", async 
 	assert.equal(restored.pending, null);
 	assert.deepEqual(restored.endpoint, previousEndpoint);
 });
+
+test("setup rows retain replacement cancellation and its owner action restores the healthy connection", async (t) => {
+	const f = await paired(t);
+	const dot = new DotConnection(f.host, f.sendWebhook, new AbortController().signal);
+	const old = await dot.externalState();
+	const previousEndpoint = { mode: "long-lived", serverUrl: "https://old.example/mcp?token=old", reachableAt: Date.now() };
+	await f.host.storage.set(EXTERNAL_KEY, { ...old, endpoint: previousEndpoint });
+	f.host.capability = { issueExternal: async () => ({ token: "pending", tokenId: "new-jti", issuedAt: 1, expiresAt: 2_000_000_000, refreshRecommendedAt: 1_900_000_000 }) };
+	await dot.issuePending(f.owner, 3600);
+	await dot.setLongLivedServerUrl("https://new.example/api/plugin-runtime/handle?token=pending");
+	const external = await dot.externalState();
+	const connection = await dot.current();
+	const now = Date.now();
+	for (const [key, discoveredAt, candidateConnection] of [
+		["waiting-discovery", null, connection],
+		["pairing-not-started", now, null],
+		["pairing-expired", now, { ...connection, pairedAt: null, subscription: null, pairingExpiresAt: now - 1 }],
+		["waiting-subscription", now, { ...connection, pairedAt: null, subscription: null, pairingExpiresAt: now + 60_000 }],
+	]) {
+		for (const hasCurrent of [true, false]) {
+			const rows = projectDotJourney({ runtimeRunning: true, external: { ...external, current: hasCurrent ? external.current : null,
+				pending: { ...external.pending, discoveredAt, pairingRequired: true } }, connection: candidateConnection, dispatches: [], now });
+			assert.equal(rows.rows[0].key, key);
+			assert.equal(rows.rows[0].actions.some((action) => action.action === "cancel-pending"), hasCurrent, `${key}: only replacements need old-connection recovery`);
+		}
+	}
+	const before = await f.settings.actions["dot.status"]({}, undefined, f.owner);
+	assert.ok(before.data.rows[0].actions.some((action) => action.action === "cancel-pending"));
+	await f.settings.actions["dot.cancel-pending"]({}, undefined, f.owner);
+	assert.equal((await dot.externalState()).pending, null);
+	assert.deepEqual((await dot.externalState()).endpoint, previousEndpoint);
+	assert.deepEqual((await dot.current()).subscription, connection.subscription);
+});
