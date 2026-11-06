@@ -536,11 +536,10 @@ export class DotConnection {
         if (credential) await this.authorizeExternal(credential, 'pairing-subscribe');
         const expiresAt = ttl === null ? null : this.now() + ttl;
         if (state.bindingAuthority?.tokenId) {
-            const external = await this.externalState();
-            const binding = external.current?.kind === 'signed' ? external.current.binding : undefined;
-            if (!binding) throw new Error('dot_binding_stale');
+            const authority = state.bindingAuthority;
             await this.store.updateExternal(value => {
-                if (value?.current?.kind !== 'signed' || value.current.tokenId !== state.bindingAuthority!.tokenId || value.current.binding?.version !== binding.version) throw new Error('dot_binding_stale');
+                if (value?.current?.kind !== 'signed' || value.current.tokenId !== authority.tokenId || !value.current.binding || value.current.binding.version !== authority.version) throw new Error('dot_binding_stale');
+                const binding = value.current.binding;
                 return {...value,revision:value.revision+1,current:{...value.current,binding:{...binding,version:binding.version+1,pairedAt:this.now(),pairedCallbackUrl:input.url,subscription:{id,url:input.url,secret:input.secret,expiresAt,verifiedAt:this.now(),previousSecret:state.subscription?.secret ?? null,rotationUntil:this.now()+5*60000}}}};
             });
             return {id,refreshBefore:expiresAt===null?null:new Date(expiresAt).toISOString(),cursor:null,truncated:false};

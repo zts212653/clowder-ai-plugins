@@ -218,3 +218,48 @@ test("owner instruction generation upgrades an existing legacy pending record in
   assert.equal((await f.finish(await f.startProof())).body.error,undefined);
   assert.equal((await f.dot.current()).subscription.url,newUrl);
 });
+
+for (const reauthorize of [false, true]) test(`late current renewal cannot overwrite unsubscribe or owner reauthorization (reauthorize=${reauthorize})`, async t => {
+  const f = await candidateFixture(t);
+  await f.subscribe();
+  assert.equal((await f.finish(await f.startProof())).body.error, undefined);
+  const formal = await f.dot.current();
+  const credential = {sub:f.host.pluginInstanceId,cap:"dot-mcp",jti:f.jti,iat:1,exp:2_000_000_000};
+  const lateSecret = "whsec_" + Buffer.alloc(32, 8).toString("base64");
+  const authorizedSecret = "whsec_" + Buffer.alloc(32, 9).toString("base64");
+  const authorize = f.dot.authorizeExternal.bind(f.dot);
+  const send = f.dot.send;
+  let challenged = false, interleaved = false, authoritative;
+  f.dot.send = async (...args) => {
+    const response = await send(...args);
+    challenged = true;
+    return response;
+  };
+  // Interleave after the renewal's final authorization succeeds, before its commit.
+  f.dot.authorizeExternal = async (value, operation, eventId) => {
+    const result = await authorize(value, operation, eventId);
+    if (challenged && !interleaved && operation === "pairing-subscribe") {
+      interleaved = true;
+      await f.dot.unsubscribe({attemptId:formal.attemptId,pairingCode:formal.pairingCode,url:formal.subscription.url}, credential);
+      assert.equal((await f.dot.current()).subscription, null);
+      if (reauthorize) {
+        const message = await f.settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+        const pairingCode = message.data.match(/pairing_code=([a-f0-9]+)/)[1];
+        assert.notEqual(pairingCode, formal.pairingCode);
+        const response = await f.rpc("events/subscribe", {name:"dot.summoned",arguments:{attempt_id:formal.attemptId,pairing_code:pairingCode},delivery:{mode:"webhook",url:formal.subscription.url,secret:authorizedSecret},ttlMs:null});
+        assert.equal(response.body.error, undefined);
+      }
+      authoritative = structuredClone(f.records.get(EXTERNAL_KEY));
+    }
+    return result;
+  };
+  let failure;
+  try {
+    await f.dot.subscribe({attemptId:formal.attemptId,pairingCode:formal.pairingCode,url:formal.subscription.url,secret:lateSecret,ttlMs:null}, credential);
+  } catch (error) { failure = error; }
+  assert.equal(interleaved, true);
+  assert.deepEqual(f.records.get(EXTERNAL_KEY), authoritative, "late renewal must not write after a newer authority decision");
+  assert.match(failure?.message ?? "", /dot_binding_stale/);
+  const current = await f.dot.current();
+  assert.equal(current.subscription?.secret ?? null, reauthorize ? authorizedSecret : null);
+});
