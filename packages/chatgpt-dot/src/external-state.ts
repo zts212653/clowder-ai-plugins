@@ -3,11 +3,17 @@ import { dotSubscriptionSchema } from "./connection-state.js";
 
 const ref = z.string().min(1).max(512);
 
-export const callbackBindingSchema = z.object({
-  attemptId: ref, pairingCode: ref, pairingExpiresAt: z.number(), version: z.number().int().positive(),
-  pairedCallbackUrl: z.string().url().nullable(), pairedAt: z.number().nullable(),
-  subscription: dotSubscriptionSchema.nullable(),
-}).strict();
+export const callbackBindingSchema = z
+	.object({
+		attemptId: ref,
+		pairingCode: ref,
+		pairingExpiresAt: z.number(),
+		version: z.number().int().positive(),
+		pairedCallbackUrl: z.string().url().nullable(),
+		pairedAt: z.number().nullable(),
+		subscription: dotSubscriptionSchema.nullable(),
+	})
+	.strict();
 export type CallbackBinding = z.infer<typeof callbackBindingSchema>;
 
 export const signedCredentialSchema = z
@@ -19,13 +25,24 @@ export const signedCredentialSchema = z
 		expiresAt: z.number().int().positive(),
 		refreshRecommendedAt: z.number().int().positive(),
 		verifiedEventId: ref.optional(),
-        binding: callbackBindingSchema.optional(),
+		binding: callbackBindingSchema.optional(),
 	})
 	.strict();
 
 export const currentCredentialSchema = z.discriminatedUnion("kind", [
 	signedCredentialSchema,
-	z.object({ kind: z.literal("legacy"), recordRef: z.enum(["host.external", "connection.credentialSecret"]) }).strict(),
+	signedCredentialSchema.extend({
+		kind: z.literal("plugin"),
+		pluginInstanceId: ref,
+		expiresAt: z.number().int().positive().nullable(),
+		refreshRecommendedAt: z.number().int().positive().nullable(),
+	}),
+	z
+		.object({
+			kind: z.literal("legacy"),
+			recordRef: z.enum(["host.external", "connection.credentialSecret"]),
+		})
+		.strict(),
 ]);
 
 export const endpointLeaseSchema = z.discriminatedUnion("mode", [
@@ -60,9 +77,16 @@ export const pendingCredentialSchema = signedCredentialSchema
 	.omit({ kind: true, binding: true })
 	.extend({
 		kind: z.literal("pending"),
-        binding: callbackBindingSchema.nullable().optional(),
-        pairingIntent: z.object({ code: ref, expiresAt: z.number(), attemptId: ref }).strict().optional(),
-        verificationBindingVersion: z.number().int().positive().optional(),
+		issuer: z.literal("plugin").optional(),
+		pluginInstanceId: ref.optional(),
+		expiresAt: z.number().int().positive().nullable(),
+		refreshRecommendedAt: z.number().int().positive().nullable(),
+		binding: callbackBindingSchema.nullable().optional(),
+		pairingIntent: z
+			.object({ code: ref, expiresAt: z.number(), attemptId: ref })
+			.strict()
+			.optional(),
+		verificationBindingVersion: z.number().int().positive().optional(),
 		candidateId: ref,
 		revision: z.number().int().positive(),
 		createdAt: z.number().int().nonnegative(),
@@ -75,7 +99,19 @@ export const pendingCredentialSchema = signedCredentialSchema
 		/** Snapshot restored when an owner abandons a credential replacement. */
 		previousEndpoint: endpointLeaseSchema.nullable().optional(),
 	})
-	.strict();
+	.strict()
+	.superRefine((value, context) => {
+		if (value.issuer === "plugin" && !value.pluginInstanceId)
+			context.addIssue({code:z.ZodIssueCode.custom,message:"Plugin credentials require their issuing installation"});
+		if (
+			value.issuer !== "plugin" &&
+			(value.expiresAt === null || value.refreshRecommendedAt === null)
+		)
+			context.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Host-signed pending credentials require expiry metadata",
+			});
+	});
 
 export const dotExternalStateSchema = z
 	.object({
@@ -92,9 +128,15 @@ export type PendingCredential = z.infer<typeof pendingCredentialSchema>;
 export type DotExternalState = z.infer<typeof dotExternalStateSchema>;
 
 export interface VerifiedExternalCredential {
+	readonly origin?: "plugin";
 	readonly sub: string;
 	readonly cap: string;
 	readonly jti: string;
 	readonly iat: number;
-	readonly exp: number;
+	readonly exp: number | null;
 }
+
+export const credentialLive = (
+	credential: { readonly expiresAt: number | null },
+	now: number,
+) => credential.expiresAt === null || credential.expiresAt * 1000 > now;

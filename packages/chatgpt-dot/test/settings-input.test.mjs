@@ -47,10 +47,18 @@ test("status is a pure rows projection and does not manufacture authorization, p
 
 test("legacy pairing remains usable while the journey asks for a real public endpoint", async (t) => {
 	const { f, settings } = await runningFixture(t);
-	const begun = await settings.actions["dot.begin-pairing"]({}, undefined, f.owner);
+	const begun = await settings.actions["dot.begin-pairing"](
+		{},
+		undefined,
+		f.owner,
+	);
 	assert.deepEqual(begun.data.rows, []);
 	assert.ok(f.records.get("dot/connection/v1").value.pairingCode);
-	const instructions = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+	const instructions = await settings.actions["dot.show-instructions"](
+		{},
+		undefined,
+		f.owner,
+	);
 	assert.equal(instructions.render, "text");
 	assert.match(instructions.data, /pairing_code=/);
 });
@@ -62,24 +70,49 @@ test("one owner action supplies the Work connection message without a separate p
 		/owner/,
 	);
 	assert.equal(f.records.has("dot/connection/v1"), false);
-	const first = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+	const first = await settings.actions["dot.show-instructions"](
+		{},
+		undefined,
+		f.owner,
+	);
 	const state = structuredClone(f.records.get("dot/connection/v1").value);
 	assert.equal(first.render, "text");
 	assert.match(first.data, /events\/subscribe/);
 	assert.match(first.data, new RegExp(`attempt_id=${state.attemptId}`));
 	assert.match(first.data, new RegExp(`pairing_code=${state.pairingCode}`));
 	await assert.rejects(
-		() => settings.actions["dot.show-instructions"]({}, undefined, { ...f.owner, userId: "intruder" }),
+		() =>
+			settings.actions["dot.show-instructions"]({}, undefined, {
+				...f.owner,
+				userId: "intruder",
+			}),
 		/owner/,
 	);
-	const repeated = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+	const repeated = await settings.actions["dot.show-instructions"](
+		{},
+		undefined,
+		f.owner,
+	);
 	assert.deepEqual(repeated, first);
-	assert.equal(f.records.get("dot/connection/v1").value.attemptId, state.attemptId);
-	assert.equal(f.records.get("dot/external/v1").value.endpoint.serverUrl, "https://dot.example/plugin/mcp?token=fixture");
+	assert.equal(
+		f.records.get("dot/connection/v1").value.attemptId,
+		state.attemptId,
+	);
+	assert.equal(
+		f.records.get("dot/external/v1").value.endpoint.serverUrl,
+		"https://dot.example/plugin/mcp?token=fixture",
+	);
 	const status = await settings.actions["dot.status"]({}, undefined, f.owner);
 	assert.equal(status.data.rows[0].key, "waiting-subscription");
-	assert.equal(status.data.rows.some((row) => row.key === "connection-message"), false);
-	assert.equal(JSON.stringify(status.data).includes(state.pairingCode), false, "status must not repeat the subscription message");
+	assert.equal(
+		status.data.rows.some((row) => row.key === "connection-message"),
+		false,
+	);
+	assert.equal(
+		JSON.stringify(status.data).includes(state.pairingCode),
+		false,
+		"status must not repeat the subscription message",
+	);
 });
 
 test("a legacy credential starts when the Host exposes only a relative forwarding coordinate", async (t) => {
@@ -134,7 +167,7 @@ test("entry actions consume the current configuration draft passed by the Host",
 	const f = fixture(t, {
 		config: {
 			longLivedServerUrlTemplate:
-				"https://saved.invalid/api/plugin-runtime/handle?token={token}",
+				"https://saved.invalid/api/plugins/official.chatgpt-dot/mcp?token={token}",
 			externalTokenDays: 180,
 			temporaryEndpointHours: 1,
 		},
@@ -177,7 +210,10 @@ test("entry actions consume the current configuration draft passed by the Host",
 	t.after(() => {
 		TemporaryEndpointController.prototype.start = originalStart;
 	});
-	const module = createDotPlugin({ sendWebhook: f.sendWebhook, now: () => now });
+	const module = createDotPlugin({
+		sendWebhook: f.sendWebhook,
+		now: () => now,
+	});
 	const settings = await module.settings(f.host);
 	const active = await module.start(f.host);
 	t.after(async () => {
@@ -189,29 +225,61 @@ test("entry actions consume the current configuration draft passed by the Host",
 		{
 			input: {
 				longLivedServerUrlTemplate:
-					"https://draft.example/api/plugin-runtime/handle?token={token}",
+					"https://draft.example/api/plugins/official.chatgpt-dot/mcp?token={token}",
 				externalTokenDays: "7",
 			},
 		},
 		undefined,
 		f.owner,
 	);
-	assert.equal(longLived.label, undefined, "required setup content must not rely on label rendering");
-	assert.equal(longLived.data, "https://draft.example/api/plugin-runtime/handle?token=draft-token-1");
-	assert.equal(f.records.has("dot/connection/v1"), false, "URL generation is separate from subscription message generation");
-	assert.equal(issuedTtls[0], 7 * 24 * 60 * 60);
-	const afterGeneration = await settings.actions["dot.status"]({}, undefined, f.owner);
-	assert.equal(afterGeneration.data.rows.some((row) => row.key === "connection-message"), false);
-	assert.equal(afterGeneration.data.rows[0].actions?.some((action) => action.action === "show-instructions") ?? false, false);
-	assert.equal(f.records.get("dot/external/v1").value.pending.discoveredAt, null);
-	const subscriptionMessage = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+	assert.equal(
+		longLived.label,
+		undefined,
+		"required setup content must not rely on label rendering",
+	);
+	const longToken = f.records.get("dot/external/v1").value.pending.token;
+	assert.equal(
+		longLived.data,
+		`https://draft.example/api/plugins/official.chatgpt-dot/mcp?token=${longToken}`,
+	);
+	assert.equal(
+		f.records.has("dot/connection/v1"),
+		false,
+		"URL generation is separate from subscription message generation",
+	);
+	assert.equal(issuedTtls.length, 0, "credential lifetime is plugin-owned");
+	assert.equal(f.records.get("dot/external/v1").value.pending.expiresAt, null);
+	const afterGeneration = await settings.actions["dot.status"](
+		{},
+		undefined,
+		f.owner,
+	);
+	assert.equal(
+		afterGeneration.data.rows.some((row) => row.key === "connection-message"),
+		false,
+	);
+	assert.equal(
+		afterGeneration.data.rows[0].actions?.some(
+			(action) => action.action === "show-instructions",
+		) ?? false,
+		false,
+	);
+	assert.equal(
+		f.records.get("dot/external/v1").value.pending.discoveredAt,
+		null,
+	);
+	const subscriptionMessage = await settings.actions["dot.show-instructions"](
+		{},
+		undefined,
+		f.owner,
+	);
 	assert.match(subscriptionMessage.data, /dot\.summoned/);
 	assert.doesNotMatch(subscriptionMessage.data, /draft-token-1|https:\/\//);
 	const repeatedLongLived = await settings.actions["dot.use-long-lived"](
 		{
 			input: {
 				longLivedServerUrlTemplate:
-					"https://draft.example/api/plugin-runtime/handle?token={token}",
+					"https://draft.example/api/plugins/official.chatgpt-dot/mcp?token={token}",
 				externalTokenDays: "7",
 			},
 		},
@@ -221,7 +289,7 @@ test("entry actions consume the current configuration draft passed by the Host",
 	assert.equal(repeatedLongLived.data, longLived.data);
 	assert.equal(
 		issuedTtls.length,
-		1,
+		0,
 		"repeating the setup action must not silently rotate the external credential",
 	);
 
@@ -233,9 +301,16 @@ test("entry actions consume the current configuration draft passed by the Host",
 		f.owner,
 	);
 	assert.equal(temporary.label, undefined);
-	assert.equal(temporary.data, "https://temporary.example/mcp?token=draft-token-2");
+	assert.equal(
+		temporary.data,
+		`https://temporary.example/mcp?token=${temporaryInput.token}`,
+	);
 	assert.equal(temporaryInput.ttlMs, 2.5 * 60 * 60_000);
-	assert.equal(issuedTtls[1], 2.5 * 60 * 60 + 300);
+	assert.equal(
+		f.records.get("dot/external/v1").value.pending.expiresAt,
+		Math.floor(now / 1000) + 2.5 * 60 * 60,
+	);
+	assert.equal(temporaryInput.relativePath, "/mcp");
 	const repeatedTemporary = await settings.actions["dot.start-temporary"](
 		{
 			input: { temporaryEndpointHours: "2.5" },
@@ -246,7 +321,7 @@ test("entry actions consume the current configuration draft passed by the Host",
 	assert.equal(repeatedTemporary.data, temporary.data);
 	assert.equal(
 		issuedTtls.length,
-		2,
+		0,
 		"an active temporary endpoint must keep its existing external credential",
 	);
 	assert.equal(temporaryStarts, 1);
@@ -255,33 +330,79 @@ test("entry actions consume the current configuration draft passed by the Host",
 test("owner can prepare a connection message before discovery without granting verification authority", async (t) => {
 	const { f, settings } = await runningFixture(t);
 	await f.host.storage.set("dot/external/v1", {
-		v: 1, revision: 2, current: null,
-		pending: { kind: "pending", candidateId: "candidate", revision: 1, token: "token", tokenId: "jti", issuedAt: 1,
-			expiresAt: 2_000_000_000, refreshRecommendedAt: 1_900_000_000, createdAt: 1, discoveredAt: null,
-			pairingAttemptId: null, verificationEventId: null, verificationReadAt: null, verificationReplyAt: null },
-		endpoint: { mode: "long-lived", serverUrl: "https://dot.example/mcp?token=token", reachableAt: null },
+		v: 1,
+		revision: 2,
+		current: null,
+		pending: {
+			kind: "pending",
+			candidateId: "candidate",
+			revision: 1,
+			token: "token",
+			tokenId: "jti",
+			issuedAt: 1,
+			expiresAt: 2_000_000_000,
+			refreshRecommendedAt: 1_900_000_000,
+			createdAt: 1,
+			discoveredAt: null,
+			pairingAttemptId: null,
+			verificationEventId: null,
+			verificationReadAt: null,
+			verificationReplyAt: null,
+		},
+		endpoint: {
+			mode: "long-lived",
+			serverUrl: "https://dot.example/mcp?token=token",
+			reachableAt: null,
+		},
 	});
-	const result = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+	const result = await settings.actions["dot.show-instructions"](
+		{},
+		undefined,
+		f.owner,
+	);
 	assert.match(result.data, /events\/subscribe/);
 	const external = f.records.get("dot/external/v1").value;
 	assert.equal(external.pending.discoveredAt, null);
 	assert.equal(external.current, null);
-	assert.equal(external.pending.pairingAttemptId, f.records.get("dot/connection/v1").value.attemptId);
-	const connection = new DotConnection(f.host, f.sendWebhook, new AbortController().signal);
-	await assert.rejects(() => connection.bindPendingVerification("test-event"), /discovery_required/);
+	assert.equal(
+		external.pending.pairingAttemptId,
+		f.records.get("dot/connection/v1").value.attemptId,
+	);
+	const connection = new DotConnection(
+		f.host,
+		f.sendWebhook,
+		new AbortController().signal,
+	);
+	await assert.rejects(
+		() => connection.bindPendingVerification("test-event"),
+		/discovery_required/,
+	);
 });
 
 test("an already promoted signed credential remains reusable at a real millisecond clock", async (t) => {
 	const { f, settings } = await runningFixture(t);
 	const now = Math.floor(Date.now() / 1000);
-	const serverUrl = "https://dot.example/api/plugin-runtime/handle?token=current-token";
+	const serverUrl =
+		"https://dot.example/api/plugin-runtime/handle?token=current-token";
 	await f.host.storage.set("dot/external/v1", {
-		v: 1, revision: 1, pending: null,
-		current: { kind: "signed", token: "current-token", tokenId: "current-jti", issuedAt: now,
-			expiresAt: now + 3600, refreshRecommendedAt: now + 1800 },
+		v: 1,
+		revision: 1,
+		pending: null,
+		current: {
+			kind: "signed",
+			token: "current-token",
+			tokenId: "current-jti",
+			issuedAt: now,
+			expiresAt: now + 3600,
+			refreshRecommendedAt: now + 1800,
+		},
 		endpoint: { mode: "long-lived", serverUrl, reachableAt: now * 1000 },
 	});
-	const result = await settings.actions["dot.use-long-lived"]({}, undefined, f.owner);
+	const result = await settings.actions["dot.use-long-lived"](
+		{},
+		undefined,
+		f.owner,
+	);
 	assert.ok(result.data.includes(serverUrl));
 	assert.equal(f.records.get("dot/external/v1").value.pending, null);
 });
@@ -292,7 +413,8 @@ test("owner disconnect revokes Dot credentials before revoking the pairing", asy
 	await settings.actions["dot.begin-pairing"]({}, undefined, f.owner);
 	const original = f.host.storage.compareAndSet.bind(f.host.storage);
 	f.host.storage.compareAndSet = async (...args) => {
-		if (args[0] === "dot/external/v1") calls.push({ kind: "credential-revoked" });
+		if (args[0] === "dot/external/v1")
+			calls.push({ kind: "credential-revoked" });
 		if (args[0] === "dot/connection/v1")
 			calls.push({ kind: "pairing-revoked" });
 		return original(...args);

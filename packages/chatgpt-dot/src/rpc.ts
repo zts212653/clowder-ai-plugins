@@ -22,7 +22,7 @@ const externalRequestSchema = z.object({
     method: z.string(),
     headers: z.record(z.union([z.string(), z.array(z.string())])),
     body: z.unknown().optional(),
-    credential: z.object({ sub: z.string(), cap: z.string(), jti: z.string(), iat: z.number(), exp: z.number() }).strict().optional(),
+    credential: z.object({ origin: z.literal('plugin').optional(), sub: z.string(), cap: z.string(), jti: z.string(), iat: z.number(), exp: z.number().nullable() }).strict().optional(),
 }).strict();
 const headers = { 'content-type': 'application/json', 'cache-control': 'no-store' };
 export async function rpc(runtime: DotRuntime, raw: unknown) {

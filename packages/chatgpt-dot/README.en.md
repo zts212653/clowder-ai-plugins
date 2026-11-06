@@ -12,7 +12,7 @@ Choose the local plugin directory or the complete supplied archive in Plugin Man
 
 After enabling Dot, open “Dot connection”. The plugin steps explain the complete setup:
 
-1. Choose a long-lived or temporary public endpoint and copy the returned Server URL. Repeating setup reuses a live endpoint and credential.
+1. Choose a long-lived or temporary public endpoint and copy the returned Server URL. Repeating setup reuses a live endpoint and credential. Long-lived credentials have no automatic expiry; temporary ingress lasts up to 24 hours.
 2. Open <https://chatgpt.com/plugins>, choose `+` → `Add custom MCP server`, paste the URL, and select `No authentication`. Remember the plugin name you chose.
 3. Check the plugin details for Dot tools and the `dot.summoned` event. Refresh only if they are missing or their definitions have changed.
 4. Click “生成订阅消息” (Generate subscription message) and copy its result. Open <https://chatgpt.com> and switch to **Work**. In the target conversation, type `@`, select the plugin you added, and send the message. Allow the subscription when prompted; a separate pairing-preparation action is not needed.
@@ -20,7 +20,7 @@ After enabling Dot, open “Dot connection”. The plugin steps explain the comp
 
 The [OpenAI MCP Events guide](https://developers.openai.com/plugins/build/mcp-events) uses a Work chat on ChatGPT web and requires rescanning after tool or event definitions change. See [Get started with Work](https://learn.chatgpt.com/docs/get-started-with-work) for the Work entry point.
 
-The Host supplies only generic installation identity, signed credentials and fixed plugin forwarding. It does not create a Dot-specific public URL or retain every bearer token. Dot owns long-lived and temporary endpoints, refresh guidance and pairing. Temporary ingress closes on expiry, disable or uninstall. A long-lived endpoint survives Host restarts, while every request still intersects current installation, enabled runtime and capability authority. “Reset connection” rotates only pairing; disconnect revokes the current Dot credential and pairing. A legacy credential is a bounded migration seam rather than a permanent second authentication path. Keep complete Server URLs and tokens out of public conversations and diagnostic logs.
+Dot generates and retains its own instance-scoped access credential and authenticates requests through the existing generic Host webhook route. The Host owns installation identity, declared routing, permissions and runtime lifecycle, not Dot credential expiry. A long-lived full Server URL still contains a token and remains reusable across ordinary restart until explicit rotation or revocation. Temporary ingress retains its chosen expiry and closes on restart, disable or uninstall. Historical signed ingress remains migration compatibility with its original expiry checks. Explicit migration to a persistent credential produces a new URL that must complete discovery, subscription and roundtrip verification before replacing the protected formal connection. Reset rotates pairing only; disconnect revokes the credential and pairing. Keep full URLs and tokens out of public conversations and diagnostic logs.
 
 The optional proxy supports a loopback HTTP CONNECT endpoint. Direct HTTPS callbacks validate public addresses and pin DNS resolution. The Host owns the installation identity, alias and icon.
 

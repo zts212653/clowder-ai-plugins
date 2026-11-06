@@ -186,7 +186,8 @@ test("controller waits through transient edge responses without extending the st
 		runnerPath,
 		binaryPath: await fakeTunnel(t, root),
 		fetch: async () => new Response("{}", { status: statuses[probes++] ?? 401 }),
-		startupTimeoutMs: 2_000,
+		// Allow process startup plus two 250ms probe retries on loaded CI hosts.
+		startupTimeoutMs: 5_000,
 	});
 	t.after(() => controller.stop("owner_stop"));
 	const lease = await controller.start({

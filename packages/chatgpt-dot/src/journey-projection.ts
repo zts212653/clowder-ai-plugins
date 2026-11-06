@@ -82,42 +82,63 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 
 	const external = input.external;
 	const endpoint = external?.endpoint;
-	const currentCredentialUsable = !external?.current || external.current.kind === "legacy"
-		? true
-		: input.credentialStatus?.usable ?? external.current.expiresAt * 1000 > input.now;
+	const currentCredentialUsable =
+		!external?.current || external.current.kind === "legacy"
+			? true
+			: (input.credentialStatus?.usable ??
+				(external.current.expiresAt === null ||
+					external.current.expiresAt * 1000 > input.now));
 	const endpointActive = Boolean(
 		endpoint &&
 			(endpoint.mode === "long-lived" ||
-				(endpoint.mode === "temporary-active" && endpoint.expiresAt > input.now)),
+				(endpoint.mode === "temporary-active" &&
+					endpoint.expiresAt > input.now)),
 	);
 	if (!external?.pending && !external?.current) {
 		return { rows: [], pollUntil: input.now + FIVE_MINUTES_MS };
 	}
-	const replacementActions = external.current && external.pending
-		? [action("cancel-pending", "放弃本次更新")]
-		: [];
-	const connectedActions = external.current ? replacementActions : [action("disconnect", "断开连接")];
-	if (!endpointActive && (external.current?.kind === "signed" || external.pending || endpoint?.mode === "temporary-expired")) {
-		const temporary = endpoint?.mode === "temporary-active" || endpoint?.mode === "temporary-expired";
+	const replacementActions =
+		external.current && external.pending
+			? [action("cancel-pending", "放弃本次更新")]
+			: [];
+	const connectedActions = external.current
+		? replacementActions
+		: [action("disconnect", "断开连接")];
+	if (
+		!endpointActive &&
+		((external.current && external.current.kind !== "legacy") ||
+			external.pending ||
+			endpoint?.mode === "temporary-expired")
+	) {
+		const temporary =
+			endpoint?.mode === "temporary-active" ||
+			endpoint?.mode === "temporary-expired";
 		return {
-			rows: [row(
-				"endpoint-unavailable",
-				temporary ? "临时入口已停止或到期" : "公网入口尚不可用",
-				temporary
-					? "请在上方点击「创建临时入口」，用返回的新 Server URL 在 ChatGPT 添加连接。"
-					: "请在上方生成 Server URL，再将该 URL 添加到 ChatGPT。",
-				[...replacementActions, action("disconnect", "断开连接")],
-			)],
+			rows: [
+				row(
+					"endpoint-unavailable",
+					temporary ? "临时入口已停止或到期" : "公网入口尚不可用",
+					temporary
+						? "请在上方点击「创建临时入口」，用返回的新 Server URL 在 ChatGPT 添加连接。"
+						: "请在上方生成 Server URL，再将该 URL 添加到 ChatGPT。",
+					[...replacementActions, action("disconnect", "断开连接")],
+				),
+			],
 		};
 	}
 	if (!external.pending && external.current && !currentCredentialUsable) {
 		return {
-			rows: [row(
-				"credential-unavailable",
-				"外部凭据已不可用",
-				"凭据已到期或失效。更新后请使用新 Server URL 在 ChatGPT 添加连接，并完成往返验证。",
-				[action("refresh-credential", "更新外部凭据"), action("disconnect", "断开连接")],
-			)],
+			rows: [
+				row(
+					"credential-unavailable",
+					"外部凭据已不可用",
+					"凭据已到期或失效。更新后请使用新 Server URL 在 ChatGPT 添加连接，并完成往返验证。",
+					[
+						action("refresh-credential", "更新外部凭据"),
+						action("disconnect", "断开连接"),
+					],
+				),
+			],
 		};
 	}
 	if (!external.pending && !endpointActive) {
@@ -127,23 +148,40 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 		return { rows: [], pollUntil: input.now + FIVE_MINUTES_MS };
 	}
 	if (external.pending?.discoveredAt === null) {
-		const endpointDetail = endpoint?.mode === "temporary-active"
-			? `这是临时入口，将于 ${new Date(endpoint.expiresAt).toISOString()} 到期。`
-			: "这是已配置的长期公网入口。";
+		const endpointDetail =
+			endpoint?.mode === "temporary-active"
+				? `这是临时入口，将于 ${new Date(endpoint.expiresAt).toISOString()} 到期。`
+				: "这是已配置的长期公网入口。";
 		return {
-			rows: [row(
-				"waiting-discovery",
-				"等待入口确认",
-				`尚未收到 ChatGPT 对此入口的工具与事件扫描。${endpointDetail}`,
-				replacementActions,
-			)],
+			rows: [
+				row(
+					"waiting-discovery",
+					"等待入口确认",
+					`尚未收到 ChatGPT 对此入口的工具与事件扫描。${endpointDetail}`,
+					replacementActions,
+				),
+			],
 			pollUntil: input.now + FIVE_MINUTES_MS,
 		};
 	}
 
-    if (external.pending?.binding === null) {
-        return { rows: [row("waiting-subscription", "等待新连接订阅", "生成订阅消息并在使用新 Server URL 的 ChatGPT 连接中发送。", replacementActions)], pollUntil: Math.min(input.now + FIVE_MINUTES_MS, external.pending.pairingIntent?.expiresAt ?? input.now + FIVE_MINUTES_MS) };
-    }
+	if (external.pending?.binding === null) {
+		return {
+			rows: [
+				row(
+					"waiting-subscription",
+					"等待新连接订阅",
+					"生成订阅消息并在使用新 Server URL 的 ChatGPT 连接中发送。",
+					replacementActions,
+				),
+			],
+			pollUntil: Math.min(
+				input.now + FIVE_MINUTES_MS,
+				external.pending.pairingIntent?.expiresAt ??
+					input.now + FIVE_MINUTES_MS,
+			),
+		};
+	}
 	const connection = input.connection;
 	const current = connection?.revokedAt === null ? connection : null;
 	if (!current) {
@@ -160,7 +198,10 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 		};
 	}
 
-	if ((!external.pending || external.pending.pairingRequired !== false) && !activeSubscription(current!, input.now)) {
+	if (
+		(!external.pending || external.pending.pairingRequired !== false) &&
+		!activeSubscription(current!, input.now)
+	) {
 		if (current.pairingExpiresAt <= input.now) {
 			return {
 				rows: [
@@ -193,31 +234,84 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 	if (external.pending) {
 		const pending = external.pending;
 		if (pending.pairingAttemptId !== current!.attemptId) {
-			return { rows: [row("candidate-pairing-mismatch", "待验证凭据与当前配对不一致", "请放弃本次更新后重新开始。", [action("cancel-pending", "放弃本次更新")])] };
+			return {
+				rows: [
+					row(
+						"candidate-pairing-mismatch",
+						"待验证凭据与当前配对不一致",
+						"请放弃本次更新后重新开始。",
+						[action("cancel-pending", "放弃本次更新")],
+					),
+				],
+			};
 		}
-		const candidate = pending.verificationEventId === null
-			? undefined
-			: input.dispatches.find((dispatch) => dispatch.eventId === pending.verificationEventId && dispatch.attemptId === current!.attemptId);
+		const candidate =
+			pending.verificationEventId === null
+				? undefined
+				: input.dispatches.find(
+						(dispatch) =>
+							dispatch.eventId === pending.verificationEventId &&
+							dispatch.attemptId === current!.attemptId,
+					);
 		if (pending.verificationEventId === null || !candidate) {
-			return { rows: [row("candidate-verification-required", external.current ? "验证新的外部凭据" : "已连接 · 待测试", external.current ? "现有连接会保留到新凭据验证成功。" : "需完成读取原消息和回复校验码的往返测试。", [action("roundtrip", "发起往返测试"), ...connectedActions])] };
+			return {
+				rows: [
+					row(
+						"candidate-verification-required",
+						external.current ? "验证新的外部凭据" : "已连接 · 待测试",
+						external.current
+							? "现有连接会保留到新凭据验证成功。"
+							: "需完成读取原消息和回复校验码的往返测试。",
+						[action("roundtrip", "发起往返测试"), ...connectedActions],
+					),
+				],
+			};
 		}
-		if (pending.verificationReadAt !== null && pending.verificationReplyAt !== null) {
-			return { rows: [row("candidate-promoting", "正在切换外部凭据", "新凭据的 discovery、读取与校验回复均已完成，正在提交切换。", [action("check-roundtrip", "检查状态")])], pollUntil: input.now + FIVE_MINUTES_MS };
+		if (
+			pending.verificationReadAt !== null &&
+			pending.verificationReplyAt !== null
+		) {
+			return {
+				rows: [
+					row(
+						"candidate-promoting",
+						"正在切换外部凭据",
+						"新凭据的 discovery、读取与校验回复均已完成，正在提交切换。",
+						[action("check-roundtrip", "检查状态")],
+					),
+				],
+				pollUntil: input.now + FIVE_MINUTES_MS,
+			};
 		}
 		const deadline = candidate.occurredAt + ROUNDTRIP_DEADLINE_MS;
 		return {
-			rows: [row(
-				deadline > input.now ? "candidate-verification-pending" : "candidate-verification-timeout",
-				deadline > input.now ? (external.current ? "正在验证新的外部凭据" : "测试中") : "往返测试尚未完成",
-				pending.verificationReadAt !== null ? "已读取原消息，正在等待带校验码的回复。" : "正在等待读取本次测试消息。",
-				[action("check-roundtrip", "检查状态"), ...connectedActions],
-			)],
+			rows: [
+				row(
+					deadline > input.now
+						? "candidate-verification-pending"
+						: "candidate-verification-timeout",
+					deadline > input.now
+						? external.current
+							? "正在验证新的外部凭据"
+							: "测试中"
+						: "往返测试尚未完成",
+					pending.verificationReadAt !== null
+						? "已读取原消息，正在等待带校验码的回复。"
+						: "正在等待读取本次测试消息。",
+					[action("check-roundtrip", "检查状态"), ...connectedActions],
+				),
+			],
 			...(deadline > input.now ? { pollUntil: deadline } : {}),
 		};
 	}
 
-	const tests = currentTests(current!, input.dispatches,
-		external.current?.kind === "signed" ? external.current.verifiedEventId : undefined);
+	const tests = currentTests(
+		current!,
+		input.dispatches,
+		external.current && external.current.kind !== "legacy"
+			? external.current.verifiedEventId
+			: undefined,
+	);
 	const completed = tests.find(
 		(test) => test.sourceReadAt !== null && test.replyMessageId !== null,
 	);
@@ -230,7 +324,12 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					`最近一次真实往返已读取原消息并回复（${new Date(completed.occurredAt).toISOString()}）。`,
 					[
 						action("roundtrip", "再次测试"),
-						...(input.credentialStatus?.refreshRecommended ? [action("refresh-credential", "更新外部凭据")] : []),
+						action(
+							"refresh-credential",
+							external.current?.kind === "signed"
+								? "切换持久凭据"
+								: "轮换访问凭据",
+						),
 						action("disconnect", "断开连接"),
 					],
 				),
@@ -248,6 +347,9 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					"还需要一次真实往返，确认 ChatGPT 能读取原消息并把校验回复送回猫咖。",
 					[
 						action("roundtrip", "发起往返测试"),
+						...(external.current?.kind === "signed"
+							? [action("refresh-credential", "切换持久凭据")]
+							: []),
 						action("disconnect", "断开连接"),
 					],
 				),

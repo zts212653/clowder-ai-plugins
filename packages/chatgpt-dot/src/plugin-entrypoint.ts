@@ -13,33 +13,37 @@ import {
 	type PluginHostActionContext,
 	type PluginModuleDefinition,
 } from "@clowder-ai/plugin-sdk";
-import {
-	DotConnection,
-	type DotSettingsHost,
-} from "./connection.js";
+import { DotConnection, type DotSettingsHost } from "./connection.js";
 import { createDotWebhookSender, type DotWebhookSend } from "./dot-webhook.js";
 import { projectDotJourney } from "./journey-projection.js";
 import { httpRequestSchema, rpc } from "./rpc.js";
 import { DotRuntime, imageReference } from "./runtime.js";
 import { TemporaryEndpointController } from "./temporary-endpoint.js";
-import type { DotExternalState } from "./external-state.js";
+import { credentialLive, type DotExternalState } from "./external-state.js";
+import {
+	DOT_MCP_PATH,
+	pluginMcpRequest,
+	startMcpLoopback,
+} from "./mcp-ingress.js";
 export interface DotPluginOptions {
 	readonly sendWebhook?: DotWebhookSend;
 	readonly now?: () => number;
 }
-function longLivedServerUrl(
-	template: unknown,
-	token: string,
-	forwarding: { readonly relativePath: string; readonly method: "POST" },
-) {
+function longLivedServerUrl(template: unknown, token: string) {
 	if (typeof template !== "string" || template.split("{token}").length !== 2)
 		throw new Error("dot_long_lived_template_required");
 	const rendered = template.replace("{token}", encodeURIComponent(token));
 	const url = new URL(rendered);
 	if (url.protocol !== "https:" || url.username || url.password || url.hash)
 		throw new Error("dot_long_lived_template_invalid");
-	if (forwarding.method !== "POST" || url.pathname !== forwarding.relativePath)
-		throw new Error("dot_long_lived_template_route_mismatch");
+	// Explicit owner generation also accepts the old saved template during migration.
+	if (url.pathname === "/api/plugin-runtime/handle")
+		url.pathname = DOT_MCP_PATH;
+	if (
+		url.searchParams.getAll("token").length !== 1 ||
+		url.searchParams.get("token") !== token
+	)
+		throw new Error("dot_long_lived_template_token_required");
 	return url.toString();
 }
 function operationInput(params: unknown): Readonly<Record<string, unknown>> {
@@ -49,16 +53,21 @@ function operationInput(params: unknown): Readonly<Record<string, unknown>> {
 		? (input as Readonly<Record<string, unknown>>)
 		: {};
 }
-function endpointCredentialIsLive(state: DotExternalState, now: number): boolean {
-	if (state.pending) return state.pending.expiresAt * 1000 > now;
+function endpointCredentialIsLive(
+	state: DotExternalState,
+	now: number,
+	pluginInstanceId: string,
+): boolean {
+	if (state.pending) return (state.pending.issuer !== "plugin" || state.pending.pluginInstanceId === pluginInstanceId) && credentialLive(state.pending, now);
 	if (!state.current) return false;
-	return state.current.kind === "legacy" || state.current.expiresAt * 1000 > now;
+	return state.current.kind === "legacy" || ((state.current.kind !== "plugin" || state.current.pluginInstanceId === pluginInstanceId) && credentialLive(state.current, now));
 }
 export function createDotPlugin(
 	options: DotPluginOptions = {},
 ): PluginModuleDefinition {
 	let running: DotRuntime | undefined;
 	let temporaryEndpoints: TemporaryEndpointController | undefined;
+	let loopback: Awaited<ReturnType<typeof startMcpLoopback>> | undefined;
 	async function connection(
 		host: DotSettingsHost,
 		controller: AbortController,
@@ -111,7 +120,11 @@ export function createDotPlugin(
 				const state = await current.statusState();
 				const external = await current.externalState();
 				const dispatches = state
-					? (await Promise.all(state.testEventIds.map((id) => current.store.dispatch(id)))).filter(
+					? (
+							await Promise.all(
+								state.testEventIds.map((id) => current.store.dispatch(id)),
+							)
+						).filter(
 							(value): value is NonNullable<typeof value> => value !== null,
 						)
 					: [];
@@ -146,36 +159,54 @@ export function createDotPlugin(
 					const existing = await current.externalState();
 					if (
 						existing.endpoint.mode === "long-lived" &&
-						endpointCredentialIsLive(existing, (options.now ?? Date.now)())
+						endpointCredentialIsLive(existing, (options.now ?? Date.now)(),host.pluginInstanceId)
 					)
 						return endpointResult(context);
 					const input = operationInput(params);
-					const ttlDays = Number(input.externalTokenDays ?? 180);
 					const template = input.longLivedServerUrlTemplate;
-					const { state, issued } = await current.issuePending(context, ttlDays * 24 * 60 * 60);
-					const serverUrl = longLivedServerUrl(template, issued.token, issued.forwarding);
-					await current.setLongLivedServerUrl(state.pending!.candidateId, serverUrl);
+					longLivedServerUrl(template, "validation");
+					const { state, issued } = await current.issuePluginPending(context);
+					const serverUrl = longLivedServerUrl(template, issued.token);
+					await current.setLongLivedServerUrl(
+						state.pending!.candidateId,
+						serverUrl,
+					);
 					return endpointResult(context);
 				},
 				"dot.start-temporary": async (params, _native, context) => {
 					await current.owner(context);
-					if (!running || !temporaryEndpoints) throw new Error("dot_runtime_unavailable");
+					if (!running || !temporaryEndpoints)
+						throw new Error("dot_runtime_unavailable");
 					const before = await current.externalState();
 					if (
 						before.endpoint.mode === "temporary-active" &&
 						before.endpoint.expiresAt > (options.now ?? Date.now)() &&
-						endpointCredentialIsLive(before, (options.now ?? Date.now)())
+						endpointCredentialIsLive(before, (options.now ?? Date.now)(),host.pluginInstanceId)
 					)
 						return endpointResult(context);
-					const hours = Number(operationInput(params).temporaryEndpointHours ?? 1);
+					const hours = Number(
+						operationInput(params).temporaryEndpointHours ?? 1,
+					);
 					if (!Number.isFinite(hours) || hours <= 0 || hours > 24)
 						throw new Error("dot_temporary_ttl_invalid");
 					const ttlMs = Math.floor(hours * 60 * 60_000);
-					const { state, issued } = await current.issuePending(context, Math.ceil(ttlMs / 1000) + 300);
+					const { state, issued } = await current.issuePluginPending(
+						context,
+						Math.ceil(ttlMs / 1000),
+					);
+					if (!loopback) throw new Error("dot_runtime_unavailable");
 					const existing = await current.externalState();
-					const lease = existing.endpoint.mode === "temporary-active" && existing.endpoint.expiresAt > (options.now ?? Date.now)()
-						? temporaryEndpoints.allowToken(issued.token)
-						: await temporaryEndpoints.start({ ...issued.forwarding, token: issued.token, ttlMs });
+					const lease =
+						existing.endpoint.mode === "temporary-active" &&
+						existing.endpoint.expiresAt > (options.now ?? Date.now)()
+							? temporaryEndpoints.allowToken(issued.token)
+							: await temporaryEndpoints.start({
+									upstreamLoopbackOrigin: loopback.origin,
+									relativePath: "/mcp",
+									method: "POST",
+									token: issued.token,
+									ttlMs,
+								});
 					await current.setTemporaryLease(state.pending!.candidateId, lease);
 					return endpointResult(context);
 				},
@@ -184,20 +215,41 @@ export function createDotPlugin(
 					if (!running) throw new Error("dot_runtime_unavailable");
 					const before = await current.externalState();
 					const input = operationInput(params);
-					if (before.endpoint.mode !== "long-lived" &&
-						!(before.endpoint.mode === "temporary-active" && before.endpoint.expiresAt > (options.now ?? Date.now)()))
+					if (
+						before.endpoint.mode !== "long-lived" &&
+						!(
+							before.endpoint.mode === "temporary-active" &&
+							before.endpoint.expiresAt > (options.now ?? Date.now)()
+						)
+					)
 						return statusRows(context);
-					const ttlDays = Number(input.externalTokenDays ?? 180);
-					const { state, issued } = await current.issuePending(context, ttlDays * 24 * 60 * 60);
+					if (before.endpoint.mode === "long-lived")
+						longLivedServerUrl(input.longLivedServerUrlTemplate, "validation");
+					const { state, issued } = await current.issuePluginPending(
+						context,
+						before.endpoint.mode === "temporary-active"
+							? Math.max(
+									1,
+									Math.ceil(
+										(before.endpoint.expiresAt - (options.now ?? Date.now)()) /
+											1000,
+									),
+								)
+							: undefined,
+					);
 					const candidateId = state.pending!.candidateId;
 					if (before.endpoint.mode === "long-lived") {
 						const template = input.longLivedServerUrlTemplate;
-						const serverUrl = longLivedServerUrl(template, issued.token, issued.forwarding);
+						const serverUrl = longLivedServerUrl(template, issued.token);
 						await current.setLongLivedServerUrl(candidateId, serverUrl);
 						return { render: "text", data: serverUrl };
 					}
-					if (before.endpoint.mode === "temporary-active" && before.endpoint.expiresAt > (options.now ?? Date.now)()) {
-						if (!temporaryEndpoints) throw new Error("dot_temporary_endpoint_unavailable");
+					if (
+						before.endpoint.mode === "temporary-active" &&
+						before.endpoint.expiresAt > (options.now ?? Date.now)()
+					) {
+						if (!temporaryEndpoints)
+							throw new Error("dot_temporary_endpoint_unavailable");
 						const lease = temporaryEndpoints.allowToken(issued.token);
 						await current.setTemporaryLease(candidateId, lease);
 						return { render: "text", data: lease.serverUrl };
@@ -238,11 +290,13 @@ export function createDotPlugin(
 					await running.testRoundtrip();
 					return statusRows(context);
 				},
-				"dot.check-roundtrip": async (_input, _native, context) => statusRows(context),
+				"dot.check-roundtrip": async (_input, _native, context) =>
+					statusRows(context),
 				"dot.disconnect": async (_input, _native, context) => {
 					await temporaryEndpoints?.stop("owner_stop");
 					await current.revokeExternal();
-					if (await current.store.connection()) await current.disconnect(context);
+					if (await current.store.connection())
+						await current.disconnect(context);
 					return statusRows(context);
 				},
 			};
@@ -288,28 +342,38 @@ export function createDotPlugin(
 				dotHost = host as ModulePluginHostShape & DotSettingsHost,
 				[current, refresh] = await connection(dotHost, controller),
 				runtime = new DotRuntime(host, current);
-				temporaryEndpoints = new TemporaryEndpointController({
-					...(options.now ? { now: options.now } : {}),
-					runtimeDirectory: join(dotHost.dataPath, "temporary-endpoint"),
-					onEnded: async (generation) => {
-						try { await current.expireTemporary(generation); }
-						catch { /* A newer exact lease owns the page now. */ }
-					},
-				});
+			temporaryEndpoints = new TemporaryEndpointController({
+				...(options.now ? { now: options.now } : {}),
+				runtimeDirectory: join(dotHost.dataPath, "temporary-endpoint"),
+				onEnded: async (generation) => {
+					try {
+						await current.expireTemporary(generation);
+					} catch {
+						/* A newer exact lease owns the page now. */
+					}
+				},
+			});
 			running = runtime;
 			let disposeSettings: (() => void | Promise<void>) | undefined;
 			try {
+				loopback = await startMcpLoopback(runtime);
 				const external = await current.externalState();
 				if (external.endpoint.mode === "temporary-active")
 					await current.expireTemporary(external.endpoint.generation);
 				await runtime.restoreSubscriptions();
 				let stop: Promise<void> | undefined;
 				const admitted = new Set<Promise<unknown>>();
-				const deliver = async (input: PluginDeliveryInput): Promise<PluginDeliveryReceipt> => {
+				const deliver = async (
+					input: PluginDeliveryInput,
+				): Promise<PluginDeliveryReceipt> => {
 					current.assertLive();
 					if (input.kind !== "message") return { deliveryId: input.deliveryId };
 					if (input.reason === "subscription") {
-						return (await runtime.followup(input)) ?? { deliveryId: input.deliveryId };
+						return (
+							(await runtime.followup(input)) ?? {
+								deliveryId: input.deliveryId,
+							}
+						);
 					}
 					return runtime.deliver(input);
 				};
@@ -322,7 +386,11 @@ export function createDotPlugin(
 						return result;
 					});
 					admitted.add(task);
-					try { return await task; } finally { admitted.delete(task); }
+					try {
+						return await task;
+					} finally {
+						admitted.delete(task);
+					}
 				};
 				const actions: Record<string, PluginActionHandler> = {
 					"dot.test": async (_input, _native, context) => {
@@ -336,12 +404,12 @@ export function createDotPlugin(
 						} catch {
 							// Historical evidence remains inspectable below, but cannot make this attempt ready.
 						}
-							const credential = await current.inspectCurrentCredential();
+						const credential = await current.inspectCurrentCredential();
 						const tests = await Promise.all(
 							state.testEventIds.map((id) => current.store.dispatch(id)),
 						);
 						const currentReady =
-								ready?.attemptId === state.attemptId && credential.usable;
+							ready?.attemptId === state.attemptId && credential.usable;
 						const ok = Boolean(
 							currentReady &&
 								tests.some(
@@ -379,7 +447,9 @@ export function createDotPlugin(
 						const task = current.within(context, async () => {
 							await current.assertCurrent();
 							let result: unknown;
-							if (contributionId === "dot-original") {
+							if (contributionId === "dot-mcp-ingress") {
+								result = await pluginMcpRequest(runtime, raw);
+							} else if (contributionId === "dot-original") {
 								const { request } = httpRequestSchema.parse({ request: raw });
 								if (
 									request.method !== "GET" ||
@@ -452,6 +522,8 @@ export function createDotPlugin(
 						stop ??= (async () => {
 							controller.abort(new Error("dot_stopped"));
 							await temporaryEndpoints?.stop("owner_stop");
+							await loopback?.close();
+							loopback = undefined;
 							await settings.dispose?.();
 							await Promise.allSettled([...admitted]);
 							await runtime.settle();
@@ -463,6 +535,8 @@ export function createDotPlugin(
 				};
 			} catch (error) {
 				controller.abort(error);
+				await loopback?.close();
+				loopback = undefined;
 				await Promise.allSettled([
 					temporaryEndpoints?.stop("startup_failed") ?? Promise.resolve(),
 					Promise.resolve().then(() => disposeSettings?.()),
