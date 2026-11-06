@@ -214,7 +214,7 @@
     {
       "pluginId": "official.github-operations",
       "version": "0.1.0-alpha.39",
-      "integrity": "sha512-orM5Meh3UG5sjMyxbH4pREy2sqb3N3IgTiSJBoqPKUW8Je23ZvMng3dmqLjjpRZz+8skhLLIUc42MKDLa0/G+w==",
+      "integrity": "sha512-SUPfM3ZJ1efoccmSIOemFo7AjQjEdRiOq30tuuexwfFeVnDHvSCueuorzX5vHKnxos+Ul8HZphM0v9U69BUw6w==",
       "disposition": "defer",
       "owner": "whutzefengxie-ops",
       "reviewBy": "2026-11-13T16:00:00Z",
