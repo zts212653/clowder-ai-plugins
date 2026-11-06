@@ -21,13 +21,14 @@ import {
   requireTimeout,
   SAFE_CONVERSATION_ID,
 } from './chatgpt-page-contract.mjs';
+import { ASSISTANT_OBSERVATION_TIMEOUT_MS } from './assistant-observation-lifetime.mjs';
 
 const COMPOSER_SELECTORS = [
   '#prompt-textarea[contenteditable="true"]',
   'div[contenteditable="true"][data-virtualkeyboard="true"]',
   'textarea[data-id="root"]',
 ];
-const USER_MESSAGE_SELECTOR = '[data-message-author-role="user"]';
+const USER_MESSAGE_SELECTOR = '[data-message-author-role="user"], [data-user-message-bubble="true"]';
 const ASSISTANT_MESSAGE_SELECTOR = '[data-message-author-role="assistant"]';
 const MESSAGE_TURN_SELECTOR = 'article[data-testid^="conversation-turn-"], article';
 const RENDERED_MESSAGE_CONTENT_SELECTOR = '.whitespace-pre-wrap';
@@ -89,13 +90,16 @@ function observeHostMessage({ document, MutationObserver, existingIds, text, tim
       callback();
     };
     const scan = () => {
+      const candidates = new Map();
       for (const message of document.querySelectorAll(USER_MESSAGE_SELECTOR)) {
         const messageId = hostMessageIdFor(message);
         if (!messageId || existingIds.has(messageId)) continue;
         if (!renderedMessageHasExactText(message, text)) continue;
-        finish(() => resolve({ hostMessageId: messageId, turn: enclosingTurn(message) }));
-        return;
+        candidates.set(messageId, message);
       }
+      if (candidates.size !== 1) return;
+      const [hostMessageId, message] = [...candidates][0];
+      finish(() => resolve({ hostMessageId, turn: enclosingTurn(message) }));
     };
     const observer = new MutationObserver(scan);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true });
@@ -115,8 +119,9 @@ function observeHostMessage({ document, MutationObserver, existingIds, text, tim
 
 function messageRoleElements(turn) {
   const elements = [];
-  if (turn.matches?.('[data-message-author-role]')) elements.push(turn);
-  elements.push(...turn.querySelectorAll('[data-message-author-role]'));
+  const selector = `${USER_MESSAGE_SELECTOR}, ${ASSISTANT_MESSAGE_SELECTOR}`;
+  if (turn.matches?.(selector)) elements.push(turn);
+  elements.push(...turn.querySelectorAll(selector));
   return elements;
 }
 
@@ -444,13 +449,24 @@ async function submitPageMessage({
     throw error;
   }
   await onProgress('submitted', { requestId, conversationId, idempotencyKey });
-  const receipt = await observeHostMessage({
-    document,
-    MutationObserver,
-    existingIds,
-    text,
-    timeoutMs: observationTimeoutMs,
-  });
+  let receipt;
+  try {
+    receipt = await observeHostMessage({ document, MutationObserver, existingIds, text, timeoutMs: observationTimeoutMs });
+  } catch (error) {
+    if (error instanceof ChatGptPageAdapterError) {
+      error.diagnostic = {
+        v: 1,
+        errorCode: error.code,
+        nextAction: 'inspect_bound_tab',
+        fingerprint: composerDomFingerprint(composer, {
+          phase: 'submitted_waiting_receipt',
+          adapterRevision,
+          artifactRevision,
+        }),
+      };
+    }
+    throw error;
+  }
   await onProgress('host_observed', {
     requestId,
     conversationId,
@@ -489,7 +505,7 @@ export function createChatGptPageAdapter({
   onProgress = () => undefined,
   observationTimeoutMs = 10_000,
   sendButtonTimeoutMs = 2_000,
-  assistantObservationTimeoutMs = 120_000,
+  assistantObservationTimeoutMs = ASSISTANT_OBSERVATION_TIMEOUT_MS,
   assistantQuietMs = 750,
   onAssistantFinal = () => undefined,
   onAssistantObservationFailure = () => undefined,
@@ -501,7 +517,7 @@ export function createChatGptPageAdapter({
   }
   requireTimeout(observationTimeoutMs, 10, 60_000, 'observationTimeoutMs');
   requireTimeout(sendButtonTimeoutMs, 10, 10_000, 'sendButtonTimeoutMs');
-  requireTimeout(assistantObservationTimeoutMs, 10, 300_000, 'assistantObservationTimeoutMs');
+  requireTimeout(assistantObservationTimeoutMs, 10, ASSISTANT_OBSERVATION_TIMEOUT_MS, 'assistantObservationTimeoutMs');
   requireTimeout(assistantQuietMs, 10, 10_000, 'assistantQuietMs');
   if (typeof onAssistantFinal !== 'function') {
     throw new ChatGptPageAdapterError('INVALID_ENVIRONMENT', 'onAssistantFinal must be a function');
