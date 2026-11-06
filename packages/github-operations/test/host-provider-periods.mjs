@@ -79,3 +79,47 @@ for (const state of ['merged', 'closed']) test(`installed Host keeps historical 
   console.log(JSON.stringify({ installedProviderPeriod: state, historicalRepairCreatedNoLifecycleWork: true,
     newPeriodMergeCascade: state === 'closed', nativeHistoryPreserved: true, oldWaitDone: true, notifications: 0 }));
 });
+
+test('installed Host records identical same-second closure in its new period and rejects old evidence after restart', async t => {
+  const initial = snapshot('closed'); initial.terminalFacts.ci = null;
+  const f = await installedTrackingHost(t, { hostRoot, artifact, redisFixture, providerSnapshot: initial });
+  const { SdkCommunityEventLog } = await load('business/domains/community/CommunityEventLog.js');
+  const { SdkCommunityObjectStore } = await load('business/domains/community/CommunityObjectStore.js');
+  const { SdkCommunityRepoConfigStore } = await load('business/domains/community/CommunityRepoConfigStore.js');
+  const { CommunityProjector } = await load('business/domains/community/community-projector.js');
+  const { GitHubWaitStorage } = await load('typed-wait-storage.js');
+  const journal = new SdkCommunityEventLog(f.facade), objects = new SdkCommunityObjectStore(f.facade);
+  const projector = new CommunityProjector(journal, objects);
+  await new SdkCommunityRepoConfigStore(f.facade).upsert({ repo: 'example/project', guardThreadId: f.thread.id, guardCatId: 'codex61-sol' });
+  for (const [i, [kind, payload]] of [
+    ['case.external_review_assigned', { mode: 'maintainer_review', cloudPolicy: 'optional', reviewerCatId: 'original-reviewer', reviewerThreadId: 'original-thread' }],
+    ['case.head_observed', { headSha: 'a'.repeat(40) }], ['pr.closed', {}],
+  ].entries()) {
+    const event = { sourceEventId: 'installed-floors-' + i, subjectKey, kind, payload, classification: 'state-changing', at: i + 1 };
+    await journal.append(event); await projector.apply(event);
+  }
+  const native = (await objects.get(subjectKey)).externalReview, waits = new GitHubWaitStorage(f.facade);
+  const done = await waits.create({ id: 'original-floor-done', kind: 'pr_tracking', subjectKey, userId: 'owner', ownerCatId: 'original-reviewer',
+    threadId: 'original-thread', status: 'done', title: 'Ended original wait', why: '', createdBy: 'system', createdAt: 1, updatedAt: 2 });
+  await f.runtime.start('instance', f.record);
+  await f.call('github.subject.reconcile-terminal', { subjectKey });
+  await f.call('github.community-reconciler'); await f.call('github.community-reconciler');
+  f.mode.scenario = 'provider-open-same-second'; await f.call('github.community-reconciler');
+  assert.equal((await objects.get(subjectKey)).providerPeriod.state, 'open');
+  f.mode.scenario = 'provider-close-same-second'; await f.call('github.community-reconciler');
+  const live = await objects.get(subjectKey), committed = await journal.read(subjectKey);
+  assert.equal(live.providerOpen, undefined); assert.equal(live.providerPeriod.state, 'closed');
+  assert.equal(live.providerPeriod.floorObservedAt, at + 501);
+  assert.equal(live.providerPeriod.factsPeriodId, live.providerPeriod.periodId);
+  assert.equal(committed.filter(event => event.kind === 'pr.terminal_observed').length, 2);
+  await f.call('github.community-reconciler'); assert.deepEqual(await journal.read(subjectKey), committed);
+  await f.runtime.stop('instance'); await f.runtime.start('instance', f.record);
+  f.mode.scenario = 'provider-old-close';
+  await assert.rejects(f.call('github.subject.reconcile-terminal', { subjectKey }), /older than the current provider state/);
+  assert.deepEqual(await journal.read(subjectKey), committed);
+  await projector.rebuild(subjectKey); assert.deepEqual(await objects.get(subjectKey), live);
+  assert.deepEqual(nativeHistory(live.externalReview), nativeHistory(native));
+  assert.deepEqual(await waits.get(done.id), done); assert.equal(f.sends.length, 0);
+  console.log(JSON.stringify({ installedClockFloors: true, sameSecondCloseRecorded: true, unchangedCoalesced: true,
+    staleReconciliationRejectedAfterRestart: true, rebuildMatches: true, oldWaitDone: true, notifications: 0 }));
+});

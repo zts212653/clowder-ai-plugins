@@ -105,3 +105,15 @@ test('equivalent UTC timestamp spellings cannot create a new period or conflict 
   assert.equal(result.accepted, true); assert.equal(result.value.state?.periodId, original.state?.periodId);
   assert.equal(currentProviderFacts(result.value)?.ci?.status, 'pass');
 });
+
+test('a later open HEAD belongs to the same provider period and preserves its prior state floors', () => {
+  const original = reduceProviderHistory([observation('closed', 0), observation('open', 5000)]);
+  const incoming = observation('open', 9000);
+  incoming.payload.headSha = 'e'.repeat(40);
+  const decision = reduceProviderEvent(original, incoming);
+  assert.equal(decision.accepted, true);
+  assert.equal(decision.value.state?.periodId, original.state?.periodId);
+  assert.equal(decision.value.state?.headSha, 'e'.repeat(40));
+  assert.equal(decision.value.state?.floorObservedAt, original.state?.floorObservedAt);
+  assert.equal(decision.value.state?.floorUpdatedAt, original.state?.floorUpdatedAt);
+});

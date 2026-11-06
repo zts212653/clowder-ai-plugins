@@ -14,7 +14,11 @@ The repair preserves provider facts in `pr.terminal_observed`, exposes them thro
 
 The reducer owns accepted state, period identity, provider/request ordering clocks, enrollment, complete-fact period binding and the original lifecycle source reference. Merged is irreversible. Rejected old events remain journal evidence but never become the next decision's baseline. Same-state sparse observations preserve known clocks; a summary transition with an unknown closure clock cannot borrow the prior opening's server clock. Equivalent UTC timestamp representations compare by instant. Both complete and summary transitions pass the same checks.
 
+Prior-state request and provider clock floors survive every transition. A same-second timestamp needs a request strictly after the preceding state boundary; an ambiguous sparse webhook is refused until a fresh API read supplies that proof. Same-closing enrichment only exempts an older request when both closing timestamps are known and equal and the prior-period floors have passed. Missing timestamps do not create that exemption or a new period on their own. Transition rows retain any checkpoint-advanced floor, including when the following checkpoint write fails. Earlier reducer caches reconstruct the journal prefix before accepting another event.
+
 Lifecycle normalization reuses an already committed operation's identity, including legacy reconciler IDs. A genuinely new closing period receives a distinct identity. This preserves idempotence across producers and upgrades without swallowing a second close after reopening. Valid closure/merge events clear the open marker. A summary without complete current-period facts displays its actual state with unknown CI, while previous evidence remains historical.
+
+Content coalescing compares only facts already bound to the target period. An identical closure after reopening is recorded once, and unchanged subsequent reads add no journal rows. Both tracking and scheduled lifecycle rows retain the complete API snapshot's request clock even when its outer summary omits that field.
 
 New periods retain review IDs and explicit commit associations, and archive prior CI in `ciHistory`. Old successful CI does not become current merely because the HEAD is unchanged or GitHub timestamps share one second. Current CI comes from that period's observed evidence. Same-period sparse enrichment preserves current source-bound evidence; a newer complete unknown/empty rollup replaces old success. Raw check status/conclusion and links remain inspectable. Unbound reviews remain uncertain and only an explicitly matching commit belongs to the final HEAD.
 
@@ -38,7 +42,7 @@ Final source validation:
 
 - `pnpm --filter @clowder-ai/github-operations typecheck`: exit 0.
 - `pnpm --filter @clowder-ai/github-operations build`: exit 0.
-- `pnpm --filter @clowder-ai/github-operations test`: **892/892**, zero failures or skips.
+- `pnpm --filter @clowder-ai/github-operations test`: **901/901**, zero failures or skips.
 - `git diff --check`: exit 0.
 
 Coverage includes original and prior review regressions, full/summary period transitions, raw rejected-event replay, checkpoint interruption, native terminal fences through observe→collect, genuine new lifecycle/cascade work, preservation of existing historical work, source identities, review dismissal, paginated/incomplete CI, caller/configuration revocation and shutdown.
@@ -49,14 +53,15 @@ The canonical `scripts/pack-publish-artifact.mjs` archive was installed in a fre
 
 The candidate provider read public PR #1783 on 2026-11-06, confirming final HEAD `361e46171726170bab6e7ecb2013402311bc32ad`, review `5746857308` bound to that HEAD and 20 actual CI contexts (19 success, 1 skipped). Prior read-only applicability checks of [#1779](https://github.com/zts212653/clowder-ai/pull/1779) and [#1787](https://github.com/zts212653/clowder-ai/pull/1787) exposed the same terminal evidence shape; their private histories were not queried or repaired.
 
-The complete installed factory and SDK passed **4/4** scenarios through actual Host worker/native invocation and storage facades at Host commit `5628446293b1c5b341d2764c4b03b7d00695d402`. Each Redis child uses a private Unix socket and `--port 0`, without inherited production URLs. Test logging stays in private working directories.
+The complete installed factory and SDK passed **5/5** scenarios through actual Host worker/native invocation and storage facades at Host commit `5628446293b1c5b341d2764c4b03b7d00695d402`. Each Redis child uses a private Unix socket and `--port 0`, without inherited production URLs. Test logging stays in private working directories.
 
 - Captured public snapshot in an isolated historical case: supported repair/inspection/restart/rebuild agree; original delivered/reviewer history, done generation-5 subscription and real `409 subject_terminal`/`not_recorded` diagnostic remain unchanged. Pre-repair schedules do not enroll history. Controlled CI pass→fail→unknown stays current across restart and older input. Zero notifications.
 - Synthetic closed→open→merged through a newly authorized subscription and actual observe→collect: new final facts are captured while the original native review and old done wait stay terminal. Only the new subscription receives its own one terminal notification.
 - Historical merged facts over a previously closed native case: subsequent scheduled reads create no historical merge/cascade work and preserve the linked issue.
 - Historical closed facts followed by a genuine provider reopening/merge: scheduled collection emits the new merge and closes its linked issue while preserving original reviewer, refusal and done wait. No native review wakes or notifications.
+- Same-second reopening and identical closure: the new period receives its own facts, unchanged reads coalesce, and a subsequent old request is refused through the authenticated reconciliation action after Host restart. Rebuild agrees with the live projection, the original wait remains done and no notification is sent.
 
-The first run of the added issue scenarios exposed a test fixture returning PR state for issue requests. That fixture failure is retained separately and is not green evidence; the final four-scenario run uses distinct issue responses. No public PR was reopened or written by these scenarios.
+Consumer fixtures return distinct issue and PR responses. No public PR was reopened or written by these scenarios.
 
 Reproduce from a private working directory with explicit roots:
 
@@ -69,9 +74,11 @@ node --test /absolute/source/packages/github-operations/test/host-terminal-facts
 
 Optional `CLOWDER_GITHUB_TERMINAL_SNAPSHOT` supplies a privately captured provider snapshot; otherwise the original acceptance uses public synthetic data. Credentials, captured bodies, private thread evidence and raw logs are not committed.
 
-Candidate SHA256: `243c216fa6aa96641aaf9b6ffd866e00b736620d1b661a3390b56b47a6da8b80`.
+Candidate SHA256: `225b3650317a6812e9001829c8bc306f14d9a2dad13b6f3afc363d308b64c137`.
 
 This archive carries source version `0.1.0-alpha.37` as an unpublished review candidate, not a replacement registry release. A separately authorized release must allocate a fresh version and align release/catalog metadata. The full release/catalog gate is not claimed.
+
+The preceding review target's Contract CI failed at step 37/39, Machine catalog, because the changed GitHub package archive differs from the existing catalog integrity. Its publish job was skipped. That release/catalog mismatch remains a separate prerequisite for an authorized release; it is not represented as passing CI by these package and consumer checks.
 
 ## Delivery boundary
 

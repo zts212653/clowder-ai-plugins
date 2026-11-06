@@ -15,8 +15,21 @@ export interface ProviderPeriodDecision {
 }
 const clocks = z.object({ providerObservedAt: z.number().int().nonnegative().safe().nullish(),
   closedAt: z.string().datetime().nullish(), mergedAt: z.string().datetime().nullish() }).passthrough();
+const clockFloor = z.object({ observedAt: z.number().int().nonnegative().safe().nullable(),
+  updatedAt: z.string().datetime().nullable() }).strict();
 const kinds = new Set(['pr.open_observed', 'pr.closed', 'pr.merged', 'pr.terminal_observed']);
 export const isProviderPeriodEvent = (event: CommunityEvent) => event.subjectKey.startsWith('pr:') && kinds.has(event.kind);
+const laterRequest = (left?: number | null, right?: number | null) =>
+  left == null ? right ?? null : right == null ? left : Math.max(left, right);
+const laterProvider = (left?: string | null, right?: string | null) =>
+  !left ? right ?? null : !right || Date.parse(left) >= Date.parse(right) ? left : right;
+
+/** A committed transition carries checkpoint-advanced boundaries so recovery
+ * does not depend on the checkpoint write succeeding after append. */
+export function withProviderClockFloor(event: CommunityEvent, state: ProviderPeriodState): CommunityEvent {
+  return { ...event, payload: { ...event.payload,
+    providerClockFloor: { observedAt: state.floorObservedAt, updatedAt: state.floorUpdatedAt } } };
+}
 
 export function observationIsOlder(current: { observedAt?: number | null; updatedAt?: string | null } | null | undefined,
   incoming: { observedAt?: number | null; providerUpdatedAt?: string | null }): boolean {
@@ -44,8 +57,10 @@ export function reduceProviderEvent(previous: ProviderPeriod, event: CommunityEv
   try {
     let facts: PrTerminalFacts | undefined;
     let state: ProviderPeriodState['state'], observedAt: number | null, updatedAt: string | null, headSha: string | null;
+    const { providerClockFloor, ...observationPayload } = event.payload;
+    const committedFloor = providerClockFloor === undefined ? undefined : clockFloor.parse(providerClockFloor);
     if (event.kind === 'pr.open_observed') {
-      const open = providerOpenSchema.parse(event.payload);
+      const open = providerOpenSchema.parse(observationPayload);
       state = 'open'; observedAt = open.observedAt ?? null; updatedAt = open.providerUpdatedAt ?? null; headSha = open.headSha;
     } else if (event.kind === 'pr.terminal_observed') {
       facts = parseTerminalFacts(event.payload.terminalFacts, event.subjectKey);
@@ -60,8 +75,25 @@ export function reduceProviderEvent(previous: ProviderPeriod, event: CommunityEv
     }
     const current = previous.state;
     const sameClosing = current?.state === state && state !== 'open' &&
-      (!current.updatedAt || !updatedAt || Date.parse(current.updatedAt) === Date.parse(updatedAt));
-    if (sameClosing && current?.headSha && headSha && current.headSha !== headSha) return { accepted: false, value: previous, reason: 'invalid' };
+      !!current.updatedAt && !!updatedAt && Date.parse(current.updatedAt) === Date.parse(updatedAt);
+    const newPeriod = !!current && (state === 'open' && current.state !== 'open' ||
+      state !== 'open' && current.state !== 'open' && (state !== current.state ||
+        !!current.updatedAt && !!updatedAt && Date.parse(current.updatedAt) !== Date.parse(updatedAt)));
+    const sameState = !!current && !newPeriod && current.state === state;
+    const floorObservedAt = laterRequest(current?.floorObservedAt,
+      laterRequest(!sameState ? current?.observedAt : null, committedFloor?.observedAt));
+    const floorUpdatedAt = laterProvider(current?.floorUpdatedAt,
+      laterProvider(!sameState ? current?.updatedAt : null, committedFloor?.updatedAt));
+    const floorClock = floorUpdatedAt && updatedAt ? Date.parse(updatedAt) - Date.parse(floorUpdatedAt) : null;
+    // Equal coarse provider clocks cannot prove a cross-state observation is
+    // new. A later request must place it after the previous state boundary.
+    if (observedAt !== null && floorObservedAt !== null && observedAt < floorObservedAt ||
+        floorClock !== null && (floorClock < 0 || floorClock === 0 &&
+          (observedAt === null || (sameState ? floorObservedAt !== null && observedAt <= floorObservedAt
+            : current?.observedAt != null && observedAt <= current.observedAt)))) {
+      return { accepted: false, value: previous, reason: 'stale' };
+    }
+    if (sameState && state !== 'open' && current?.headSha && headSha && current.headSha !== headSha) return { accepted: false, value: previous, reason: 'invalid' };
     const older = observationIsOlder(current, { observedAt, providerUpdatedAt: updatedAt });
     if (current?.state === 'merged' && state !== 'merged' || older && !sameClosing ||
         current?.state === 'open' && state !== 'open' && observedAt === null && updatedAt === null) {
@@ -70,21 +102,17 @@ export function reduceProviderEvent(previous: ProviderPeriod, event: CommunityEv
     if (current?.state === 'merged' && state === 'merged' && current.updatedAt && updatedAt && Date.parse(current.updatedAt) !== Date.parse(updatedAt)) {
       return { accepted: false, value: previous, reason: older ? 'stale' : 'invalid' };
     }
-    if (facts && sameClosing && current) facts = { ...facts, headSha: facts.headSha ?? current.headSha,
+    if (facts && sameState && current) facts = { ...facts, headSha: facts.headSha ?? current.headSha,
       ...(state === 'merged' ? { mergedAt: facts.mergedAt ?? current.updatedAt } : { closedAt: facts.closedAt ?? current.updatedAt }) };
-    const newPeriod = !!current && (state === 'open' && current.state !== 'open' ||
-      state !== 'open' && current.state !== 'open' && !sameClosing);
     if (!facts && state !== 'open' && current?.factsOnly && !newPeriod) return { accepted: false, value: previous, reason: 'facts_only' };
     const periodId = !newPeriod ? current?.periodId ?? 'initial' : state === 'open' ? event.sourceEventId
       : 'provider-period:' + createHash('sha256').update(JSON.stringify([current!.periodId, state, updatedAt ? Date.parse(updatedAt) : observedAt ?? 'unknown'])).digest('hex');
     const merged = facts ? mergeTerminalFacts(previous.facts, facts, !!previous.facts && current?.factsPeriodId !== periodId) : previous.facts;
-    const retainClocks = !!current && !newPeriod;
-    const requestClock = retainClocks ? Math.max(current.observedAt ?? 0, observedAt ?? 0) || null : observedAt;
-    const providerClock = retainClocks && current.state === state && current.updatedAt && (!updatedAt || Date.parse(current.updatedAt) > Date.parse(updatedAt))
-      ? current.updatedAt : updatedAt;
+    const requestClock = sameState ? laterRequest(current.observedAt, observedAt) : observedAt;
+    const providerClock = sameState ? laterProvider(current.updatedAt, updatedAt) : updatedAt;
     const next: ProviderPeriodState = { state, sourceEventId: event.sourceEventId, periodId,
-      observedAt: requestClock, updatedAt: providerClock,
-      headSha: facts ? merged!.headSha : headSha ?? (retainClocks && current?.state === state ? current.headSha : null),
+      observedAt: requestClock, updatedAt: providerClock, floorObservedAt, floorUpdatedAt,
+      headSha: facts ? merged!.headSha : headSha ?? (sameState ? current.headSha : null),
       enrolled: !!current?.enrolled || !!facts || state === 'open' ||
         event.payload.providerPeriodId !== undefined && (observedAt !== null || updatedAt !== null),
       factsOnly: facts && event.payload.factsOnly === true || !newPeriod && !!current?.factsOnly,

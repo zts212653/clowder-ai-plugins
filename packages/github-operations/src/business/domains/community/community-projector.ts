@@ -277,7 +277,8 @@ export class CommunityProjector {
     };
 
     if (proj.type === 'pr' && (isProviderPeriodEvent(event) || event.kind === 'pr.review_submitted' && !!proj.terminalFacts)) {
-      const prior = proj.providerPeriod ? { state: proj.providerPeriod, facts: proj.terminalFacts }
+      const prior = proj.providerPeriod?.floorObservedAt !== undefined && proj.providerPeriod.floorUpdatedAt !== undefined
+        ? { state: proj.providerPeriod, facts: proj.terminalFacts }
         : reduceProviderHistory((await this.eventLog.read(event.subjectKey)).slice(0, journalCursor - 1));
       const decision = reduceProviderEvent(prior, event);
       if (!decision.accepted) return { accepted: false, followUps };

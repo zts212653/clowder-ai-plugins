@@ -7,7 +7,7 @@ import type { CommunityProjector, CommunityProjectionOperations } from './busine
 import { mergeTerminalFacts, parseTerminalFacts, terminalContent, terminalObservationEvent, terminalReviews } from './business/domains/community/terminal-provider-facts.js';
 import { communityProgressKey } from './legacy-repository-progress.js';
 import { providerOpenEvent, providerStateEvidence, type ProviderOpenObservation } from './business/domains/community/provider-open-observation.js';
-import { isProviderPeriodEvent, normalizeProviderLifecycle, reduceProviderEvent, reduceProviderHistory } from './business/domains/community/provider-period.js';
+import { isProviderPeriodEvent, normalizeProviderLifecycle, reduceProviderEvent, reduceProviderHistory, withProviderClockFloor } from './business/domains/community/provider-period.js';
 
 const checkpointSchema = z.object({ v: z.literal(1), sourceEventId: z.string(),
   observedAt: z.number().int().nonnegative().safe(), ciObservedAt: z.number().int().nonnegative().safe().nullable(),
@@ -47,7 +47,10 @@ export class TerminalFactCollection {
         updatedAt: period.state!.updatedAt ?? undefined }, open) : undefined;
       if (reopening?.denied || !historicalAuthorized && period.state && !period.state.enrolled && !reopening?.event) return { denied: true, recorded: false };
       const rows: CommunityEvent[] = [];
-      if (reopening?.event) { rows.push(reopening.event); period = reduceProviderEvent(period, reopening.event).value; }
+      if (reopening?.event) {
+        const next = reduceProviderEvent(period, reopening.event).value;
+        rows.push(withProviderClockFloor(reopening.event, next.state!)); period = next;
+      }
       else if (open && period.state && reopening?.observed) period = { ...period,
         state: { ...period.state, observedAt: reopening.observed.observedAt, updatedAt: reopening.observed.updatedAt } };
       let observation: CommunityEvent | undefined;
@@ -60,10 +63,12 @@ export class TerminalFactCollection {
           return { denied: true, recorded: false };
         }
         const facts = decision.value.facts!;
-        if (!canonical.facts || terminalContent(facts) !== terminalContent(canonical.facts)) {
+        if (canonical.state?.factsPeriodId !== decision.value.state?.periodId ||
+            !canonical.facts || terminalContent(facts) !== terminalContent(canonical.facts)) {
           observation = terminalObservationEvent(facts, canonical.state?.factSourceEventId ?? undefined, supplied);
           observation = { ...observation, payload: { ...observation.payload, providerObservedAt: decision.value.state!.observedAt } };
           if (historicalAuthorized && !canonical.state?.enrolled) observation = { ...observation, payload: { ...observation.payload, factsOnly: true } };
+          observation = withProviderClockFloor(observation, decision.value.state!);
           rows.push(observation); period = reduceProviderEvent(period, observation).value;
         } else period = { ...decision.value, state: period.state && { ...period.state,
           observedAt: decision.value.state!.observedAt, updatedAt: decision.value.state!.updatedAt } };
@@ -85,7 +90,7 @@ export class TerminalFactCollection {
           if (decision.reason === 'invalid') throw new TypeError('Invalid or conflicting terminal provider subject or commit identity');
           return { denied: true, recorded: false };
         }
-        rows.push(event); period = decision.value;
+        rows.push(isProviderPeriodEvent(event) ? withProviderClockFloor(event, decision.value.state!) : event); period = decision.value;
       }
       // Validate the complete batch before its first write. The same reducer is
       // used by projection if another producer later appends a stale raw event.

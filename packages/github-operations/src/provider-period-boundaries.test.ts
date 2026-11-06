@@ -61,11 +61,19 @@ test('a reopened period cannot reuse old passing CI when provider timestamps sha
   await collector.collect(subject, [], { ...original, observedAt: time + 100, ci: { ...original.ci!, observedAt: time + 100 } });
   await f.community.collectTracking(target, { state: 'open', headSha: head, observedAt: time + 500,
     providerUpdatedAt: new Date(time).toISOString(), comments: [], reviews: [] });
-  await collector.collect(subject, [], { ...original, state: 'merged', mergedAt: original.closedAt,
+  const ambiguous = await collector.collect(subject, [], { ...original, state: 'merged', mergedAt: original.closedAt,
     mergeCommitSha: 'c'.repeat(40), source: 'github-webhook', observedAt: time + 900, reviews: [], ci: null });
+  assert.equal(ambiguous.denied, true, 'a coarse webhook clock cannot prove which side of the reopen it belongs to');
+  assert.equal((await f.community.objects.get(subject))?.providerPeriod?.state, 'open');
+  // A new complete API request proves the same-second merge. Its request clock
+  // also accompanies the lifecycle row when the outer snapshot omits it.
+  await f.community.collectTracking(target, { ...terminalSnapshot(), terminalFacts: { ...original,
+    state: 'merged', mergedAt: original.closedAt, mergeCommitSha: 'c'.repeat(40),
+    observedAt: time + 1100, source: 'github-api', reviews: [], ci: null } });
   const projection = await f.community.objects.get(subject);
   const view = providerObservation(subject, await f.community.events.read(subject), projection);
   assert.equal(view.state, 'merged'); assert.equal(view.ci, 'unknown');
+  assert.equal(projection?.state, 'fixed');
   assert.equal(view.terminalFacts?.ciHistory?.[0]?.observedAt, time + 100);
   await f.projector.rebuild(subject); assert.deepEqual(await f.community.objects.get(subject), projection);
 });

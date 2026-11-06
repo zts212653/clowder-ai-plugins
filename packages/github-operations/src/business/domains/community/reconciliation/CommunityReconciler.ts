@@ -145,6 +145,7 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
       // Include closedAt/mergedAt as fact key so reopen→close cycles produce unique IDs
       const factKey = ghSnap.mergedAt ?? ghSnap.closedAt ?? '';
       const sourceEventId = reconcilerEventId(projection.subjectKey, eventKind, factKey);
+      const providerObservedAt = ghSnap.observedAt ?? (ghSnap.terminalFacts?.source === 'github-api' ? ghSnap.terminalFacts.observedAt : undefined);
 
       events.push({
         sourceEventId,
@@ -155,7 +156,7 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
           closedAt: ghSnap.closedAt,
           mergedAt: ghSnap.mergedAt,
           source: 'reconciler',
-          ...(ghSnap.observedAt !== undefined ? { providerObservedAt: ghSnap.observedAt } : {}),
+          ...(providerObservedAt !== undefined ? { providerObservedAt } : {}),
           ...(ghSnap.headSha ? { headSha: ghSnap.headSha } : {}),
         },
         at: ghSnap.closedAt ? new Date(ghSnap.closedAt).getTime() : now,

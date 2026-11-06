@@ -37,6 +37,9 @@ export interface ProviderPeriodState {
   readonly periodId: string;
   readonly observedAt: number | null;
   readonly updatedAt: string | null;
+  /** Prior state boundaries survive sparse clocks and same-second transitions. */
+  readonly floorObservedAt: number | null;
+  readonly floorUpdatedAt: string | null;
   readonly headSha: string | null;
   readonly enrolled: boolean;
   /** Historical enrollment may refresh facts, without creating lifecycle work. */

@@ -26,6 +26,11 @@ export async function installedTrackingHost(t, { hostRoot, artifact, redisFixtur
 let clock=1000;
 function terminalSnapshot(mode) {
   const value=${JSON.stringify(providerSnapshot ?? null)};
+  if(value && mode==='provider-open-same-second') return {state:'open',headSha:value.headSha,ci:'pending',
+    observedAt:value.terminalFacts.observedAt+500,providerUpdatedAt:value.terminalFacts.closedAt,
+    commentsComplete:true,reviews:[],comments:[],trackingIdentity:{selfLogin:'owner',subjectAuthorLogin:'contributor'}};
+  if(value && ['provider-close-same-second','provider-old-close'].includes(mode)) return {...value,
+    terminalFacts:{...value.terminalFacts,observedAt:value.terminalFacts.observedAt+(mode==='provider-old-close'?200:900)}};
   if(value && mode==='provider-open') return {state:'open',headSha:'e'.repeat(40),ci:'pending',
     observedAt:value.terminalFacts.observedAt+10000,providerUpdatedAt:new Date(value.terminalFacts.observedAt+10000).toISOString(),
     commentsComplete:true,reviews:[],comments:[],trackingIdentity:{selfLogin:'owner',subjectAuthorLogin:'contributor'}};

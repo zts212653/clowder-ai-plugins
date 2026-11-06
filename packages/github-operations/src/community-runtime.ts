@@ -286,10 +286,11 @@ export class CommunityRuntime {
         if (target.kind !== 'pr' || facts.state !== snapshot.state || facts.headSha !== (snapshot.headSha ?? null)) throw new TypeError('terminal snapshot identity mismatch');
         terminalFacts = facts;
       }
+      const providerObservedAt = snapshot.observedAt ?? (terminalFacts?.source === 'github-api' ? terminalFacts.observedAt : undefined);
       if (snapshot.state !== 'open') events.push({
         sourceEventId: `lifecycle:${subjectKey}:${snapshot.state}`, subjectKey, classification: 'state-changing',
         kind: target.kind === 'issue' ? 'issue.closed' : snapshot.state === 'merged' ? 'pr.merged' : 'pr.closed',
-        payload: { ...(snapshot.observedAt !== undefined ? { providerObservedAt: snapshot.observedAt } : {}),
+        payload: { ...(providerObservedAt !== undefined ? { providerObservedAt } : {}),
           ...(terminalFacts?.closedAt ? { closedAt: terminalFacts.closedAt } : {}),
           ...(terminalFacts?.mergedAt ? { mergedAt: terminalFacts.mergedAt } : {}),
           ...(snapshot.headSha ? { headSha: snapshot.headSha } : {}) }, at: Date.now(),
