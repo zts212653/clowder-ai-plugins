@@ -20,12 +20,13 @@ interface Options {
   token(): Promise<string | undefined>;
   execFileAsync?: GitHubRequestOptions['execFileAsync'];
   now?: () => number;
-  records?: Pick<ICommunityPrStore, 'getByRepoAndNumber' | 'create' | 'update'>;
+  records?: Pick<ICommunityPrStore, 'getByRepoAndNumber' | 'observeTitle'>;
 }
 
 const metadata = z.object({ number: z.number().int().positive().safe(), title: z.string(), repository: z.string(),
   author: z.string().min(1).optional(), state: z.enum(['open', 'closed']).optional(),
-  mergedAt: z.string().nullable().optional(), headSha: z.string().regex(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i).optional(), draft: z.boolean().optional() });
+  mergedAt: z.string().nullable().optional(), headSha: z.string().regex(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i).optional(), draft: z.boolean().optional(),
+  updatedAt: z.string().datetime({ offset: true }).optional() });
 
 /** Titles use the original plugin-private PR record; local reads never consult the provider. */
 export class GitHubPrTitleReader {
@@ -46,11 +47,11 @@ export class GitHubPrTitleReader {
   async observe(target: GitHubTarget, snapshot: GitHubSnapshot) {
     const records = this.options.records;
     if (!records || target.kind !== 'pr' || !snapshot.title?.trim() || !snapshot.authorLogin || !snapshot.headSha || snapshot.draft === undefined) return;
-    const record = await records.getByRepoAndNumber(target.repoFullName, target.number);
     this.lifecycle.signal.throwIfAborted();
-    if (record) await records.update(record.id, { title: snapshot.title.trim() });
-    else await records.create({ repo: target.repoFullName, prNumber: target.number, title: snapshot.title.trim(),
-      author: snapshot.authorLogin, state: snapshot.state, headSha: snapshot.headSha, draft: snapshot.draft, replyState: 'unreplied' });
+    await records.observeTitle({ repo: target.repoFullName, prNumber: target.number, title: snapshot.title.trim(),
+      author: snapshot.authorLogin, state: snapshot.state, headSha: snapshot.headSha, draft: snapshot.draft, replyState: 'unreplied' },
+      { observedAt: snapshot.observedAt ?? (this.options.now ?? Date.now)(),
+        ...(snapshot.providerUpdatedAt !== undefined ? { providerUpdatedAt: Date.parse(snapshot.providerUpdatedAt) } : {}) });
   }
 
   async read(ref: unknown, callerSignal?: AbortSignal): Promise<string | null> {
@@ -72,30 +73,36 @@ export class GitHubPrTitleReader {
   }
 
   private async query(ref: string, target: { repoFullName: string; prNumber: number }, signal: AbortSignal): Promise<string | null> {
+    const now = this.options.now ?? Date.now;
+    const observedAt = now();
     const token = await awaitGitHubCaller(this.options.token(), signal);
     const key = `${await awaitGitHubCaller(gitHubCredentialKey(token), signal)}:${ref}`;
     signal.throwIfAborted();
-    const now = this.options.now ?? Date.now;
     const cached = this.cache.get(key);
-    if (cached && cached.expiresAt > now()) return cached.title;
+    if (cached && cached.expiresAt > now()) {
+      if (!this.options.records) return cached.title;
+      const record = await this.options.records.getByRepoAndNumber(target.repoFullName, target.prNumber);
+      signal.throwIfAborted();
+      return record?.title.trim() || null;
+    }
     const { stdout } = await executeGitHubRequest(['api', `repos/${target.repoFullName}/pulls/${target.prNumber}`,
-      '--jq', '{number,title,repository:.base.repo.full_name,author:.user.login,state,mergedAt:.merged_at,headSha:.head.sha,draft}'],
+      '--jq', '{number,title,repository:.base.repo.full_name,author:.user.login,state,mergedAt:.merged_at,headSha:.head.sha,draft,updatedAt:.updated_at}'],
     { ghToken: token, signal, timeoutMs: 2_000, execFileAsync: this.options.execFileAsync });
     signal.throwIfAborted();
     const parsed = metadata.safeParse(JSON.parse(stdout));
     if (!parsed.success) return null;
-    const { number, title, repository, author, state, mergedAt, headSha, draft } = parsed.data;
+    const { number, title, repository, author, state, mergedAt, headSha, draft, updatedAt } = parsed.data;
     if (number !== target.prNumber || repository.toLowerCase() !== target.repoFullName || !title.trim()) return null;
-    const value = title.trim();
+    let value = title.trim();
     const records = this.options.records;
     if (records) {
       if (!author || !state || mergedAt === undefined || !headSha || draft === undefined)
         throw new Error('Incomplete PR title observation');
-      const existing = await records.getByRepoAndNumber(target.repoFullName, target.prNumber);
       signal.throwIfAborted();
-      if (existing) await records.update(existing.id, { title: value });
-      else await records.create({ repo: target.repoFullName, prNumber: target.prNumber, title: value, author,
-        state: mergedAt !== null ? 'merged' : state, headSha, draft, replyState: 'unreplied' });
+      const saved = await records.observeTitle({ repo: target.repoFullName, prNumber: target.prNumber, title: value, author,
+        state: mergedAt !== null ? 'merged' : state, headSha, draft, replyState: 'unreplied' },
+        { observedAt, ...(updatedAt !== undefined ? { providerUpdatedAt: Date.parse(updatedAt) } : {}) });
+      value = saved.title;
       signal.throwIfAborted();
     }
     this.cache.delete(key);

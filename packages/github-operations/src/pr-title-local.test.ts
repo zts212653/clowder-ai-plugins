@@ -121,6 +121,8 @@ test("collector observations update the same local title record without another 
 		},
 		{
 			title: "First",
+			observedAt: 1000,
+			providerUpdatedAt: new Date(1000).toISOString(),
 			authorLogin: "author",
 			headSha: "a".repeat(40),
 			draft: false,
@@ -139,6 +141,8 @@ test("collector observations update the same local title record without another 
 		},
 		{
 			title: "Renamed",
+			observedAt: 2000,
+			providerUpdatedAt: new Date(2000).toISOString(),
 			authorLogin: "author",
 			headSha: "b".repeat(40),
 			draft: false,
