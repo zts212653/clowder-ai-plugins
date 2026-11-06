@@ -57,9 +57,11 @@ const module=createGitHubPluginModule({now:()=>clock,createProvider:context=>({s
       trackingIdentity:{selfLogin:'owner',subjectAuthorLogin:'contributor'},
       comments:id>(cursor?.conversation??0)?[{id,author:'contributor',body:'isolated event',commentType:'conversation'}]:[]};
   }}),createCommunityProvider:context=>({selfLogin:()=> 'owner',listOpen:async()=>[],repoComments:async()=>[],
-    state:async(_repo,_kind,_number,_signal,includeFacts)=>{
+    state:async(_repo,kind,_number,_signal,includeFacts)=>{
       const value=terminalSnapshot(await context.config.get('fixtureScenario')); if(!value) return null;
-      context.log('info','fixture-terminal-state-read',{includeFacts});
+      if(kind==='issue') { context.log('info','fixture-issue-state-read',{number:_number,state:'open'});
+        return {state:'open',closedAt:null,mergedAt:null}; }
+      context.log('info','fixture-terminal-state-read',{includeFacts,kind,number:_number});
       if(value.state==='open') return {state:'open',headSha:value.headSha,observedAt:value.observedAt,
         providerUpdatedAt:value.providerUpdatedAt,closedAt:null,mergedAt:null};
       return {state:'closed',closedAt:value.terminalFacts.closedAt,mergedAt:value.terminalFacts.mergedAt,

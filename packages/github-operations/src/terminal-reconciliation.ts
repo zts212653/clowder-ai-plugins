@@ -76,7 +76,6 @@ export class TerminalReconciliationRuntime {
       const history = terminalReviews(await new SdkCommunityEventLog(source).read(subjectKey));
       const facts = mergeTerminalFacts({ ...incoming, reviews: history }, incoming);
       if (facts.source !== 'github-api' || facts.state !== snapshot.state || facts.headSha !== snapshot.headSha) throw new TypeError('Terminal snapshot subject or commit identity mismatch');
-      mergeTerminalFacts((await objects.get(subjectKey))?.terminalFacts, facts);
       const scan = source.scan?.bind(source);
       const storage: PluginStorageHost = {
         ...fencedIndexedStorage(source, fence), get: key => source.get(key), list: () => source.list(),

@@ -140,11 +140,11 @@ export function applyTerminalProviderFacts(state: ExternalReviewAggregate | null
     cloud: sameHead ? state.cloud : null, wake: null, pendingVerdict: null };
 }
 
-/** A reopened provider subject is still the original terminal native review. */
-export function applyProviderOpenObservation(state: ExternalReviewAggregate | null, headSha: string, observedAt: number): ExternalReviewAggregate | null {
+/** A new provider period or summary never revokes the original native fence. */
+export function applyProviderPeriodObservation(state: ExternalReviewAggregate | null, headSha: string | null, observedAt: number): ExternalReviewAggregate | null {
   if (!state) return null;
   return { ...state, lifecycle: 'terminal', currentHeadSha: headSha,
-    headGeneration: currentHeadGeneration(state) + (state.currentHeadSha === headSha ? 0 : 1),
+    headGeneration: currentHeadGeneration(state) + (!headSha || state.currentHeadSha === headSha ? 0 : 1),
     currentHeadObservedAt: observedAt, ci: null, cloud: null, wake: null, pendingVerdict: null };
 }
 

@@ -1,3 +1,4 @@
+import { normalizeProviderLifecycle, reduceProviderEvent, reduceProviderHistory } from '../provider-period.js';
 /** Package-owned scheduling of the unchanged pure Community reconciler.
  * Each subject is independent in reconcile(). Bound admission and persist the
  * last attempt so a large installation makes progress across runtime restarts.
@@ -98,9 +99,12 @@ async function applySubject(opts: CommunityReconcilerTaskSpecOptions, projection
     // cannot reject its facts yet still append its lifecycle/cascade event.
     await opts.terminalCollection.collect(subject, result.events.filter(event => event !== terminal),
       terminal ? parseTerminalFacts(terminal.payload.terminalFacts, subject) : undefined);
-  } else for (const event of result.events) {
+  } else for (const rawEvent of result.events) {
     signal.throwIfAborted();
     if (subject.startsWith('pr:') && !shouldObserveTerminalFacts(await opts.eventLog.read(subject))) continue;
+    const period = reduceProviderHistory(await opts.eventLog.read(subject));
+    const event = normalizeProviderLifecycle(rawEvent, period);
+    if (!reduceProviderEvent(period, event).accepted) continue;
     const { appended } = await opts.eventLog.append(event);
     // Never interrupt between durable append and its projection.
     if (appended) await opts.projector.apply(event);

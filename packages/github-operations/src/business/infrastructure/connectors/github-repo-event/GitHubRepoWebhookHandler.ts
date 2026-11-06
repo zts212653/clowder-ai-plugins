@@ -1,3 +1,4 @@
+import { normalizeProviderLifecycle, reduceProviderEvent, reduceProviderHistory } from '../../../domains/community/provider-period.js';
 /**
  * F141: GitHub Repo Webhook Handler
  *
@@ -220,6 +221,10 @@ export class GitHubRepoWebhookHandler {
               }
             }
             else {
+              if (!reduceProviderEvent(reduceProviderHistory(await this.deps.eventLog.read(subjectKey)), observation).accepted) {
+                try { await this.deps.dedup.confirm(deliveryId); } catch { /* Retain claim. */ }
+                return { kind: 'processed', messageId: '' };
+              }
               const recorded = await this.deps.eventLog.append(observation);
               if (recorded.appended) await this.deps.projector?.apply(observation);
               else await this.deps.projector?.rebuild(subjectKey);
@@ -252,7 +257,13 @@ export class GitHubRepoWebhookHandler {
             // If baseBranch or defaultBranch unknown → omit isDefaultBranchPr
             // (projector treats undefined as backward-compat default: parse as normal)
           }
-          const communityEvent: CommunityEvent = {
+          if (eventKind === 'pr.closed' || eventKind === 'pr.merged') {
+            if (typeof subject.closed_at === 'string') eventPayload.closedAt = subject.closed_at;
+            if (typeof subject.merged_at === 'string') eventPayload.mergedAt = subject.merged_at;
+            const head = subject.head as { sha?: string } | undefined;
+            if (head?.sha) eventPayload.headSha = head.sha;
+          }
+          let communityEvent: CommunityEvent = {
             sourceEventId,
             subjectKey,
             kind: eventKind,
@@ -260,6 +271,12 @@ export class GitHubRepoWebhookHandler {
             payload: eventPayload,
             at: Date.now(),
           };
+          const period = reduceProviderHistory(await this.deps.eventLog.read(subjectKey));
+          communityEvent = normalizeProviderLifecycle(communityEvent, period);
+          if (!reduceProviderEvent(period, communityEvent).accepted) {
+            try { await this.deps.dedup.confirm(deliveryId); } catch { /* Retain claim. */ }
+            return { kind: 'processed', messageId: '' };
+          }
           const { appended } = await this.deps.eventLog.append(communityEvent);
           if (appended && this.deps.projector) {
             await this.deps.projector.apply(communityEvent);

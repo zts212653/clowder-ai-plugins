@@ -29,3 +29,19 @@ export interface PrCiEvidence {
   readonly checks: readonly { readonly name: string; readonly bucket: string; readonly link?: string; readonly workflow?: string;
     readonly providerStatus?: string; readonly providerConclusion?: string | null }[];
 }
+
+/** Compact cache of the canonical provider reducer, never native authority. */
+export interface ProviderPeriodState {
+  readonly state: 'open' | 'closed' | 'merged';
+  readonly sourceEventId: string;
+  readonly periodId: string;
+  readonly observedAt: number | null;
+  readonly updatedAt: string | null;
+  readonly headSha: string | null;
+  readonly enrolled: boolean;
+  /** Historical enrollment may refresh facts, without creating lifecycle work. */
+  readonly factsOnly: boolean;
+  readonly lifecycleSourceEventId: string | null;
+  readonly factSourceEventId: string | null;
+  readonly factsPeriodId: string | null;
+}

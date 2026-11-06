@@ -33,11 +33,8 @@ import {
   isExternalReviewTerminalEventKind,
 } from './external-review/external-review-projector.js';
 import { selectIssueFixReadiness } from './issue-analysis/issue-fix-evidence.js';
-import { mergeTerminalFacts, parseTerminalFacts, terminalReviews } from './terminal-provider-facts.js';
-import { ZodError } from 'zod';
-import type { PrTerminalFacts } from '../../model/types/provider-terminal.js';
-import { applyProviderOpenObservation, applyTerminalProviderFacts } from './external-review/external-review-aggregate.js';
-import { observationIsOlder, openObservationSchema, providerStateEvidence } from './provider-open-observation.js';
+import { applyProviderPeriodObservation, applyTerminalProviderFacts } from './external-review/external-review-aggregate.js';
+import { currentProviderFacts, isProviderPeriodEvent, reduceProviderEvent, reduceProviderHistory } from './provider-period.js';
 
 function issueFixEvidenceFromEvent(event: CommunityEvent): IssueFixEvidence | null {
   if (event.kind === 'issue.commented' || event.kind === 'case.fix_evidence_recorded') {
@@ -279,17 +276,31 @@ export class CommunityProjector {
       return this.objectStore.save({ ...projection, journalCursor, ...(pending.length ? { pendingFollowUps: pending } : {}) });
     };
 
-    if (event.kind === 'pr.open_observed') {
-      const parsed = openObservationSchema.safeParse(event.payload);
-      if (!parsed.success || proj.type !== 'pr') return { accepted: false, followUps };
-      const prior = providerStateEvidence((await this.eventLog.read(event.subjectKey)).slice(0, journalCursor - 1));
-      if (prior?.state === 'merged' || observationIsOlder(prior, parsed.data)) return { accepted: false, followUps };
-      await save({ ...proj, providerOpen: { headSha: parsed.data.headSha, observedAt: event.at,
-        ...(parsed.data.observedAt !== undefined ? { providerObservedAt: parsed.data.observedAt } : {}),
-        ...(parsed.data.providerUpdatedAt ? { providerUpdatedAt: parsed.data.providerUpdatedAt } : {}) },
-        externalReview: applyProviderOpenObservation(proj.externalReview, parsed.data.headSha, event.at),
-        appliedEventCount: proj.appliedEventCount + 1, updatedAt: Math.max(proj.updatedAt, event.at) });
-      return { accepted: true, followUps };
+    if (proj.type === 'pr' && (isProviderPeriodEvent(event) || event.kind === 'pr.review_submitted' && !!proj.terminalFacts)) {
+      const prior = proj.providerPeriod ? { state: proj.providerPeriod, facts: proj.terminalFacts }
+        : reduceProviderHistory((await this.eventLog.read(event.subjectKey)).slice(0, journalCursor - 1));
+      const decision = reduceProviderEvent(prior, event);
+      if (!decision.accepted) return { accepted: false, followUps };
+      if (decision.value.state) proj = { ...proj, providerPeriod: decision.value.state,
+        ...(decision.value.facts ? { terminalFacts: decision.value.facts } : {}) };
+      if (isProviderPeriodEvent(event)) {
+        const { providerOpen, ...withoutOpen } = proj;
+        proj = withoutOpen;
+        const period = decision.value.state!;
+        if (period.state === 'open') proj = { ...proj, providerOpen: { headSha: period.headSha!, observedAt: event.at,
+          ...(period.observedAt !== null ? { providerObservedAt: period.observedAt } : {}),
+          ...(period.updatedAt ? { providerUpdatedAt: period.updatedAt } : {}) } };
+        if (!currentProviderFacts(decision.value) && period.enrolled) proj = { ...proj,
+          externalReview: applyProviderPeriodObservation(proj.externalReview, period.headSha, event.at) };
+        if (event.kind === 'pr.open_observed' || event.kind === 'pr.terminal_observed') {
+          const facts = currentProviderFacts(decision.value);
+          await save({ ...proj, externalReview: period.state === 'open'
+            ? applyProviderPeriodObservation(proj.externalReview, period.headSha!, event.at)
+            : facts ? applyTerminalProviderFacts(proj.externalReview, facts) : proj.externalReview,
+            appliedEventCount: proj.appliedEventCount + 1, updatedAt: Math.max(proj.updatedAt, now) });
+          return { accepted: true, followUps };
+        }
+      }
     }
 
     if (event.kind === 'pr.issue_linked') {
@@ -307,35 +318,6 @@ export class CommunityProjector {
     // A late derived association cannot reopen a reported/closed native issue.
     if (proj.type === 'issue' && event.kind === 'pr.merged' && typeof event.payload.linkedPr === 'string' &&
         ['reported', 'closed', 'declined'].includes(proj.state)) return { accepted: false, followUps };
-
-    if (event.kind === 'pr.review_submitted' && proj.terminalFacts) {
-      const reviews = terminalReviews([event]);
-      if (reviews.length) {
-        try { proj = { ...proj, terminalFacts: mergeTerminalFacts(proj.terminalFacts, { ...proj.terminalFacts,
-          reviews, source: 'github-webhook', observedAt: event.at }) }; }
-        catch (error) { if (!(error instanceof TypeError)) throw error; }
-      }
-    }
-
-    if (event.kind === 'pr.terminal_observed') {
-      // This observation has no state-machine, assignment, verdict or wake effects.
-      // Invalid historical input remains in the journal but never becomes a fact.
-      let terminalFacts: PrTerminalFacts;
-      try {
-        const incoming = parseTerminalFacts(event.payload.terminalFacts, event.subjectKey);
-        if (proj.providerOpen && observationIsOlder({ observedAt: proj.providerOpen.providerObservedAt,
-          updatedAt: proj.providerOpen.providerUpdatedAt }, { ...(incoming.source === 'github-api' ? { observedAt: incoming.observedAt } : {}),
-          providerUpdatedAt: incoming.mergedAt ?? incoming.closedAt ?? undefined })) return { accepted: false, followUps };
-        terminalFacts = mergeTerminalFacts(proj.terminalFacts, incoming);
-      } catch (error) {
-        if (error instanceof TypeError || error instanceof ZodError) return { accepted: false, followUps };
-        throw error;
-      }
-      const { providerOpen, ...closed } = proj;
-      await save({ ...closed, terminalFacts, externalReview: applyTerminalProviderFacts(proj.externalReview, terminalFacts),
-        appliedEventCount: proj.appliedEventCount + 1, updatedAt: Math.max(proj.updatedAt, now) });
-      return { accepted: true, followUps };
-    }
 
     // F168 Phase F-Step3: external review lifecycle is an orthogonal aggregate
     // on the same rebuildable projection. It does not mutate the generic case

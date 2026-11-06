@@ -281,6 +281,7 @@ export interface CommunityObjectProjection {
   externalReview: ExternalReviewAggregate | null;
   /** Rebuildable provider facts; never a native review/delivery assertion. */
   terminalFacts?: import('./provider-terminal.js').PrTerminalFacts;
+  providerPeriod?: import('./provider-terminal.js').ProviderPeriodState;
   providerOpen?: { headSha: string; observedAt: number; providerObservedAt?: number; providerUpdatedAt?: string };
   /** Number of journal positions folded in canonical order, including rejected
    * events. Saved atomically with the derived state; old projections rebuild once. */

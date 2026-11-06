@@ -1,62 +1,31 @@
 import { createHash } from 'node:crypto';
-import { z } from 'zod';
 import type { CommunityEvent } from '../../model/index.js';
-import { providerOpenSchema, terminalFactsSchema } from './terminal-provider-facts.js';
-
+import type { ProviderPeriodState } from '../../model/types/provider-terminal.js';
+import { providerOpenSchema } from './terminal-provider-evidence.js';
+import { reduceProviderEvent, reduceProviderHistory } from './provider-period.js';
+export { observationIsOlder } from './provider-period.js';
 export const openObservationSchema = providerOpenSchema;
-export type ProviderOpenObservation = z.infer<typeof openObservationSchema>;
+export type ProviderOpenObservation = import('zod').infer<typeof providerOpenSchema>;
 export interface ProviderStateEvidence {
-  state: 'open' | 'closed' | 'merged'; event: CommunityEvent;
-  // Every source constructor must map both comparison clocks explicitly.
-  // Undefined is meaningful only when that legacy source lacks the clock.
+  state: ProviderPeriodState['state']; event: CommunityEvent; period: ProviderPeriodState;
   observedAt: number | undefined; updatedAt: string | undefined; headSha?: string;
 }
-
-/** Native case events never change the provider's open/close period. */
 export function providerStateEvidence(history: readonly CommunityEvent[]): ProviderStateEvidence | undefined {
-  let current: ProviderStateEvidence | undefined;
-  for (const event of history) {
-    if (event.kind === 'pr.terminal_observed') {
-      const parsed = terminalFactsSchema.safeParse(event.payload.terminalFacts);
-      if (!parsed.success || parsed.data.subjectKey !== event.subjectKey) continue;
-      const facts = parsed.data;
-      if (current?.state === 'merged' && facts.state !== 'merged') continue;
-      current = { state: facts.state, event, headSha: facts.headSha ?? undefined,
-        observedAt: facts.source === 'github-api' ? facts.observedAt : undefined,
-        updatedAt: facts.mergedAt ?? facts.closedAt ?? undefined };
-    } else if (event.kind === 'pr.closed' || event.kind === 'pr.merged') {
-      if (current?.state === 'merged' && event.kind !== 'pr.merged') continue;
-      const state = event.kind === 'pr.merged' ? 'merged' : 'closed';
-      const same = current?.state === state ? current : undefined;
-      current = { state, event,
-        observedAt: typeof event.payload.providerObservedAt === 'number' ? event.payload.providerObservedAt : same?.observedAt,
-        updatedAt: typeof event.payload.closedAt === 'string' ? event.payload.closedAt : same?.updatedAt };
-    } else if (event.kind === 'pr.open_observed' && current?.state !== 'merged') {
-      const parsed = openObservationSchema.safeParse(event.payload);
-      if (parsed.success) current = { state: 'open', event, headSha: parsed.data.headSha,
-        observedAt: parsed.data.observedAt, updatedAt: parsed.data.providerUpdatedAt };
-    }
-  }
-  return current;
+  const period = reduceProviderHistory(history).state;
+  if (!period) return undefined;
+  return { state: period.state, event: history.find(event => event.sourceEventId === period.sourceEventId)!, period,
+    observedAt: period.observedAt ?? undefined, updatedAt: period.updatedAt ?? undefined,
+    ...(period.headSha ? { headSha: period.headSha } : {}) };
 }
 
-export function observationIsOlder(current: Pick<ProviderStateEvidence, 'observedAt' | 'updatedAt'> | undefined,
-  incoming: { observedAt?: number; providerUpdatedAt?: string }): boolean {
-  if (!current) return false;
-  if (current.updatedAt && incoming.providerUpdatedAt && Date.parse(incoming.providerUpdatedAt) !== Date.parse(current.updatedAt)) {
-    return Date.parse(incoming.providerUpdatedAt) < Date.parse(current.updatedAt);
-  }
-  return current.observedAt !== undefined && incoming.observedAt !== undefined && incoming.observedAt < current.observedAt;
-}
-
-export function providerOpenEvent(subject: string, current: ProviderStateEvidence | undefined, value: ProviderOpenObservation) {
-  const open = openObservationSchema.parse(value);
-  if (current?.state === 'merged' || observationIsOlder(current, open)) return { denied: true };
-  // A first open PR already uses its normal native/provider collection. This
-  // event represents reopening or a changed HEAD in that observed open period.
-  if (!current || current.state === 'open' && current.headSha === open.headSha) return { denied: false };
-  const id = createHash('sha256').update(JSON.stringify([current.event.sourceEventId, open.headSha])).digest('hex');
+export function providerOpenEvent(subject: string, current: ProviderStateEvidence | undefined, value: ProviderOpenObservation): { denied: boolean; event?: CommunityEvent; observed?: ProviderPeriodState | null } {
+  const open = providerOpenSchema.parse(value);
+  const id = createHash('sha256').update(JSON.stringify([current?.event.sourceEventId, open.headSha])).digest('hex');
   const event: CommunityEvent = { sourceEventId: `provider-open:${subject}:${id}`, subjectKey: subject,
     kind: 'pr.open_observed', classification: 'informational', payload: open, at: open.observedAt ?? Date.now() };
-  return { denied: false, event };
+  const decision = reduceProviderEvent({ state: current?.period ?? null, facts: undefined }, event);
+  if (!decision.accepted) return { denied: true };
+  // Ordinary first opens stay in their existing native tracking path.
+  return { denied: false, observed: decision.value.state,
+    ...(!current || current.state === 'open' && current.headSha === open.headSha ? {} : { event }) };
 }

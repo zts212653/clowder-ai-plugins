@@ -75,10 +75,11 @@ test('new-head periods retain old CI only as history; same-period merge enrichme
   const merge = { ...old, state: 'merged' as const, headSha: oldHead, reviews: [], ci: null,
     closedAt: new Date(time + 20000).toISOString(), mergedAt: new Date(time + 20000).toISOString(),
     mergeCommitSha: 'c'.repeat(40), source: 'github-webhook' as const, observedAt: time + 20000 };
-  const changed = mergeTerminalFacts(old, merge);
+  const changed = mergeTerminalFacts(old, merge, true);
   assert.equal(changed.ci, null); assert.equal(changed.ciHistory?.[0]?.headSha, head);
   assert.equal(changed.reviews[0]?.commitId, head);
-  const samePeriod = mergeTerminalFacts(old, { ...merge, headSha: head, closedAt: old.closedAt, mergedAt: old.closedAt });
+  const priorMerge = { ...old, state: 'merged' as const, mergedAt: old.closedAt, mergeCommitSha: merge.mergeCommitSha };
+  const samePeriod = mergeTerminalFacts(priorMerge, { ...merge, headSha: head, closedAt: old.closedAt, mergedAt: old.closedAt });
   assert.equal(samePeriod.ci?.status, 'pass');
   assert.throws(() => parseTerminalFacts({ ...changed, ciHistory: [{ ...old.ci!, checkRollup: 'empty', checks: [] }] }, subject));
 });

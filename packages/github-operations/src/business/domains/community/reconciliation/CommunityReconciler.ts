@@ -139,7 +139,8 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
     const ghIsOpen = ghSnap.state === 'open';
 
     // D3.5: GitHub closed while case is active (not yet closed/declined)
-    if (caseIsActive && ghIsClosed) {
+    if (ghIsClosed && (caseIsActive || projection.type === 'pr' &&
+        (!!projection.providerOpen || !!ghSnap.mergedAt && projection.providerPeriod?.state === 'closed'))) {
       const eventKind = resolveCloseEventKind(projection.type, ghSnap);
       // Include closedAt/mergedAt as fact key so reopen→close cycles produce unique IDs
       const factKey = ghSnap.mergedAt ?? ghSnap.closedAt ?? '';
@@ -154,6 +155,8 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
           closedAt: ghSnap.closedAt,
           mergedAt: ghSnap.mergedAt,
           source: 'reconciler',
+          ...(ghSnap.observedAt !== undefined ? { providerObservedAt: ghSnap.observedAt } : {}),
+          ...(ghSnap.headSha ? { headSha: ghSnap.headSha } : {}),
         },
         at: ghSnap.closedAt ? new Date(ghSnap.closedAt).getTime() : now,
       });
@@ -183,6 +186,8 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
         classification: 'state-changing',
         payload: {
           source: 'reconciler',
+          ...(ghSnap.observedAt !== undefined ? { providerObservedAt: ghSnap.observedAt } : {}),
+          ...(ghSnap.headSha ? { headSha: ghSnap.headSha } : {}),
         },
         at: now,
       });

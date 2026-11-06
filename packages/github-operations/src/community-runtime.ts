@@ -290,7 +290,9 @@ export class CommunityRuntime {
         sourceEventId: `lifecycle:${subjectKey}:${snapshot.state}`, subjectKey, classification: 'state-changing',
         kind: target.kind === 'issue' ? 'issue.closed' : snapshot.state === 'merged' ? 'pr.merged' : 'pr.closed',
         payload: { ...(snapshot.observedAt !== undefined ? { providerObservedAt: snapshot.observedAt } : {}),
-          ...(terminalFacts?.closedAt ? { closedAt: terminalFacts.closedAt } : {}) }, at: Date.now(),
+          ...(terminalFacts?.closedAt ? { closedAt: terminalFacts.closedAt } : {}),
+          ...(terminalFacts?.mergedAt ? { mergedAt: terminalFacts.mergedAt } : {}),
+          ...(snapshot.headSha ? { headSha: snapshot.headSha } : {}) }, at: Date.now(),
       });
       if (target.kind === 'pr') { await collection.collect(subjectKey, events, terminalFacts, false, open); return; }
       for (const event of events) {
