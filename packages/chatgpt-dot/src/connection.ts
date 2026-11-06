@@ -449,13 +449,13 @@ export class DotConnection {
             throw error;
         }
         const external = await this.externalState();
-        if (external.pending?.binding !== undefined) {
+        if (external.pending) {
             const pending = external.pending;
             const intent = pending.pairingIntent && pending.pairingIntent.attemptId === state.attemptId && pending.pairingIntent.expiresAt > this.now() ? pending.pairingIntent : { code: state.pairedAt === null ? state.pairingCode : randomBytes(16).toString('hex'), expiresAt: this.now() + 30*60000, attemptId: state.attemptId };
             await this.store.updateExternal(value => {
                 if (!value?.pending || value.pending.candidateId !== pending.candidateId) throw new Error('dot_candidate_stale');
                 const changed=value.pending.pairingIntent?.code!==intent.code;
-                return {...value, revision:value.revision+1, pending:{...value.pending,pairingIntent:intent,...(changed && value.pending.binding ? {binding:{...value.pending.binding,version:value.pending.binding.version+1,pairingCode:intent.code,pairingExpiresAt:intent.expiresAt},verificationEventId:null,verificationReadAt:null,verificationReplyAt:null,verificationBindingVersion:undefined} : {})}};
+                return {...value, revision:value.revision+1, pending:{...value.pending,pairingIntent:intent,...(value.pending.binding === undefined ? {binding:null,verificationEventId:null,verificationReadAt:null,verificationReplyAt:null,verificationBindingVersion:undefined} : {}),...(changed && value.pending.binding ? {binding:{...value.pending.binding,version:value.pending.binding.version+1,pairingCode:intent.code,pairingExpiresAt:intent.expiresAt},verificationEventId:null,verificationReadAt:null,verificationReplyAt:null,verificationBindingVersion:undefined} : {})}};
             });
             return this.instructionsFor({...state,pairingCode:intent.code});
         }
@@ -541,7 +541,7 @@ export class DotConnection {
             if (!binding) throw new Error('dot_binding_stale');
             await this.store.updateExternal(value => {
                 if (value?.current?.kind !== 'signed' || value.current.tokenId !== state.bindingAuthority!.tokenId || value.current.binding?.version !== binding.version) throw new Error('dot_binding_stale');
-                return {...value,revision:value.revision+1,pending:null,current:{...value.current,binding:{...binding,version:binding.version+1,pairedAt:this.now(),pairedCallbackUrl:input.url,subscription:{id,url:input.url,secret:input.secret,expiresAt,verifiedAt:this.now(),previousSecret:state.subscription?.secret ?? null,rotationUntil:this.now()+5*60000}}}};
+                return {...value,revision:value.revision+1,current:{...value.current,binding:{...binding,version:binding.version+1,pairedAt:this.now(),pairedCallbackUrl:input.url,subscription:{id,url:input.url,secret:input.secret,expiresAt,verifiedAt:this.now(),previousSecret:state.subscription?.secret ?? null,rotationUntil:this.now()+5*60000}}}};
             });
             return {id,refreshBefore:expiresAt===null?null:new Date(expiresAt).toISOString(),cursor:null,truncated:false};
         }

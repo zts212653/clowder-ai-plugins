@@ -196,8 +196,25 @@ test("new-format current unsubscribe atomically retires its dependent candidate"
   await f.subscribe();assert.equal((await f.finish(await f.startProof())).body.error,undefined);
   const formal=await f.dot.current(),jti=f.jti;
   await f.begin();await f.subscribe();const id=await f.startProof();
+  const candidateId=f.records.get(EXTERNAL_KEY).value.pending.candidateId;
+  assert.equal((await f.rpc("events/subscribe",{name:"dot.summoned",arguments:{attempt_id:formal.attemptId,pairing_code:formal.pairingCode},delivery:{mode:"webhook",url:formal.subscription.url,secret},ttlMs:null},jti)).body.error,undefined);
+  assert.equal(f.records.get(EXTERNAL_KEY).value.pending.candidateId,candidateId,"routine current renewal preserves an independent candidate");
   assert.equal((await f.rpc("events/unsubscribe",{name:"dot.summoned",arguments:{attempt_id:formal.attemptId,pairing_code:formal.pairingCode},delivery:{mode:"webhook",url:formal.subscription.url}},jti)).body.error,undefined);
   assert.equal(f.records.get(EXTERNAL_KEY).value.pending,null);
   assert.equal((await f.dot.current()).subscription,null);
   assert.ok((await f.tool("cat_cafe_dot_read_source",{event_id:id})).body.error);
+});
+
+test("owner instruction generation upgrades an existing legacy pending record into controlled candidate pairing",async t=>{
+  const f=await candidateFixture(t);
+  const value=f.records.get(EXTERNAL_KEY).value;
+  const {binding:_binding,pairingIntent:_intent,...legacy}=value.pending;
+  await f.host.storage.set(EXTERNAL_KEY,{...value,pending:legacy});
+  assert.ok((await f.subscribe()).body.error,"legacy replacement cannot gain callback authority without the owner step");
+  const message=await f.settings.actions["dot.show-instructions"]({},undefined,f.owner);
+  f.code=message.data.match(/pairing_code=([a-f0-9]+)/)[1];
+  assert.equal(f.records.get(EXTERNAL_KEY).value.pending.binding,null);
+  assert.equal((await f.subscribe()).body.error,undefined);
+  assert.equal((await f.finish(await f.startProof())).body.error,undefined);
+  assert.equal((await f.dot.current()).subscription.url,newUrl);
 });
