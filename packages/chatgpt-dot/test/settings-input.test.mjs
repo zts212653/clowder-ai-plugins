@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createDotPlugin } from "../src/plugin-entrypoint.ts";
+import { DotConnection } from "../src/connection.ts";
 import { TemporaryEndpointController } from "../src/temporary-endpoint.ts";
 import { fixture, mcp } from "./fixture.mjs";
 
@@ -194,10 +195,16 @@ test("entry actions consume the current configuration draft passed by the Host",
 		f.owner,
 	);
 	assert.equal(
-		longLived.data,
+		longLived.label,
 		"https://draft.example/api/plugin-runtime/handle?token=draft-token-1",
 	);
 	assert.equal(issuedTtls[0], 7 * 24 * 60 * 60);
+	const afterGeneration = await settings.actions["dot.status"]({}, undefined, f.owner);
+	const messageRow = afterGeneration.data.rows.find((row) => row.key === "connection-message");
+	assert.ok(messageRow, "generating the URL must also display the connection message before discovery");
+	assert.match(messageRow.detail, /events\/subscribe/);
+	assert.equal(f.records.get("dot/external/v1").value.pending.discoveredAt, null);
+	assert.doesNotMatch(messageRow.detail, /draft-token-1/);
 	const repeatedLongLived = await settings.actions["dot.use-long-lived"](
 		{
 			input: {
@@ -224,7 +231,7 @@ test("entry actions consume the current configuration draft passed by the Host",
 		f.owner,
 	);
 	assert.equal(
-		temporary.data,
+		temporary.label,
 		"https://temporary.example/mcp?token=draft-token-2",
 	);
 	assert.equal(temporaryInput.ttlMs, 2.5 * 60 * 60_000);
@@ -245,7 +252,7 @@ test("entry actions consume the current configuration draft passed by the Host",
 	assert.equal(temporaryStarts, 1);
 });
 
-test("pending credential cannot start pairing before its own ChatGPT discovery", async (t) => {
+test("owner can prepare a connection message before discovery without granting verification authority", async (t) => {
 	const { f, settings } = await runningFixture(t);
 	await f.host.storage.set("dot/external/v1", {
 		v: 1, revision: 2, current: null,
@@ -254,9 +261,14 @@ test("pending credential cannot start pairing before its own ChatGPT discovery",
 			pairingAttemptId: null, verificationEventId: null, verificationReadAt: null, verificationReplyAt: null },
 		endpoint: { mode: "long-lived", serverUrl: "https://dot.example/mcp?token=token", reachableAt: null },
 	});
-	await assert.rejects(() => settings.actions["dot.begin-pairing"]({}, undefined, f.owner), /discovery_required/);
-	await assert.rejects(() => settings.actions["dot.show-instructions"]({}, undefined, f.owner), /discovery_required/);
-	assert.equal(f.records.has("dot/connection/v1"), false);
+	const result = await settings.actions["dot.show-instructions"]({}, undefined, f.owner);
+	assert.match(result.data, /events\/subscribe/);
+	const external = f.records.get("dot/external/v1").value;
+	assert.equal(external.pending.discoveredAt, null);
+	assert.equal(external.current, null);
+	assert.equal(external.pending.pairingAttemptId, f.records.get("dot/connection/v1").value.attemptId);
+	const connection = new DotConnection(f.host, f.sendWebhook, new AbortController().signal);
+	await assert.rejects(() => connection.bindPendingVerification("test-event"), /discovery_required/);
 });
 
 test("an already promoted signed credential remains reusable at a real millisecond clock", async (t) => {
@@ -270,7 +282,7 @@ test("an already promoted signed credential remains reusable at a real milliseco
 		endpoint: { mode: "long-lived", serverUrl, reachableAt: now * 1000 },
 	});
 	const result = await settings.actions["dot.use-long-lived"]({}, undefined, f.owner);
-	assert.equal(result.data, serverUrl);
+	assert.equal(result.label, serverUrl);
 	assert.equal(f.records.get("dot/external/v1").value.pending, null);
 });
 

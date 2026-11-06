@@ -118,6 +118,10 @@ export function createDotPlugin(
 				const credentialStatus = external.current
 					? await current.inspectCurrentCredential()
 					: undefined;
+				const now = (options.now ?? Date.now)();
+				const connectionMessage = state?.revokedAt === null &&
+					(state.pairedAt !== null || state.pairingExpiresAt > now)
+					? (await current.instructions(context)).instructions : undefined;
 				return {
 					render: "rows" as const,
 					data: projectDotJourney({
@@ -125,10 +129,15 @@ export function createDotPlugin(
 						external,
 						connection: state,
 						dispatches,
-						now: (options.now ?? Date.now)(),
+						now,
+						...(connectionMessage ? { connectionMessage } : {}),
 						...(credentialStatus ? { credentialStatus } : {}),
 					}),
 				};
+			};
+			const endpointResult = async (context?: PluginHostActionContext) => {
+				const connection = await current.begin(context, false);
+				return { render: "text" as const, label: await current.serverUrl(), data: connection.instructions };
 			};
 			const actions: Record<string, PluginActionHandler> = {
 				"dot.status": async (_input, _native, context) => statusRows(context),
@@ -140,17 +149,14 @@ export function createDotPlugin(
 						existing.endpoint.mode === "long-lived" &&
 						endpointCredentialIsLive(existing, (options.now ?? Date.now)())
 					)
-						return { render: "text", data: existing.endpoint.serverUrl };
+						return endpointResult(context);
 					const input = operationInput(params);
 					const ttlDays = Number(input.externalTokenDays ?? 180);
 					const template = input.longLivedServerUrlTemplate;
 					const { state, issued } = await current.issuePending(context, ttlDays * 24 * 60 * 60);
 					const serverUrl = longLivedServerUrl(template, issued.token, issued.forwarding);
 					await current.setLongLivedServerUrl(state.pending!.candidateId, serverUrl);
-					return {
-						render: "text",
-						data: serverUrl,
-					};
+					return endpointResult(context);
 				},
 				"dot.start-temporary": async (params, _native, context) => {
 					await current.owner(context);
@@ -161,7 +167,7 @@ export function createDotPlugin(
 						before.endpoint.expiresAt > (options.now ?? Date.now)() &&
 						endpointCredentialIsLive(before, (options.now ?? Date.now)())
 					)
-						return { render: "text", data: before.endpoint.serverUrl };
+						return endpointResult(context);
 					const hours = Number(operationInput(params).temporaryEndpointHours ?? 1);
 					if (!Number.isFinite(hours) || hours <= 0 || hours > 24)
 						throw new Error("dot_temporary_ttl_invalid");
@@ -172,7 +178,7 @@ export function createDotPlugin(
 						? temporaryEndpoints.allowToken(issued.token)
 						: await temporaryEndpoints.start({ ...issued.forwarding, token: issued.token, ttlMs });
 					await current.setTemporaryLease(state.pending!.candidateId, lease);
-					return { render: "text", data: lease.serverUrl };
+					return endpointResult(context);
 				},
 				"dot.refresh-credential": async (params, _native, context) => {
 					await current.owner(context);

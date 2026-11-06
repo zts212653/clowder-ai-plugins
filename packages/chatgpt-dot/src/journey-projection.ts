@@ -61,6 +61,7 @@ export interface DotJourneyInput {
 	readonly connection: DotConnectionState | null;
 	readonly dispatches: readonly Dispatch[];
 	readonly now: number;
+	readonly connectionMessage?: string;
 	readonly credentialStatus?: {
 		readonly usable: boolean;
 		readonly reason: string;
@@ -69,6 +70,10 @@ export interface DotJourneyInput {
 }
 
 export function projectDotJourney(input: DotJourneyInput): OperationRows {
+	const messageRows = input.connectionMessage
+		? [row("connection-message", "发送到 ChatGPT Work 的连接消息", input.connectionMessage,
+			[action("show-instructions", "复制连接消息")])]
+		: [];
 	if (!input.runtimeRunning) {
 		return {
 			rows: [
@@ -108,16 +113,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 		return { rows: [], pollUntil: input.now + FIVE_MINUTES_MS };
 	}
 	if (!endpointActive) {
-		return {
-			rows: [
-				row(
-					"endpoint-recovery",
-					"外部入口尚不可用",
-					"待验证凭据仍保留；请在上方所选入口类型中重新建立入口。旧连接不会因此被替换。",
-					[action("cancel-pending", "放弃本次更新")],
-				),
-			],
-		};
+		return { rows: [], pollUntil: input.now + FIVE_MINUTES_MS };
 	}
 	if (external.pending?.discoveredAt === null) {
 		const endpointDetail = endpoint?.mode === "temporary-active"
@@ -132,7 +128,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					action("show-server-url", "显示并复制 Server URL"),
 					action("cancel-pending", "放弃本次更新"),
 				],
-			)],
+			), ...messageRows],
 			pollUntil: input.now + FIVE_MINUTES_MS,
 		};
 	}
@@ -145,9 +141,8 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 				row(
 					"pairing-not-started",
 					"第三步：连接 Work 对话",
-					"打开 https://chatgpt.com 并切换到 Work。在目标对话输入 @，选择刚添加的插件，再获取并发送下方连接消息。若插件详情未显示 Dot 工具和 dot.summoned 事件，再点击 Refresh。",
+					"在上方生成入口后，连接消息会自动显示。打开 https://chatgpt.com 并切换到 Work，在目标对话输入 @，选择刚添加的插件并发送连接消息。",
 					[
-						action("show-instructions", "获取连接消息"),
 						action("cancel-pending", "放弃本次更新"),
 					],
 				),
@@ -163,9 +158,8 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					row(
 						"pairing-expired",
 						"连接消息已过期",
-						"获取新的连接消息，再发到目标 ChatGPT Work 对话。Server URL 不会因此改变。",
+						"在上方重新生成入口，会同时准备新的连接消息；再将消息发到目标 ChatGPT Work 对话。",
 						[
-							action("show-instructions", "获取连接消息"),
 							action("disconnect", "断开连接"),
 						],
 					),
@@ -180,11 +174,11 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					"等待 ChatGPT 连接",
 					"在 ChatGPT Work 的目标对话输入 @，选择刚添加的插件，发送完整连接消息并允许订阅。收到订阅后这里会自动更新；若已发送但仍未连接，请检查 ChatGPT 的回复或授权提示。",
 					[
-						action("show-instructions", "获取连接消息"),
 						action("reconnect", "重置连接"),
 						action("disconnect", "断开连接"),
 					],
 				),
+				...messageRows,
 			],
 			pollUntil: Math.min(
 				input.now + FIVE_MINUTES_MS,

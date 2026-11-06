@@ -372,9 +372,6 @@ export class DotConnection {
     ) {
         await assertAuthority();
         const owner = await this.owner(context);
-        const externalBefore = await this.externalState();
-        if (externalBefore.pending && externalBefore.pending.discoveredAt === null)
-            throw new Error('dot_pending_discovery_required');
         await assertAuthority();
         const state = await this.store.updateConnection(previous => {
             this.assertLive();

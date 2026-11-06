@@ -57,15 +57,8 @@ test("entry mode is one selector with branch-owned long-lived and temporary cont
 				id: "use-long-lived",
 				render: "button",
 				resultRender: "text",
-				next: "show-instructions",
-				method: "dot.use-long-lived",
-			},
-			{
-				id: "show-instructions",
-				render: "button",
-				resultRender: "text",
 				next: undefined,
-				method: "dot.show-instructions",
+				method: "dot.use-long-lived",
 			},
 		],
 	);
@@ -84,15 +77,8 @@ test("entry mode is one selector with branch-owned long-lived and temporary cont
 				id: "start-temporary",
 				render: "button",
 				resultRender: "text",
-				next: "show-instructions",
-				method: "dot.start-temporary",
-			},
-			{
-				id: "show-instructions",
-				render: "button",
-				resultRender: "text",
 				next: undefined,
-				method: "dot.show-instructions",
+				method: "dot.start-temporary",
 			},
 		],
 	);
