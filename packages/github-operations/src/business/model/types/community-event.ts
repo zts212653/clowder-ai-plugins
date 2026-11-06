@@ -26,6 +26,7 @@ export type CommunityEventKind =
   | 'issue.labeled' // webhook issues.labeled | unlabeled (payload.label carries name)
   | 'pr.review_submitted' // webhook pull_request_review.submitted
   | 'pr.terminal_observed' // provider-only final facts, independent of native delivery
+  | 'pr.issue_linked' // source-bound cross-subject association, in PR journal order
   // Internal decision events
   | 'case.triaged'
   | 'case.routed'
@@ -282,6 +283,9 @@ export interface CommunityObjectProjection {
   /** Number of journal positions folded in canonical order, including rejected
    * events. Saved atomically with the derived state; old projections rebuild once. */
   journalCursor?: number;
+  /** Existing projector effects committed atomically beside their source cursor.
+   * Completion removes only the matching immutable source operation. */
+  pendingFollowUps?: Array<{ sourceEventId: string; kind: 'bootstrap-links' | 'merge-cascade'; numbers: number[] }>;
   /**
    * Count of events consumed to build this projection.
    * Used for rebuild consistency verification.

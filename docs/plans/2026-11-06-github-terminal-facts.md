@@ -6,6 +6,17 @@ status: implementation
 
 The accepted result is a durable, rebuildable view of a merged or closed pull request's final provider HEAD, review commit associations, merge identity and actual CI provenance. Historical native delivery and assignment records remain historical records. A provider approval cannot create native delivery.
 
+The R2 failure-mode audit changes three state contracts. Automatic provider admission reads immutable provider lifecycle/fact events, never native case terminal state or a transient projection. All reviews/comments in a legacy terminal snapshot share that admission decision. Projection cursors also retain pending cross-subject operations in the same saved value; retries drain them outside the subject lock. Issue associations enter the PR's journal with their own source, so future links cannot be seeded into old merge events. Unchanged complete reads advance one bounded collection checkpoint instead of adding business events; its source-event reference and CI watermark survive projection rebuild and reject older changes.
+
+| Persisted provider evidence | Automatic collection |
+| --- | --- |
+| No provider closure, including a natively declined case | Capture a new provider terminal transition |
+| Provider closure with no terminal facts | Refuse the complete historical batch; use the authorized native action |
+| Enrolled terminal facts | Refresh actual changes; checkpoint unchanged read times |
+| Projection temporarily missing | Use the same journal evidence, with the same outcome |
+
+The historical action uses projection-only replay. It preserves existing link metadata and unfinished operations but does not execute them, manufacture new association/cascade events, open work or wake another owner. Normal workflow projection owns those operations. Rebuild no longer starts with the final cache's complete link set or runs a pass that cascades old merges using future links.
+
 Architecture cell: GitHub provider → existing Community event journal → existing projection and inspection read model.
 Map delta: add a provider-only terminal observation within these owners and one bounded native reconciliation action; no new store, service, scheduler or review lifecycle.
 Why: existing terminal collection discards final facts, and retrying an active verdict is correctly fenced after closure.
@@ -19,7 +30,7 @@ Claim guard: terminal provider observations preserve final facts and cannot open
 4. Expose one authenticated, repository-configured action taking only an existing PR subject. It re-reads GitHub under current caller/lifecycle fencing and appends only terminal provider facts. It cannot accept supplied facts, register tracking, wake reviewers or write a delivery verdict. Invalid/mismatched subjects, commits, CI or incomplete provider reads cannot become positive evidence.
 5. Run package typecheck, affected behavior suites, independent non-author review, and a fresh tarball consumer through actual native action dispatch and readback/rebuild. Candidate validation uses disposable storage; no public package or production migration is performed by this change.
 
-Cost: one journal fact per distinct terminal observation; no resident process or new polling lane. Active subjects and enrolled terminal subjects request complete reviews/CI on the existing repository reconciliation cadence, including after pass/fail, because provider checks may change. Legacy terminal subjects remain unenrolled and use existing summary reads. The explicit historical repair costs one bounded provider read and never revives old subscriptions. Normal projection updates read only the new subject journal tail; legacy cursorless projections replay their committed history once, and explicit duplicate/rebuild requests can replay it again.
+Cost: one journal fact per substantive terminal transition, with one bounded collector progress row per enrolled subject for fresh read/CI watermarks. The progress row references committed facts and is retained in private storage independently of derived projection rebuilds. Pending existing cross-subject operations occupy the source projection until acknowledged. There is no new resident process, standalone store or polling lane. Active subjects and enrolled terminal subjects request complete reviews/CI on the existing repository cadence, including after pass/fail, because checks may change. Legacy terminal subjects use existing summary reads. Normal projection updates read only the new subject journal tail; legacy cursorless projections replay once, and explicit duplicate/rebuild requests can replay again. Proven old bootstrap associations are read from their source issue journals; recovery does not backdate them into an older PR merge.
 
 Validation commands come from this repository: `pnpm --filter @clowder-ai/github-operations typecheck`, `pnpm --filter @clowder-ai/github-operations test`, `pnpm --filter @clowder-ai/github-operations build`; source behavior tests run with `node --import tsx --test`. Candidate verification uses `npm pack` and an isolated `npm install` of that tarball. Repository commands provide no formatter beyond TypeScript lint; `git diff --check` checks edited whitespace.
 

@@ -4,6 +4,8 @@ import type { PluginActionContext } from '@clowder-ai/plugin-sdk';
 import { terminalFixture, terminalSnapshot, subject, head, target, nativeHistory } from '../test/terminal-fixture.js';
 import { TerminalReconciliationRuntime } from './terminal-reconciliation.js';
 import type { GitHubTrackingProvider } from './tracking-runtime.js';
+import { CommunityProjector } from './business/domains/community/community-projector.js';
+import type { CommunityEvent } from './business/model/index.js';
 
 const caller: PluginActionContext = { catId: 'repair-cat', threadId: 'repair-thread', userId: 'owner', invocationId: 'repair-invocation', assertCurrent: async () => {} };
 async function fixture(read: GitHubTrackingProvider['read'] = async () => terminalSnapshot(state), state: 'merged' | 'closed' = 'merged') {
@@ -32,6 +34,39 @@ for (const state of ['merged', 'closed'] as const) test(`${state} terminal repai
   assert.deepEqual((await f.storage.get('github.wait.existing-done'))?.value, { status: 'done', generation: 5 });
   assert.deepEqual((await f.storage.get('historical.not-recorded'))?.value, { outcome: 'not_recorded', code: 'subject_terminal' });
   assert.equal((await f.community.events.read(subject)).filter(event => event.kind.startsWith('case.')).length, initialEvents.filter(event => event.kind.startsWith('case.')).length);
+});
+
+for (const mode of ['pending', 'legacy', 'unapplied'] as const) test(`provider repair never performs unrelated issue work (${mode})`, async t => {
+  const f = await terminalFixture();
+  await f.community.configs.upsert({ repo: target.repoFullName, guardThreadId: 'guard', guardCatId: 'guard' });
+  const issue = 'issue:example/project#99';
+  const seed: CommunityEvent = { sourceEventId: 'repair-scope-issue', subjectKey: issue, kind: 'case.bootstrap',
+    classification: 'state-changing', payload: { mappedState: 'in_progress' }, at: 1 };
+  await f.community.events.append(seed); await f.projector.apply(seed);
+  const merge: CommunityEvent = { sourceEventId: 'repair-scope-merge', subjectKey: subject, kind: 'pr.merged',
+    classification: 'state-changing', payload: { body: 'Fixes #99' }, at: 2 };
+  const stopped = new CommunityProjector(f.community.events, f.community.objects, f.community.projectionOperations);
+  Object.assign(stopped, { drainFollowUps: async () => { throw new Error('stopped worker'); } });
+  await f.community.events.append(merge);
+  if (mode !== 'unapplied') await assert.rejects(stopped.apply(merge), /stopped worker/);
+  if (mode === 'legacy') {
+    const { journalCursor, pendingFollowUps, ...original } = (await f.community.objects.get(subject))!;
+    await f.community.objects.save(original);
+  }
+  const before = await f.community.objects.get(subject), issueBefore = await f.community.objects.get(issue);
+  const history = await f.community.events.read(subject), issueHistory = await f.community.events.read(issue);
+  const repair = new TerminalReconciliationRuntime({ storage: f.storage, provider: { read: async () => terminalSnapshot() },
+    projectionOperations: f.community.projectionOperations });
+  t.after(async () => { await repair.stop(); await f.community.stop(); });
+  await repair.reconcile({ subjectKey: subject }, caller);
+  await repair.reconcile({ subjectKey: subject }, caller);
+  assert.deepEqual(await f.community.objects.get(issue), issueBefore);
+  assert.deepEqual(await f.community.events.read(issue), issueHistory);
+  const after = await f.community.objects.get(subject);
+  if (mode === 'unapplied') assert.deepEqual(after?.pendingFollowUps, [{ sourceEventId: merge.sourceEventId, kind: 'merge-cascade', numbers: [99] }]);
+  else assert.deepEqual(after?.pendingFollowUps, before?.pendingFollowUps);
+  assert.deepEqual(after?.linkedIssues, [99]);
+  assert.equal((await f.community.events.read(subject)).length, history.length + 1);
 });
 
 test('missing authentication, supplied facts, unconfigured repo and absent subject cannot reach the provider', async t => {

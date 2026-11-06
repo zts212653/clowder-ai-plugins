@@ -8,6 +8,7 @@ import type { ICommunityEventLog } from '../../../domains/community/CommunityEve
 import { issueCommentEventId, reviewEventId } from '../../../domains/community/community-keys.js';
 import { terminalFactsFromProvider } from '../../../../github-terminal-facts.js';
 import { terminalObservationEvent, terminalReviews } from '../../../domains/community/terminal-provider-facts.js';
+import type { PrTerminalFacts } from '../../../model/types/provider-terminal.js';
 import {
   classifyIssueComment as classifyIssueCommentActivity,
   type IssueCommentClassification,
@@ -63,6 +64,7 @@ export interface GitHubRepoHandlerDeps {
   readonly eventLog?: ICommunityEventLog;
   readonly projector?: ICommunityProjectorApply;
   readonly mayObserveTerminalFacts?: (subjectKey: string) => Promise<boolean>;
+  readonly collectTerminalFacts?: (facts: PrTerminalFacts) => Promise<void>;
   readonly classifyIssueComment?: (comment: { author: string; body: string }) => IssueCommentClassification;
 }
 
@@ -104,6 +106,11 @@ export class GitHubRepoWebhookHandler {
     const deliveryId = headers['x-github-delivery'];
     if (!deliveryId) {
       return { kind: 'error', status: 400, message: 'Missing x-github-delivery header' };
+    }
+    const prNumber = (payload.pull_request as { number?: number } | undefined)?.number;
+    if (Number.isSafeInteger(prNumber) && prNumber! > 0 && this.deps.mayObserveTerminalFacts &&
+        !await this.deps.mayObserveTerminalFacts(`pr:${repo}#${prNumber}`)) {
+      return { kind: 'skipped', reason: 'Historical terminal facts require explicit reconciliation' };
     }
     if (!(await this.deps.dedup.claim(deliveryId))) {
       return { kind: 'skipped', reason: `Duplicate delivery: ${deliveryId}` };
@@ -204,9 +211,12 @@ export class GitHubRepoWebhookHandler {
               metadata: subject, reviews: [], ci: null, source: 'github-webhook', observedAt: Date.now() });
             const observation = terminalObservationEvent({ ...facts,
               reviews: terminalReviews(await this.deps.eventLog.read(subjectKey)) });
-            const recorded = await this.deps.eventLog.append(observation);
-            if (recorded.appended) await this.deps.projector?.apply(observation);
-            else await this.deps.projector?.rebuild(subjectKey);
+            if (this.deps.collectTerminalFacts) await this.deps.collectTerminalFacts(facts);
+            else {
+              const recorded = await this.deps.eventLog.append(observation);
+              if (recorded.appended) await this.deps.projector?.apply(observation);
+              else await this.deps.projector?.rebuild(subjectKey);
+            }
           }
           // P1-1: pr.merged / pr.closed must use lifecycle sourceEventId to dedup with polling paths
           // (CiCdRouter + ReviewFeedbackTaskSpec both emit lifecycle:${subjectKey}:merged|closed).

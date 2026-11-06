@@ -5,8 +5,9 @@ import { SdkCommunityEventLog } from './business/domains/community/CommunityEven
 import { SdkCommunityObjectStore } from './business/domains/community/CommunityObjectStore.js';
 import { SdkCommunityRepoConfigStore } from './business/domains/community/CommunityRepoConfigStore.js';
 import { CommunityProjector, CommunityProjectionOperations } from './business/domains/community/community-projector.js';
-import { mergeTerminalFacts, parseTerminalFacts, terminalObservationEvent, terminalReviews } from './business/domains/community/terminal-provider-facts.js';
+import { mergeTerminalFacts, parseTerminalFacts, terminalFactsSchema, terminalReviews } from './business/domains/community/terminal-provider-facts.js';
 import { fencedIndexedStorage } from './owner-indexed-storage.js';
+import { TerminalFactCollection } from './terminal-fact-collection.js';
 
 export const TERMINAL_RECONCILIATION_METHOD = 'github.subject.reconcile-terminal';
 export const terminalReconciliationInput = z.object({
@@ -58,7 +59,14 @@ export class TerminalReconciliationRuntime {
       };
       const objects = new SdkCommunityObjectStore(source);
       const original = await objects.get(subjectKey);
-      if (!original || (original.externalReview?.lifecycle !== 'terminal' && !['fixed', 'closed', 'declined'].includes(original.state))) throw new Error('Existing terminal subject required');
+      const subjectHistory = await new SdkCommunityEventLog(source).read(subjectKey);
+      const providerTerminal = subjectHistory.some(event => {
+        if (event.kind === 'pr.merged' || event.kind === 'pr.closed') return true;
+        const facts = event.kind === 'pr.terminal_observed' ? terminalFactsSchema.safeParse(event.payload.terminalFacts) : null;
+        return !!facts?.success && facts.data.subjectKey === subjectKey;
+      });
+      if (!subjectHistory.length || (!providerTerminal && (!original ||
+          (original.externalReview?.lifecycle !== 'terminal' && !['fixed', 'closed', 'declined'].includes(original.state))))) throw new Error('Existing terminal subject required');
       await fence();
       const snapshot = await this.options.provider.read({ kind: 'pr', repoFullName: repo, number,
         threadId: caller.threadId, catId: caller.catId }, signal);
@@ -78,12 +86,11 @@ export class TerminalReconciliationRuntime {
         delete: async (key, revision) => { await fence(); return source.delete(key, revision); },
       };
       const events = new SdkCommunityEventLog(storage), guardedObjects = new SdkCommunityObjectStore(storage);
-      const projector = new CommunityProjector(events, guardedObjects, this.options.projectionOperations);
-      const event = terminalObservationEvent(facts), result = await events.append(event);
-      if (result.appended) await projector.apply(event);
-      else await projector.rebuild(subjectKey);
+      const projector = new CommunityProjector(events, guardedObjects, this.options.projectionOperations, 'projection-only');
+      const result = await new TerminalFactCollection(storage, events, projector, this.options.projectionOperations, signal).collect(subjectKey, [], facts, true);
+      if (!result.recorded) await projector.rebuild(subjectKey);
       await fence();
-      return { data: { subjectKey, outcome: result.appended ? 'recorded' : 'unchanged',
+      return { data: { subjectKey, outcome: result.recorded ? 'recorded' : 'unchanged',
         terminalFacts: (await guardedObjects.get(subjectKey))?.terminalFacts ?? null } };
     });
   }

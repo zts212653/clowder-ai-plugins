@@ -11,8 +11,11 @@ import type { ICommunityObjectStore } from '../CommunityObjectStore.js';
 import type { SlaPolicy } from '../community-sla-policy.js';
 import { type GitHubSnapshot, reconcile } from './CommunityReconciler.js';
 import type { CommunityReconciliationFindingStore } from './CommunityReconciliationFindingStore.js';
+import { parseTerminalFacts, shouldObserveTerminalFacts } from '../terminal-provider-facts.js';
+import type { TerminalFactCollection } from '../../../../terminal-fact-collection.js';
 
 export interface CommunityReconcilerTaskSpecOptions extends GitHubPollOptions {
+  terminalCollection?: TerminalFactCollection;
   objectStore: Pick<ICommunityObjectStore, 'get' | 'listSubjectKeys'>;
   eventLog: ICommunityEventLog;
   projector: { apply(event: Parameters<ICommunityEventLog['append']>[0]): Promise<void>; rebuild(subjectKey: string): Promise<void> };
@@ -79,6 +82,11 @@ async function applySubject(opts: CommunityReconcilerTaskSpecOptions, projection
   for (const warning of result.warnings) opts.log.warn(`[reconciler] ${warning}`);
   for (const event of result.events) {
     signal.throwIfAborted();
+    if (subject.startsWith('pr:') && !shouldObserveTerminalFacts(await opts.eventLog.read(subject))) continue;
+    if (event.kind === 'pr.terminal_observed' && opts.terminalCollection) {
+      await opts.terminalCollection.collect(subject, [], parseTerminalFacts(event.payload.terminalFacts, subject));
+      continue;
+    }
     const { appended } = await opts.eventLog.append(event);
     // Never interrupt between durable append and its projection.
     if (appended) await opts.projector.apply(event);

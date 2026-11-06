@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import type { CommunityEvent, CommunityObjectProjection } from '../../model/index.js';
+import type { CommunityEvent } from '../../model/index.js';
 import type { PrTerminalFacts } from '../../model/types/provider-terminal.js';
 
 const sha = z.string().regex(/^[a-f0-9]{40}$/);
@@ -31,12 +31,12 @@ export function parseTerminalFacts(value: unknown, subject: string): PrTerminalF
     ci: facts.ci && { ...facts.ci, checks: [...facts.ci.checks].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))) } };
 }
 
-/** One provider observation has one identity. A later re-observation may record
- * the same result again after an intervening change (pass → fail → pass). */
-export function terminalObservationEvent(value: PrTerminalFacts): CommunityEvent {
+/** Content transitions retain an identity even when two reads share a clock
+ * instant. The collector coalesces unchanged reads using its durable watermark. */
+export function terminalObservationEvent(value: PrTerminalFacts, previousSourceEventId?: string): CommunityEvent {
   const facts = parseTerminalFacts(value, value.subjectKey);
   const { observedAt, ...content } = facts;
-  const hash = createHash('sha256').update(JSON.stringify(content)).digest('hex');
+  const hash = createHash('sha256').update(JSON.stringify({ content, previousSourceEventId })).digest('hex');
   return { sourceEventId: `terminal:${facts.subjectKey}:${observedAt}:${hash}`, subjectKey: facts.subjectKey,
     kind: 'pr.terminal_observed', classification: 'informational', payload: { terminalFacts: facts }, at: observedAt };
 }
@@ -72,14 +72,22 @@ export function mergeTerminalFacts(previous: PrTerminalFacts | undefined, next: 
     observedAt: Math.max(previous.observedAt, next.observedAt) };
 }
 
-/** A pre-existing terminal case is not enrolled by loading new code. A live
- * first terminal observation, or explicitly reconciled final facts, keeps the
- * existing repository observation lane current without opening review work. */
-export function shouldObserveTerminalFacts(projection: CommunityObjectProjection | null): boolean {
-  if (!projection) return true;
-  if (projection.terminalFacts) return true;
-  return projection.externalReview?.lifecycle !== 'terminal' &&
-    !['fixed', 'reported', 'closed', 'declined'].includes(projection.state);
+/** Provider history owns admission. Native decline is not a provider closure,
+ * and deleting a derived cache does not create a new provider subject. */
+export function shouldObserveTerminalFacts(history: readonly CommunityEvent[]): boolean {
+  for (const event of history) {
+    if (event.kind !== 'pr.terminal_observed') continue;
+    if (terminalFactsSchema.safeParse(event.payload.terminalFacts).success &&
+        (event.payload.terminalFacts as PrTerminalFacts).subjectKey === event.subjectKey) return true;
+  }
+  return !history.some(event => event.kind === 'pr.merged' || event.kind === 'pr.closed');
+}
+
+export function terminalContent(facts: PrTerminalFacts): string {
+  const { observedAt, ci, ...content } = facts;
+  if (!ci) return JSON.stringify({ ...content, ci: null });
+  const { observedAt: ciObservedAt, ...ciContent } = ci;
+  return JSON.stringify({ ...content, ci: ciContent });
 }
 
 /** Old journal entries may have no commit association. Retain that uncertainty. */

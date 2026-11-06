@@ -26,9 +26,11 @@ export async function installedTrackingHost(t, { hostRoot, artifact, redisFixtur
 let clock=1000;
 function terminalSnapshot(mode) {
   const value=${JSON.stringify(providerSnapshot ?? null)};
-  if (!value || !['terminal-fail','terminal-unknown'].includes(mode)) return value;
-  const delta=mode==='terminal-fail'?1000:2000;
+  if (!value || !['terminal-fresh-same','terminal-fail','terminal-unknown'].includes(mode)) return value;
+  const delta=mode==='terminal-fresh-same'?500:mode==='terminal-fail'?1000:2000;
   const facts=value.terminalFacts;
+  if(mode==='terminal-fresh-same') return {...value,terminalFacts:{...facts,observedAt:facts.observedAt+delta,
+    ci:{...facts.ci,observedAt:facts.ci.observedAt+delta}}};
   return {...value,terminalFacts:{...facts,observedAt:facts.observedAt+delta,ci:{...facts.ci,
     observedAt:facts.ci.observedAt+delta,status:mode==='terminal-fail'?'fail':'unknown',
     checkRollup:mode==='terminal-fail'?'present':'empty',checks:mode==='terminal-fail'?[{name:'controlled-rerun',bucket:'fail'}]:[]}}};

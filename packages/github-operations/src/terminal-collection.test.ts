@@ -66,7 +66,7 @@ test('concurrent and late sparse facts cannot regress final HEAD, merge or newer
   read = providerObservation(subject, await f.community.events.read(subject), await f.community.objects.get(subject));
   assert.equal(read.ci, 'pass');
   const wrongHead = { ...snapshot, headSha: oldHead, terminalFacts: { ...original, headSha: oldHead, ci: null, observedAt: time + 5000 } };
-  await f.community.collectTracking(target, wrongHead);
+  await assert.rejects(f.community.collectTracking(target, wrongHead), /conflicting terminal/);
   await f.projector.rebuild(subject);
   const rebuilt = providerObservation(subject, await f.community.events.read(subject), await f.community.objects.get(subject));
   assert.equal(rebuilt.headSha, head); assert.equal(rebuilt.ci, 'pass');
@@ -75,7 +75,7 @@ test('concurrent and late sparse facts cannot regress final HEAD, merge or newer
 test('unknown CI and unbound review commits never become final positive evidence', async t => {
   const f = await fixture(); t.after(() => f.community.stop());
   const snapshot = terminalSnapshot(), facts = snapshot.terminalFacts!;
-  await f.community.collectTracking(target, { ...snapshot, terminalFacts: { ...facts,
+  await f.community.collectTracking(target, { ...snapshot, reviews: [{ ...snapshot.reviews[0]!, commitId: undefined }], terminalFacts: { ...facts,
     reviews: [{ ...facts.reviews[0]!, commitId: null }, { ...facts.reviews[0]!, id: 11, commitId: oldHead }],
     ci: { ...facts.ci!, status: 'unknown', checkRollup: 'empty', checks: [] },
   } });
