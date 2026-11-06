@@ -278,6 +278,7 @@ export const communityIssueRoutes: FastifyPluginAsync<CommunityIssuesRoutesOptio
       return { error: 'GitHub PR fetching not configured' };
     }
 
+    const observedAt = Date.now();
     const ghPrs = await opts.fetchPrs(repo);
     let created = 0;
     let updated = 0;
@@ -300,37 +301,25 @@ export const communityIssueRoutes: FastifyPluginAsync<CommunityIssuesRoutesOptio
       const reviews = reviewsByNumber.get(pr.number) ?? [];
       const mapped = mapGitHubPr(pr, reviews);
       const existing = await opts.communityPrStore.getByRepoAndNumber(repo, pr.number);
+      const observed = await opts.communityPrStore.observeTitle({
+        repo, prNumber: pr.number, title: pr.title, author: pr.user,
+        state: mapped.state, replyState: mapped.replyState, headSha: pr.head_sha, draft: pr.draft,
+      }, { observedAt, providerUpdatedAt: Date.parse(pr.updated_at) });
 
-      if (!existing) {
-        await opts.communityPrStore.create({
-          repo,
-          prNumber: pr.number,
-          title: pr.title,
-          author: pr.user,
-          state: mapped.state,
-          replyState: mapped.replyState,
-          headSha: pr.head_sha,
-          draft: pr.draft,
-        });
-        if (mapped.lastReviewedSha) {
-          const fresh = await opts.communityPrStore.getByRepoAndNumber(repo, pr.number);
-          if (fresh) await opts.communityPrStore.update(fresh.id, { lastReviewedSha: mapped.lastReviewedSha });
-        }
-        created++;
-      } else if (
+      if (!existing ||
         existing.state !== mapped.state ||
         existing.replyState !== mapped.replyState ||
-        existing.title !== pr.title ||
+        existing.title !== observed.title ||
         existing.headSha !== pr.head_sha
       ) {
-        await opts.communityPrStore.update(existing.id, {
+        await opts.communityPrStore.update(observed.id, {
           state: mapped.state,
           replyState: mapped.replyState,
-          title: pr.title,
           headSha: pr.head_sha,
           ...(mapped.lastReviewedSha ? { lastReviewedSha: mapped.lastReviewedSha } : {}),
         });
-        updated++;
+        if (existing) updated++;
+        else created++;
       } else {
         unchanged++;
       }
