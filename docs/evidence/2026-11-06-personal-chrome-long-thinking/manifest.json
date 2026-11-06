@@ -35,6 +35,12 @@
       "sha256": "4e12d7636a811ac43cc37427ded5d9cdd6a0f63d79f5821d0af48cf2c4928096",
       "decodedSha256": "2bb7833600855af9c11b3b986568658d1f5758641bbffbebf086529af7f80c0b",
       "decodedBytes": 343
+    },
+    {
+      "path": "packed-long-thinking.log.gz",
+      "sha256": "3ae367e41736168967036106bdfbad1f1350a8e591077bb2efbe6a4eb56f1925",
+      "decodedSha256": "ea4ebf0049a48202582f6d4cd785b8cf0f9949906da59ee26bf68774738b4c02",
+      "decodedBytes": 616
     }
   ]
 }

@@ -190,6 +190,15 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/199",
       "reason": "This recovery release requires atomic indexed private storage through SDK candidate.11. A verified home Host does not establish compatibility of every public catalog consumer; source publication and the held local instance upgrade precede any separate public activation.",
       "condition": "Verify the capable Host indexed CAS/readDue/rebuild chain and SDK11 package consumer for the intended delivery population; obtain scoped catalog activation review separately. The local instance update must preserve import-only and collection-held barriers, original IDs and history, with no old wait registration."
+    },
+    {
+      "pluginId": "official.companion.personal-chrome",
+      "version": "0.1.0-alpha.10",
+      "integrity": "sha512-N6mohK+qmgNW08yRGa2g1N4Ja6hMbpfLOGg6IPqHB/HgzlUvqwm9/6AQqt56umDqeoe19OtgqlegMz2p0eeVMA==",
+      "disposition": "activate",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-08T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/203"
     }
   ]
 }
