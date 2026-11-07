@@ -8,13 +8,16 @@ import type { TaskItem } from './business/model/index.js';
 import type { CommunityTracking } from './business/domains/community/ports/CommunityTracking.js';
 import type { JournalSubject } from './business/domains/community/journal-directory.js';
 import type { GitHubSnapshot } from './tracking-runtime.js';
+import { consecutiveFailures, type RecoveryAttempt } from './recovery-attempt.js';
+import type { DiagnosticError } from './tracking-diagnostics.js';
 
 /** Task-shaped compatibility view for the migrated board, NOT a Host Task.
  * This namespace owns only provider collection and never updates the Host Task wait patch.
  * Cancelling retains the row and its cursors (TTL=0); rerouting reactivates it. */
 export class SdkCommunityCollectionStore implements CommunityTracking {
   private readonly indexed: ReturnType<typeof collectionIndexOwner>;
-  constructor(private readonly storage: PluginStorageHost, private readonly now = Date.now, private readonly intervalMs = 60_000) {
+  constructor(private readonly storage: PluginStorageHost, private readonly now = Date.now, private readonly intervalMs = 60_000,
+    private readonly diagnose?: (error: unknown) => Promise<DiagnosticError>) {
     this.indexed = collectionIndexOwner(storage);
   }
   async initialize(rebuild = false): Promise<void> {
@@ -94,7 +97,7 @@ export class SdkCommunityCollectionStore implements CommunityTracking {
         await this.reconcileSubject(selected.subject, undefined, assertCurrent);
         assertCurrent(); await journal.finishRoute(selected.entry, false, this.now());
       } catch (error) {
-        assertCurrent(); await journal.finishRoute(selected.entry, true, this.now()); failure ??= error;
+        assertCurrent(); await journal.finishRoute(selected.entry, true, this.now(), await this.diagnose?.(error)); failure ??= error;
       }
     }
     if (failure) throw failure;
@@ -130,14 +133,15 @@ export class SdkCommunityCollectionStore implements CommunityTracking {
     await this.indexed.publish(keyFor(current.task.id), revision, { ...row, notice, recovery: { ...current.recovery!,
       ...(!notice && current.recovery?.scope === selected.notice.scope ? { lastNoticeKey: selected.notice.key } : {}) } });
   }
-  async finish(selected: NonNullable<Awaited<ReturnType<SdkCommunityCollectionStore['read']>>>, failed: boolean, notBefore = 0) {
+  async finish(selected: NonNullable<Awaited<ReturnType<SdkCommunityCollectionStore['read']>>>, outcome: RecoveryAttempt, notBefore = 0, error?: DiagnosticError) {
     for (let attempt = 0; attempt < 8; attempt++) {
       const current = await this.read(selected.task.id); if (!current) return;
       if (!current.recovery || current.recovery.scope !== selected.recovery?.scope || current.recovery.revision !== selected.recovery.revision) return;
-      const failures = current.recovery.failures + (failed ? 1 : 0);
+      const failures = consecutiveFailures(current.recovery.failures, outcome);
       const { revision, ...row } = current;
       if ((await this.indexed.publish(keyFor(current.task.id), revision, { ...row, recovery: { ...current.recovery,
         revision: current.recovery.revision + 1, failures, nextAt: Math.max(notBefore, this.now() + this.intervalMs),
+        ...(error ? { lastError: error, lastFailureAt: this.now() } : {}),
         ...(failures >= 5 ? { disposition: 'needs_attention', reasonCode: 'collection_observation_failed' } : {}) } })).applied) return;
     }
     throw new Error('Collection recovery accounting changed concurrently');

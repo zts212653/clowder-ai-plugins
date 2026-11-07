@@ -1,4 +1,5 @@
 import type { PluginStorageEntry, PluginStorageHost } from '@clowder-ai/plugin-sdk';
+import type { DiagnosticError } from '../../../tracking-diagnostics.js';
 import type { CommunityEvent } from '../../model/index.js';
 import { storageEntries } from '../../../storage-pages.js';
 import { initializeJournal, publishJournalHead, type JournalHead } from './journal-census.js';
@@ -90,7 +91,7 @@ export class SdkCommunityEventLog implements ICommunityEventLog {
   async pendingRoutes(kind: 'pr' | 'issue', now: number, limit = 20) {
     await this.ready(); return this.directory.due(kind, now, limit);
   }
-  finishRoute(entry: PluginStorageEntry, failed: boolean, now: number) { return this.directory.finish(entry, failed, now); }
+  finishRoute(entry: PluginStorageEntry, failed: boolean, now: number, error?: DiagnosticError) { return this.directory.finish(entry, failed, now, error); }
   deliverRouteNotice(entry: PluginStorageEntry, send: RecoveryNoticeSender | undefined, now: number) {
     return this.directory.deliverNotice(entry, send, now);
   }

@@ -2,7 +2,9 @@ import { storageEntries } from './storage-pages.js';
 import type { FeatureContext, PluginStorageEntry } from '@clowder-ai/plugin-sdk';
 import { MIGRATED_ISSUES, MIGRATED_ISSUE_INDEX, migratedIssueKey, decodeMigratedIssue, materializeMigratedIssue,
   migratedIssueIndexOwner, type MigratedIssueRecord as RecordV1 } from './migrated-issue-record.js';
-import { GitHubRateLimitError } from './business/infrastructure/github/request-budget.js';
+import { GitHubRateLimitError, GitHubRequestDeferredError } from './business/infrastructure/github/request-budget.js';
+import { diagnosticError, type DiagnosticError } from './tracking-diagnostics.js';
+import { consecutiveFailures, type RecoveryAttempt } from './recovery-attempt.js';
 import { gitHubPollBudget, gitHubAdmissionCanContinue, gitHubObjectAdmission } from './business/infrastructure/github/admission-budget.js';
 import { advanceRecoveryNotice, sendRecoveryOwnerNotice } from './recovery-owner-notice.js';
 import type { TaskItem } from './business/model/index.js';
@@ -62,24 +64,26 @@ export class MigratedIssueRuntime {
         if (row.recovery?.disposition || row.recovery!.nextAt > this.now()) continue;
         await this.one(key, attempt, signal);
         signal.throwIfAborted();
-        await this.finish(key, attempt.entry, false);
+        await this.finish(key, attempt.entry, 'succeeded');
       } catch (error) {
         this.stopController.signal.throwIfAborted();
         if (error instanceof MigratedIssueChanged) continue;
         if (signal.aborted && admission.limitedByPoll) break;
-        const limited = error instanceof GitHubRateLimitError;
-        await this.finish(key, attempt.entry, !limited, limited ? error.retryAt : 0);
+        const limited = error instanceof GitHubRateLimitError, deferred = limited || error instanceof GitHubRequestDeferredError;
+        await this.finish(key, attempt.entry, deferred ? 'deferred' : 'failed', limited ? error.retryAt : 0,
+          deferred ? undefined : await diagnosticError(error, this.context.secrets));
         this.context.log(limited ? 'info' : 'warn', limited ? 'Migrated issue quota deferred' : 'Migrated issue observation retained for finite recovery');
-        if (limited) break;
+        if (deferred) break;
       }
     }
   }
-  private async finish(key: string, source: PluginStorageEntry, failed: boolean, notBefore = 0) {
+  private async finish(key: string, source: PluginStorageEntry, outcome: RecoveryAttempt, notBefore = 0, error?: DiagnosticError) {
     const current = await this.context.storage.get(key); if (!current || current.revision !== source.revision) return;
     const row = decodeMigratedIssue(current.value), recovery = row.recovery!;
-    const failures = recovery.failures + (failed ? 1 : 0);
+    const failures = consecutiveFailures(recovery.failures, outcome);
     await this.indexed.publish(key, current.revision, { ...row, recovery: { ...recovery, revision: recovery.revision + 1,
-      failures, nextAt: Math.max(this.now() + this.intervalMs, notBefore), ...(failures >= 5 ? { disposition: 'needs_attention', reasonCode: 'migrated_issue_observation_failed' } : {}) } });
+      failures, nextAt: Math.max(this.now() + this.intervalMs, notBefore), ...(error ? { lastError: error, lastFailureAt: this.now() } : {}),
+      ...(failures >= 5 ? { disposition: 'needs_attention', reasonCode: 'migrated_issue_observation_failed' } : {}) } });
   }
   private async one(key: string, attempt: { entry: PluginStorageEntry }, signal: AbortSignal) {
     const check = () => signal.throwIfAborted();

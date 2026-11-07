@@ -17,6 +17,35 @@ const route = (id: string, subject = 'issue:owner/repo#1', cat = 'cat'): Communi
 });
 const snapshot = { state: 'open' as const, commentsComplete: true, comments: [], reviews: [] };
 
+test('intermittent collection failures are reset only by successful collection, never by quota deferral', async t => {
+  let now = 1000, failure: Error | undefined;
+  const storage = memoryStorage(), store = new SdkCommunityCollectionStore(storage, () => now);
+  await new SdkCommunityEventLog(storage).append(route('intermittent-route'));
+  const runtime = new CommunityCollectionRuntime({ store, now: () => now, allowed: async () => true,
+    provider: { read: async () => { if (failure) throw failure; return snapshot; } }, collect: async () => {}, observe: async () => {} });
+  t.after(() => runtime.stop());
+  for (let n = 0; n < 7; n++) {
+    failure = new Error('temporary collection failure'); await assert.rejects(runtime.poll('issue')); now += 60_001;
+    const task = (await store.getBySubject('issue:owner/repo#1'))!;
+    failure = new GitHubRateLimitError(now + 60_000); await runtime.poll('issue'); now += 60_001;
+    assert.equal((await store.read(task.id))!.recovery!.failures, 1, 'quota cannot erase unresolved failures');
+    failure = undefined; await runtime.poll('issue'); now += 60_001;
+    assert.equal((await store.read(task.id))!.recovery!.failures, 0);
+  }
+});
+
+test('successful journal reconciliation clears its consecutive failure streak', async () => {
+  const storage = memoryStorage(), journal = new SdkCommunityEventLog(storage);
+  await journal.append(route('journal-streak'));
+  let now = 1000;
+  await journal.finishRoute((await journal.pendingRoutes('issue', now))[0]!.entry, true, now);
+  now += 60_001;
+  await journal.finishRoute((await journal.pendingRoutes('issue', now))[0]!.entry, false, now);
+  const recovery = (await journal.recoveryDiagnostics()).entries[0]!.recovery;
+  assert.equal('failures' in recovery && recovery.failures, 0);
+  assert.equal('pending' in recovery && recovery.pending, false);
+});
+
 test('journal materialization converges when a concurrent owner has already assigned this stale event its subject position', async () => {
   const storage = memoryStorage(), event = route('concurrent-original');
   await storage.set(eventKey(event.sourceEventId), { sequence: 0, event });
@@ -126,7 +155,7 @@ test('migrated issue outbox reuses its original key after message acceptance and
   const after = (await storage.get(key))!.value as { task: TaskItem; outbox?: unknown; sourceUpdatedAt: number; recovery: { failures: number } };
   assert.equal(after.outbox, undefined); assert.equal(deliveries, 1); assert.equal(reads, 1);
   assert.equal(after.task.id, task.id); assert.equal(after.task.automationState?.issue?.lastDeliveredCursor, 11);
-  assert.equal(after.sourceUpdatedAt, 1); assert.equal(after.recovery.failures, 1);
+  assert.equal(after.sourceUpdatedAt, 1); assert.equal(after.recovery.failures, 0);
   await storage.rebuildIndex!(MIGRATED_ISSUE_INDEX);
   assert.equal(accepted.size, 1);
 });

@@ -83,7 +83,7 @@ test('installed migrated outbox retains exact receipt key after accepted message
   assert.equal(settled.value.outbox, undefined); assert.equal(settled.value.task.id, live.legacyId);
   assert.equal(settled.value.sourceUpdatedAt, pending.value.sourceUpdatedAt);
   assert.equal(settled.value.task.automationState.issue.lastDeliveredCursor, 11);
-  assert.equal(settled.value.recovery.failures, 1);
+  assert.equal(settled.value.recovery.failures, 0);
   assert.equal(f.events.filter(e => e.message === 'fixture-provider-read' && e.fields.number === 3).length, 1);
   assert.equal(f.sends.length, 2); assert.equal(f.sends[1].deduplicated, true);
   assert.equal(f.sends[0].messageId, f.sends[1].messageId);

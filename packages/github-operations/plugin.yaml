@@ -1,5 +1,5 @@
 pluginId: official.github-operations
-version: 0.1.0-alpha.39
+version: 0.1.0-alpha.40
 contractVersion: 0.3.2-candidate.0
 name: GitHub Operations
 description:
@@ -290,6 +290,26 @@ contributions:
       and the latest 25 safe registration diagnostics. Includes phase, failure code and original exception detail with credentials redacted.
     inputSchema: { type: object, additionalProperties: false, properties: {} }
     action: { method: github.tracking.list }
+  - type: tool
+    id: retry-tracking
+    name: github_retry_tracking
+    description: >-
+      Retry one existing PR or issue wait paused by observation failures.
+      Use when the owner authorizes recovering a paused subscription after inspecting github_list_tracking.
+      NOT for new registration, cancellation, corrupt records, changing routes or completing the owner's work.
+      Output: resets only the authenticated user's selected recovery budget and schedules its original observer;
+      preserves its baseline, generation, owner, original thread, delivery progress and history.
+      GOTCHA: use recovery.scope and recovery.revision from the current typed diagnostic, not sourceRevision.
+      Re-registering captures a new baseline and can miss changes that occurred while paused.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ taskId, expectedScope, expectedRecoveryRevision ]
+      properties:
+        taskId: { type: string, minLength: 1, maxLength: 200, description: Existing taskId from recoveryOwners.typed. }
+        expectedScope: { type: string, pattern: '^[a-f0-9]{64}$', description: Exact recovery.scope from the selected diagnostic. }
+        expectedRecoveryRevision: { type: integer, minimum: 0, description: Exact recovery.revision; stale requests make no changes. }
+    action: { method: github.tracking.retry }
   - type: schedule
     id: pr-tracking
     schedule: { kind: interval, everyMs: 60000 }
@@ -611,6 +631,7 @@ features:
       - { type: identity, id: github-notification }
       - { type: identity, id: github-wait }
       - { type: tool, id: list-tracking }
+      - { type: tool, id: retry-tracking }
       - { type: tool, id: inspect-subject }
       - { type: tool, id: inspect-legacy-history }
       - { type: tool, id: recommend-triage }

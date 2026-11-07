@@ -91,5 +91,17 @@ test('the installed tracking report exposes paused typed facts and quarantined o
   assert.equal(corrupt.recovery.reasonCode, 'invalid_wait_record'); assert.equal(corrupt.recovery.disposition, 'needs_attention');
   assert.deepEqual((await f.facade.get(corruptKey)).value.task, original.task);
   assert.equal(report.data.tracking.length, 1); assert.deepEqual(await f.facade.list(), before);
+  assert.equal(report.data.tracking[0].polling.state, 'paused');
   assert.equal(f.providerCalls(), 6, 'one baseline plus five true failures, no repeated failed observations');
+  const originalTask = before[paused.sourceKey].value.task;
+  assert.match(paused.recovery.lastError.message, /isolated provider observation failed/);
+  await f.call('github.tracking.retry', { taskId: paused.taskId, expectedScope: paused.recovery.scope,
+    expectedRecoveryRevision: paused.recovery.revision });
+  assert.deepEqual((await f.facade.get(paused.sourceKey)).value.task, originalTask);
+  assert.equal(f.providerCalls(), 6, 'the native retry must not capture a replacement baseline');
+  assert.equal((await f.call('github.tracking.list')).data.tracking[0].polling.state, 'scheduled');
+  f.mode.scenario = 'event:11'; f.mode.now += 60_001;
+  await f.call('github.pr-tracking');
+  assert.equal(f.sends.filter(send => send.wake?.catId === 'codex61-sol').length, 1,
+    'an event that happened while paused reaches the original owner through the real Host');
 });

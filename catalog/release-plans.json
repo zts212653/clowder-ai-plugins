@@ -221,6 +221,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/205",
       "reason": "The local-title candidate requires paired Host/plugin acceptance and scoped publication authorization. Source submission does not establish compatibility of all public catalog consumers or authorize an installed-instance update.",
       "condition": "Complete exact-version local-title, owner-isolation and old-plugin fallback acceptance; obtain scoped package publication and a separate catalog activation review before changing global discovery. Installation remains an owner-authorized action."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.40",
+      "integrity": "sha512-UANORyFzAETnKgQNbCalt+noFUcqIvQ+D803619LXFX6HPQBPg6vlXW/E/3tY+387Bf34//eN2r2wkwfZ67qOg==",
+      "disposition": "defer",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-14T09:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/207",
+      "reason": "The recovery repair retains SDK candidate.11 indexed-storage requirements. A reviewed source release and isolated acceptance do not establish compatibility of all public catalog consumers or authorize replacing an installed instance.",
+      "condition": "Verify the paired capable Host and exact self-contained archive; preserve original instance, settings, baselines and history during an owner-authorized update. Public discovery activation requires separate scoped review."
     }
   ]
 }

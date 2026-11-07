@@ -177,6 +177,26 @@ export class TypedWaitRuntime {
 
   diagnostics() { return readRegistrationDiagnostics(this.options.context.storage); }
 
+  async retry(input: unknown, caller?: PluginActionContext) {
+    const value = z.object({ taskId: z.string().min(1).max(200), expectedScope: z.string().regex(/^[a-f0-9]{64}$/),
+      expectedRecoveryRevision: z.number().int().nonnegative() }).strict().parse(input);
+    if (!caller?.userId || !caller.catId || !caller.threadId || !caller.invocationId || typeof caller.assertCurrent !== 'function')
+      throw new TrackingRegistrationError(503, 'Authenticated invocation required for a recovery retry');
+    this.assertRunning(); await caller.assertCurrent();
+    const task = await this.store.get(value.taskId);
+    if (!task || task.userId !== caller.userId) throw new TrackingRegistrationError(409, 'Tracking is unavailable or belongs to a different user');
+    return this.run(task.subjectKey!, async signal => {
+      const check = async () => { this.assertRunning(); signal.throwIfAborted(); await caller.assertCurrent(); };
+      await check();
+      if (!await this.options.context.threads.get(task.threadId)) throw new TrackingRegistrationError(409, 'Original tracking thread is unavailable');
+      await this.currentSubscription(task);
+      const store = this.guardedStore(async () => { await check(); await this.currentSubscription(task); });
+      await store.recovery.retry(task.id, value.expectedScope, value.expectedRecoveryRevision);
+      return { data: { retried: true, taskId: task.id, subjectKey: task.subjectKey, pollingState: 'scheduled',
+        message: 'Original wait, baseline, owner, notification progress and history retained.' } };
+    });
+  }
+
   private lifecycle(task: TaskItem, check: () => Promise<void>) {
     const store = this.guardedStore(async () => { await check(); await this.currentSubscription(task); });
     return new GitHubWaitLifecycleService({ taskStore: store, now: this.now,
@@ -220,7 +240,7 @@ export class TypedWaitRuntime {
           await this.lifecycle(task, check).recoverOutcome(task.id);
           await this.projectImportedWait(task.id, check);
         }).catch(() => { failed = true; this.options.context.log('warn', 'GitHub pending outcome retained for recovery'); });
-        await this.store.recovery.finish(candidate, failed, this.now() + (this.options.pollIntervalMs ?? 60_000));
+        await this.store.recovery.finish(candidate, failed ? 'failed' : 'deferred', this.now() + (this.options.pollIntervalMs ?? 60_000));
       }
     }
   }
@@ -228,12 +248,14 @@ export class TypedWaitRuntime {
   private async recoveryNotices(candidate: GitHubWaitRecoveryCandidate): Promise<void> {
     for (const notice of Object.values(candidate.recovery.notices)) {
       if (notice.state !== 'pending' || notice.nextAt > this.now()) continue;
+      const current = (await this.store.recovery.facts(candidate.task.id))?.notices[notice.key];
+      if (!current || current.state !== 'pending' || current.failures !== notice.failures) continue;
       try {
         const thread = await this.options.context.threads.get(notice.threadId);
         if (!thread) { await this.store.recovery.finishNotice(candidate.task.id, notice, 'owner_unavailable'); continue; }
         await this.options.context.messaging.send(notice.threadId, { identity: 'github-wait',
           payload: { provenance: { epistemicStatus: 'observation' }, elements: [{ elementId: notice.key, kind: 'text',
-            payload: { text: '这条 GitHub 等待的自动检查已暂停。原记录仍保留，请检查其恢复诊断。' } }] },
+            payload: { text: `${candidate.task.subjectKey} 的自动检查已暂停（连续 5 次失败；${candidate.recovery.reasonCode ?? 'unknown'}）。原等待与通知进度仍保留；请查看 github_list_tracking 的恢复诊断后重试。` } }] },
           idempotencyKey: notice.key, meta: { phase: 'status', taskId: notice.taskId } });
         await this.store.recovery.finishNotice(candidate.task.id, notice, 'delivered');
       } catch {

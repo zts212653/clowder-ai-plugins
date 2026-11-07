@@ -125,6 +125,8 @@ export default {create(manifest){ const plugin=module.create(manifest);return {.
       assert.equal(await readFile(join(root, 'dist/plugin.js'), 'utf8'), source);
     }, release: async () => {} }) },
     storage, taskStore: tasks, taskOwnerUserId: 'owner', taskThreadStore: threads,
+    threads: { threadStore: threads, ownerUserId: 'owner', projectPath: root,
+      threadDeepLinkUrl: id => `http://isolated.invalid/threads/${id}` },
     messaging: { service, threadStore: threads, ownerUserId: 'owner', messageStore: messages,
       delivery: { register: async () => {}, unregister: async () => {} } },
     configuration: { readSecret: async () => undefined, readConfig: async (_instance, key) =>

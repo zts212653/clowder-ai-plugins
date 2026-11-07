@@ -1,14 +1,16 @@
 import { createHash } from 'node:crypto';
 import type { TaskItem } from './business/model/index.js';
 import { automationGeneration } from './business/domains/github-signals/wait-ports.js';
+import type { DiagnosticError } from './tracking-diagnostics.js';
 export interface GitHubRecoveryNotice {
   key: string; scope: string; userId: string; threadId: string; taskId: string;
-  failures: number; nextAt: number; state: 'pending' | 'delivered' | 'owner_unavailable' | 'needs_attention';
+  failures: number; nextAt: number; state: 'pending' | 'delivered' | 'owner_unavailable' | 'needs_attention' | 'cancelled';
 }
 export interface GitHubWaitRecoveryFacts {
   v: 1; scope: string; index: string; revision: number; nextPollAt: number; failures: number;
   disposition?: 'needs_attention'; reasonCode?: string;
   notices: Record<string, GitHubRecoveryNotice>; lastNoticeKey?: string;
+  lastError?: DiagnosticError; lastFailureAt?: number;
 }
 export const waitIndex = (kind: TaskItem['kind']) => kind === 'pr_tracking' ? 'github-pr-waits' : 'github-issue-waits';
 export const hasWaitWork = (task: TaskItem) => Boolean(task.automationState?.waitOutcome?.delivery === 'pending' ||
@@ -47,7 +49,7 @@ export function assertWaitRecovery(value: unknown): asserts value is GitHubWaitR
     if (!notice || key !== notice.key || typeof notice.scope !== 'string' || !notice.scope ||
       ![notice.userId, notice.threadId, notice.taskId].every(id => typeof id === 'string' && id.length > 0) ||
       !natural(notice.failures) || !natural(notice.nextAt) ||
-      !['pending', 'delivered', 'owner_unavailable', 'needs_attention'].includes(notice.state))
+      !['pending', 'delivered', 'owner_unavailable', 'needs_attention', 'cancelled'].includes(notice.state))
       throw new Error('Invalid GitHub wait recovery notice; original record retained');
   }
 }

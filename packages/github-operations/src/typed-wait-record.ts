@@ -10,6 +10,7 @@ export type WaitRecordV1 = {
   readonly registrations?: Readonly<Record<string, RegistrationRequest & { readonly result: TaskItem }>>;
   readonly lifecycleEvents?: readonly WaitTerminationEventV1[];
   readonly recovery?: GitHubWaitRecoveryFacts;
+  recoveryRetries?: readonly { scope: string; revision: number; at: number; failures: number }[];
 };
 export function decodeWaitTask(value: unknown): TaskItem {
   const record = value as Partial<WaitRecordV1> | null;

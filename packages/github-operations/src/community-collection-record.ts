@@ -3,6 +3,7 @@ import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import type { TaskItem } from './business/model/index.js';
 import { OwnerIndexedStorage } from './owner-indexed-storage.js';
 import { recoveryOwnerNotice, recoveryNoticeScore, type RecoveryOwnerNotice } from './recovery-owner-notice.js';
+import type { RecoveryErrorFacts } from './recovery-attempt.js';
 
 export const collectionPrefix = 'community.collection.v1.';
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -19,7 +20,7 @@ export function collectionTarget(subject: string) {
 export interface CollectionRecord {
   readonly schemaVersion: 1; readonly task: TaskItem;
   readonly route?: { sequence: number; sourceEventId: string };
-  readonly recovery?: { v: 1; scope: string; revision: number; failures: number; nextAt: number; disposition?: 'needs_attention'; reasonCode?: string; lastNoticeKey?: string };
+  readonly recovery?: RecoveryErrorFacts & { v: 1; scope: string; revision: number; failures: number; nextAt: number; disposition?: 'needs_attention'; reasonCode?: string; lastNoticeKey?: string };
   readonly notice?: RecoveryOwnerNotice;
 }
 export function decodeCollection(value: unknown, key?: string): CollectionRecord {

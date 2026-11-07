@@ -19,6 +19,19 @@ arrive as ordinary messages. Read the returned wait and notification coverage. U
 when requested; terminal PR/issue state also retires tracking automatically.
 Unregistering retains historical records.
 
+For an existing paused typed wait, inspect `polling.state` and
+`recoveryOwners.typed` in `github_list_tracking`. A successful observation clears
+the consecutive failure count; quota, local queue pressure and skipped work do
+not consume or clear it. `lastError` is redacted historical failure evidence.
+When the owner authorizes recovery, use `github_retry_tracking` with that row's
+`taskId`, `recovery.scope` and `recovery.revision` (not `sourceRevision`). It only
+retries a wait paused for `github_observation_failed` belonging to the current
+authenticated user. A maintenance cat/thread may retry that user's wait while
+its original owner, route, baseline, generation, delivery progress and history
+stay intact. A stale request makes no changes: inspect again. A scheduled retry
+is not proof that observation succeeded. Do not re-register to recover a pause;
+a new live baseline can hide changes that occurred while the observer was stopped.
+
 ## A merged PR starts post-merge follow-up
 
 `subject_terminal`, a retired subscription and an author's merge are provider facts,

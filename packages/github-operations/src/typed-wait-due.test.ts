@@ -2,25 +2,148 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { FeatureContext, PluginActionContext } from '@clowder-ai/plugin-sdk';
 import { TypedWaitRuntime } from './typed-wait-runtime.js';
-import type { GitHubSnapshot } from './tracking-runtime.js';
+import type { GitHubSnapshot, GitHubTrackingProvider } from './tracking-runtime.js';
 import { memoryStorage } from '../test/memory-storage.js';
-import { GitHubRateLimitError } from './business/infrastructure/github/request-budget.js';
+import { GitHubRateLimitError, GitHubRequestDeferredError } from './business/infrastructure/github/request-budget.js';
 
 function fixture() {
   let now = 1000, failure: Error | undefined, reads = 0;
   const storage = memoryStorage(), sent: unknown[] = [], logs: Array<{ message: string; fields?: unknown }> = [];
-  const snapshot: GitHubSnapshot = { state: 'open', headSha: 'a'.repeat(40), ci: 'pending', comments: [], reviews: [], commentsComplete: true,
+  let snapshot: GitHubSnapshot = { state: 'open', headSha: 'a'.repeat(40), ci: 'pending', comments: [], reviews: [], commentsComplete: true,
     trackingIdentity: { selfLogin: 'owner', subjectAuthorLogin: 'owner' } };
   const context = { storage, config: { get: async () => undefined }, secrets: { get: async () => undefined },
     threads: { get: async () => ({ id: 'home' }) }, messaging: { send: async (_thread: string, draft: unknown) => {
       sent.push(draft); return { messageId: 'notice', threadId: 'home' }; } }, log(_level: string, message: string, fields?: unknown) { logs.push({ message, fields }); } } as unknown as FeatureContext;
   const caller: PluginActionContext = { userId: 'owner', catId: 'codex61-sol', threadId: 'home', invocationId: 'turn', assertCurrent: async () => {} };
-  const runtime = () => new TypedWaitRuntime({ context, now: () => now, coverage: async () => ({ covered: true }),
-    provider: { read: async () => { reads++; if (failure) throw failure; return structuredClone(snapshot); } } });
-  return { storage, context, caller, sent, logs, runtime, reads: () => reads, advance: () => { now += 60_001; },
+  const provider: GitHubTrackingProvider = { read: async () => { reads++; if (failure) throw failure; return structuredClone(snapshot); } };
+  const runtime = () => new TypedWaitRuntime({ context, now: () => now, coverage: async () => ({ covered: true }), provider });
+  return { storage, context, caller, sent, logs, runtime, provider, head: (sha: string) => { snapshot = { ...snapshot, headSha: sha }; },
+    reads: () => reads, advance: () => { now += 60_001; },
     fail: (error?: Error) => { failure = error; } };
 }
 const input = { registrationId: 'original-registration', repoFullName: 'owner/repo', prNumber: 1 };
+
+test('a failed optional CI batch does not charge unread PRs a provider failure', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    const tracked = await runtime.registerPr(input, f.caller);
+    await runtime.registerPr({ ...input, prNumber: 2 }, f.caller);
+    f.provider.forCiBatch = async () => { throw new Error('batch transport failed'); };
+    const before = f.reads(); f.advance(); await runtime.poll('pr');
+    assert.equal(f.reads() - before, 2, 'each PR must get its own independent observation');
+    assert.equal((await runtime.store.recovery.facts(tracked.id))!.failures, 0);
+  } finally { await runtime.stop(); }
+});
+
+test('an authorized retry preserves the original baseline and a later pause has a distinct durable notice', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    const task = await runtime.registerPr({ ...input, autoRenew: false, when: [{ kind: 'pr_head_changed' }] }, f.caller);
+    f.fail(new Error('outage'));
+    for (let n = 0; n < 6; n++) { f.advance(); await runtime.poll('pr'); }
+    const pausedTask = structuredClone(await runtime.store.get(task.id));
+    const facts = (await runtime.store.recovery.facts(task.id))!;
+    const retry = { taskId: task.id, expectedScope: facts.scope, expectedRecoveryRevision: facts.revision };
+    const before = await f.storage.list();
+    await assert.rejects(runtime.retry(retry), /Authenticated/);
+    await assert.rejects(runtime.retry(retry, { ...f.caller, userId: 'other' }), /different user/);
+    await assert.rejects(runtime.retry(retry, { ...f.caller, assertCurrent: async () => { throw new Error('revoked'); } }), /revoked/);
+    await assert.rejects(runtime.retry({ ...retry, expectedScope: '0'.repeat(64) }, f.caller), /changed|paused/);
+    assert.deepEqual(await f.storage.list(), before, 'rejected retries cannot write anything');
+    const reads = f.reads();
+    await runtime.retry(retry, { ...f.caller, catId: 'maintenance-cat', threadId: 'maintenance-thread' });
+    assert.equal(f.reads(), reads, 'retry schedules the original observer without capturing a new baseline');
+    assert.deepEqual(await runtime.store.get(task.id), pausedTask);
+    await assert.rejects(runtime.retry(retry, f.caller), /changed|paused/);
+    for (let n = 0; n < 6; n++) { f.advance(); await runtime.poll('pr'); }
+    assert.equal(f.sent.length, 2);
+    const keys = f.sent.map(notice => (notice as { idempotencyKey: string }).idempotencyKey);
+    assert.equal(new Set(keys).size, 2);
+    assert.equal(Object.keys((await runtime.store.recovery.facts(task.id))!.notices).length, 0);
+    const second = (await runtime.store.recovery.facts(task.id))!;
+    await runtime.retry({ ...retry, expectedRecoveryRevision: second.revision }, f.caller);
+    f.fail(); f.head('b'.repeat(40));
+    f.advance(); await runtime.poll('pr');
+    assert.equal((await runtime.store.get(task.id))!.automationState!.waitOutcome!.reason, 'matched',
+      'a change while paused is still compared with the original baseline');
+  } finally { await runtime.stop(); }
+});
+
+test('successful observations reset intermittent failures instead of eventually parking a healthy wait', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    const tracked = await runtime.registerPr(input, f.caller), baselineReads = f.reads();
+    for (let n = 0; n < 8; n++) {
+      f.fail(new Error('transient provider failure')); f.advance(); await runtime.poll('pr');
+      f.fail(); f.advance(); await runtime.poll('pr');
+      assert.equal((await runtime.store.recovery.facts(tracked.id))!.failures, 0);
+    }
+    assert.equal(f.reads() - baselineReads, 16);
+    assert.equal((await runtime.store.recovery.facts(tracked.id))!.disposition, undefined);
+    assert.equal(f.sent.length, 0);
+  } finally { await runtime.stop(); }
+});
+
+test('quota deferral and a cold recovery do not erase an unresolved observation failure streak', async () => {
+  const f = fixture(); let runtime = f.runtime();
+  try {
+    const tracked = await runtime.registerPr(input, f.caller);
+    f.fail(new Error('provider failure')); f.advance(); await runtime.poll('pr');
+    assert.equal((await runtime.store.recovery.facts(tracked.id))!.failures, 1);
+    await runtime.stop(); runtime = f.runtime();
+    f.advance(); await runtime.recover();
+    assert.equal((await runtime.store.recovery.facts(tracked.id))!.failures, 1);
+    f.fail(new GitHubRateLimitError(10_000_000)); f.advance(); await runtime.poll('pr');
+    assert.equal((await runtime.store.recovery.facts(tracked.id))!.failures, 1);
+  } finally { await runtime.stop(); }
+});
+
+test('local queue pressure leaves the observation streak and original baseline untouched', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    const task = await runtime.registerPr(input, f.caller);
+    f.fail(new Error('provider failure')); f.advance(); await runtime.poll('pr');
+    const before = structuredClone(await runtime.store.get(task.id));
+    f.fail(new GitHubRequestDeferredError('local queue capacity exceeded'));
+    for (let n = 0; n < 8; n++) { f.advance(); await runtime.poll('pr'); }
+    assert.equal((await runtime.store.recovery.facts(task.id))!.failures, 1);
+    assert.equal((await runtime.store.recovery.facts(task.id))!.disposition, undefined);
+    assert.deepEqual(await runtime.store.get(task.id), before);
+  } finally { await runtime.stop(); }
+});
+
+test('retrying before a pause notice is delivered cancels that stale notice without erasing history', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    const task = await runtime.registerPr(input, f.caller);
+    f.fail(new Error('outage'));
+    for (let n = 0; n < 5; n++) { f.advance(); await runtime.poll('pr'); }
+    const facts = (await runtime.store.recovery.facts(task.id))!;
+    assert.equal(Object.values(facts.notices)[0]!.state, 'pending');
+    await runtime.retry({ taskId: task.id, expectedScope: facts.scope, expectedRecoveryRevision: facts.revision }, f.caller);
+    f.fail(); f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 0);
+    assert.equal(Object.values((await runtime.store.recovery.facts(task.id))!.notices)[0]!.state, 'cancelled');
+    assert.ok(JSON.stringify(await f.storage.list()).includes('recoveryRetries'));
+  } finally { await runtime.stop(); }
+});
+
+test('paused waits retain a redacted error and identify the subject in their one attention notice', async () => {
+  const f = fixture(), runtime = f.runtime();
+  f.context.secrets.get = async key => key === 'token' ? 'private-provider-token' : undefined;
+  try {
+    const tracked = await runtime.registerPr(input, f.caller);
+    f.fail(new Error('provider rejected private-provider-token'));
+    for (let n = 0; n < 7; n++) { f.advance(); await runtime.poll('pr'); }
+    const facts = await runtime.store.recovery.facts(tracked.id);
+    assert.match(JSON.stringify(facts), /provider rejected \[redacted\]/);
+    assert.doesNotMatch(JSON.stringify(facts), /private-provider-token/);
+    assert.equal(f.sent.length, 1);
+    assert.match(JSON.stringify(f.sent[0]), /owner\/repo#1/);
+    assert.match(JSON.stringify(f.sent[0]), /github_observation_failed/);
+    assert.doesNotMatch(JSON.stringify(f.sent[0]), /private-provider-token|provider rejected/);
+  } finally { await runtime.stop(); }
+});
 
 test('real failed observations leave automatic polling after five attempts and survive a cold runtime', async () => {
   const f = fixture(); let runtime = f.runtime();
