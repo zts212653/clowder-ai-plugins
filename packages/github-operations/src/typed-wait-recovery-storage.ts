@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import type { TaskItem } from './business/model/index.js';
 import { assertWaitStorage, decodeWaitTask, publishWaitRecord, WAIT_PREFIX, waitKey, type WaitRecordV1 } from './typed-wait-record.js';
-import { waitIndex, waitRecoveryScope, assertWaitRecovery, reconcileWaitRecovery, type GitHubWaitRecoveryFacts, type GitHubRecoveryNotice } from './typed-wait-recovery.js';
+import { waitIndex, waitRecoveryScope, hasWaitWork, assertWaitRecovery, reconcileWaitRecovery, type GitHubWaitRecoveryFacts, type GitHubRecoveryNotice } from './typed-wait-recovery.js';
+import type { DiagnosticError } from './tracking-diagnostics.js';
+import { consecutiveFailures, type RecoveryAttempt } from './recovery-attempt.js';
 import { parkMalformedWait } from './typed-wait-invalid-record.js';
 import { storageEntries } from './storage-pages.js';
 const CENSUS = 'github.typed-wait.recovery-census.v1';
@@ -95,21 +97,37 @@ export class GitHubWaitRecoveryStorage {
         recovery: structuredClone(row?.recovery ?? { disposition: 'unknown', reasonCode: 'recovery_not_prepared' }) };
     });
   }
-  async finish(candidate: GitHubWaitRecoveryCandidate, failed: boolean, nextPollAt: number): Promise<void> {
+  async finish(candidate: GitHubWaitRecoveryCandidate, outcome: RecoveryAttempt, nextPollAt: number, error?: DiagnosticError): Promise<void> {
     await this.mutate(candidate.task.id, (record) => {
       const facts = record.recovery;
       if (!facts || facts.scope !== candidate.recovery.scope || facts.revision !== candidate.recovery.revision) return false;
       facts.revision++; facts.nextPollAt = nextPollAt;
-      if (failed) facts.failures++;
+      facts.failures = consecutiveFailures(facts.failures, outcome);
+      if (outcome === 'failed' && error) { facts.lastError = error; facts.lastFailureAt = this.now(); }
       if (facts.failures >= 5) {
         facts.disposition = 'needs_attention'; facts.reasonCode = 'github_observation_failed';
-        const key = `github-wait-recovery:${facts.scope}`;
+        const key = `github-wait-recovery:${facts.scope}:${facts.revision}`;
         if (record.task.userId && record.task.threadId && facts.lastNoticeKey !== key)
           facts.notices[key] ??= { key, scope: facts.scope, userId: record.task.userId, threadId: record.task.threadId,
             taskId: record.task.id, failures: 0, nextAt: this.now(), state: 'pending' };
       }
       return true;
     });
+  }
+  /** Explicit retry changes recovery metadata only; the original wait owns every business byte. */
+  async retry(id: string, scope: string, revision: number): Promise<void> {
+    const applied = await this.mutate(id, record => {
+      const facts = record.recovery;
+      if (!facts || facts.scope !== scope || facts.revision !== revision || !hasWaitWork(record.task) ||
+        facts.disposition !== 'needs_attention' || facts.reasonCode !== 'github_observation_failed') return false;
+      record.recoveryRetries = [...(record.recoveryRetries ?? []), { scope, revision, at: this.now(), failures: facts.failures }];
+      facts.revision++; facts.failures = 0; facts.nextPollAt = this.now();
+      delete facts.disposition; delete facts.reasonCode;
+      for (const notice of Object.values(facts.notices))
+        if (notice.scope === scope && notice.state === 'pending') notice.state = 'cancelled';
+      return true;
+    });
+    if (!applied) throw new Error('GitHub wait changed or is not paused for an observation failure; inspect current recovery before retrying');
   }
   async finishNotice(id: string, selected: GitHubRecoveryNotice, state: GitHubRecoveryNotice['state']): Promise<void> {
     const archive = `github.wait-notice.${createHash('sha256').update(selected.key).digest('hex')}`;
@@ -132,15 +150,15 @@ export class GitHubWaitRecoveryStorage {
       delete record.recovery!.notices[current.key]; return true;
     });
   }
-  private async mutate(id: string, change: (record: WaitRecordV1) => boolean): Promise<void> {
+  private async mutate(id: string, change: (record: WaitRecordV1) => boolean): Promise<boolean> {
     for (let attempt = 0; attempt < 5; attempt++) {
-      const entry = await this.storage.get(waitKey(id)); if (!entry) return;
+      const entry = await this.storage.get(waitKey(id)); if (!entry) return false;
       const task = decodeWaitTask(entry.value); if (task.id !== id) throw new Error('GitHub wait key mismatch');
       const record = structuredClone(entry.value) as WaitRecordV1;
       const recovery = reconcileWaitRecovery(task, record.recovery, this.now(), this.intervalMs);
       const next = { ...record, recovery };
-      if (!change(next)) return;
-      if ((await publishWaitRecord(this.storage, waitKey(id), entry.revision, next, this.now(), this.intervalMs)).applied) return;
+      if (!change(next)) return false;
+      if ((await publishWaitRecord(this.storage, waitKey(id), entry.revision, next, this.now(), this.intervalMs)).applied) return true;
     }
     throw new Error('GitHub wait recovery CAS raced; retain original responsibility');
   }

@@ -3,7 +3,8 @@ import type { TaskItem } from './business/model/index.js';
 import type { GitHubSnapshot, GitHubTarget, GitHubTrackingProvider } from './tracking-runtime.js';
 import { collectionTarget as parse } from './community-collection-record.js';
 import type { RecoveryNoticeSender } from './recovery-owner-notice.js';
-import { GitHubRateLimitError } from './business/infrastructure/github/request-budget.js';
+import { GitHubRateLimitError, GitHubRequestDeferredError } from './business/infrastructure/github/request-budget.js';
+import type { DiagnosticError } from './tracking-diagnostics.js';
 import { gitHubPollBudget, gitHubAdmissionCanContinue, gitHubObjectAdmission } from './business/infrastructure/github/admission-budget.js';
 
 interface CollectionOptions {
@@ -14,6 +15,7 @@ interface CollectionOptions {
   readonly allowed: (repo: string) => Promise<boolean>;
   readonly collect: (target: GitHubTarget, snapshot: GitHubSnapshot) => Promise<void>;
   readonly observe: (target: GitHubTarget, snapshot: GitHubSnapshot) => Promise<void>;
+  readonly diagnose?: (error: unknown) => Promise<DiagnosticError>;
 }
 export class CommunityCollectionRuntime {
   private readonly lifetime = new AbortController();
@@ -38,31 +40,32 @@ export class CommunityCollectionRuntime {
       try {
         await this.options.store.deliverNotice(selected, this.options.notify);
         if (selected.recovery?.disposition || selected.task.status !== 'doing' || selected.recovery!.nextAt > (this.options.now ?? Date.now)()) continue;
-        await this.one(selected.task, signal);
+        const observed = await this.one(selected.task, signal);
         signal.throwIfAborted();
-        await this.options.store.finish(selected, false);
+        await this.options.store.finish(selected, observed ? 'succeeded' : 'deferred');
       } catch (error) {
         this.lifetime.signal.throwIfAborted();
         if (signal.aborted && admission.limitedByPoll) break;
-        const limited = error instanceof GitHubRateLimitError;
-        await this.options.store.finish(selected, !limited, limited ? error.retryAt : 0);
-        if (!limited) failure ??= error;
-        if (limited) break;
+        const limited = error instanceof GitHubRateLimitError, deferred = limited || error instanceof GitHubRequestDeferredError;
+        await this.options.store.finish(selected, deferred ? 'deferred' : 'failed', limited ? error.retryAt : 0,
+          deferred ? undefined : await this.options.diagnose?.(error));
+        if (!deferred) failure ??= error;
+        if (deferred) break;
       }
     }
     if (failure) throw failure;
   }
-  private async one(task: TaskItem, signal: AbortSignal): Promise<void> {
+  private async one(task: TaskItem, signal: AbortSignal): Promise<boolean> {
       signal.throwIfAborted();
-      const before = await this.options.store.read(task.id); if (!before || before.task.status !== 'doing') return;
+      const before = await this.options.store.read(task.id); if (!before || before.task.status !== 'doing') return false;
       const target = { ...parse(before.task.subjectKey!), threadId: before.task.threadId, catId: before.task.ownerCatId! };
-      if (!await this.options.allowed(target.repoFullName)) return;
+      if (!await this.options.allowed(target.repoFullName)) return false;
       signal.throwIfAborted();
       const state = before.task.automationState;
       const snapshot = await this.options.provider.read(target, signal, { inline: state?.review?.lastInlineCommentCursor ?? 0,
         conversation: target.kind === 'issue' ? state?.issue?.lastCommentCursor ?? 0 : state?.review?.lastConversationCommentCursor ?? 0 });
       signal.throwIfAborted();
-      if (!await this.options.allowed(target.repoFullName) || (await this.options.store.read(task.id))?.revision !== before.revision) return;
+      if (!await this.options.allowed(target.repoFullName) || (await this.options.store.read(task.id))?.revision !== before.revision) return false;
       signal.throwIfAborted();
       if (snapshot.commentsComplete !== true) throw new Error('Collection snapshot incomplete');
       await this.options.collect(target, snapshot);
@@ -70,6 +73,7 @@ export class CommunityCollectionRuntime {
       await this.options.observe(target, snapshot);
       signal.throwIfAborted();
       await this.options.store.checkpoint(before, snapshot);
+      return true;
   }
   async stop(): Promise<void> { this.lifetime.abort(); await Promise.allSettled(this.running.values()); }
 }

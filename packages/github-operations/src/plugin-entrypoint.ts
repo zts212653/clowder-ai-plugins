@@ -21,6 +21,8 @@ import {
 import { GitHubProvider } from './github-provider.js';
 import type { GitHubTrackingProvider } from './tracking-runtime.js';
 import { TypedWaitRuntime } from './typed-wait-runtime.js';
+import { typedWaitStatus } from './typed-wait-status.js';
+import { diagnosticError } from './tracking-diagnostics.js';
 import { CommunityRuntime, type CommunityProvider } from './community-runtime.js';
 import type { UpsertRepoConfigInput } from './business/domains/community/CommunityRepoConfigStore.js';
 import { recommendTriage } from './triage-recommendation.js';
@@ -97,8 +99,9 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
     projectionOperations: community.projectionOperations,
   });
   const collection = new CommunityCollectionRuntime({
+    diagnose: error => diagnosticError(error, context.secrets),
     notify: sendRecoveryOwnerNotice(context),
-    store: new SdkCommunityCollectionStore(context.storage, options.now, options.pollIntervalMs),
+    store: new SdkCommunityCollectionStore(context.storage, options.now, options.pollIntervalMs, error => diagnosticError(error, context.secrets)),
     now: options.now,
     provider,
     allowed: async (repo) => !!(await community.configs.getByRepo(repo)),
@@ -196,18 +199,18 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
         tracking.registerIssue(value, caller),
       'github.typed-wait.unregister': (value: unknown, caller?: PluginActionContext) =>
         tracking.unregister(value, caller),
-      'github.tracking.list': async () => ({
-        data: {
-          tracking: [
-            ...(await tracking.store.listByKind('pr_tracking')),
-            ...(await tracking.store.listByKind('issue_tracking')),
-            ...(await migratedIssues.list()),
-          ],
-          diagnostics: await tracking.diagnostics(),
-          recoveryOwners: { typed: await tracking.store.recoveryDiagnostics(), collection: await collection.recoveryDiagnostics(), migratedIssues: await migratedIssues.recoveryDiagnostics(),
-            journal: await new SdkCommunityEventLog(context.storage).recoveryDiagnostics() },
-        },
-      }),
+      'github.tracking.retry': (value: unknown, caller?: PluginActionContext) => tracking.retry(value, caller),
+      'github.tracking.list': async () => {
+        const typed = await typedWaitStatus(tracking.store);
+        return {
+          data: {
+            tracking: [...typed.tracking, ...(await migratedIssues.list())],
+            diagnostics: await tracking.diagnostics(),
+            recoveryOwners: { typed: typed.recovery, collection: await collection.recoveryDiagnostics(), migratedIssues: await migratedIssues.recoveryDiagnostics(),
+              journal: await new SdkCommunityEventLog(context.storage).recoveryDiagnostics() },
+          },
+        };
+      },
       'github.pr-tracking': () => poll('pr'),
       'github.issue-tracking': () => poll('issue'),
       'github.repo-scan': async () => {

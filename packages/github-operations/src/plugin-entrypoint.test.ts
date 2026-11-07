@@ -2444,9 +2444,9 @@ test('tracking inspection exposes typed recovery facts and retains malformed rec
   await f.runtimeHost.storage.compareAndSetIndexed!(malformedKey, null, malformed, { index: 'github-pr-waits', score: 0 });
   now += 60_001; await active.actions['github.pr-tracking']!({});
   const before = await f.runtimeHost.storage.list();
-  const report = await active.actions['github.tracking.list']!({}) as { data: { tracking: unknown[]; recoveryOwners: { typed: Array<{
+  const report = await active.actions['github.tracking.list']!({}) as { data: { tracking: Array<{ id: string; polling: { state: string } }>; recoveryOwners: { typed: Array<{
     sourceKey: string; sourceRevision: number; taskId?: string;
-    recovery: { failures: number; disposition: string; reasonCode: string };
+    recovery: { failures: number; disposition: string; reasonCode: string; scope: string; revision: number };
   }> } } };
   const entries = report.data.recoveryOwners.typed;
   const paused = entries.find((row: { sourceKey: string }) => row.sourceKey === source[0]);
@@ -2462,4 +2462,14 @@ test('tracking inspection exposes typed recovery facts and retains malformed rec
   assert.equal(broken.recovery.reasonCode, 'invalid_wait_record');
   assert.equal(report.data.tracking.length, 1, 'invalid business data is retained in diagnostics, not decoded as a healthy wait');
   assert.deepEqual(await f.runtimeHost.storage.list(), before, 'inspection cannot mutate owner facts');
+  assert.equal(report.data.tracking[0]!.polling.state, 'paused');
+  assert.ok(manifest.contributions.some((entry: { type: string; name?: string; action?: { method: string } }) =>
+    entry.type === 'tool' && entry.name === 'github_retry_tracking' && entry.action?.method === 'github.tracking.retry'));
+  const retry = await active.actions['github.tracking.retry']!({ taskId: paused.taskId,
+    expectedScope: paused.recovery.scope, expectedRecoveryRevision: paused.recovery.revision }, caller) as { data: { retried: boolean } };
+  assert.equal(retry.data.retried, true);
+  const resumed = await active.actions['github.tracking.list']!({}) as typeof report;
+  assert.equal(resumed.data.tracking[0]!.polling.state, 'scheduled');
+  assert.deepEqual(((await f.runtimeHost.storage.get(source[0]))!.value as { task: unknown }).task,
+    (source[1].value as { task: unknown }).task, 'retry preserves the original business record');
 });

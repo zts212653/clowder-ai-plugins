@@ -3,6 +3,7 @@ import type { PluginStorageHost, PluginStorageProjection } from '@clowder-ai/plu
 import type { TaskItem } from './business/model/index.js';
 import { OwnerIndexedStorage } from './owner-indexed-storage.js';
 import { recoveryOwnerNotice, recoveryNoticeScore, type RecoveryOwnerNotice } from './recovery-owner-notice.js';
+import type { RecoveryErrorFacts } from './recovery-attempt.js';
 
 export const MIGRATED_ISSUES = 'github.migrated-issue.v1.';
 export const MIGRATED_ISSUE_INDEX = 'github-migrated-issues';
@@ -10,7 +11,7 @@ export const migratedIssueKey = (id: string) => MIGRATED_ISSUES + createHash('sh
 export interface MigratedIssueRecord {
   schemaVersion: 1; task: TaskItem; sourceUpdatedAt: number;
   outbox?: { key: string; content: string; cursor: number; terminal: boolean };
-  recovery?: { v: 1; scope: string; revision: number; failures: number; nextAt: number; disposition?: 'needs_attention'; reasonCode?: string; lastNoticeKey?: string };
+  recovery?: RecoveryErrorFacts & { v: 1; scope: string; revision: number; failures: number; nextAt: number; disposition?: 'needs_attention'; reasonCode?: string; lastNoticeKey?: string };
   notice?: RecoveryOwnerNotice;
 }
 export function decodeMigratedIssue(value: unknown, key?: string): MigratedIssueRecord {

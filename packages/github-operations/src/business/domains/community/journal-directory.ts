@@ -3,6 +3,8 @@ import { isDeepStrictEqual } from 'node:util';
 import type { PluginStorageEntry, PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import type { CommunityEvent } from '../../model/index.js';
 import { assertWaitStorage } from '../../../typed-wait-record.js';
+import type { RecoveryErrorFacts } from '../../../recovery-attempt.js';
+import type { DiagnosticError } from '../../../tracking-diagnostics.js';
 import { advanceRecoveryNotice, recoveryOwnerNotice, recoveryNoticeScore,
   type RecoveryOwnerNotice, type RecoveryNoticeSender } from '../../../recovery-owner-notice.js';
 
@@ -25,7 +27,7 @@ export interface JournalSubject {
   route?: { sequence: number; sourceEventId: string };
   terminal?: { sequence: number; sourceEventId: string };
   ownerThread?: string; notice?: RecoveryOwnerNotice;
-  recovery: { scope: string; revision: number; pending: boolean; failures: number; nextAt: number;
+  recovery: RecoveryErrorFacts & { scope: string; revision: number; pending: boolean; failures: number; nextAt: number;
     disposition?: 'needs_attention'; reasonCode?: string; lastNoticeKey?: string };
 }
 
@@ -153,15 +155,16 @@ export class JournalDirectory {
     }
     return candidates;
   }
-  async finish(selected: PluginStorageEntry, failed: boolean, now: number): Promise<void> {
+  async finish(selected: PluginStorageEntry, failed: boolean, now: number, error?: DiagnosticError): Promise<void> {
     const old = selected.value as JournalSubject;
     for (let attempt = 0; attempt < 8; attempt++) {
       const entry = await this.subject(old.subject); if (!entry) throw new Error('Journal obligation disappeared');
       const current = entry.value as JournalSubject;
       if (current.recovery.revision !== old.recovery.revision || !current.recovery.pending) return;
-      const failures = current.recovery.failures + (failed ? 1 : 0);
+      const failures = failed ? current.recovery.failures + 1 : 0;
       const next = { ...current, recovery: { ...current.recovery, revision: current.recovery.revision + 1,
         pending: failed, failures, nextAt: now + 60_000,
+        ...(error ? { lastError: error, lastFailureAt: now } : {}),
         ...(failures >= 5 ? { disposition: 'needs_attention' as const, reasonCode: 'journal_route_reconciliation_failed' } : {}) } };
       if ((await this.publish(entry, next)).applied) return;
     }

@@ -7,7 +7,8 @@ import type { GitHubTarget } from './tracking-runtime.js';
 import { waitObservation, waitTarget, waitEventSnapshot } from './typed-wait-provider.js';
 import { readNotificationFilter } from './notification-filter.js';
 import { gitHubAdmissionCanContinue, gitHubObjectAdmission, gitHubObjectSignal, gitHubPollBudget } from './business/infrastructure/github/admission-budget.js';
-import { GitHubRateLimitError } from './business/infrastructure/github/request-budget.js';
+import { GitHubRateLimitError, GitHubRequestDeferredError } from './business/infrastructure/github/request-budget.js';
+import { diagnosticError, type DiagnosticError } from './tracking-diagnostics.js';
 
 interface GitHubDuePollPorts {
   options: TypedWaitRuntimeOptions;
@@ -53,7 +54,10 @@ export async function pollGitHubDueWaits(runtime: GitHubDuePollPorts, kind: 'pr'
         if (targets.length) {
           try { provider = await provider.forCiBatch(targets,
             gitHubObjectSignal(budget)!); }
-          catch (error) { batchError = error; }
+          catch (error) {
+            if (error instanceof GitHubRateLimitError) batchError = error;
+            else runtime.options.context.log('info', 'GitHub batch CI prefetch unavailable; subscriptions will be observed independently');
+          }
         }
         signal.throwIfAborted();
       }
@@ -61,7 +65,8 @@ export async function pollGitHubDueWaits(runtime: GitHubDuePollPorts, kind: 'pr'
         stats.visited++;
         const task = selected[i]!;
         const admission = gitHubObjectAdmission(budget), objectSignal = admission.signal!;
-        let deferred = false, quotaDeferred = false, failed = false, attempted = false;
+        let deferred = false, quotaDeferred = false, failed = false, attempted = false, succeeded = false;
+        let errorDetail: DiagnosticError | undefined;
         let nextPollAt = runtime.now() + (runtime.options.pollIntervalMs ?? 60_000);
         const candidate = byId.get(task.id)!;
         await runtime.run(task.subjectKey!, async taskSignal => {
@@ -99,19 +104,23 @@ export async function pollGitHubDueWaits(runtime: GitHubDuePollPorts, kind: 'pr'
           const notificationFilter = await readNotificationFilter(runtime.options.context, snapshot, observed.observation.facts.review?.reviewer);
           await lifecycle.observe({ ...observed.observation, notificationFilter });
           await runtime.projectImportedWait(task.id, check);
-        }, runtime.options.objectTimeoutMs ?? 40_000).catch(error => {
+          succeeded = true;
+        }, runtime.options.objectTimeoutMs ?? 40_000).catch(async error => {
           // A clipped timer can fire before Date.now reaches its deadline.
           // Preserve the admitted window's cause rather than inferring it later.
           deferred = objectSignal.aborted ? admission.limitedByPoll : !gitHubAdmissionCanContinue(budget);
+          if (error instanceof GitHubRequestDeferredError) deferred = true;
           if (error instanceof GitHubRateLimitError) { deferred = true; quotaDeferred = true; nextPollAt = Math.max(nextPollAt, error.retryAt); }
           failed = !deferred && !signal.aborted;
+          if (failed) errorDetail = await diagnosticError(error, runtime.options.context.secrets);
           runtime.options.context.log(deferred ? 'info' : 'warn', deferred
             ? 'GitHub poll budget used; resume this subscription next tick'
             : 'GitHub observation failed; wait and pending delivery remain recoverable',
             { taskId: task.id, kind, errorName: error instanceof Error && ['AbortError', 'TimeoutError'].includes(error.name) ? error.name : 'Error' });
         });
         if (attempted && !signal.aborted && (!deferred || quotaDeferred)) {
-          await runtime.store.recovery.finish(candidate, failed, Math.max(nextPollAt, runtime.now() + (runtime.options.pollIntervalMs ?? 60_000)))
+          await runtime.store.recovery.finish(candidate, failed ? 'failed' : succeeded ? 'succeeded' : 'deferred',
+            Math.max(nextPollAt, runtime.now() + (runtime.options.pollIntervalMs ?? 60_000)), errorDetail)
             .catch(() => runtime.options.context.log('warn', 'GitHub recovery metadata publication deferred; original wait retained'));
         }
         stats.failed += Number(failed); stats.deferred += Number(deferred);

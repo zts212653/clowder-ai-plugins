@@ -15,7 +15,7 @@ test('status notification and archive response loss preserve the original exact 
   const store = new SdkCommunityCollectionStore(storage, () => now);
   await store.reconcileRoutes('issue');
   const task = (await store.getBySubject(route.subjectKey))!;
-  for (let n = 0; n < 5; n++) { await store.finish((await store.read(task.id))!, true); now += 60_001; }
+  for (let n = 0; n < 5; n++) { await store.finish((await store.read(task.id))!, 'failed'); now += 60_001; }
   const original = (await store.read(task.id))!;
   assert.ok(original.notice); assert.equal(original.recovery?.failures, 5);
   const receipts = new Set<string>();
