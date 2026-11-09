@@ -330,3 +330,137 @@ test("a reply to a member wakes only the member proven by the original source", 
 	});
 	assert.deepEqual(f.sent[0].input.wake, { catId: "cat-1" });
 });
+
+for (const restart of [false, true])
+	for (const committed of [false, true])
+		test(`a rejected ask cannot pin subscription replies (restart=${restart}, committed=${committed})`, async (t) => {
+			const f = await paired(t);
+			f.host.messaging.subscribe = async () => {};
+			const args = {
+				attempt_id: f.credentials.attemptId,
+				thread_id: "thread-1",
+				target_cat_ids: ["cat-1"],
+				content: "question",
+				client_message_id: "accepted",
+			};
+			const accepted = (await rpc(f, "cat_cafe_dot_ask", args)).result
+				.structuredContent;
+			const send = f.host.messaging.send;
+			f.host.messaging.send = async (input) => {
+				if (committed) await send(input);
+				throw new Error("send rejected");
+			};
+			assert.ok(
+				(
+					await rpc(f, "cat_cafe_dot_ask", {
+						...args,
+						client_message_id: "rejected",
+					})
+				).error,
+			);
+			f.host.messaging.send = send;
+			if (restart) {
+				await f.active.stop({ reason: "test" });
+				f.active = await f.module.start(f.host);
+			}
+			const input = (id) => ({
+				...delivery(f, id),
+				reason: "subscription",
+				envelope: { ...delivery(f).envelope, messageId: id },
+			});
+			f.messages.set("unrelated", {
+				...f.source,
+				id: "unrelated",
+				catId: "cat-1",
+				replyTo: "another-message",
+			});
+			assert.deepEqual(await f.active.deliver(input("unrelated")), {
+				deliveryId: "unrelated",
+			});
+			f.messages.set("accepted-reply", {
+				...f.source,
+				id: "accepted-reply",
+				catId: "cat-1",
+				replyTo: accepted.messageId,
+			});
+			await f.active.deliver(input("accepted-reply"));
+			assert.equal(
+				f.webhooks.filter(
+					(w) => w.data.data?.source_message_id === "accepted-reply",
+				).length,
+				1,
+			);
+			const retry = await rpc(f, "cat_cafe_dot_ask", {
+				...args,
+				client_message_id: "rejected",
+			});
+			assert.ok(retry.result.structuredContent.messageId);
+			assert.equal(
+				f.sent.length,
+				2,
+				"idempotent retry preserves any send committed before its error",
+			);
+			f.messages.set("recovered-reply", {
+				...f.source,
+				id: "recovered-reply",
+				catId: "cat-1",
+				replyTo: retry.result.structuredContent.messageId,
+			});
+			await f.active.deliver(input("recovered-reply"));
+			assert.equal(
+				f.webhooks.filter(
+					(w) => w.data.data?.source_message_id === "recovered-reply",
+				).length,
+				1,
+			);
+		});
+
+test("receipt completion during a subscription storage snapshot cannot discard the fast reply", async (t) => {
+	const f = await paired(t);
+	f.host.messaging.subscribe = async () => {};
+	const args = {
+		attempt_id: f.credentials.attemptId,
+		thread_id: "thread-1",
+		target_cat_ids: ["cat-1"],
+		content: "question",
+		client_message_id: "snapshot-race",
+	};
+	const entered = Promise.withResolvers(),
+		release = Promise.withResolvers();
+	const set = f.host.storage.set.bind(f.host.storage);
+	f.host.storage.set = async (key, value) => {
+		if (key.startsWith("dot/ask/") && value.messageId) {
+			entered.resolve(value.messageId);
+			await release.promise;
+		}
+		return set(key, value);
+	};
+	const ask = rpc(f, "cat_cafe_dot_ask", args);
+	const parent = await entered.promise;
+	const list = f.host.storage.list.bind(f.host.storage);
+	f.host.storage.list = async () => {
+		const snapshot = structuredClone(await list());
+		release.resolve();
+		await ask;
+		return snapshot;
+	};
+	f.messages.set("snapshot-reply", {
+		...f.source,
+		id: "snapshot-reply",
+		catId: "cat-1",
+		replyTo: parent,
+	});
+	const input = {
+		...delivery(f, "snapshot-delivery"),
+		reason: "subscription",
+		envelope: { ...delivery(f).envelope, messageId: "snapshot-reply" },
+	};
+	await assert.rejects(f.active.deliver(input), /dot_ask_receipt_pending/);
+	await f.active.deliver(input);
+	assert.equal(
+		f.webhooks.filter(
+			(w) => w.data.data?.source_message_id === "snapshot-reply",
+		).length,
+		1,
+	);
+});

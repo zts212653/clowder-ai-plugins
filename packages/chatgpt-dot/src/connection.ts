@@ -806,7 +806,35 @@ export class DotConnection {
 		return state;
 	}
 	async ready() {
-		return this.requireSubscription(await this.current());
+		const state = this.requireSubscription(await this.current());
+		const external = await this.externalState();
+		const credential = external.current;
+		// Legacy installations predate plugin-owned ingress leases.
+		if (credential?.kind === "legacy") return state;
+		if (
+			!credential ||
+			!credentialLive(credential, this.now()) ||
+			(credential.kind === "plugin" &&
+				credential.pluginInstanceId !== this.host.pluginInstanceId)
+		)
+			throw new Error("dot_credential_unavailable");
+		// A candidate owns the displayed endpoint; its predecessor is still
+		// the formal connection until proof atomically promotes the candidate.
+		const endpoint = external.pending?.previousEndpoint ?? external.endpoint;
+		if (
+			endpoint.mode === "absent" ||
+			endpoint.mode === "temporary-expired" ||
+			(endpoint.mode === "temporary-active" && endpoint.expiresAt <= this.now())
+		)
+			throw new Error("dot_endpoint_unavailable");
+		if (credential.kind === "signed") {
+			const inspected = await this.host.capability?.inspectExternal({
+				token: credential.token,
+				capabilityId: DOT_EXTERNAL_CAPABILITY_ID,
+			});
+			if (!inspected?.usable) throw new Error("dot_credential_unavailable");
+		}
+		return state;
 	}
 	async candidateReady(
 		proof?: { candidateId: string; tokenId: string; bindingVersion: number },

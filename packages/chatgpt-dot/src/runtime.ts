@@ -78,6 +78,7 @@ export function imageReference(id: string): string {
 export class DotRuntime {
 	readonly verification: AutomaticDotVerification;
 	private readonly pending = new Map<string, Promise<unknown>>();
+	private askRevision = 0;
 	constructor(
 		readonly host: ModulePluginHostShape,
 		readonly connection: DotConnection,
@@ -513,6 +514,16 @@ export class DotRuntime {
 		},
 	};
 	async ask(raw: z.infer<typeof dotAskArguments>) {
+		const input = dotAskArguments.parse(raw);
+		const key = `dot/ask/${digest([input.attempt_id, input.client_message_id])}`;
+		this.askRevision++;
+		try {
+			return await this.serial(key, () => this.sendAsk(input));
+		} finally {
+			this.askRevision++;
+		}
+	}
+	private async sendAsk(raw: z.infer<typeof dotAskArguments>) {
 		const input = dotAskArguments.parse(raw),
 			state = await this.connection.ready();
 		if (input.attempt_id !== state.attemptId)
@@ -612,6 +623,7 @@ export class DotRuntime {
 		const state = await this.connection.store.connection();
 		if (!state) return null;
 		let awaitingReceipt = false;
+		const askRevision = this.askRevision;
 		for (const [key, entry] of Object.entries(await this.host.storage.list())) {
 			if (!key.startsWith("dot/ask/")) continue;
 			const ask = entry.value as {
@@ -627,11 +639,19 @@ export class DotRuntime {
 			) {
 				if (ask.messageId === replyTo)
 					return this.deliver(input, ask.attemptId);
-				if (ask.messageId === null) awaitingReceipt = true;
+				if (
+					ask.messageId === null &&
+					(this.pending.has(key) || askRevision !== this.askRevision)
+				)
+					awaitingReceipt = true;
 			}
 		}
 		// A rejection retains the Host's durable subscription cursor for replay.
-		// An incomplete reservation cannot prove that this reply is unrelated.
+		// Only an active send can still commit a receipt. A failed/interrupted
+		// reservation is retained for an explicit idempotent ask retry, but
+		// must not indefinitely block unrelated subscription pages. If a send
+		// changed while the storage snapshot was read, replay once more to
+		// observe its committed receipt rather than acknowledge stale data.
 		if (awaitingReceipt) throw new Error("dot_ask_receipt_pending");
 		return null;
 	}
