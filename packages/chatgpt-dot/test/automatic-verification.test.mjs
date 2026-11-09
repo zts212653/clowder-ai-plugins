@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { AsyncLocalStorage } from "node:async_hooks";
 import test from "node:test";
 import { createDotPlugin } from "../src/plugin-entrypoint.ts";
 import { CONNECTION_KEY, EXTERNAL_KEY } from "../src/store.ts";
@@ -129,6 +130,35 @@ async function setup(t, delay = 5, legacy = true) {
 		},
 	};
 }
+test("verification and owner retry use activation context after the request ends", async (t) => {
+	const scope = new AsyncLocalStorage();
+	const x = await scope.run("activation", () => setup(t, 20));
+	const get = x.f.host.storage.get.bind(x.f.host.storage);
+	const ended = new Set();
+	x.f.host.storage.get = async (...args) => {
+		if (ended.has(scope.getStore()))
+			throw new Error("Calling authority has ended");
+		return get(...args);
+	};
+	await scope.run("subscribe-request", () => x.subscribe());
+	ended.add("subscribe-request");
+	const id = await x.event();
+	await until(() =>
+		[...x.f.records.entries()].some(
+			([k, v]) => k.startsWith("dot/verification/") && v.value.stage === "sent",
+		),
+	);
+	const sent = x.f.webhooks.length;
+	await scope.run("retry-request", () =>
+		x.active.actions["dot.retry-verification"]({}, undefined, x.f.owner),
+	);
+	ended.add("retry-request");
+	await until(() => x.f.webhooks.length > sent);
+	assert.equal(
+		x.f.records.get(EXTERNAL_KEY).value.pending.verificationEventId,
+		id,
+	);
+});
 test("subscription alone verifies, recurring subscribe and restart reuse its evidence", async (t) => {
 	const x = await setup(t);
 	assert.equal((await x.subscribe()).body.error, undefined);

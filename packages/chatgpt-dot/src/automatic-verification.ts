@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { z } from "zod";
 import type { DotRuntime } from "./runtime.js";
 import { digest } from "./store.js";
@@ -19,6 +20,8 @@ export type VerificationJob = z.infer<typeof jobSchema>;
 
 /** One activation-owned timer and one durable job per actual authorization/callback binding. */
 export class AutomaticDotVerification {
+	// Background work belongs to the activation, never the subscribe/owner HTTP request.
+	private readonly inActivation = AsyncLocalStorage.snapshot();
 	private timer?: ReturnType<typeof setTimeout>;
 	private active?: Promise<void>;
 	constructor(
@@ -86,25 +89,27 @@ export class AutomaticDotVerification {
 	schedule(delay = this.delayMs) {
 		if (this.runtime.connection.signal.aborted) return;
 		if (this.timer) clearTimeout(this.timer);
-		this.timer = setTimeout(() => {
-			this.timer = undefined;
-			if (this.active) {
-				this.schedule();
-				return;
-			}
-			const task = this.runtime.connection
-				.within(undefined, () => this.run())
-				.catch(() => {
-					this.runtime.host.log?.(
-						"warn",
-						"dot_automatic_verification_unavailable",
-					);
+		this.timer = this.inActivation(() =>
+			setTimeout(() => {
+				this.timer = undefined;
+				if (this.active) {
+					this.schedule();
+					return;
+				}
+				const task = this.runtime.connection
+					.within(undefined, () => this.run())
+					.catch(() => {
+						this.runtime.host.log?.(
+							"warn",
+							"dot_automatic_verification_unavailable",
+						);
+					});
+				this.active = task;
+				void task.finally(() => {
+					if (this.active === task) this.active = undefined;
 				});
-			this.active = task;
-			void task.finally(() => {
-				if (this.active === task) this.active = undefined;
-			});
-		}, delay);
+			}, delay),
+		);
 		this.timer.unref?.();
 	}
 	stop() {
