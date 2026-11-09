@@ -200,6 +200,7 @@ export function fixture() {
 export function event(deliveryId: string, threadId = 'source-a', text = '请修复导出，再准备发布说明。') {
   return {
     kind: 'message',
+    reason: 'subscription',
     deliveryId,
     threadId,
     envelope: {

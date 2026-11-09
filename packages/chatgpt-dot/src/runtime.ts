@@ -611,22 +611,28 @@ export class DotRuntime {
 		if (!source?.catId || !replyTo) return null;
 		const state = await this.connection.store.connection();
 		if (!state) return null;
+		let awaitingReceipt = false;
 		for (const [key, entry] of Object.entries(await this.host.storage.list())) {
 			if (!key.startsWith("dot/ask/")) continue;
 			const ask = entry.value as {
 				attemptId: string;
 				threadId: string;
-				messageId: string;
+				messageId: string | null;
 				recipientCatIds: string[];
 			};
 			if (
 				ask.attemptId === state.attemptId &&
 				ask.threadId === source.threadId &&
-				ask.messageId === replyTo &&
 				ask.recipientCatIds.includes(source.catId)
-			)
-				return this.deliver(input, ask.attemptId);
+			) {
+				if (ask.messageId === replyTo)
+					return this.deliver(input, ask.attemptId);
+				if (ask.messageId === null) awaitingReceipt = true;
+			}
 		}
+		// A rejection retains the Host's durable subscription cursor for replay.
+		// An incomplete reservation cannot prove that this reply is unrelated.
+		if (awaitingReceipt) throw new Error("dot_ask_receipt_pending");
 		return null;
 	}
 	/** Finish local proof commits from the already published nonce reply, without sending it again. */

@@ -360,9 +360,23 @@ test("cancelling a replacement restores the current credential endpoint", async 
 		f.sendWebhook,
 		new AbortController().signal,
 	);
-	const restored = await dot.cancelPending();
+	const [restored, overlapping] = await Promise.all([
+		dot.cancelPending(),
+		dot.cancelPending(),
+	]);
 	assert.equal(restored.pending, null);
 	assert.deepEqual(restored.endpoint, previousEndpoint);
+	assert.deepEqual(
+		overlapping,
+		restored,
+		"overlapping cancellation does not reset the restored endpoint",
+	);
+	const repeated = await dot.cancelPending();
+	assert.deepEqual(
+		repeated,
+		restored,
+		"repeating cancellation preserves the protected current endpoint",
+	);
 });
 
 test("waiting rows omit cleanup while the underlying owner cancel still restores the healthy connection", async (t) => {

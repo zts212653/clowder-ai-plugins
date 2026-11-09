@@ -390,6 +390,7 @@ export class DotConnection {
 					pending: null,
 					endpoint: { mode: "absent" },
 				};
+			if (!state.pending) return state;
 			const endpoint =
 				state.current && state.pending?.previousEndpoint
 					? state.pending.previousEndpoint

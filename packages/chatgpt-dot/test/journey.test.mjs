@@ -9,7 +9,10 @@ test("pair, addressed receive, read and source-bound reply survive restart witho
 	assert.equal(f.active.call, undefined);
 	assert.equal(f.active.delivery, undefined);
 	assert.equal(f.credentials.credentialSecret, undefined);
-	assert.equal(JSON.stringify(f.credentials).includes(f.host.external.token), false);
+	assert.equal(
+		JSON.stringify(f.credentials).includes(f.host.external.token),
+		false,
+	);
 	assert.deepEqual(await f.active.deliver(delivery(f)), {
 		deliveryId: "delivery-1",
 	});
@@ -36,10 +39,7 @@ test("pair, addressed receive, read and source-bound reply survive restart witho
 	assert.equal(f.sent[0].input.replyTo, "source-1");
 	assert.equal(f.sent[0].input.identity, "dot");
 	await f.active.stop({ reason: "disabled" });
-	await assert.rejects(
-		() => f.active.deliver(delivery(f)),
-		/stopped|revoked/,
-	);
+	await assert.rejects(() => f.active.deliver(delivery(f)), /stopped|revoked/);
 	f.active = await f.module.start(f.host);
 	await f.active.deliver(delivery(f));
 	assert.equal(
@@ -71,11 +71,7 @@ test("forged callback targets, changed source and stale pairing cannot grant a r
 		(await rpc(f, "cat_cafe_dot_read_source", { event_id: event.eventId }))
 			.error,
 	);
-	await f.settings.actions["dot.reconnect"](
-		{},
-		undefined,
-		f.owner,
-	);
+	await f.settings.actions["dot.reconnect"]({}, undefined, f.owner);
 	assert.ok(
 		(await rpc(f, "cat_cafe_dot_read_source", { event_id: event.eventId }))
 			.error,
@@ -183,6 +179,65 @@ test("generic connection test keeps old evidence but cannot report a revoked att
 	assert.equal(result.details.revoked, true);
 });
 
+test("a fast subscribed reply is retried until its ask receipt is durably mapped", async (t) => {
+	const f = await paired(t);
+	f.host.messaging.subscribe = async () => {};
+	const args = {
+		attempt_id: f.credentials.attemptId,
+		thread_id: "thread-1",
+		target_cat_ids: ["cat-1"],
+		content: "question",
+		client_message_id: "first",
+	};
+	await rpc(f, "cat_cafe_dot_ask", args);
+	const entered = Promise.withResolvers(),
+		release = Promise.withResolvers();
+	const set = f.host.storage.set.bind(f.host.storage);
+	f.host.storage.set = async (key, value) => {
+		if (
+			key.startsWith("dot/ask/") &&
+			value.messageId &&
+			value.messageId !== "reply-0"
+		) {
+			entered.resolve(value.messageId);
+			await release.promise;
+		}
+		return set(key, value);
+	};
+	const ask = rpc(f, "cat_cafe_dot_ask", {
+		...args,
+		client_message_id: "second",
+	});
+	const parent = await entered.promise;
+	const source = {
+		...f.source,
+		id: "fast-reply",
+		catId: "cat-1",
+		replyTo: parent,
+	};
+	f.messages.set(source.id, source);
+	const input = {
+		...delivery(f, "fast-delivery"),
+		reason: "subscription",
+		envelope: { ...delivery(f).envelope, messageId: source.id },
+	};
+	try {
+		await assert.rejects(f.active.deliver(input), /dot_ask_receipt_pending/);
+	} finally {
+		release.resolve();
+		await ask;
+	}
+	await f.active.deliver(input);
+	await f.active.deliver(input);
+	assert.equal(
+		f.webhooks.filter(
+			(x) =>
+				x.data.name === "dot.summoned" &&
+				x.data.data.source_message_id === source.id,
+		).length,
+		1,
+	);
+});
 test("proactive questions subscribe only to their thread and forward only exact recipient replies", async (t) => {
 	const f = await paired(t),
 		subscriptions = [];
