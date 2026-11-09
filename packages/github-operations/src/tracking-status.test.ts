@@ -106,13 +106,18 @@ test('recovery/diagnostic views retain actionable identities while bounding larg
   Object.assign(row.recovery, { lastError: { name: 'ProviderError', message: 'failed with isolated-secret', stderr: 'x'.repeat(100_000) } });
   await f.storage.set(waitKey(row.task.id), row);
   const other = record(13); await f.storage.set(waitKey(other.task.id), other);
-  await f.storage.set(waitKey('foreign'), { ...record(2), task: { ...record(2).task, userId: 'another-user' } });
+  const foreign = record(2); foreign.task.userId = 'another-user';
+  await f.storage.set(waitKey(foreign.task.id), foreign);
   await f.storage.set('github.tracking-diagnostics.v1.' + hash('diagnostic'), {
     requestKey: hash('diagnostic'), subject: row.task.subjectKey, catId: row.task.ownerCatId, threadId: row.task.threadId,
     at: 1, attempts: 1, phase: 'read_github', status: 'failed', code: 'provider_read_failed',
     error: { name: 'ProviderError', message: 'failed with isolated-secret', stack: 'x'.repeat(100_000) },
   });
   const before = JSON.stringify(await f.storage.list());
+  const owned = await f.call({ view: 'recovery' });
+  assert.equal(owned.data.tracking.length, 2);
+  assert.ok(owned.data.tracking.every((task: any) => task.userId === caller.userId));
+  assert.ok(owned.data.recoveryOwners.typed.every((item: any) => item.taskId !== foreign.task.id));
   const result = await f.call({ view: 'recovery', needsAttention: true, limit: 1 });
   assert.ok(Buffer.byteLength(JSON.stringify(result)) <= 65_536);
   assert.ok(!JSON.stringify(result).includes('isolated-secret'));
