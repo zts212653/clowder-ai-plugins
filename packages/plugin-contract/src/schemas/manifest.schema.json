@@ -184,7 +184,6 @@
             "service",
             "connector",
             "cloud-conversation-host",
-            "ui",
             "content-editor-provider",
             "desktop-window"
           ]
@@ -1750,169 +1749,6 @@
         }
       ]
     },
-    "UiWhenClause": {
-      "type": "object",
-      "properties": {
-        "featureEnabled": {
-          "type": "boolean"
-        }
-      },
-      "minProperties": 1,
-      "additionalProperties": false
-    },
-    "UiAnchor": {
-      "type": "object",
-      "properties": {
-        "position": {
-          "type": "string",
-          "enum": [
-            "before",
-            "after"
-          ]
-        },
-        "target": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "position",
-        "target"
-      ],
-      "additionalProperties": false
-    },
-    "UiCommandContribution": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "const": "ui"
-        },
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "kind": {
-          "const": "command"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1
-        },
-        "action": {
-          "$ref": "#/$defs/CallbackAction"
-        },
-        "when": {
-          "$ref": "#/$defs/UiWhenClause"
-        }
-      },
-      "required": [
-        "type",
-        "id",
-        "kind",
-        "label",
-        "action"
-      ],
-      "additionalProperties": false
-    },
-    "UiSlotItemContribution": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "const": "ui"
-        },
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "kind": {
-          "const": "slot-item"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1
-        },
-        "command": {
-          "type": "string",
-          "minLength": 1
-        },
-        "group": {
-          "type": "string",
-          "minLength": 1
-        },
-        "anchor": {
-          "$ref": "#/$defs/UiAnchor"
-        },
-        "order": {
-          "type": "integer",
-          "minimum": -10000,
-          "maximum": 10000
-        },
-        "when": {
-          "$ref": "#/$defs/UiWhenClause"
-        }
-      },
-      "required": [
-        "type",
-        "id",
-        "kind",
-        "label",
-        "command",
-        "group"
-      ],
-      "additionalProperties": false
-    },
-    "UiMessageElementContribution": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "const": "ui"
-        },
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "kind": {
-          "const": "message-element"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1
-        },
-        "elementKind": {
-          "type": "string",
-          "minLength": 1
-        },
-        "renderer": {
-          "type": "string",
-          "minLength": 1
-        },
-        "when": {
-          "$ref": "#/$defs/UiWhenClause"
-        }
-      },
-      "required": [
-        "type",
-        "id",
-        "kind",
-        "label",
-        "elementKind",
-        "renderer"
-      ],
-      "additionalProperties": false
-    },
-    "UiContribution": {
-      "oneOf": [
-        {
-          "$ref": "#/$defs/UiCommandContribution"
-        },
-        {
-          "$ref": "#/$defs/UiSlotItemContribution"
-        },
-        {
-          "$ref": "#/$defs/UiMessageElementContribution"
-        }
-      ]
-    },
     "SemanticMaterializerDeclaration": {
       "type": "object",
       "description": "Optional independent DOCX computation. The Host admits one closed worker bundle under the installed package and live feature authority, in a fresh sandboxed private browser process with no ambient effects. This is not permission to execute package code in the Host or renderer.",
@@ -2150,9 +1986,6 @@
         },
         {
           "$ref": "#/$defs/CloudConversationHostContribution"
-        },
-        {
-          "$ref": "#/$defs/UiContribution"
         },
         {
           "$ref": "#/$defs/ContentEditorProviderContribution"
