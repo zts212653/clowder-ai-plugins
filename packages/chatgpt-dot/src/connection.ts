@@ -177,9 +177,12 @@ export class DotConnection {
 	async issuePluginPending(
 		context: PluginHostActionContext | undefined,
 		ttlSeconds?: number,
+		authority?: { readonly externalRevision: number; readonly assertCurrent?: () => void },
 	) {
 		await this.owner(context);
+		authority?.assertCurrent?.();
 		const captured = await this.externalState();
+		authority?.assertCurrent?.();
 		if (
 			ttlSeconds !== undefined &&
 			(!Number.isSafeInteger(ttlSeconds) ||
@@ -215,7 +218,7 @@ export class DotConnection {
 		};
 		await this.assertCurrent();
 		return {
-			state: await this.stagePending(issued, "plugin", captured.revision),
+			state: await this.stagePending(issued, "plugin", authority?.externalRevision ?? captured.revision, authority?.assertCurrent),
 			issued,
 		};
 	}
@@ -226,6 +229,7 @@ export class DotConnection {
 		>,
 		issuer?: "plugin",
 		expectedRevision?: number,
+		assertAuthority?: () => void,
 	) {
 		const now = this.now();
 		const identity = await this.store.connection();
@@ -242,6 +246,7 @@ export class DotConnection {
 			? connection
 			: null;
 		const state = await this.store.updateExternal((previous) => {
+			assertAuthority?.();
 			if (
 				expectedRevision !== undefined &&
 				previous?.revision !== expectedRevision

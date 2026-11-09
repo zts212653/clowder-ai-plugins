@@ -734,3 +734,44 @@ for (const reused of [false,true]) test(`failed lease publication cleans only a 
   if(reused){assert.equal(controller.lease.generation,generation);assert.deepEqual(x.f.records.get('dot/external/v1').value.current,formal);assert.equal((await dot.ready()).bindingAuthority.tokenId,formal.tokenId);}
   else {assert.equal(controller.lease,undefined);assert.equal(x.f.records.get('dot/external/v1').value.endedTemporaryGenerations.length,1);}
 });
+
+
+test('disconnect invalidates a temporary start paused at its first external state read',async t=>{
+  const x=await setup(t);await x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
+  const original={start:TemporaryEndpointController.prototype.start,stop:TemporaryEndpointController.prototype.stop};
+  let started=0;TemporaryEndpointController.prototype.start=async()=>{started++;throw Error('runner_started_after_disconnect');};
+  t.after(()=>Object.assign(TemporaryEndpointController.prototype,original));
+  const get=x.f.host.storage.get.bind(x.f.host.storage),entered=Promise.withResolvers(),release=Promise.withResolvers();let paused=false;
+  x.f.host.storage.get=async key=>{const row=await get(key);if(!paused && key==='dot/external/v1'){paused=true;entered.resolve();await release.promise;}return row;};
+  const pending=x.active.actions['dot.start-temporary']({input:{temporaryEndpointHours:1}},undefined,x.f.owner);
+  await entered.promise;await x.active.actions['dot.disconnect']({},undefined,x.f.owner);
+  const disconnected=structuredClone(x.f.records.get('dot/external/v1'));
+  release.resolve();await assert.rejects(pending,/dot_temporary_start_cancelled/);
+  assert.equal(started,0);assert.deepEqual(x.f.records.get('dot/external/v1'),disconnected);
+});
+
+
+test('disconnect invalidates a temporary start still awaiting initial caller authority',async t=>{
+  const x=await setup(t);await x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
+  const entered=Promise.withResolvers(),release=Promise.withResolvers();let paused=false;
+  const context={...x.f.owner,assertCurrent:async()=>{if(!paused){paused=true;entered.resolve();await release.promise;}}};
+  const pending=x.active.actions['dot.start-temporary']({input:{temporaryEndpointHours:1}},undefined,context);
+  await entered.promise;await x.active.actions['dot.disconnect']({},undefined,x.f.owner);
+  const disconnected=structuredClone(x.f.records.get('dot/external/v1'));
+  release.resolve();await assert.rejects(pending,/dot_temporary_start_cancelled/);
+  assert.deepEqual(x.f.records.get('dot/external/v1'),disconnected);
+});
+
+
+for(const action of ['dot.use-long-lived','dot.refresh-credential']) test(`disconnect invalidates ${action} paused at the first endpoint snapshot`,async t=>{
+  const x=await setup(t),entered=Promise.withResolvers(),release=Promise.withResolvers();let paused=false;
+  const get=x.f.host.storage.get.bind(x.f.host.storage);
+  x.f.host.storage.get=async key=>{const row=await get(key);if(!paused && key==='dot/external/v1'){paused=true;entered.resolve();await release.promise;}return row;};
+  const pending=x.active.actions[action]({input:{longLivedServerUrlTemplate:`https://new.example${path}?token={token}`}},undefined,x.f.owner);
+  await entered.promise;await x.active.actions['dot.disconnect']({},undefined,x.f.owner);
+  const disconnected=structuredClone(x.f.records.get('dot/external/v1'));release.resolve();
+  // Existing live long-lived URLs may be returned read-only, but a stale
+  // mutation must neither create nor rotate credentials after disconnect.
+  await pending.catch(()=>{});
+  assert.deepEqual(x.f.records.get('dot/external/v1'),disconnected);
+});

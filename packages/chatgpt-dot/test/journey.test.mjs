@@ -477,3 +477,49 @@ test("receipt completion during a subscription storage snapshot cannot discard t
 		1,
 	);
 });
+
+
+test("the first ask subscribes before waking a member and leaves no send if subscription fails", async t => {
+  const f=await paired(t);let subscribed=false;
+  f.host.messaging.subscribe=async()=>{subscribed=true;};
+  const send=f.host.messaging.send;
+  f.host.messaging.send=async input=>{assert.equal(subscribed,true,"first member reply must already have a cursor");return send(input);};
+  const args={attempt_id:f.credentials.attemptId,thread_id:"thread-1",target_cat_ids:["cat-1"],content:"First question",client_message_id:"first-cursor"};
+  assert.equal((await rpc(f,"cat_cafe_dot_ask",args)).error,undefined);
+  const count=f.sent.length;
+  f.host.messaging.subscribe=async()=>{throw Error("subscription_unavailable");};
+  assert.ok((await rpc(f,"cat_cafe_dot_ask",{...args,client_message_id:"no-cursor"})).error);
+  assert.equal(f.sent.length,count,"cannot wake members without a return path");
+});
+
+for (const restart of [false,true]) test(`old acknowledged subscription dispatch can reply without redelivery (restart=${restart})`,async t=>{
+  const f=await paired(t);f.host.messaging.subscribe=async()=>{};
+  const question=(await rpc(f,"cat_cafe_dot_ask",{attempt_id:f.credentials.attemptId,thread_id:"thread-1",target_cat_ids:["cat-1"],content:"Question",client_message_id:"legacy-followup"})).result.structuredContent;
+  const source={...f.source,id:"old-cat-reply",catId:"cat-1",replyTo:question.messageId,content:"answer",sourceRevision:"old-answer"};
+  f.messages.set(source.id,source);
+  const input={...delivery(f,"old-subscription-delivery"),reason:"subscription",envelope:{...delivery(f).envelope,messageId:source.id}};
+  await f.active.deliver(input);
+  const id=f.webhooks.at(-1).data.eventId;
+  if(restart)assert.equal((await rpc(f,"cat_cafe_dot_read_source",{event_id:id})).error,undefined);
+  const key=`dot/dispatch/${id}`,old={...f.records.get(key).value,deliveryId:input.deliveryId};delete old.deliveryReason;
+  await f.host.storage.set(key,old);
+  if(restart){await f.active.stop({reason:"test"});f.active=await f.module.start(f.host);}
+  const count=f.webhooks.length;
+  if(!restart)assert.equal((await rpc(f,"cat_cafe_dot_read_source",{event_id:id})).error,undefined);
+  assert.equal((await rpc(f,"cat_cafe_dot_reply",{event_id:id,content:"Back"})).error,undefined);
+  assert.equal(f.sent.at(-1).input.response,undefined,"upgraded acknowledged event has no addressed carrier");
+  assert.equal(f.records.get(key).value.deliveryId,undefined);
+  assert.equal(f.webhooks.length,count,"no redelivery is required");
+});
+
+
+test("explicitly addressed member replies keep their carrier even when they also match an ask",async t=>{
+  const f=await paired(t);f.host.messaging.subscribe=async()=>{};
+  const question=(await rpc(f,"cat_cafe_dot_ask",{attempt_id:f.credentials.attemptId,thread_id:"thread-1",target_cat_ids:["cat-1"],content:"Question",client_message_id:"addressed-followup"})).result.structuredContent;
+  const source={...f.source,id:"addressed-member",catId:"cat-1",replyTo:question.messageId};f.messages.set(source.id,source);
+  await f.active.deliver({...delivery(f,"addressed-member-delivery"),envelope:{...delivery(f).envelope,messageId:source.id}});
+  const id=f.webhooks.at(-1).data.eventId;
+  assert.equal((await rpc(f,"cat_cafe_dot_read_source",{event_id:id})).error,undefined);
+  assert.equal((await rpc(f,"cat_cafe_dot_reply",{event_id:id,content:"Back"})).error,undefined);
+  assert.deepEqual(f.sent.at(-1).input.response,{deliveryId:"addressed-member-delivery",status:"completed"});
+});

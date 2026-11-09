@@ -14,6 +14,7 @@ export const dispatchSchema = z.object({
     verificationKey: ref.optional(),
     expectedNonce: z.string().regex(/^[a-f0-9]{16}$/).optional(), sourceRevision: ref.optional(),
     candidateProof: z.object({ candidateId: ref, tokenId: ref, bindingVersion: z.number().int().positive() }).strict().optional(),
+    deliveryReason: z.enum(["addressed", "subscription"]).optional(),
     replyDigest: ref.optional(), deliveryId: ref.optional(), deliveryError: z.string().min(1).max(200).nullable().optional(),
 }).strict();
 export type Dispatch = z.infer<typeof dispatchSchema>;

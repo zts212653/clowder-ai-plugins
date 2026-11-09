@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { Readable } from "node:stream";
 import { join } from "node:path";
 import {
@@ -79,6 +80,14 @@ export function createDotPlugin(
 	let running: DotRuntime | undefined;
 	let temporaryEndpoints: TemporaryEndpointController | undefined;
 	let loopback: Awaited<ReturnType<typeof startMcpLoopback>> | undefined;
+	const temporaryStarts = new AsyncLocalStorage<number>();
+	function admitAction<T>(method: string, run: () => Promise<T>): Promise<T> {
+		// Both public action tables share one ticket, captured before even the
+		// first asynchronous authority check. Disconnect invalidates that ticket.
+		if (method === "dot.start-temporary" && temporaryEndpoints && temporaryStarts.getStore() === undefined)
+			return temporaryStarts.run(temporaryEndpoints.reserveStart(), run);
+		return run();
+	}
 	async function connection(
 		host: DotSettingsHost,
 		controller: AbortController,
@@ -181,7 +190,7 @@ export function createDotPlugin(
 					const input = operationInput(params);
 					const template = input.longLivedServerUrlTemplate;
 					longLivedServerUrl(template, "validation");
-					const { state, issued } = await current.issuePluginPending(context);
+					const { state, issued } = await current.issuePluginPending(context, undefined, {externalRevision:existing.revision});
 					const serverUrl = longLivedServerUrl(template, issued.token);
 					await current.setLongLivedServerUrl(
 						state.pending!.candidateId,
@@ -190,10 +199,14 @@ export function createDotPlugin(
 					return endpointResult(context);
 				},
 				"dot.start-temporary": async (params, _native, context) => {
-					await current.owner(context);
 					if (!running || !temporaryEndpoints)
 						throw new Error("dot_runtime_unavailable");
+					const epoch = temporaryStarts.getStore()!;
+					const assertStart = () => temporaryEndpoints!.assertStart(epoch);
+					await current.owner(context);
+					assertStart();
 					const before = await current.externalState();
+					assertStart();
 					if (
 						before.endpoint.mode === "temporary-active" &&
 						before.endpoint.expiresAt > (options.now ?? Date.now)() &&
@@ -210,14 +223,15 @@ export function createDotPlugin(
 					if (!Number.isFinite(hours) || hours <= 0 || hours > 24)
 						throw new Error("dot_temporary_ttl_invalid");
 					const ttlMs = Math.floor(hours * 60 * 60_000);
-					const epoch = temporaryEndpoints.reserveStart();
 					const { state, issued } = await current.issuePluginPending(
 						context,
 						Math.ceil(ttlMs / 1000),
+						{externalRevision:before.revision,assertCurrent:assertStart},
 					);
 					if (!loopback) throw new Error("dot_runtime_unavailable");
 					const existing = await current.externalState();
 					const assertCandidate = async () => {
+						assertStart();
 						await current.assertCurrent();
 						const exact = (await current.externalState()).pending;
 						if (!exact || exact.candidateId !== state.pending!.candidateId ||
@@ -276,6 +290,7 @@ export function createDotPlugin(
 									),
 								)
 							: undefined,
+						{externalRevision:before.revision},
 					);
 					const candidateId = state.pending!.candidateId;
 					if (before.endpoint.mode === "long-lived") {
@@ -370,12 +385,12 @@ export function createDotPlugin(
 									},
 								}
 							: undefined;
-						return current.within(fenced, async () => {
+						return admitAction(method, () => current.within(fenced, async () => {
 							await current.assertCurrent();
 							const result = await handler(input, native, fenced);
 							await current.assertCurrent();
 							return result;
-						});
+						}));
 					},
 				]),
 			);
@@ -551,12 +566,12 @@ export function createDotPlugin(
 							context?: PluginHostActionContext,
 						) => {
 							current.assertLive();
-							const task = current.within(context, async () => {
+							const task = admitAction(method, () => current.within(context, async () => {
 								await current.assertCurrent();
 								const result = await handler(input, native, context);
 								await current.assertCurrent();
 								return result;
-							});
+							}));
 							admitted.add(task);
 							try {
 								return await task;

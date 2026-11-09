@@ -117,6 +117,7 @@ export class TemporaryEndpointController {
 	}
 
 	reserveStart(): number { return ++this.#epoch; }
+	assertStart(epoch: number): void { if (epoch !== this.#epoch) throw new Error("dot_temporary_start_cancelled"); }
 
 	async start(input: {
 		readonly upstreamLoopbackOrigin: string;

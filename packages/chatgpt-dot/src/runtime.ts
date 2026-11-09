@@ -136,10 +136,28 @@ export class DotRuntime {
 		return source;
 	}
 	async authorize(id: string, read = false) {
-		const record = await this.connection.store.dispatch(id);
+		let record = await this.connection.store.dispatch(id);
 		if (!record) throw new Error("dot_dispatch_unavailable");
 		const state = await this.connection.forDispatch(record);
 		const source = await this.source(record, state);
+		// Older acknowledged subscriptions will not be delivered again. Recover
+		// their classification from the durable ask receipt and exact recipient,
+		// after validating the original dispatch/source authority above.
+		if (!record.deliveryReason && record.deliveryId && source.catId) {
+			const parent = source.replyTo ?? source.extra?.causal?.triggerMessageId;
+			for (const [key, entry] of Object.entries(await this.host.storage.list())) {
+				if (!key.startsWith("dot/ask/")) continue;
+				const ask = entry.value as {attemptId:string;threadId:string;messageId:string|null;recipientCatIds:string[]};
+				if (parent && ask.messageId === parent && ask.attemptId === record.attemptId &&
+					ask.threadId === record.threadId && ask.recipientCatIds.includes(source.catId)) {
+					record = await this.connection.store.updateDispatch(id, current => {
+						if (!current) throw new Error("dot_dispatch_unavailable");
+						return current.deliveryReason ? current : {...current,deliveryReason:"subscription",deliveryId:undefined};
+					});
+					break;
+				}
+			}
+		}
 		if (read && record.sourceReadAt === null)
 			throw new Error("dot_source_not_read");
 		return { state, record, source };
@@ -177,7 +195,7 @@ export class DotRuntime {
 			const record = await this.connection.store.updateDispatch(id, (prior) => {
 				this.connection.assertLive();
 				return (
-					prior ? {...prior, deliveryId: input.reason === "addressed" ? input.deliveryId : undefined} : {
+					prior ? {...prior, deliveryReason: input.reason, deliveryId: input.reason === "addressed" ? input.deliveryId : undefined} : {
 						eventId: id,
 						ownerUserId: state.ownerUserId,
 						threadId: input.threadId,
@@ -185,6 +203,7 @@ export class DotRuntime {
 						sourceRevision: source.sourceRevision,
 						dispatchInvocationId: input.executionId ?? input.deliveryId,
 						// Only explicit addressed work owns a Host target-response carrier.
+						deliveryReason: input.reason,
 						deliveryId: input.reason === "addressed" ? input.deliveryId : undefined,
 						attemptId: state.attemptId,
 						agentKeyId: state.agentKeyId,
@@ -588,6 +607,14 @@ export class DotRuntime {
 		await this.connection.sameAttempt(state);
 		this.connection.assertLive();
 		await this.connection.authorizeExternal(credential, "ask");
+		// A new subscription starts at the current head. Establish it before
+		// waking members; followup() retries while this ask receipt is pending.
+		await this.host.messaging.subscribe({
+			threadId: input.thread_id,
+			includeOwnMessages: false,
+		});
+		await this.connection.sameAttempt(state);
+		await this.connection.authorizeExternal(credential, "ask");
 		const result = await this.host.messaging.send({
 			threadId: input.thread_id,
 			identity: "dot",
@@ -602,10 +629,6 @@ export class DotRuntime {
 			messageId: result.messageId,
 		});
 		await this.connection.sameAttempt(state);
-		await this.host.messaging.subscribe({
-			threadId: input.thread_id,
-			includeOwnMessages: false,
-		});
 		return result;
 	}
 	async restoreSubscriptions() {
