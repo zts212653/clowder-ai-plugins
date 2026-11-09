@@ -340,6 +340,8 @@ export class DotConnection {
 		},
 	) {
 		return this.store.updateExternal((state) => {
+			if (state?.endedTemporaryGenerations?.includes(lease.generation))
+				throw new Error("dot_temporary_generation_ended");
 			if (!state?.pending || state.pending.candidateId !== candidateId)
 				throw new Error("dot_candidate_stale");
 			return {
@@ -362,6 +364,7 @@ export class DotConnection {
 					current: null,
 					pending: null,
 					endpoint: { mode: "absent" },
+					endedTemporaryGenerations: [generation],
 				};
 			const expire = (
 				lease: DotExternalState["endpoint"],
@@ -376,11 +379,12 @@ export class DotConnection {
 			const endpoint = expire(state.endpoint);
 			const previous = state.pending?.previousEndpoint;
 			const previousEndpoint = previous ? expire(previous) : previous;
-			if (endpoint === state.endpoint && previousEndpoint === previous)
-				return state;
+			if (endpoint === state.endpoint && previousEndpoint === previous &&
+				state.endedTemporaryGenerations?.includes(generation)) return state;
 			return {
 				...state,
 				revision: state.revision + 1,
+				endedTemporaryGenerations: [...new Set([...(state.endedTemporaryGenerations ?? []),generation])],
 				endpoint,
 				...(state.pending
 					? { pending: { ...state.pending, previousEndpoint } }

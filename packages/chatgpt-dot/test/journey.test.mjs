@@ -38,6 +38,7 @@ test("pair, addressed receive, read and source-bound reply survive restart witho
 	assert.equal(first.result.structuredContent.messageId, "reply-0");
 	assert.equal(f.sent[0].input.replyTo, "source-1");
 	assert.equal(f.sent[0].input.identity, "dot");
+	assert.deepEqual(f.sent[0].input.response,{deliveryId:"delivery-1",status:"completed"});
 	await f.active.stop({ reason: "disabled" });
 	await assert.rejects(() => f.active.deliver(delivery(f)), /stopped|revoked/);
 	f.active = await f.module.start(f.host);
@@ -270,6 +271,18 @@ test("proactive questions subscribe only to their thread and forward only exact 
 	};
 	await f.active.deliver(input);
 	assert.equal(f.webhooks.at(-1).data.data.source_message_id, reply.id);
+	const eventId = f.webhooks.at(-1).data.eventId;
+	const saved = f.records.get(`dot/dispatch/${eventId}`).value;
+	await f.host.storage.set(`dot/dispatch/${eventId}`,{...saved,deliveryId:input.deliveryId});
+	await f.active.deliver(input);
+	assert.equal(f.records.get(`dot/dispatch/${eventId}`).value.deliveryId,undefined,"replayed subscription clears earlier misclassified settlement identity");
+	assert.equal((await rpc(f,"cat_cafe_dot_read_source",{event_id:eventId})).error,undefined);
+	const returned = await rpc(f,"cat_cafe_dot_reply",{event_id:eventId,content:"Followup received"});
+	assert.equal(returned.error,undefined);
+	const sent = f.sent.at(-1).input;
+	assert.equal(sent.replyTo,reply.id);
+	assert.equal(sent.response,undefined,"subscription has no addressed carrier to settle");
+	assert.deepEqual(sent.wake,{catId:"cat-1"});
 	const count = f.webhooks.length;
 	f.messages.set(reply.id, { ...reply, replyTo: "unrelated" });
 	await f.active.deliver({ ...input, deliveryId: "unrelated" });

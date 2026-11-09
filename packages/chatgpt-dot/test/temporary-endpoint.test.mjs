@@ -405,3 +405,19 @@ test('generation-scoped stop preserves a replacement and does not cancel its pen
   assert.throws(()=>controller.allowToken('late'),/unavailable/);
   assert.deepEqual(ended,[a.generation,b.generation,c.generation]);
 });
+
+test('a reserved older start and a rejected authority cannot replace a published runner',async t=>{
+  const root=await mkdtemp(join(tmpdir(),'dot-start-authority-'));t.after(()=>rm(root,{recursive:true,force:true}));
+  const ended=[];const controller=new TemporaryEndpointController({runnerPath,binaryPath:await fakeTunnel(t,root),fetch:async()=>new Response('{}',{status:401}),startupTimeoutMs:5000,onEnded:g=>{ended.push(g);}});
+  t.after(()=>controller.stop('test-end'));
+  // The missing method on the old API deliberately yields a ticket: old start
+  // still accepts it and replaces the runner, which is the behavioral failure.
+  const first=controller.reserveStart?.() ?? 1,second=controller.reserveStart?.() ?? 2;
+  const input={upstreamLoopbackOrigin:'http://127.0.0.1:5182',relativePath:'/mcp',method:'POST',ttlMs:60000};
+  const current=await controller.start({...input,token:'current'},{epoch:second,beforeReplace:async()=>{}});
+  await assert.rejects(controller.start({...input,token:'stale'},{epoch:first,beforeReplace:async()=>{}}),/dot_temporary_start_cancelled/);
+  assert.equal(controller.allowToken('keep').generation,current.generation);assert.deepEqual(ended,[]);
+  const third=controller.reserveStart();
+  await assert.rejects(controller.start({...input,token:'denied'},{epoch:third,beforeReplace:async()=>{throw Error('candidate_denied');}}),/candidate_denied/);
+  assert.equal(controller.allowToken('still-keep').generation,current.generation);assert.deepEqual(ended,[]);
+});

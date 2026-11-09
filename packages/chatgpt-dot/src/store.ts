@@ -59,7 +59,11 @@ export class DotStore {
         return this.update(EXTERNAL_KEY, dotExternalStateSchema, value => {
             const previousKeys = keys(value);
             const retired = new Set(value?.retiredPluginTokenDigests ?? []);
-            const next = change(value);
+
+            const changed = change(value);
+            // End notices may precede first lease publication and survive resets.
+            const ended = new Set([...(value?.endedTemporaryGenerations ?? []), ...(changed.endedTemporaryGenerations ?? [])]);
+            const next = ended.size ? {...changed, endedTemporaryGenerations:[...ended]} : changed;
             const nextKeys = keys(next);
             for (const key of next.retiredPluginTokenDigests ?? []) retired.add(key);
             for (const key of previousKeys) if (!nextKeys.has(key)) retired.add(key);

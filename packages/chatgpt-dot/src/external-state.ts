@@ -128,6 +128,7 @@ export const dotExternalStateSchema = z
 		current: currentCredentialSchema.nullable(),
 		pending: pendingCredentialSchema.nullable(),
 		endpoint: endpointLeaseSchema,
+		endedTemporaryGenerations: z.array(ref).optional(),
 		retiredPluginTokenDigests: z
 			.array(z.string().regex(/^[a-f0-9]{64}$/))
 			.optional(),

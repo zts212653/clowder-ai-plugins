@@ -210,12 +210,21 @@ export function createDotPlugin(
 					if (!Number.isFinite(hours) || hours <= 0 || hours > 24)
 						throw new Error("dot_temporary_ttl_invalid");
 					const ttlMs = Math.floor(hours * 60 * 60_000);
+					const epoch = temporaryEndpoints.reserveStart();
 					const { state, issued } = await current.issuePluginPending(
 						context,
 						Math.ceil(ttlMs / 1000),
 					);
 					if (!loopback) throw new Error("dot_runtime_unavailable");
 					const existing = await current.externalState();
+					const assertCandidate = async () => {
+						await current.assertCurrent();
+						const exact = (await current.externalState()).pending;
+						if (!exact || exact.candidateId !== state.pending!.candidateId ||
+							exact.tokenId !== issued.tokenId || !credentialLive(exact,(options.now ?? Date.now)()))
+							throw new Error("dot_candidate_stale");
+					};
+					await assertCandidate();
 					// The displayed candidate may be long-lived while the formal
 					// connection still owns this process's temporary runner.
 					const reusable = [existing.endpoint, existing.pending?.previousEndpoint]
@@ -229,10 +238,14 @@ export function createDotPlugin(
 								method: "POST",
 								token: issued.token,
 								ttlMs,
-							});
+							}, {epoch,beforeReplace:assertCandidate});
 					if (reusable?.mode === "temporary-active" && lease.generation !== reusable.generation)
 						throw new Error("dot_temporary_endpoint_stale");
-					await current.setTemporaryLease(state.pending!.candidateId, lease);
+					try { await current.setTemporaryLease(state.pending!.candidateId, lease); }
+					catch (error) {
+						if (!reusable) await temporaryEndpoints.stop("candidate_stale",lease.generation);
+						throw error;
+					}
 					return endpointResult(context);
 				},
 				"dot.refresh-credential": async (params, _native, context) => {
@@ -281,7 +294,7 @@ export function createDotPlugin(
 						await current.setTemporaryLease(candidateId, lease);
 						return { render: "text", data: lease.serverUrl };
 					}
-					await current.cancelPending();
+					await current.cancelPending(candidateId);
 					return statusRows(context);
 				},
 				"dot.show-server-url": async (_input, _native, context) => {

@@ -630,3 +630,107 @@ for (const window of ['before-commit','after-commit']) test(`late cancel cannot 
   assert.deepEqual(x.f.records.get('dot/external/v1'),protectedState);
   assert.equal(await connection.serverUrl(),next.data);
 });
+
+function publicationController(t) {
+  const original={start:TemporaryEndpointController.prototype.start,allowToken:TemporaryEndpointController.prototype.allowToken,stop:TemporaryEndpointController.prototype.stop};
+  let lease,sequence=0,dot;
+  TemporaryEndpointController.prototype.start=async function(input,authority){
+    await authority?.beforeReplace();
+    if(lease)await dot.expireTemporary(lease.generation);
+    lease={generation:`publication-${++sequence}`,serverUrl:`https://temp.example/mcp?token=${input.token}`,startedAt:Date.now(),expiresAt:Date.now()+input.ttlMs};return lease;
+  };
+  TemporaryEndpointController.prototype.allowToken=function(token){assert.ok(lease);return {...lease,serverUrl:`https://temp.example/mcp?token=${token}`};};
+  TemporaryEndpointController.prototype.stop=async function(reason,expected){if(!lease || (expected!==undefined && expected!==lease.generation))return;const prior=lease;lease=undefined;await dot.expireTemporary(prior.generation);};
+  t.after(()=>Object.assign(TemporaryEndpointController.prototype,original));
+  return {bind(f){dot=new DotConnection(f.host,f.sendWebhook,new AbortController().signal);return dot;},get lease(){return lease;}};
+}
+
+test('a canceled start cannot replace the runner published by a later candidate',async t=>{
+  const controller=publicationController(t),x=await setup(t);controller.bind(x.f);
+  await x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
+  let entered,release,paused=false;
+  const reached=new Promise(r=>entered=r),gate=new Promise(r=>release=r),get=x.f.host.storage.get.bind(x.f.host.storage);
+  x.f.host.storage.get=async key=>{
+    const entry=await get(key);
+    if(!paused && key==='dot/external/v1' && entry?.value.pending?.issuer==='plugin' && entry.value.endpoint.mode==='absent'){
+      // Stage has committed the first candidate; pause the later `existing` read.
+      paused=true;entered();await gate;
+    }
+    return entry;
+  };
+  const stale=x.active.actions['dot.start-temporary']({input:{temporaryEndpointHours:1}},undefined,x.f.owner);
+  await reached;
+  await x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
+  const current=await x.active.actions['dot.start-temporary']({input:{temporaryEndpointHours:1}},undefined,x.f.owner);
+  const protectedState=structuredClone(x.f.records.get('dot/external/v1')),generation=controller.lease.generation;
+  release();await assert.rejects(stale,/dot_(candidate_stale|temporary_start_cancelled)/);
+  assert.equal(controller.lease.generation,generation);
+  assert.deepEqual(x.f.records.get('dot/external/v1'),protectedState);
+  assert.equal(protectedState.value.endpoint.serverUrl,current.data);
+});
+
+test('expired refresh cleanup cannot revoke a later long-lived candidate',async t=>{
+  const controller=publicationController(t),x=await setup(t);controller.bind(x.f);
+  await x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
+  await x.active.actions['dot.start-temporary']({input:{temporaryEndpointHours:1}},undefined,x.f.owner);
+  const previous=x.f.records.get('dot/external/v1').value.pending.candidateId;
+  let entered,release,paused=false;
+  const reached=new Promise(r=>entered=r),gate=new Promise(r=>release=r),cas=x.f.host.storage.compareAndSet.bind(x.f.host.storage);
+  x.f.host.storage.compareAndSet=async(key,revision,value)=>{
+    const result=await cas(key,revision,value);
+    if(!paused && result.applied && key==='dot/external/v1' && value.pending && value.pending.candidateId!==previous){paused=true;entered();await gate;}
+    return result;
+  };
+  const stale=x.active.actions['dot.refresh-credential']({},undefined,x.f.owner);
+  await reached;x.advance();
+  const current=await x.active.actions['dot.use-long-lived']({input:{longLivedServerUrlTemplate:`https://dot.example${path}?token={token}`}},undefined,x.f.owner);
+  const protectedState=structuredClone(x.f.records.get('dot/external/v1'));
+  release();await assert.rejects(stale,/dot_candidate_stale/);
+  assert.deepEqual(x.f.records.get('dot/external/v1'),protectedState);
+  assert.equal(protectedState.value.endpoint.serverUrl,current.data);
+});
+
+test('an ended generation cannot publish its first lease, including after restart and reset',async t=>{
+  const x=await setup(t),dot=new DotConnection(x.f.host,x.f.sendWebhook,new AbortController().signal);
+  const candidate=x.f.records.get('dot/external/v1').value.pending.candidateId;
+  const cas=x.f.host.storage.compareAndSet.bind(x.f.host.storage);let ended=false;
+  x.f.host.storage.compareAndSet=async(key,revision,value)=>{
+    if(!ended && key==='dot/external/v1' && value.endpoint.mode==='temporary-active'){
+      ended=true;await dot.expireTemporary('ended-before-first-cas');
+    }
+    return cas(key,revision,value);
+  };
+  const lease={generation:'ended-before-first-cas',serverUrl:'https://dead.example/mcp',startedAt:Date.now(),expiresAt:Date.now()+60000};
+  await assert.rejects(dot.setTemporaryLease(candidate,lease),/dot_temporary_generation_ended/);
+  assert.equal(ended,true);
+  assert.notEqual(x.f.records.get('dot/external/v1').value.endpoint.mode,'temporary-active');
+  const restarted=new DotConnection(x.f.host,x.f.sendWebhook,new AbortController().signal);
+  await assert.rejects(restarted.setTemporaryLease(candidate,lease),/dot_temporary_generation_ended/);
+  await restarted.revokeExternal();
+  const {state}=await restarted.issuePluginPending(x.f.owner,3600);
+  await assert.rejects(restarted.setTemporaryLease(state.pending.candidateId,lease),/dot_temporary_generation_ended/);
+});
+
+for (const reused of [false,true]) test(`failed lease publication cleans only a newly created runner (reused=${reused})`,async t=>{
+  const controller=publicationController(t),x=await setup(t),dot=controller.bind(x.f);
+  await x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
+  let formal,generation;
+  if(reused){
+    const first=await x.active.actions['dot.start-temporary']({input:{temporaryEndpointHours:1}},undefined,x.f.owner);
+    const token=new URL(first.data).searchParams.get('token');
+    await completePairing({...x,request:(method,params)=>x.request(method,params,token)});
+    formal=structuredClone(x.f.records.get('dot/external/v1').value.current);generation=controller.lease.generation;
+    await x.active.actions['dot.use-long-lived']({input:{longLivedServerUrlTemplate:`https://dot.example${path}?token={token}`}},undefined,x.f.owner);
+  }
+  const cas=x.f.host.storage.compareAndSet.bind(x.f.host.storage);let rejected=false;
+  x.f.host.storage.compareAndSet=async(key,revision,value)=>{
+    if(!rejected && key==='dot/external/v1' && value.endpoint.mode==='temporary-active'){
+      rejected=true;throw Error('lease_publication_rejected');
+    }
+    return cas(key,revision,value);
+  };
+  await assert.rejects(x.active.actions['dot.start-temporary']({input:{temporaryEndpointHours:1}},undefined,x.f.owner),/lease_publication_rejected/);
+  assert.equal(rejected,true);
+  if(reused){assert.equal(controller.lease.generation,generation);assert.deepEqual(x.f.records.get('dot/external/v1').value.current,formal);assert.equal((await dot.ready()).bindingAuthority.tokenId,formal.tokenId);}
+  else {assert.equal(controller.lease,undefined);assert.equal(x.f.records.get('dot/external/v1').value.endedTemporaryGenerations.length,1);}
+});

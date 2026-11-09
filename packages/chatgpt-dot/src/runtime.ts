@@ -177,14 +177,15 @@ export class DotRuntime {
 			const record = await this.connection.store.updateDispatch(id, (prior) => {
 				this.connection.assertLive();
 				return (
-					prior ?? {
+					prior ? {...prior, deliveryId: input.reason === "addressed" ? input.deliveryId : undefined} : {
 						eventId: id,
 						ownerUserId: state.ownerUserId,
 						threadId: input.threadId,
 						sourceMessageId: source.id,
 						sourceRevision: source.sourceRevision,
 						dispatchInvocationId: input.executionId ?? input.deliveryId,
-						deliveryId: input.deliveryId,
+						// Only explicit addressed work owns a Host target-response carrier.
+						deliveryId: input.reason === "addressed" ? input.deliveryId : undefined,
 						attemptId: state.attemptId,
 						agentKeyId: state.agentKeyId,
 						occurredAt: Date.now(),

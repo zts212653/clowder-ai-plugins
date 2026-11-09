@@ -116,19 +116,24 @@ export class TemporaryEndpointController {
 		return target;
 	}
 
+	reserveStart(): number { return ++this.#epoch; }
+
 	async start(input: {
 		readonly upstreamLoopbackOrigin: string;
 		readonly relativePath: string;
 		readonly method: "POST";
 		readonly token: string;
 		readonly ttlMs: number;
-	}): Promise<TemporaryEndpointLease> {
+	}, authority?: { readonly epoch: number; readonly beforeReplace: () => Promise<void> }): Promise<TemporaryEndpointLease> {
 		if (this.#usesBundledBinary && (process.platform !== "darwin" || process.arch !== "arm64"))
 			throw new Error("dot_temporary_platform_unsupported");
 		if (!Number.isSafeInteger(input.ttlMs) || input.ttlMs <= 0 || input.ttlMs > 24 * 60 * 60_000)
 			throw new Error("dot_temporary_ttl_invalid");
-		const epoch = ++this.#epoch;
+		const epoch = authority?.epoch ?? this.reserveStart();
+		if (epoch !== this.#epoch) throw new Error("dot_temporary_start_cancelled");
 		const executablePath = await this.#prepareBinary();
+		if (epoch !== this.#epoch) throw new Error("dot_temporary_start_cancelled");
+		await authority?.beforeReplace();
 		if (epoch !== this.#epoch) throw new Error("dot_temporary_start_cancelled");
 		await this.#stopActive("replace");
 		if (epoch !== this.#epoch) throw new Error("dot_temporary_start_cancelled");
