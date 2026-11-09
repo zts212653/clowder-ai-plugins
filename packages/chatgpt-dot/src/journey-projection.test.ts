@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { validateOperationRowsResult } from "@clowder-ai/plugin-contract";
 import type { DotConnectionState } from "./connection-state.js";
 import type { DotExternalState } from "./external-state.js";
 import { projectDotJourney } from "./journey-projection.js";
@@ -9,17 +10,39 @@ const now = 1_800_000_000_000;
 const currentExternal: DotExternalState = {
 	v: 1,
 	revision: 1,
-	current: { kind: "signed", token: "token", tokenId: "jti", issuedAt: 1, expiresAt: 2_000_000_000, refreshRecommendedAt: 1_900_000_000 },
+	current: {
+		kind: "signed",
+		token: "token",
+		tokenId: "jti",
+		issuedAt: 1,
+		expiresAt: 2_000_000_000,
+		refreshRecommendedAt: 1_900_000_000,
+	},
 	pending: null,
-	endpoint: { mode: "long-lived", serverUrl: "https://dot.example/mcp?token=token", reachableAt: now },
+	endpoint: {
+		mode: "long-lived",
+		serverUrl: "https://dot.example/mcp?token=token",
+		reachableAt: now,
+	},
 };
 const pendingExternal = (discoveredAt: number | null): DotExternalState => ({
 	...currentExternal,
 	current: null,
 	pending: {
-		kind: "pending", candidateId: "candidate", revision: 1, token: "pending", tokenId: "pending-jti",
-		issuedAt: 1, expiresAt: 2_000_000_000, refreshRecommendedAt: 1_900_000_000, createdAt: now,
-		discoveredAt, pairingAttemptId: null, verificationEventId: null, verificationReadAt: null, verificationReplyAt: null,
+		kind: "pending",
+		candidateId: "candidate",
+		revision: 1,
+		token: "pending",
+		tokenId: "pending-jti",
+		issuedAt: 1,
+		expiresAt: 2_000_000_000,
+		refreshRecommendedAt: 1_900_000_000,
+		createdAt: now,
+		discoveredAt,
+		pairingAttemptId: null,
+		verificationEventId: null,
+		verificationReadAt: null,
+		verificationReplyAt: null,
 	},
 });
 const connection = (
@@ -76,10 +99,7 @@ test("projects endpoint, ChatGPT discovery, and pairing as separate stages", () 
 		stage({ ...base, runtimeRunning: false }),
 		"runtime-unavailable",
 	);
-	assert.equal(
-		stage({ ...base, external: null }),
-		undefined,
-	);
+	assert.equal(stage({ ...base, external: null }), "waiting-connection");
 	assert.equal(
 		stage({ ...base, external: pendingExternal(null) }),
 		"waiting-discovery",
@@ -88,15 +108,31 @@ test("projects endpoint, ChatGPT discovery, and pairing as separate stages", () 
 		stage({ ...base, external: pendingExternal(now) }),
 		"pairing-not-started",
 	);
-	assert.deepEqual(projectDotJourney({ ...base, external: null }).rows, []);
+	assert.equal(
+		projectDotJourney({ ...base, external: null }).rows[0]?.label,
+		"待连接",
+	);
+	assert.equal(
+		validateOperationRowsResult(
+			{ actions: [] },
+			projectDotJourney({ ...base, external: null }),
+		).valid,
+		true,
+	);
 });
 
 test("keeps connection status separate from the setup tutorial", () => {
-	const result = projectDotJourney({ ...base, external: pendingExternal(null) });
+	const result = projectDotJourney({
+		...base,
+		external: pendingExternal(null),
+	});
 	const waiting = result.rows[0];
 	assert.equal(waiting?.key, "waiting-discovery");
 	assert.match(waiting?.detail ?? "", /尚未收到.*工具与事件扫描/);
-	assert.doesNotMatch(waiting?.detail ?? "", /Add custom MCP server|No authentication/);
+	assert.doesNotMatch(
+		waiting?.detail ?? "",
+		/Add custom MCP server|No authentication/,
+	);
 	assert.deepEqual(waiting?.actions ?? [], []);
 });
 
@@ -115,7 +151,10 @@ test("shows the absolute temporary endpoint expiry in the owner journey", () => 
 	const result = projectDotJourney({ ...base, external: temporary });
 	assert.equal(result.rows[0]?.key, "waiting-discovery");
 	assert.match(result.rows[0]?.detail ?? "", /临时入口/);
-	assert.match(result.rows[0]?.detail ?? "", new RegExp(new Date(now + 60_000).toISOString()));
+	assert.match(
+		result.rows[0]?.detail ?? "",
+		new RegExp(new Date(now + 60_000).toISOString()),
+	);
 });
 
 test("bounds waiting observation by both five minutes and the absolute pairing expiry", () => {
@@ -201,10 +240,29 @@ test("an expired signed current credential cannot borrow historical readiness an
 	};
 	const subscribed = connection({
 		pairedAt: now - 10_000,
-		subscription: { id: "sub", url: "https://callback.example/dot", secret: "secret", expiresAt: null, verifiedAt: now - 10_000, previousSecret: null, rotationUntil: null },
+		subscription: {
+			id: "sub",
+			url: "https://callback.example/dot",
+			secret: "secret",
+			expiresAt: null,
+			verifiedAt: now - 10_000,
+			previousSecret: null,
+			rotationUntil: null,
+		},
 		testEventIds: [`dot_evt_${"a".repeat(64)}`],
 	});
-	const result = projectDotJourney({ ...base, external: expired, connection: subscribed, dispatches: [dispatch({ sourceReadAt: now - 1_000, replyMessageId: "reply" })] });
+	const result = projectDotJourney({
+		...base,
+		external: expired,
+		connection: subscribed,
+		dispatches: [
+			dispatch({ sourceReadAt: now - 1_000, replyMessageId: "reply" }),
+		],
+	});
 	assert.equal(result.rows[0]?.key, "credential-unavailable");
-	assert.ok(result.rows[0]?.actions?.some((candidate) => candidate.action === "refresh-credential"));
+	assert.ok(
+		result.rows[0]?.actions?.some(
+			(candidate) => candidate.action === "refresh-credential",
+		),
+	);
 });

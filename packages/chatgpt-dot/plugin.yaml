@@ -1,5 +1,5 @@
 pluginId: official.chatgpt-dot
-version: 0.2.0-alpha.34
+version: 0.2.0-alpha.35
 contractVersion: 0.3.3-candidate.1
 name: ChatGPT Dot
 description:
@@ -91,8 +91,8 @@ configuration:
     required: false
     actions:
       - id: status
-        label: 刷新状态
-        render: status
+        label: 连接状态
+        render: polling
         resultRender: rows
         action: { method: dot.status }
       - id: show-server-url

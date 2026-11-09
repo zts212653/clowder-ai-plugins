@@ -38,7 +38,7 @@ test("status is a pure rows projection and does not manufacture authorization, p
 	const first = await settings.actions["dot.status"]({}, undefined, f.owner);
 	const second = await settings.actions["dot.status"]({}, undefined, f.owner);
 	assert.equal(first.render, "rows");
-	assert.deepEqual(first.data.rows, []);
+	assert.equal(first.data.rows[0]?.label, "待连接");
 	assert.deepEqual(second.data.rows, first.data.rows);
 	assert.ok(first.data.pollUntil > Date.now());
 	assert.ok(second.data.pollUntil <= Date.now() + 5 * 60_000);
@@ -52,7 +52,7 @@ test("legacy pairing remains usable while the journey asks for a real public end
 		undefined,
 		f.owner,
 	);
-	assert.deepEqual(begun.data.rows, []);
+	assert.equal(begun.data.rows[0]?.label, "待连接");
 	assert.ok(f.records.get("dot/connection/v1").value.pairingCode);
 	const instructions = await settings.actions["dot.show-instructions"](
 		{},
@@ -127,7 +127,7 @@ test("a legacy credential starts when the Host exposes only a relative forwardin
 	assert.deepEqual(external.endpoint, { mode: "absent" });
 
 	const status = await settings.actions["dot.status"]({}, undefined, f.owner);
-	assert.deepEqual(status.data.rows, []);
+	assert.equal(status.data.rows[0]?.label, "待连接");
 });
 
 test("begin is idempotent and only the declared reconnect action rotates an existing attempt", async (t) => {
@@ -156,7 +156,7 @@ test("missing endpoint leaves entry selection to native configuration variants",
 		f.host.external.token = "";
 	});
 	const result = await settings.actions["dot.status"]({}, undefined, f.owner);
-	assert.deepEqual(result.data.rows, []);
+	assert.equal(result.data.rows[0]?.label, "待连接");
 	assert.equal(f.records.has("dot/connection/v1"), false);
 });
 

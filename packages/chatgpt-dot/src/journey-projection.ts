@@ -31,6 +31,13 @@ function row(
 	return { key, label, detail, ...(actions.length === 0 ? {} : { actions }) };
 }
 
+function waitingConnection(now: number): OperationRows {
+	return {
+		rows: [row("waiting-connection", "待连接", "")],
+		pollUntil: now + FIVE_MINUTES_MS,
+	};
+}
+
 function activeSubscription(state: DotConnectionState, now: number) {
 	return Boolean(
 		state.subscription &&
@@ -97,7 +104,7 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 					endpoint.expiresAt > input.now)),
 	);
 	if (!external?.pending && !external?.current) {
-		return { rows: [], pollUntil: input.now + FIVE_MINUTES_MS };
+		return waitingConnection(input.now);
 	}
 	const replacementActions =
 		external.current && external.pending
@@ -144,10 +151,10 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 		};
 	}
 	if (!external.pending && !endpointActive) {
-		return { rows: [], pollUntil: input.now + FIVE_MINUTES_MS };
+		return waitingConnection(input.now);
 	}
 	if (!endpointActive) {
-		return { rows: [], pollUntil: input.now + FIVE_MINUTES_MS };
+		return waitingConnection(input.now);
 	}
 	if (external.pending?.discoveredAt === null) {
 		const endpointDetail =
@@ -443,13 +450,13 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 		};
 	return {
 		...result,
-		rows: result.rows.map((item) => {
+		rows: result.rows.map(({ actions: declaredActions, ...item }) => {
 			const needsStart = [
 				"verification-required",
 				"candidate-verification-required",
 			].includes(item.key);
 			const failed = /timeout|failed/.test(item.key);
-			const actions = (item.actions ?? [])
+			const actions = (declaredActions ?? [])
 				.filter(
 					(a) =>
 						a.action !== "check-roundtrip" &&
@@ -471,7 +478,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 								"订阅已建立，插件会自动发送测试消息，确认读取原文及校验码回复。",
 						}
 					: {}),
-				...(actions.length ? { actions } : { actions: undefined }),
+				...(actions.length ? { actions } : {}),
 			};
 		}),
 		...(result.rows.some((item) =>
