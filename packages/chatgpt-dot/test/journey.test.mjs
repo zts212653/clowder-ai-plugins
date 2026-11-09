@@ -254,7 +254,7 @@ test("proactive questions subscribe only to their thread and forward only exact 
 	const question = (await rpc(f, "cat_cafe_dot_ask", args)).result
 		.structuredContent;
 	assert.equal(question.messageId, "reply-0");
-	assert.equal(subscriptions.length, 1);
+	assert.equal(subscriptions.length, 2);
 	assert.equal(subscriptions[0].threadId, "thread-1");
 	const reply = {
 		...f.source,
@@ -538,4 +538,12 @@ test("old addressed ask replies keep the real Host carrier across read and resta
  assert.equal(f.records.get(key).value.deliveryId,deliveryId);
  assert.equal((await rpc(f,"cat_cafe_dot_reply",{event_id:id,content:"Back"})).error,undefined);
  assert.deepEqual(f.sent.at(-1).input.response,{deliveryId,status:"completed"});
+});
+
+
+test("ask re-declares its cursor only after the receipt is durable",async t=>{
+ const f=await paired(t);const seen=[];
+ f.host.messaging.subscribe=async()=>{seen.push(Object.values(await f.host.storage.list()).some(entry=>entry.value.messageId && entry.value.recipientCatIds));};
+ assert.equal((await rpc(f,"cat_cafe_dot_ask",{attempt_id:f.credentials.attemptId,thread_id:"thread-1",target_cat_ids:["cat-1"],content:"Question",client_message_id:"ready-cursor"})).error,undefined);
+ assert.deepEqual(seen,[false,true]);
 });

@@ -630,6 +630,13 @@ export class DotRuntime {
 			messageId: result.messageId,
 		});
 		await this.connection.sameAttempt(state);
+		await this.connection.authorizeExternal(credential, "ask");
+		// Re-declare readiness after the receipt is durable. The Host schedules
+		// the same cursor, including an earlier receipt-pending delivery.
+		await this.host.messaging.subscribe({
+			threadId: input.thread_id,
+			includeOwnMessages: false,
+		});
 		return result;
 	}
 	async restoreSubscriptions() {
