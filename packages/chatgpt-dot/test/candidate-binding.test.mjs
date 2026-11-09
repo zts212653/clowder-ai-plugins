@@ -392,3 +392,27 @@ for (const mode of ['exited','expired']) test(`ended candidate ingress rejects r
   assert.deepEqual(f.records.get(EXTERNAL_KEY).value.current,formal);
   assert.equal((await f.dot.ready()).subscription.url,formal.binding.subscription.url);
 });
+
+// An opaque legacy caller has no credential object; that is still an authority lane.
+test('legacy subscribe admitted before promotion cannot renew the replacement binding', async t => {
+  const f = await candidateFixture(t);
+  const identity = f.records.get(CONNECTION_KEY).value;
+  await f.host.storage.set(CONNECTION_KEY,{...identity,pairedAt:null,subscription:null,pairedCallbackUrl:null,pairingCode:f.code});
+  await f.subscribe(); const proof = await f.startProof();
+  const runtime = new DotRuntime(f.host,f.dot), authorize = f.dot.authorizeExternal.bind(f.dot);
+  let admitted = false, protectedState;
+  f.dot.authorizeExternal = async (...args) => {
+    const result = await authorize(...args);
+    if (!admitted && args[0] === undefined && args[1] === 'pairing-subscribe') {
+      admitted = true;
+      assert.equal((await f.finish(proof)).body.error,undefined);
+      protectedState = structuredClone(f.records.get(EXTERNAL_KEY));
+    }
+    return result;
+  };
+  const result = await rpc(runtime,{method:'POST',headers:{},body:{jsonrpc:'2.0',id:1,method:'events/subscribe',params:{name:'dot.summoned',arguments:{attempt_id:identity.attemptId,pairing_code:f.code},delivery:{mode:'webhook',url:newUrl,secret:'whsec_'+Buffer.alloc(32,9).toString('base64')},ttlMs:60_000}}});
+  assert.equal(admitted,true);
+  assert.match(result.body.error?.data?.reason ?? '',/dot_external_credential_(required|rejected)/);
+  assert.deepEqual(f.records.get(EXTERNAL_KEY),protectedState);
+  assert.equal((await f.dot.ready()).subscription.secret,secret);
+});

@@ -216,17 +216,22 @@ export function createDotPlugin(
 					);
 					if (!loopback) throw new Error("dot_runtime_unavailable");
 					const existing = await current.externalState();
-					const lease =
-						existing.endpoint.mode === "temporary-active" &&
-						existing.endpoint.expiresAt > (options.now ?? Date.now)()
-							? temporaryEndpoints.allowToken(issued.token)
-							: await temporaryEndpoints.start({
-									upstreamLoopbackOrigin: loopback.origin,
-									relativePath: "/mcp",
-									method: "POST",
-									token: issued.token,
-									ttlMs,
-								});
+					// The displayed candidate may be long-lived while the formal
+					// connection still owns this process's temporary runner.
+					const reusable = [existing.endpoint, existing.pending?.previousEndpoint]
+						.find(lease => lease?.mode === "temporary-active" &&
+							lease.expiresAt > (options.now ?? Date.now)());
+					const lease = reusable
+						? temporaryEndpoints.allowToken(issued.token)
+						: await temporaryEndpoints.start({
+								upstreamLoopbackOrigin: loopback.origin,
+								relativePath: "/mcp",
+								method: "POST",
+								token: issued.token,
+								ttlMs,
+							});
+					if (reusable?.mode === "temporary-active" && lease.generation !== reusable.generation)
+						throw new Error("dot_temporary_endpoint_stale");
 					await current.setTemporaryLease(state.pending!.candidateId, lease);
 					return endpointResult(context);
 				},

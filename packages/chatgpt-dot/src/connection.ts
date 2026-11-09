@@ -1307,6 +1307,19 @@ export class DotConnection {
 			truncated: false,
 		};
 	}
+	private requireCurrentCaller(
+		state: DotExternalState,
+		credential: VerifiedExternalCredential | undefined,
+	) {
+		// Undefined is the legacy lane, never permission to use a new formal key.
+		if (credential
+			? (!state.current || state.current.kind === "legacy" ||
+				state.current.tokenId !== credential.jti ||
+				(state.current.kind === "plugin") !== (credential.origin === "plugin") ||
+				!credentialLive(state.current, this.now()))
+			: state.current?.kind !== "legacy")
+			throw new Error("dot_external_credential_rejected");
+	}
 	async subscribe(
 		input: {
 			attemptId: string;
@@ -1317,12 +1330,10 @@ export class DotConnection {
 		},
 		credential?: VerifiedExternalCredential,
 	) {
+		const lane = await this.authorizeExternal(credential, "pairing-subscribe");
 		const state = await this.current();
-		const lane = credential
-			? await this.authorizeExternal(credential, "pairing-subscribe")
-			: undefined;
 		if (
-			lane?.lane === "pending" &&
+			lane.lane === "pending" &&
 			(await this.externalState()).pending?.binding !== undefined
 		)
 			return this.subscribeCandidate(input, credential!);
@@ -1352,12 +1363,13 @@ export class DotConnection {
 		);
 		this.assertLive();
 		await this.sameAttempt(state, false);
-		if (credential)
-			await this.authorizeExternal(credential, "pairing-subscribe");
+		await this.authorizeExternal(credential, "pairing-subscribe");
 		const expiresAt = ttl === null ? null : this.now() + ttl;
 		if (state.bindingAuthority?.tokenId) {
 			const authority = state.bindingAuthority;
 			await this.store.updateExternal((value) => {
+				if (!value) throw new Error("dot_binding_stale");
+				this.requireCurrentCaller(value, credential);
 				if (
 					!value?.current ||
 					value.current.kind === "legacy" ||
@@ -1445,8 +1457,7 @@ export class DotConnection {
 		},
 		credential?: VerifiedExternalCredential,
 	) {
-		if (credential)
-			await this.authorizeExternal(credential, "pairing-unsubscribe");
+		await this.authorizeExternal(credential, "pairing-unsubscribe");
 		const state = await this.current();
 		if (
 			state.attemptId !== input.attemptId ||
@@ -1456,14 +1467,7 @@ export class DotConnection {
 			throw new Error("dot_subscription_mismatch");
 		await this.store.updateExternal((value) => {
 			if (!value) throw new Error("dot_binding_stale");
-			// Bind the mutation to the RPC caller, not a replacement read after authorization.
-			if (credential
-				? (!value.current || value.current.kind === "legacy" ||
-					value.current.tokenId !== credential.jti ||
-					(value.current.kind === "plugin") !== (credential.origin === "plugin") ||
-					!credentialLive(value.current, this.now()))
-				: value.current?.kind !== "legacy")
-				throw new Error("dot_external_credential_rejected");
+			this.requireCurrentCaller(value, credential);
 			const endpoint = value.pending
 				? (value.pending.previousEndpoint ?? { mode: "absent" as const })
 				: value.endpoint;

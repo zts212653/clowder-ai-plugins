@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createDotPlugin } from "../src/plugin-entrypoint.ts";
 import { fixture } from "./fixture.mjs";
+import { DotConnection } from "../src/connection.ts";
 import { TemporaryEndpointController } from "../src/temporary-endpoint.ts";
 
 const path = "/api/plugins/official.chatgpt-dot/mcp";
@@ -534,4 +535,53 @@ test("explicit owner migration accepts the saved legacy route template but never
 		body: { jsonrpc: "2.0", id: 1, method: "server/discover", params: {} },
 	});
 	assert.ok(old.body.error);
+});
+
+for (const cancel of [false,true]) test(`temporary candidate reuses the saved formal generation after a long-lived candidate (cancel=${cancel})`, async t => {
+  const original = {start:TemporaryEndpointController.prototype.start,allowToken:TemporaryEndpointController.prototype.allowToken,stop:TemporaryEndpointController.prototype.stop};
+  let lease, starts = 0, connection;
+  const allowed = new Set();
+  TemporaryEndpointController.prototype.start = async function(input) {
+    if (lease) await connection.expireTemporary(lease.generation);
+    allowed.clear(); allowed.add(input.token); starts++;
+    lease = {generation:`fixture-${starts}`,serverUrl:`https://temp.example/mcp?token=${input.token}`,startedAt:Date.now(),expiresAt:Date.now()+input.ttlMs};
+    return lease;
+  };
+  TemporaryEndpointController.prototype.allowToken = function(token) {
+    assert.ok(lease); allowed.add(token);
+    return {...lease,serverUrl:`https://temp.example/mcp?token=${token}`};
+  };
+  TemporaryEndpointController.prototype.stop = async function() { lease = undefined; };
+  t.after(() => Object.assign(TemporaryEndpointController.prototype,original));
+  const x = await setup(t);
+  connection = new DotConnection(x.f.host,x.f.sendWebhook,new AbortController().signal);
+  await x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
+  const first = await x.active.actions['dot.start-temporary']({input:{temporaryEndpointHours:1}},undefined,x.f.owner);
+  const token = new URL(first.data).searchParams.get('token');
+  await completePairing({...x,request:(method,params)=>x.request(method,params,token)});
+  const formal = structuredClone(x.f.records.get('dot/external/v1').value.current);
+  const saved = structuredClone(x.f.records.get('dot/external/v1').value.endpoint);
+  await x.active.actions['dot.use-long-lived']({input:{longLivedServerUrlTemplate:`https://dot.example${path}?token={token}`}},undefined,x.f.owner);
+  assert.equal(x.f.records.get('dot/external/v1').value.endpoint.mode,'long-lived');
+  assert.deepEqual(x.f.records.get('dot/external/v1').value.pending.previousEndpoint,saved);
+  const next = await x.active.actions['dot.start-temporary']({input:{temporaryEndpointHours:1}},undefined,x.f.owner);
+  assert.equal(starts,1,'an unverified candidate must not stop the saved formal tunnel');
+  assert.ok(allowed.has(token)); assert.ok(allowed.has(new URL(next.data).searchParams.get('token')));
+  const external = x.f.records.get('dot/external/v1').value;
+  assert.equal(external.endpoint.generation,saved.generation);
+  assert.equal(external.endpoint.expiresAt,saved.expiresAt);
+  assert.deepEqual(external.pending.previousEndpoint,saved);
+  assert.deepEqual(external.current,formal);
+  assert.equal((await connection.ready()).bindingAuthority.tokenId,formal.tokenId);
+  if (cancel) {
+    await x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
+    assert.deepEqual(x.f.records.get('dot/external/v1').value.endpoint,saved);
+    assert.equal((await connection.ready()).bindingAuthority.tokenId,formal.tokenId);
+  } else {
+    const candidateToken = new URL(next.data).searchParams.get('token');
+    await completePairing({...x,request:(method,params)=>x.request(method,params,candidateToken)});
+    assert.notEqual(x.f.records.get('dot/external/v1').value.current.tokenId,formal.tokenId);
+    assert.equal(x.f.records.get('dot/external/v1').value.endpoint.generation,saved.generation);
+    assert.equal(starts,1);
+  }
 });
