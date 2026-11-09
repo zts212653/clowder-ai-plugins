@@ -916,7 +916,13 @@ export class DotConnection {
 					pending.binding.subscription.expiresAt <= this.now()))
 		) {
 			const authority = await this.current();
-			await this.sameAttempt(authority, false);
+			// The owner is replacing an expired invitation, not using it remotely.
+			// Keep exact identity and external CAS fences without requiring that invitation.
+			if (
+				authority.attemptId !== identity.attemptId ||
+				authority.revision !== identity.revision
+			)
+				throw new Error("dot_stale_connection");
 			await this.store.updateExternal((state) => {
 				if (
 					!state ||
@@ -1016,22 +1022,12 @@ export class DotConnection {
 				testEventIds: [],
 			};
 		});
-		try {
-			await assertAuthority();
-			const external = await this.externalState();
-			if (external.pending) await this.bindPendingPairing(state.attemptId);
-		} catch (error) {
-			await this.store.updateConnection((current) => {
-				if (!current || current.attemptId !== state.attemptId)
-					throw new Error("dot_stale_connection");
-				return {
-					...current,
-					revision: current.revision + 1,
-					revokedAt: current.revokedAt ?? this.now(),
-				};
-			});
-			throw error;
-		}
+		// A failed setup is not a revocation decision. This identity may already be
+		// shared by a later owner request; an unfinished new identity grants no access
+		// without external authorization, subscription and verification, and is retryable.
+		await assertAuthority();
+		const staged = await this.externalState();
+		if (staged.pending) await this.bindPendingPairing(state.attemptId);
 		const external = await this.externalState();
 		if (external.pending) {
 			const pending = external.pending;

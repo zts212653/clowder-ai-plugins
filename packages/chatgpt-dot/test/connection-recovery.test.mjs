@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { DotConnection } from "../src/connection.ts";
 import { EXTERNAL_KEY, CONNECTION_KEY } from "../src/store.ts";
-import { paired } from "./fixture.mjs";
+import { fixture, paired } from "./fixture.mjs";
 
 function binding(state, overrides = {}) {
 	return {
@@ -237,4 +237,109 @@ test("disconnect between candidate repair and message generation prevents identi
 	);
 	assert.deepEqual(f.records.get(CONNECTION_KEY).value, revoked);
 	assert.equal((await dot.externalState()).pending, null);
+});
+
+test("late repair rejection must not revoke the shared existing identity after candidate replacement", async (t) => {
+	const f = await paired(t),
+		dot = new DotConnection(
+			f.host,
+			f.sendWebhook,
+			new AbortController().signal,
+		);
+	const { state } = await dot.issuePluginPending(f.owner);
+	await dot.setLongLivedServerUrl(
+		state.pending.candidateId,
+		`https://dot.example/mcp?token=${state.pending.token}`,
+	);
+	const before = await dot.externalState();
+	await f.host.storage.set(EXTERNAL_KEY, {
+		...before,
+		pending: { ...before.pending, pairingAttemptId: "stale-attempt" },
+	});
+	const original = structuredClone(f.records.get(CONNECTION_KEY).value);
+	const compare = f.host.storage.compareAndSet.bind(f.host.storage);
+	let replaced = false,
+		replacement;
+	f.host.storage.compareAndSet = async (key, revision, next) => {
+		const result = await compare(key, revision, next);
+		if (key === CONNECTION_KEY && result.applied && !replaced) {
+			replaced = true;
+			replacement = await dot.issuePluginPending(f.owner);
+			await dot.setLongLivedServerUrl(
+				replacement.state.pending.candidateId,
+				`https://dot.example/mcp?token=${replacement.issued.token}`,
+			);
+		}
+		return result;
+	};
+	await assert.rejects(
+		f.settings.actions["dot.repair-subscription"]({}, undefined, f.owner),
+		/dot_repair_stale/,
+	);
+	assert.equal(
+		(await dot.externalState()).pending.candidateId,
+		replacement.state.pending.candidateId,
+	);
+	assert.equal(
+		f.records.get(CONNECTION_KEY).value.revokedAt,
+		null,
+		"late old repair must not revoke the formal/shared identity",
+	);
+	assert.equal((await dot.current()).attemptId, original.attemptId);
+});
+
+test("an interrupted first setup retains a retryable unpaired identity without granting old or new tokens business access", async (t) => {
+	const f = fixture(t);
+	f.host.external.token = undefined;
+	const dot = new DotConnection(
+		f.host,
+		f.sendWebhook,
+		new AbortController().signal,
+	);
+	const original = await dot.issuePluginPending(f.owner);
+	await dot.setLongLivedServerUrl(
+		original.state.pending.candidateId,
+		`https://dot.example/mcp?token=${original.issued.token}`,
+	);
+	const compare = f.host.storage.compareAndSet.bind(f.host.storage);
+	let replacement;
+	f.host.storage.compareAndSet = async (key, revision, next) => {
+		const result = await compare(key, revision, next);
+		if (key === CONNECTION_KEY && result.applied && !replacement) {
+			replacement = await dot.issuePluginPending(f.owner);
+			await dot.setLongLivedServerUrl(
+				replacement.state.pending.candidateId,
+				`https://dot.example/mcp?token=${replacement.issued.token}`,
+			);
+		}
+		return result;
+	};
+	await assert.rejects(
+		dot.within(f.owner, () => dot.repairSubscription(f.owner)),
+		/dot_repair_stale/,
+	);
+	const identity = f.records.get(CONNECTION_KEY).value;
+	assert.equal(identity.revokedAt, null);
+	assert.equal(identity.pairedAt, null);
+	await assert.rejects(dot.ready(), /dot_subscription_required/);
+	await assert.rejects(
+		dot.authenticatePluginToken(original.issued.token),
+		/dot_mcp_unauthorized/,
+	);
+	const newToken = await dot.authenticatePluginToken(replacement.issued.token);
+	await assert.rejects(
+		dot.authorizeExternal(newToken, "business"),
+		/dot_pending_operation_rejected/,
+	);
+	const retried = await dot.within(f.owner, () =>
+		dot.repairSubscription(f.owner),
+	);
+	assert.match(
+		retried.instructions,
+		new RegExp(`attempt_id=${identity.attemptId}`),
+	);
+	assert.equal(
+		f.records.get(CONNECTION_KEY).value.attemptId,
+		identity.attemptId,
+	);
 });

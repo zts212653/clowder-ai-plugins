@@ -12,13 +12,14 @@ async function until(read) {
 	}
 	assert.fail("automatic verification never started");
 }
-async function setup(t, delay = 5) {
+async function setup(t, delay = 5, legacy = true) {
 	const f = fixture(t, {
 		config: {
 			longLivedServerUrlTemplate:
 				"https://dot.example/api/plugins/official.chatgpt-dot/mcp?token={token}",
 		},
 	});
+	if (!legacy) f.host.external.token = undefined;
 	let module;
 	let active;
 	const start = async () => {
@@ -610,4 +611,63 @@ test("an expired formal subscription reconnects at the same URL and verifies new
 	await x.restart();
 	await new Promise((r) => setTimeout(r, 25));
 	assert.equal(x.f.sent.length, count);
+});
+
+test("first unpromoted subscription expired after its pairing window still supports owner repair", async (t) => {
+	const x = await setup(t, 5, false);
+	assert.equal((await x.subscribe()).body.error, undefined);
+	await x.event();
+	const ext = x.f.records.get(EXTERNAL_KEY).value;
+	const identity = x.f.records.get(CONNECTION_KEY).value;
+	assert.equal(ext.current, null);
+	assert.equal(identity.pairedAt, null);
+	await x.f.host.storage.set(CONNECTION_KEY, {
+		...identity,
+		pairingExpiresAt: 1,
+	});
+	await x.f.host.storage.set(EXTERNAL_KEY, {
+		...ext,
+		pending: {
+			...ext.pending,
+			pairingIntent: { ...ext.pending.pairingIntent, expiresAt: 1 },
+			binding: {
+				...ext.pending.binding,
+				pairingExpiresAt: 1,
+				subscription: { ...ext.pending.binding.subscription, expiresAt: 1 },
+			},
+		},
+	});
+	assert.ok(
+		(
+			await x.request("events/subscribe", {
+				name: "dot.summoned",
+				arguments: {
+					attempt_id: identity.attemptId,
+					pairing_code: ext.pending.pairingIntent.code,
+				},
+				delivery: {
+					mode: "webhook",
+					url: "https://callbacks.example/auto",
+					secret,
+				},
+				ttlMs: null,
+			})
+		).body.error,
+		"expired invitation must still fail remotely",
+	);
+	const status = await x.active.actions["dot.status"]({}, undefined, x.f.owner);
+	assert.equal(status.data.rows[0].key, "subscription-expired");
+	assert.equal(status.data.rows[0].actions[0].action, "repair-subscription");
+	const result = await x.active.actions["dot.repair-subscription"](
+		{},
+		undefined,
+		x.f.owner,
+	);
+	assert.equal(result.render, "text");
+	assert.equal(
+		x.f.records.get(EXTERNAL_KEY).value.pending.token,
+		ext.pending.token,
+	);
+	assert.equal((await x.subscribe()).body.error, undefined);
+	await x.finish(await x.event());
 });
