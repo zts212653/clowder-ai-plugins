@@ -1,6 +1,5 @@
 import { IndexedWaitStorageUnavailableError } from './typed-wait-record.js';
 import { sendRecoveryOwnerNotice } from './recovery-owner-notice.js';
-import { SdkCommunityEventLog } from './business/domains/community/CommunityEventLog.js';
 import { SdkCommunityPrStore } from './business/domains/community/CommunityWorkflowStores.js';
 import { createGitHubSourcePublication } from './source-publication.js';
 import { MigratedIssueRuntime } from './migrated-issue-runtime.js';
@@ -21,7 +20,7 @@ import {
 import { GitHubProvider } from './github-provider.js';
 import type { GitHubTrackingProvider } from './tracking-runtime.js';
 import { TypedWaitRuntime } from './typed-wait-runtime.js';
-import { typedWaitStatus } from './typed-wait-status.js';
+import { listTrackingStatus } from './tracking-status.js';
 import { diagnosticError } from './tracking-diagnostics.js';
 import { CommunityRuntime, type CommunityProvider } from './community-runtime.js';
 import type { UpsertRepoConfigInput } from './business/domains/community/CommunityRepoConfigStore.js';
@@ -200,17 +199,8 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
       'github.typed-wait.unregister': (value: unknown, caller?: PluginActionContext) =>
         tracking.unregister(value, caller),
       'github.tracking.retry': (value: unknown, caller?: PluginActionContext) => tracking.retry(value, caller),
-      'github.tracking.list': async () => {
-        const typed = await typedWaitStatus(tracking.store);
-        return {
-          data: {
-            tracking: [...typed.tracking, ...(await migratedIssues.list())],
-            diagnostics: await tracking.diagnostics(),
-            recoveryOwners: { typed: typed.recovery, collection: await collection.recoveryDiagnostics(), migratedIssues: await migratedIssues.recoveryDiagnostics(),
-              journal: await new SdkCommunityEventLog(context.storage).recoveryDiagnostics() },
-          },
-        };
-      },
+      'github.tracking.list': (value: unknown, caller?: PluginActionContext) =>
+        listTrackingStatus(context.storage, context.secrets, value, caller),
       'github.pr-tracking': () => poll('pr'),
       'github.issue-tracking': () => poll('issue'),
       'github.repo-scan': async () => {

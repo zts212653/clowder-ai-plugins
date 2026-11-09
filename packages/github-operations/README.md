@@ -27,6 +27,10 @@
 
 PR、Issue 的定时检查只处理到期的等待、社区采集和已接续的旧 Issue；首次更新会完成可续接的历史盘点，盘点未完成不会显示为“没有待办”。成功检查会清零连续失败次数；限流、本地排队延期和批次未轮到既不扣次数，也不清零。连续五次真实失败会暂停该记录的自动检查，保留原记录；有明确负责线程时留下带具体对象及原因的状态提醒，不自动叫醒猫。使用 `github_list_tracking` 查看独立的 `polling.state`、恢复状态及脱敏的最近错误。获准恢复时，用 `github_retry_tracking` 提交当前 typed 诊断的 `taskId`、`recovery.scope` 和 `recovery.revision`；只重试当前用户的原等待，不改变负责猫、线程、基线、generation 或通知进度。不要用重新登记代替恢复，以免漏掉暂停期间的变化。
 
+`github_list_tracking` 默认只读一页跟踪状态（20 条，上限 50 条／65536 字节），可用 `repo`、`catId`、`threadId` 缩小范围。例如 `{repo:"owner/repo",catId:"codex61-sol",limit:5}` 查自己的小页；`{view:"recovery",needsAttention:true,limit:5}` 查四类恢复 owner；`{view:"diagnostics",repo:"owner/repo"}` 查注册诊断。旧的 `tracking`、`diagnostics`、`recoveryOwners` 字段保留，但只含所选页，不是全安装快照。恢复日志计数、过大的等待数据和错误细节会明确汇总或标记 `omittedFields`／`detailOmitted`，恢复用的 scope/revision 与原路由不改写。
+
+有 `page.nextCursor` 就用相同筛选、view 和 limit 继续；空页也可能尚未扫完，`remaining:null` 表示无法从有界读取得知剩余总数。扫描每次最多 8 页／检查 500 条，可能先因工作量或字节预算返回。页来自实时状态，变动期间不保证快照一致；未归属的损坏记录在无筛选恢复视图可见，带筛选时用 `page.unattributed` 提醒本页有无法判定归属的来源。单个 PR / Issue 的观察事件仍使用既有 `github_inspect_subject(subjectKey,fromSequence,limit)`；它不读取订阅或恢复记录。
+
 新登记的 PR / Issue 跟踪、条件、游标、回执和通知队列由插件私有存储维护。插件定时拉取变化，生成普通消息，经现有消息路由投递；新订阅不创建 Host 任务，也不读取会话正文。接续旧 Host 等待时，单独保留原任务、owner、thread 与 generation，投递和终态继续核对原绑定；迁移继续复用同一运行实例、原绑定工具和持久 hold，不把新订阅转成 Host 任务。公开 SDK 接口不再重复声明逐 API 权限；原有 owner/generation 和投影检查继续生效。登记身份由原生入口认证；投递目标由消息接口校验。社区流程需要线程摘要时，只使用当前用户可见的元数据。新订阅不调用 Host Task。
 
 Host [通用修复提案 #232](https://github.com/mindfn/clowder-ai/pull/232) 单独处理插件 MCP 项目同步与空绑定界面；GitHub 专用权限和草稿界面修改不作为本插件前置。MCP 工具缺失时核对项目能力同步；工具已出现但登记失败时，用 `github_list_tracking` 查看持久诊断的阶段和错误码，不从 502 推断 PAT 有误。首次登记会读取 GitHub 起始状态，随后由插件定时轮询。同一 PR / Issue 在不同认证会话中使用独立私有订阅，旧取消历史保留。未知结果重用相同 registrationId 和参数。登记成功后才触发要测试的在线 review。
@@ -37,7 +41,7 @@ Host [通用修复提案 #232](https://github.com/mindfn/clowder-ai/pull/232) �
 
 **已有 catalog/npm 安装请使用目录更新**：当前 Host 的 archive 更新要求新旧 provenance 同为 local-archive，直接上传可能返回已安装冲突。不要为绕过冲突卸载旧实例。目录方式可替换 catalog/npm 安装；若原实例启用，Host 会按既有生命周期暂停并恢复该插件。
 
-更新后核对版本 `0.1.0-alpha.40`：核对可选配置与旧跟踪恢复入口，不出现草稿操作按钮。保存并测试连接，再确认插件运行状态。让猫调用 `github_list_tracking` 读取既有登记，再对已登记 PR 使用 `github_inspect_subject` 读取本地观察；必要时对一个明确授权的 PR 登记跟踪，保持相同 registrationId 重试。`github_refresh_pull_requests` + `github_repository_observations` 可验证仓库 provider 读取。首次登记只建立基线，不能把“暂无新通知”当作失败；观察下一次真实审查/CI 变化再确认消息投递。
+更新后核对版本 `0.1.0-alpha.41`：核对可选配置与旧跟踪恢复入口，不出现草稿操作按钮。保存并测试连接，再确认插件运行状态。让猫调用 `github_list_tracking` 读取既有登记，再对已登记 PR 使用 `github_inspect_subject` 读取本地观察；必要时对一个明确授权的 PR 登记跟踪，保持相同 registrationId 重试。`github_refresh_pull_requests` + `github_repository_observations` 可验证仓库 provider 读取。首次登记只建立基线，不能把“暂无新通知”当作失败；观察下一次真实审查/CI 变化再确认消息投递。
 
 等待较多时，后台轮询分轮处理并保存续扫位置。慢请求或模块重启不会清除旧条件、基线和待投递回执；一次轮询完成不代表所有等待都已检查或已经产生通知。
 

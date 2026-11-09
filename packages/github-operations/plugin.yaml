@@ -1,5 +1,5 @@
 pluginId: official.github-operations
-version: 0.1.0-alpha.40
+version: 0.1.0-alpha.41
 contractVersion: 0.3.2-candidate.0
 name: GitHub Operations
 description:
@@ -286,9 +286,25 @@ contributions:
   - type: tool
     id: list-tracking
     name: github_list_tracking
-    description: List this installation's PR and issue tracking status, pending deliveries
-      and the latest 25 safe registration diagnostics. Includes phase, failure code and original exception detail with credentials redacted.
-    inputSchema: { type: object, additionalProperties: false, properties: {} }
+    description: >-
+      Read a bounded page of this installation's tracking status.
+      Use when checking a repository, a cat/thread's subscriptions, paused recovery owners, or registration failures.
+      NOT for subject observation events (use github_inspect_subject), registration, cancellation or retrying a wait.
+      Output: read-only tracking and recovery summaries, or registration diagnostics; default 20 and maximum 50 records,
+      at most 65536 response bytes, with page.nextCursor and unknown remaining count.
+      GOTCHA: keep the same filters, view and limit when continuing; an empty page with a cursor is incomplete.
+      History/large fields are explicitly summarized or marked omitted. Recovery scope/revision remain distinct from sourceRevision.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      properties:
+        view: { type: string, enum: [ tracking, recovery, diagnostics ], default: tracking, description: Tracking plus its recovery facts by default; recovery scans all four owners; diagnostics reads registration attempts. }
+        repo: { type: string, pattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$', maxLength: 200, description: Case-insensitive exact owner/repository. }
+        catId: { type: string, minLength: 1, maxLength: 200, description: Exact responsible cat; use your own stable cat ID for your subscriptions. }
+        threadId: { type: string, minLength: 1, maxLength: 200, description: Exact original responsible thread ID. }
+        needsAttention: { type: boolean, default: false, description: Only needs_attention recovery records or failed registration diagnostics. }
+        limit: { type: integer, minimum: 1, maximum: 50, default: 20, description: Maximum logical records across the returned arrays; byte/scan budgets may stop earlier. }
+        cursor: { type: string, minLength: 1, maxLength: 4096, description: Opaque page.nextCursor from an identical query; omit for the first page. }
     action: { method: github.tracking.list }
   - type: tool
     id: retry-tracking
