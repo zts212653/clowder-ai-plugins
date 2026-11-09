@@ -13,7 +13,10 @@ import type {
 } from "@clowder-ai/plugin-sdk";
 import sharp from "sharp";
 import { z } from "zod";
-import type { DotConnection } from "./connection.js";
+import {
+	DOT_EXTERNAL_CAPABILITY_ID,
+	type DotConnection,
+} from "./connection.js";
 import type { VerifiedExternalCredential } from "./external-state.js";
 import { dotWebhookHeaders } from "./dot-webhook.js";
 import { retainImageFile } from "./image-file.js";
@@ -626,6 +629,73 @@ export class DotRuntime {
 		}
 		return null;
 	}
+	/** Finish local proof commits from the already published nonce reply, without sending it again. */
+	async resumeVerification(
+		id: string,
+		verificationKey?: string,
+	): Promise<boolean> {
+		return this.serial(id, async () => {
+			const original = await this.connection.store.dispatch(id);
+			if (!original?.connectionTest || !original.replyMessageId) return false;
+			if (
+				verificationKey !== undefined &&
+				original.verificationKey !== verificationKey
+			)
+				throw new Error("dot_verification_stale");
+			const { state, record } = await this.authorize(id, true);
+			const reply = await this.host.messaging.get(record.replyMessageId!);
+			if (
+				!reply ||
+				reply.threadId !== record.threadId ||
+				reply.replyTo !== record.sourceMessageId ||
+				!record.expectedNonce ||
+				!reply.content.includes(record.expectedNonce) ||
+				!record.replyDigest ||
+				digest(reply.content) !== record.replyDigest
+			)
+				throw new Error("dot_verification_evidence_unavailable");
+			await this.connection.sameAttempt(state);
+			const pending = (await this.connection.externalState()).pending;
+			if (!pending) return true; // The same exact proof has already promoted.
+			if (
+				pending.verificationEventId !== id ||
+				pending.pairingAttemptId !== record.attemptId
+			)
+				throw new Error("dot_candidate_stale");
+			if (
+				record.candidateProof &&
+				(pending.candidateId !== record.candidateProof.candidateId ||
+					pending.tokenId !== record.candidateProof.tokenId ||
+					pending.binding?.version !== record.candidateProof.bindingVersion)
+			)
+				throw new Error("dot_candidate_stale");
+			if (!record.candidateProof && pending.binding !== undefined)
+				throw new Error("dot_candidate_stale");
+			// This credential comes only from our persisted issuance record, never from caller input.
+			const credential: VerifiedExternalCredential =
+				pending.issuer === "plugin"
+					? await this.connection.authenticatePluginToken(pending.token)
+					: {
+							sub: this.host.pluginInstanceId,
+							cap: DOT_EXTERNAL_CAPABILITY_ID,
+							jti: pending.tokenId,
+							iat: pending.issuedAt,
+							exp: pending.expiresAt,
+						};
+			if (pending.issuer !== "plugin") {
+				const inspected = await this.host.capability?.inspectExternal({
+					token: pending.token,
+					capabilityId: DOT_EXTERNAL_CAPABILITY_ID,
+				});
+				if (!inspected?.usable)
+					throw new Error("dot_external_credential_rejected");
+			}
+			await this.connection.sameAttempt(state);
+			await this.connection.recordPendingEvidence(credential, id, "read");
+			await this.connection.recordPendingEvidence(credential, id, "reply");
+			return true;
+		});
+	}
 	async testRoundtrip(seed?: {
 		nonce: string;
 		threadId: string;
@@ -694,7 +764,10 @@ export class DotRuntime {
 		if (external.pending && external.pending.verificationEventId !== id)
 			await this.connection.bindPendingVerification(id, state);
 		const existing = await this.connection.store.dispatch(id);
-		if (existing?.replyMessageId) return { eventId: id, nonce, complete: true };
+		if (existing?.replyMessageId) {
+			await this.resumeVerification(id, seed?.verificationKey);
+			return { eventId: id, nonce, complete: true };
+		}
 		try {
 			await this.sendEvent((await this.connection.store.dispatch(id))!);
 			await this.connection.store.updateDispatch(id, (current) => ({

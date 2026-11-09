@@ -324,3 +324,181 @@ test("a new subscription scheduled during an active verification is not lost", a
 	release();
 	await until(() => runs === 2);
 });
+
+async function saveReplyBeforeInterruptedPromotion(x) {
+	const id = await x.event();
+	await until(() =>
+		[...x.f.records.entries()].some(
+			([k, v]) =>
+				k.startsWith("dot/verification/") &&
+				v.value.eventId === id &&
+				v.value.stage === "sent",
+		),
+	);
+	const cas = x.f.host.storage.compareAndSet.bind(x.f.host.storage);
+	let fail = true;
+	x.f.host.storage.compareAndSet = async (key, revision, value) => {
+		if (
+			fail &&
+			key === EXTERNAL_KEY &&
+			value.pending?.verificationReplyAt != null
+		) {
+			fail = false;
+			throw new Error("interrupted proof commit");
+		}
+		return cas(key, revision, value);
+	};
+	await assert.rejects(x.finish(id));
+	const record = x.f.records.get(`dot/dispatch/${id}`).value;
+	assert.ok(record.replyMessageId);
+	x.f.host.storage.compareAndSet = cas;
+	return record;
+}
+
+for (const replacement of [false, true])
+	for (const recovery of ["restart", "retry"])
+		test(`saved nonce proof finishes ${replacement ? "replacement" : "first pairing"} via ${recovery}`, async (t) => {
+			const x = await setup(t);
+			await x.subscribe();
+			if (replacement) {
+				await x.finish(await x.event());
+				await x.rotate();
+				await x.subscribe("https://callbacks.example/replacement");
+			}
+			const record = await saveReplyBeforeInterruptedPromotion(x);
+			const count = x.f.sent.length;
+			if (recovery === "restart") await x.restart();
+			else
+				await x.active.actions["dot.retry-verification"](
+					{},
+					undefined,
+					x.f.owner,
+				);
+			await until(() => x.f.records.get(EXTERNAL_KEY).value.pending === null);
+			assert.equal(
+				x.f.records.get(EXTERNAL_KEY).value.current.verifiedEventId,
+				record.eventId,
+			);
+			assert.equal(
+				x.f.sent.length,
+				count,
+				"local recovery must not send another source or reply",
+			);
+		});
+
+for (const change of ["cancel", "replace", "disconnect"])
+	test(`proof recovery cannot promote after ${change} during persisted reply read`, async (t) => {
+		const x = await setup(t);
+		await x.subscribe();
+		await x.finish(await x.event());
+		const formal = structuredClone(x.f.records.get(EXTERNAL_KEY).value.current);
+		await x.rotate();
+		await x.subscribe("https://callbacks.example/replacement");
+		const record = await saveReplyBeforeInterruptedPromotion(x);
+		let changed = false;
+		const get = x.f.host.messaging.get;
+		x.f.host.messaging.get = async (id) => {
+			const message = await get(id);
+			if (id === record.replyMessageId && !changed) {
+				changed = true;
+				if (change === "replace") await x.rotate();
+				else
+					await x.active.actions[
+						change === "cancel" ? "dot.cancel-pending" : "dot.disconnect"
+					]({}, undefined, x.f.owner);
+			}
+			return message;
+		};
+		await x.active.actions["dot.retry-verification"]({}, undefined, x.f.owner);
+		await until(() => changed);
+		await new Promise((resolve) => setTimeout(resolve, 25));
+		const state = x.f.records.get(EXTERNAL_KEY).value;
+		assert.deepEqual(state.current, change === "disconnect" ? null : formal);
+		if (change === "replace") {
+			assert.notEqual(
+				state.pending.candidateId,
+				record.candidateProof.candidateId,
+			);
+			assert.equal(state.pending.verificationReplyAt, null);
+		} else assert.equal(state.pending, null);
+	});
+
+for (const replacement of [false, true])
+	test(`delivered verification timeout offers a stable retry (replacement=${replacement})`, async (t) => {
+		const x = await setup(t);
+		if (!replacement) {
+			const external = x.f.records.get(EXTERNAL_KEY).value;
+			await x.f.host.storage.set(EXTERNAL_KEY, { ...external, current: null });
+		}
+		await x.subscribe();
+		if (replacement) {
+			await x.finish(await x.event());
+			await x.rotate();
+			await x.subscribe("https://callbacks.example/replacement");
+		}
+		const id = await x.event();
+		await until(() =>
+			[...x.f.records.entries()].some(
+				([k, v]) =>
+					k.startsWith("dot/verification/") &&
+					v.value.eventId === id &&
+					v.value.stage === "sent",
+			),
+		);
+		const key = `dot/dispatch/${id}`,
+			before = structuredClone(x.f.records.get(key).value);
+		await x.f.host.storage.set(key, {
+			...before,
+			occurredAt: Date.now() - 120_000,
+		});
+		const status = await x.active.actions["dot.status"](
+			{},
+			undefined,
+			x.f.owner,
+		);
+		const actions = status.data.rows[0].actions.map((a) => a.action);
+		assert.ok(actions.includes("retry-verification"));
+		assert.ok(actions.includes(replacement ? "cancel-pending" : "disconnect"));
+		const count = x.f.sent.length;
+		await x.active.actions["dot.retry-verification"]({}, undefined, x.f.owner);
+		await until(() =>
+			[...x.f.records.entries()].some(
+				([k, v]) =>
+					k.startsWith("dot/verification/") &&
+					v.value.eventId === id &&
+					v.value.attempts > 0 &&
+					v.value.stage === "sent",
+			),
+		);
+		const after = x.f.records.get(key).value;
+		assert.equal(after.sourceMessageId, before.sourceMessageId);
+		assert.equal(after.expectedNonce, before.expectedNonce);
+		assert.equal(x.f.sent.length, count);
+		await x.finish(id);
+		assert.equal(x.f.records.get(EXTERNAL_KEY).value.pending, null);
+	});
+
+test("local proof recovery rejects a stored reply whose content no longer matches the nonce proof", async (t) => {
+	const x = await setup(t);
+	await x.subscribe();
+	const record = await saveReplyBeforeInterruptedPromotion(x);
+	const saved = x.f.messages.get(record.replyMessageId);
+	x.f.messages.set(record.replyMessageId, {
+		...saved,
+		content: "unrelated content",
+	});
+	await x.active.actions["dot.retry-verification"]({}, undefined, x.f.owner);
+	await until(() =>
+		[...x.f.records.entries()].some(
+			([k, v]) =>
+				k.startsWith("dot/verification/") &&
+				v.value.eventId === record.eventId &&
+				v.value.stage === "failed",
+		),
+	);
+	assert.ok(x.f.records.get(EXTERNAL_KEY).value.pending);
+	assert.equal(
+		x.f.records.get(EXTERNAL_KEY).value.pending.verificationReplyAt,
+		null,
+	);
+});

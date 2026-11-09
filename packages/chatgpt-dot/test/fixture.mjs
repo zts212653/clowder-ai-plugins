@@ -82,6 +82,7 @@ export function fixture(t, options = {}) {
 						...source,
 						id: row.messageId,
 						threadId: input.threadId,
+						...(input.replyTo ? { replyTo: input.replyTo } : {}),
 						content: input.payload.elements[0]?.payload.text ?? "",
 						sourceRevision: "reply-rev",
 					});

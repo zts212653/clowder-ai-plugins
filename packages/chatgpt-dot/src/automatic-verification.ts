@@ -154,8 +154,6 @@ export class AutomaticDotVerification {
 			(current) =>
 				current ?? { v: 1, key, nonce, stage: "queued", attempts: 0 },
 		);
-		if (job.stage === "failed") return;
-		if (job.stage === "sent" && job.eventId) return;
 		if (job.stage === "creating-thread" && !job.threadId) {
 			await this.update(key, (current) => ({
 				...current!,
@@ -170,6 +168,14 @@ export class AutomaticDotVerification {
 			await this.runtime.connection.assertCurrent();
 		};
 		try {
+			await assertIdentity();
+			if (
+				job.eventId &&
+				(await this.runtime.resumeVerification(job.eventId, key))
+			)
+				return;
+			if (job.stage === "failed" || (job.stage === "sent" && job.eventId))
+				return;
 			if (!job.threadId) {
 				await assertIdentity();
 				job = await this.update(key, (current) => ({

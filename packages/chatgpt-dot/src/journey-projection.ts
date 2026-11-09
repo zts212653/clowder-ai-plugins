@@ -300,7 +300,12 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 					pending.verificationReadAt !== null
 						? "已读取原消息，正在等待带校验码的回复。"
 						: "正在等待读取本次测试消息。",
-					[action("check-roundtrip", "检查状态"), ...connectedActions],
+					[
+						deadline > input.now
+							? action("check-roundtrip", "检查状态")
+							: action("retry-verification", "重试验证"),
+						...connectedActions,
+					],
 				),
 			],
 			...(deadline > input.now ? { pollUntil: deadline } : {}),
