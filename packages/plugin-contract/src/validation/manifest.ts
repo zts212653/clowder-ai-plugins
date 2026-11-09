@@ -421,18 +421,15 @@ export function validateManifest(value: unknown): ManifestValidationResult {
         }
       }
 
-      const branchValidators = variants.branches.map((branch) => ajv.compile({
-        type: 'object',
-        properties: structuredClone(
-          branch.when['properties'] as Record<string, unknown>,
-        ),
-        required: [variants.discriminator],
-      }));
+      // The grammar above accepts only string const/enum constraints. Evaluate
+      // their coverage directly; compiling fresh schemas retains them in Ajv.
+      const branchOptions = variants.branches.map((branch) => {
+        const properties = branch.when['properties'] as Record<string, Record<string, unknown>>;
+        const constraint = properties[variants.discriminator]!;
+        return new Set('const' in constraint ? [constraint['const']] : constraint['enum'] as string[]);
+      });
       for (const optionValue of optionValues) {
-        let matched = 0;
-        for (const trial of branchValidators) {
-          if (trial({ [variants.discriminator]: optionValue })) matched += 1;
-        }
+        const matched = branchOptions.filter((values) => values.has(optionValue)).length;
         if (matched !== 1) {
           return semanticError(
             '/configurationVariants/branches',

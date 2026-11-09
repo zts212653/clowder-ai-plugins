@@ -276,7 +276,7 @@ test('duplicate branch enum values return an invalid result without throwing', (
   assert.equal(error.keyword, 'whenUniqueOptions');
 });
 
-test('manifest admission compiles each branch only once', (t) => {
+test('manifest admission evaluates restricted branches without retaining Ajv schemas', (t) => {
   const Ajv2020 = createRequire(import.meta.url)('ajv/dist/2020') as {
     prototype: { compile: (schema: unknown) => unknown };
   };
@@ -296,5 +296,5 @@ test('manifest admission compiles each branch only once', (t) => {
   });
   const result = validateManifest(manifest);
   assert.equal(result.valid, true, JSON.stringify(result.errors));
-  assert.equal(compile.mock.callCount(), values.length);
+  assert.equal(compile.mock.callCount(), 0);
 });

@@ -316,3 +316,79 @@ test("formal unsubscribe restores its saved endpoint instead of advertising a re
   assert.equal(f.records.get(EXTERNAL_KEY).value.pending, null);
   assert.equal(f.records.get(EXTERNAL_KEY).value.current.tokenId, jti);
 });
+
+for (const window of ['current-read', 'external-cas']) test(`retired credential cannot unsubscribe its promoted replacement (${window})`, async t => {
+  const f = await candidateFixture(t);
+  await f.subscribe(); await f.finish(await f.startProof());
+  const formal = await f.dot.current(), jti = f.jti;
+  await f.begin(); await f.subscribe();
+  await f.dot.store.updateExternal(state => ({...state,pending:{...state.pending,binding:{...state.pending.binding,pairingCode:formal.pairingCode}}}));
+  const proof = await f.startProof();
+  let release, entered;
+  const gate = new Promise(r => release = r), reached = new Promise(r => entered = r);
+  if (window === 'current-read') {
+    const current = f.dot.current.bind(f.dot);
+    f.dot.current = async () => { entered(); await gate; return current(); };
+  } else {
+    const update = f.dot.store.updateExternal.bind(f.dot.store);
+    f.dot.store.updateExternal = async fn => { entered(); await gate; return update(fn); };
+  }
+  const credential = {sub:f.host.pluginInstanceId,cap:'dot-mcp',jti,iat:1,exp:2_000_000_000};
+  const retiring = f.dot.unsubscribe({attemptId:formal.attemptId,pairingCode:formal.pairingCode,url:formal.subscription.url},credential);
+  await reached;
+  try { assert.equal((await f.finish(proof)).body.error,undefined); } finally { release(); }
+  const saved = structuredClone(f.records.get(EXTERNAL_KEY));
+  await assert.rejects(retiring, /dot_(external_credential_rejected|binding_stale)/);
+  assert.deepEqual(f.records.get(EXTERNAL_KEY),saved);
+  assert.equal((await f.dot.ready()).subscription.url,newUrl);
+});
+
+for (const mode of ['exited','expired']) test(`candidate with ${mode} temporary ingress cannot replace a working formal connection`, async t => {
+  const f = await candidateFixture(t);
+  await f.subscribe(); await f.finish(await f.startProof());
+  const formal = structuredClone(f.records.get(EXTERNAL_KEY).value.current);
+  await f.begin();
+  const pending = f.records.get(EXTERNAL_KEY).value.pending;
+  await f.dot.setTemporaryLease(pending.candidateId,{generation:'test-lease',serverUrl:'https://temporary.example/mcp',startedAt:Date.now(),expiresAt:Date.now()+60_000});
+  await f.subscribe(); const proof = await f.startProof();
+  assert.equal((await f.tool('cat_cafe_dot_read_source',{event_id:proof})).body.error,undefined);
+  const record = f.records.get(`dot/dispatch/${proof}`).value;
+  // End ingress after readiness/evidence reads but before the final promotion CAS.
+  const update = f.dot.store.updateExternal.bind(f.dot.store);
+  let ended = false;
+  const ingress = new DotConnection(f.host,f.sendWebhook,new AbortController().signal);
+  f.dot.store.updateExternal = async fn => {
+    const state = await f.dot.store.external(), next = fn(state);
+    if (!ended && state?.pending && !next.pending && next.current?.tokenId === pending.tokenId) {
+      ended = true;
+      if (mode === 'exited') await ingress.expireTemporary('test-lease');
+      else await ingress.store.updateExternal(value => ({...value,endpoint:{...value.endpoint,expiresAt:Date.now()-1}}));
+    }
+    return update(fn);
+  };
+  const credential = {sub:f.host.pluginInstanceId,cap:'dot-mcp',jti:f.jti,iat:1,exp:2_000_000_000};
+  await assert.rejects(f.dot.recordPendingEvidence(credential,proof,'reply'),/dot_(endpoint_unavailable|candidate_stale)/);
+  assert.equal(ended,true);
+  assert.deepEqual(f.records.get(EXTERNAL_KEY).value.current,formal);
+  assert.ok(f.records.get(EXTERNAL_KEY).value.pending);
+  assert.equal((await f.dot.ready()).subscription.url,formal.binding.subscription.url);
+});
+
+for (const mode of ['exited','expired']) test(`ended candidate ingress rejects reply before Host publication (${mode})`, async t => {
+  const f = await candidateFixture(t);
+  await f.subscribe(); await f.finish(await f.startProof());
+  const formal = structuredClone(f.records.get(EXTERNAL_KEY).value.current);
+  await f.begin();
+  const pending = f.records.get(EXTERNAL_KEY).value.pending;
+  await f.dot.setTemporaryLease(pending.candidateId,{generation:'ended-lease',serverUrl:'https://temporary.example/mcp',startedAt:Date.now(),expiresAt:Date.now()+60_000});
+  await f.subscribe(); const proof = await f.startProof();
+  assert.equal((await f.tool('cat_cafe_dot_read_source',{event_id:proof})).body.error,undefined);
+  if (mode === 'exited') await f.dot.expireTemporary('ended-lease');
+  else await f.dot.store.updateExternal(state => ({...state,endpoint:{...state.endpoint,expiresAt:Date.now()-1}}));
+  const sent = f.sent.length;
+  const nonce = f.records.get(`dot/dispatch/${proof}`).value.expectedNonce;
+  assert.match((await f.tool('cat_cafe_dot_reply',{event_id:proof,content:`ok ${nonce}`})).body.error?.data?.reason ?? '',/dot_endpoint_unavailable/);
+  assert.equal(f.sent.length,sent);
+  assert.deepEqual(f.records.get(EXTERNAL_KEY).value.current,formal);
+  assert.equal((await f.dot.ready()).subscription.url,formal.binding.subscription.url);
+});

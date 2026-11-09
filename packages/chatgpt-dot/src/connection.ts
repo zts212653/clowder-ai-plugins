@@ -650,6 +650,8 @@ export class DotConnection {
 			throw new Error("dot_candidate_pairing_mismatch");
 		await this.store.updateExternal((state) => {
 			const exact = state?.pending;
+			// Proof cannot retire a working formal key after this candidate's ingress ended.
+			if (state) this.requireEndpoint(state.endpoint);
 			if (
 				!exact ||
 				exact.candidateId !== pending.candidateId ||
@@ -814,6 +816,14 @@ export class DotConnection {
 			throw new Error("dot_subscription_required");
 		return state;
 	}
+	private requireEndpoint(endpoint: DotExternalState["endpoint"]) {
+		if (
+			endpoint.mode === "absent" ||
+			endpoint.mode === "temporary-expired" ||
+			(endpoint.mode === "temporary-active" && endpoint.expiresAt <= this.now())
+		)
+			throw new Error("dot_endpoint_unavailable");
+	}
 	async ready() {
 		const state = this.requireSubscription(await this.current());
 		const external = await this.externalState();
@@ -830,12 +840,7 @@ export class DotConnection {
 		// A candidate owns the displayed endpoint; its predecessor is still
 		// the formal connection until proof atomically promotes the candidate.
 		const endpoint = external.pending?.previousEndpoint ?? external.endpoint;
-		if (
-			endpoint.mode === "absent" ||
-			endpoint.mode === "temporary-expired" ||
-			(endpoint.mode === "temporary-active" && endpoint.expiresAt <= this.now())
-		)
-			throw new Error("dot_endpoint_unavailable");
+		this.requireEndpoint(endpoint);
 		if (credential.kind === "signed") {
 			const inspected = await this.host.capability?.inspectExternal({
 				token: credential.token,
@@ -861,7 +866,8 @@ export class DotConnection {
 			external.current.verifiedEventId === eventId &&
 			external.current.binding?.version === proof.bindingVersion
 		)
-			return this.requireSubscription(identity);
+			return this.ready();
+		this.requireEndpoint(external.endpoint);
 		if (
 			!pending ||
 			!pending.binding ||
@@ -1450,6 +1456,14 @@ export class DotConnection {
 			throw new Error("dot_subscription_mismatch");
 		await this.store.updateExternal((value) => {
 			if (!value) throw new Error("dot_binding_stale");
+			// Bind the mutation to the RPC caller, not a replacement read after authorization.
+			if (credential
+				? (!value.current || value.current.kind === "legacy" ||
+					value.current.tokenId !== credential.jti ||
+					(value.current.kind === "plugin") !== (credential.origin === "plugin") ||
+					!credentialLive(value.current, this.now()))
+				: value.current?.kind !== "legacy")
+				throw new Error("dot_external_credential_rejected");
 			const endpoint = value.pending
 				? (value.pending.previousEndpoint ?? { mode: "absent" as const })
 				: value.endpoint;
