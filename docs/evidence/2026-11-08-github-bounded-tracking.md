@@ -28,9 +28,9 @@ replacement observation tool was added.
 - The three new entrypoint regression checks first failed on the original behavior: ignored page
   limits, whole-installation expansion and oversized responses. Environment/build failures were
   resolved before recording this behavioral RED.
-- Package suite: **924/924**, zero skips, after building its emitted modules. The initial all-package
+- Package suite: **926/926**, zero skips, after building its emitted modules. The initial all-package
   invocation preceded that build and failed on missing dist files; it is not counted as a product regression.
-- Final typecheck and five targeted status tests pass. They exercise the actual module action:
+- Final typecheck and seven targeted status tests pass. They exercise the actual module action:
   multiple repos/cats/threads, all four recovery owners, malformed/unattributed sources, empty
   nonterminal scans, COUNT overshoot, byte stopping, changed-query cursors, credential redaction,
   foreign users, authority revocation and unchanged persistent values.
@@ -41,6 +41,17 @@ replacement observation tool was added.
   unknown subjectKey. Its `github_inspect_subject` input remains unchanged. The packaged status
   action reads the same 25-of-300 scenario in five pages, maximum **5204 bytes**, unchanged storage,
   and zero provider calls. This is an isolated packaged consumer, not production installation acceptance.
+
+Sonnet's R1 review of `e91a8cc2` found that gh's actionable error lived in stderr while the status
+summary kept only its generic message, and that task-summary omissions overwrote title clipping
+markers. Both new real-action regressions were observed RED before repair. R2 retains redacted
+message/code/stderr and one cause (including stderr), with each text field capped at 2000 characters;
+stack/deeper causes remain explicitly omitted. Summary merges now preserve prior truncation markers
+in tasks, recovery identity fields and diagnostic anchors. All seven status tests and **926 package
+tests** pass. The R2 packaged consumer additionally verifies stderr/cause redaction and title markers:
+diagnostic result **837 bytes**, recovery result **5786 bytes**, unchanged storage and zero provider reads.
+This repair changes only status projection and its documentation; the previously checked pagination,
+schema, original-owner storage and recovery writers remain covered by their existing evidence.
 
 The same 300-record / 100-notices-per-record in-memory data was also fed to the original main
 typed reader and the new packaged reader. The old measurement is explicitly the typed portion,
@@ -60,16 +71,18 @@ node --import tsx packages/github-operations/test/packed-tracking-status.mjs /ab
 ## Exact artifacts
 
 Node **24.18.0**, npm **11.16.0**; no dependency-version changes.
+These are the current R2 artifacts. R1 archive `d65937eb5bb0…` is superseded and remains preserved in
+the sibling `github-bounded-tracking-alpha41` delivery directory; no previously delivered archive was overwritten.
 
 Canonical npm archive `clowder-ai-github-operations-0.1.0-alpha.41.tgz`:
 
-- SHA1: `f29c371625410a8c40a0f7a8153f2ae5b1c59987`
-- integrity: `sha512-YQhoN7gWx8kDLBQoLCQFO55E0uaSyECSVCSv6v2nY2WRdowUKC0j3mciSMi3DYoiyk4D3eScC6tQuKy09gVhlA==`
+- SHA1: `b706f67375bf460eb96494879b3157455d4a0b04`
+- integrity: `sha512-2RHxH0NGbrsFRVjTuMADMCyrJJRNv/TGw5MSSIr9D/p1nKK3b/Xz6FcZxJvepiIr1IFGZTUjN4YLnUS/1YdFvg==`
 
-Self-contained archive `clowder-ai-github-operations-0.1.0-alpha.41-darwin-arm64-d65937eb5bb0.tgz`:
+Self-contained archive `clowder-ai-github-operations-0.1.0-alpha.41-darwin-arm64-c48f1b9c9b43.tgz`:
 
-- SHA256: `d65937eb5bb0d8d8a99e04efdf8be77198f999d4a51463857689f2afc7149e51`
-- Persistent delivery directory: `/Users/lysander/.cat-cafe/evidence/github-bounded-tracking-alpha41/`.
+- SHA256: `c48f1b9c9b436cc62abe91399f1903e018636135c3c93853317e5058f5ed9c2d`
+- Persistent delivery directory: `/Users/lysander/.cat-cafe/evidence/github-bounded-tracking-alpha41-r2/`.
   Includes canonical and self-contained receipts, extracted consumer, before/after measurements and
   packaged-consumer output. These are local delivery artifacts, not public registry availability.
 
@@ -95,6 +108,10 @@ product changes. Job `managed-job-688a405aa34478e6e01e5016aae29a553aebf021` used
 `buildGateSteps` definitions at that unchanged HEAD and passed 21–39 (733 seconds), including
 catalog/release validation and all **26 publishable-package** pack checks. This is prefix/suffix
 coverage, not a claim that the original failed command exited successfully.
+
+Required CI run **42556514093** passed the complete gate for R1 `e91a8cc2`. R2 revalidates the
+affected package, the regenerated artifacts, candidate catalog and release plan; its new exact-HEAD
+CI and Sonnet delta verdict must be checked separately before merge.
 
 Independent review, merge and checkout disposition remain pending. After source integration, the original task's home retains installed
 acceptance: name the actual consumer/version, inspect the live schema, and perform bounded read-only

@@ -31,6 +31,8 @@ PR、Issue 的定时检查只处理到期的等待、社区采集和已接续的
 
 有 `page.nextCursor` 就用相同筛选、view 和 limit 继续；空页也可能尚未扫完，`remaining:null` 表示无法从有界读取得知剩余总数。扫描每次最多 8 页／检查 500 条，可能先因工作量或字节预算返回。页来自实时状态，变动期间不保证快照一致；未归属的损坏记录在无筛选恢复视图可见，带筛选时用 `page.unattributed` 提醒本页有无法判定归属的来源。单个 PR / Issue 的观察事件仍使用既有 `github_inspect_subject(subjectKey,fromSequence,limit)`；它不读取订阅或恢复记录。
 
+错误摘要保留脱敏的 message、code、stderr，以及一层 cause（含 message/stderr）；文本字段最多 2000 字符，截断字段写入 `omittedFields`。stack 和更深的 cause 省略并标记 `detailOmitted`。`gh` 的鉴权、权限或限流原因常在 stderr，不能只凭通用的 `GitHub command failed` 判断如何恢复。
+
 新登记的 PR / Issue 跟踪、条件、游标、回执和通知队列由插件私有存储维护。插件定时拉取变化，生成普通消息，经现有消息路由投递；新订阅不创建 Host 任务，也不读取会话正文。接续旧 Host 等待时，单独保留原任务、owner、thread 与 generation，投递和终态继续核对原绑定；迁移继续复用同一运行实例、原绑定工具和持久 hold，不把新订阅转成 Host 任务。公开 SDK 接口不再重复声明逐 API 权限；原有 owner/generation 和投影检查继续生效。登记身份由原生入口认证；投递目标由消息接口校验。社区流程需要线程摘要时，只使用当前用户可见的元数据。新订阅不调用 Host Task。
 
 Host [通用修复提案 #232](https://github.com/mindfn/clowder-ai/pull/232) 单独处理插件 MCP 项目同步与空绑定界面；GitHub 专用权限和草稿界面修改不作为本插件前置。MCP 工具缺失时核对项目能力同步；工具已出现但登记失败时，用 `github_list_tracking` 查看持久诊断的阶段和错误码，不从 502 推断 PAT 有误。首次登记会读取 GitHub 起始状态，随后由插件定时轮询。同一 PR / Issue 在不同认证会话中使用独立私有订阅，旧取消历史保留。未知结果重用相同 registrationId 和参数。登记成功后才触发要测试的在线 review。

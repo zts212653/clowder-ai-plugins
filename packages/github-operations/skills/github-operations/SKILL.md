@@ -161,8 +161,12 @@ caller's subscription. Existing cancelled records and original IDs are retained.
 On an unknown registration response reuse the exact registrationId and input.
 `github_list_tracking` with `view:"diagnostics"` includes safe persisted `diagnostics`: phase
 (verify_authority/load_subscription/read_github/save_subscription/complete), status, failure code
-and a hashed request key, plus a bounded exception message/code with credentials
-redacted; omitted stack/cause/stderr are marked `detailOmitted`. These are private diagnostics, never notification
+and a hashed request key, plus bounded exception message/code/stderr and one cause
+(including message/stderr), with credentials redacted. Text fields are limited to
+2000 characters; clipping is recorded in `omittedFields`, and omitted stack/deeper
+causes are marked `detailOmitted`. Read stderr for gh authentication, permission or
+quota errors: its generic `GitHub command failed` message is insufficient.
+These are private diagnostics, never notification
 content. Inspect these after a failed MCP call; never infer a PAT
 or provider failure solely from HTTP 502. First registration reads a fresh GitHub
 baseline before committing the private subscription; periodic polling starts

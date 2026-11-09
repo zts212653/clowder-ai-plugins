@@ -10,6 +10,7 @@ import { waitKey } from './typed-wait-record.js';
 import { collectionId, collectionKey } from './community-collection-record.js';
 import { migratedIssueKey } from './migrated-issue-record.js';
 import { SUBJECTS, JOURNAL_HEAD, eventKey } from './business/domains/community/journal-directory.js';
+import { diagnosticError } from './tracking-diagnostics.js';
 
 const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
 const caller: PluginActionContext = { userId: 'owner', catId: 'cat-1', threadId: 'thread-1',
@@ -184,4 +185,42 @@ test('byte budget advances before an oversized page and native authority revocat
   f.setScan(async ({ prefix }) => { revoked = true; return { cursor: '0',
     entries: Object.fromEntries(Object.entries(snapshot).filter(([key]) => key.startsWith(prefix))) }; });
   await assert.rejects(f.call({}, { ...caller, assertCurrent: async () => { if (revoked) throw new Error('authority revoked'); } }), /authority revoked/);
+});
+
+test('gh failures retain actionable redacted stderr and one cause in both diagnostic and recovery views', async t => {
+  const f = await fixture(t), row = record(1);
+  const failure = Object.assign(new Error('GitHub command failed'), { code: 1,
+    stderr: 'gh: Forbidden (HTTP 403)\nResource not accessible; isolated-secret\n' + 'x'.repeat(4000),
+    cause: Object.assign(new Error('upstream denied isolated-secret'), {
+      stderr: 'gh: permission denied isolated-secret', cause: new Error('deeper diagnostic detail') }) });
+  const persisted = await diagnosticError(failure, { get: async () => 'isolated-secret' });
+  Object.assign(row.recovery, { lastError: persisted });
+  await f.storage.set(waitKey(row.task.id), row);
+  await f.storage.set('github.tracking-diagnostics.v1.' + hash('gh-failure'), {
+    requestKey: hash('gh-failure'), subject: row.task.subjectKey, catId: row.task.ownerCatId, threadId: row.task.threadId,
+    at: 1, attempts: 1, phase: 'read_github', status: 'failed', code: 'provider_read_failed', error: persisted });
+  const before = JSON.stringify(await f.storage.list());
+  for (const view of ['diagnostics', 'recovery']) {
+    const result = await f.call({ view });
+    const error = view === 'diagnostics' ? result.data.diagnostics[0].error : result.data.recoveryOwners.typed[0].recovery.lastError;
+    assert.match(error.stderr ?? '', /gh: Forbidden \(HTTP 403\)/, 'the gh message alone cannot explain this failure');
+    assert.match(error.stderr, /Resource not accessible/); assert.ok(error.stderr.length <= 2000);
+    assert.ok(error.omittedFields.includes('stderr'), 'stderr clipping must be explicit');
+    assert.match(error.cause.message, /upstream denied/); assert.match(error.cause.stderr, /permission denied/);
+    assert.equal(error.cause.cause, undefined); assert.equal(error.stack, undefined); assert.equal(error.detailOmitted, true);
+    assert.ok(!JSON.stringify(result).includes('isolated-secret'));
+    assert.ok(Buffer.byteLength(JSON.stringify(result)) <= 65_536);
+  }
+  assert.equal(JSON.stringify(await f.storage.list()), before); assert.equal(f.providerReads(), 0);
+});
+
+test('long task titles retain their omission marker when a large wait is summarized', async t => {
+  const f = await fixture(t), row = record(1);
+  row.task.title = 't'.repeat(900); Object.assign(row.task.automationState, { retainedPayload: 'x'.repeat(9000) });
+  await f.storage.set(waitKey(row.task.id), row);
+  const task = (await f.call()).data.tracking[0];
+  assert.equal(task.title.length, 500);
+  assert.ok(task.omittedFields.includes('title'), 'summary omissions cannot replace an existing truncation marker');
+  assert.ok(task.omittedFields.includes('automationState'));
+  assert.equal((await f.storage.get(waitKey(row.task.id)) as any).value.task.title.length, 900);
 });

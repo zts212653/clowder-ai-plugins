@@ -4,7 +4,7 @@ import { decodeWaitTask, waitKey } from './typed-wait-record.js';
 import { decodeCollection } from './community-collection-record.js';
 import { decodeMigratedIssue } from './migrated-issue-record.js';
 import { eventKey } from './business/domains/community/journal-directory.js';
-import { diagnosticError } from './tracking-diagnostics.js';
+import { diagnosticError, type DiagnosticError } from './tracking-diagnostics.js';
 import { typedWaitPolling } from './typed-wait-status.js';
 
 export type StatusSource = 'typed' | 'collection' | 'migratedIssues' | 'journal' | 'diagnostics';
@@ -30,6 +30,12 @@ function scalars(value: unknown, names: readonly string[], maxLength = 2000) {
   return result;
 }
 
+/** Combining summary fields must not overwrite a previous part's truncation evidence. */
+function mergeSummaries(...parts: Record<string, unknown>[]): Record<string, unknown> {
+  const omissions = parts.flatMap(part => Array.isArray(part.omittedFields) ? part.omittedFields as string[] : []);
+  return { ...Object.assign({}, ...parts), ...(omissions.length ? { omittedFields: [...new Set(omissions)] } : {}) };
+}
+
 function taskSummary(task: TaskItem) {
   if (bytes(task) <= 8000) return structuredClone(task) as unknown as Record<string, unknown>;
   const summary = scalars(task, ['id', 'kind', 'subjectKey', 'userId', 'ownerCatId', 'threadId', 'title', 'status', 'createdAt', 'updatedAt'], 500);
@@ -40,14 +46,16 @@ function taskSummary(task: TaskItem) {
     ...(automation.issue ? { issue: scalars(automation.issue, ['lastCommentCursor', 'lastDeliveredCursor', 'issueState']) } : {}),
     ...(automation.ci ? { ci: scalars(automation.ci, ['headSha', 'prState', 'lastStatus']) } : {}),
   };
-  summary.omittedFields = ['automationState', 'why', 'notification'];
-  return summary;
+  return mergeSummaries(summary, { omittedFields: ['automationState', 'why', 'notification'] });
 }
 
 async function safeError(error: unknown, secrets: FeatureContext['secrets']) {
   const safe = await diagnosticError(error, secrets);
-  return { ...scalars(safe, ['name', 'message', 'code', 'signal'], 2000),
-    ...(safe.stack || safe.stderr || safe.cause || safe.truncated ? { detailOmitted: true } : {}) };
+  const excerpt = (value: DiagnosticError, omittedCause = false) => ({
+    ...scalars(value, ['name', 'message', 'code', 'signal', 'stderr'], 2000),
+    ...(value.stack || value.truncated || omittedCause ? { detailOmitted: true } : {}),
+  });
+  return { ...excerpt(safe), ...(safe.cause ? { cause: excerpt(safe.cause, !!safe.cause.cause) } : {}) };
 }
 
 function rawFacts(row: Record<string, unknown>) {
@@ -60,8 +68,8 @@ function boundedItem(item: StatusItem, source: StatusSource, sourceKey: string, 
   if (bytes(item) <= 24_000) return item;
   // A corrupt, oversized row advances as an explicit anchor instead of trapping the cursor forever.
   const row = object(entry.value), task = object(row.task);
-  if (source === 'diagnostics') return { diagnostic: { sourceKey, sourceRevision: entry.revision,
-    ...scalars(row, ['requestKey', 'subject', 'catId', 'threadId', 'phase', 'status', 'code'], 500), omittedFields: ['record_detail'] } };
+  if (source === 'diagnostics') return { diagnostic: mergeSummaries({ sourceKey, sourceRevision: entry.revision },
+    scalars(row, ['requestKey', 'subject', 'catId', 'threadId', 'phase', 'status', 'code'], 500), { omittedFields: ['record_detail'] }) };
   return { recovery: { sourceKey, sourceRevision: entry.revision,
     ...(typeof task.id === 'string' && task.id.length <= 500 ? { taskId: task.id } : {}),
     recovery: scalars(rawFacts(row), ['scope', 'revision', 'disposition', 'reasonCode'], 500), omittedFields: ['record_detail'] } };
@@ -99,11 +107,11 @@ export async function projectStatus(source: StatusSource, sourceKey: string, ent
   }
   if (facts.lastError) recovery.lastError = await safeError(facts.lastError, secrets);
   const task = object(row.task);
-  const diagnostic = { sourceKey, sourceRevision: entry.revision,
-    ...scalars(task, ['id', 'subjectKey', 'ownerCatId', 'threadId'], 500),
-    ...(typeof task.id === 'string' && task.id.length <= 500 ? { taskId: task.id } : {}),
-    ...(source === 'journal' ? scalars({ subjectKey: row.subject }, ['subjectKey'], 500) : {}),
-    recovery, ...scalars({ noticeState: object(row.notice).state }, ['noticeState'], 80) };
+  const diagnostic = mergeSummaries({ sourceKey, sourceRevision: entry.revision },
+    scalars(task, ['id', 'subjectKey', 'ownerCatId', 'threadId'], 500),
+    typeof task.id === 'string' && task.id.length <= 500 ? { taskId: task.id } : {},
+    source === 'journal' ? scalars({ subjectKey: row.subject }, ['subjectKey'], 500) : {},
+    { recovery }, scalars({ noticeState: object(row.notice).state }, ['noticeState'], 80));
   let valid: TaskItem | undefined;
   try {
     if (source === 'typed') { valid = decodeWaitTask(entry.value); if (sourceKey !== waitKey(valid.id)) valid = undefined; }

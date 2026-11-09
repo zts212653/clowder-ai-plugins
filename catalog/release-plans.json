@@ -236,7 +236,7 @@
     {
       "pluginId": "official.github-operations",
       "version": "0.1.0-alpha.41",
-      "integrity": "sha512-YQhoN7gWx8kDLBQoLCQFO55E0uaSyECSVCSv6v2nY2WRdowUKC0j3mciSMi3DYoiyk4D3eScC6tQuKy09gVhlA==",
+      "integrity": "sha512-2RHxH0NGbrsFRVjTuMADMCyrJJRNv/TGw5MSSIr9D/p1nKK3b/Xz6FcZxJvepiIr1IFGZTUjN4YLnUS/1YdFvg==",
       "disposition": "defer",
       "owner": "codex61-sol",
       "reviewBy": "2026-11-15T09:00:00Z",

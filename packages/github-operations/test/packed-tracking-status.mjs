@@ -66,8 +66,33 @@ try {
   } while (cursor);
   assert.equal(seen.size, 25); assert.ok(maximumBytes <= 65_536);
   assert.equal(JSON.stringify(await storage.list()), before); assert.equal(providerReads, 0);
+  const selectedKey = waitKey('packed-1'), selected = (await storage.get(selectedKey)).value;
+  const error = { name: 'Error', message: 'GitHub command failed', code: 1,
+    stderr: 'gh: Forbidden (HTTP 403); ghp_IsolatedFixtureToken123',
+    cause: { name: 'Error', message: 'upstream permission denied ghp_IsolatedFixtureToken123' } };
+  selected.recovery.lastError = error; selected.task.title = 't'.repeat(900);
+  selected.task.automationState.retainedPayload = 'x'.repeat(9000);
+  await storage.set(selectedKey, selected);
+  await storage.set('github.tracking-diagnostics.v1.' + hash('packed-error'), {
+    requestKey: hash('packed-error'), subject: selected.task.subjectKey, catId: 'cat-1', threadId: 'thread-1',
+    at: 1, attempts: 1, phase: 'read_github', status: 'failed', code: 'provider_read_failed', error });
+  const diagnosticBefore = JSON.stringify(await storage.list());
+  const diagnostics = await run({ view: 'diagnostics', repo: 'example/repo-1' });
+  const recovery = await run({ view: 'recovery', repo: 'example/repo-1', catId: 'cat-1', threadId: 'thread-1' });
+  const recovered = recovery.data.recoveryOwners.typed.find(row => row.taskId === 'packed-1');
+  for (const result of [diagnostics, recovery]) {
+    assert.ok(Buffer.byteLength(JSON.stringify(result)) <= 65_536);
+    assert.ok(!JSON.stringify(result).includes('ghp_IsolatedFixtureToken123'));
+  }
+  for (const exposed of [diagnostics.data.diagnostics[0].error, recovered.recovery.lastError]) {
+    assert.match(exposed.stderr, /Forbidden \(HTTP 403\)/); assert.match(exposed.cause.message, /permission denied/);
+  }
+  assert.ok(recovery.data.tracking.find(task => task.id === 'packed-1').omittedFields.includes('title'));
+  assert.equal(JSON.stringify(await storage.list()), diagnosticBefore); assert.equal(providerReads, 0);
   console.log(JSON.stringify({ artifactRoot: root, version: manifest.version, declaredTool: tool.name,
     fixtureSubscriptions: 300, matched: seen.size, pages, maximumResponseBytes: maximumBytes,
+    diagnosticStderrRetained: true, causeExcerptRetained: true, titleOmissionRetained: true,
+    diagnosticResponseBytes: Buffer.byteLength(JSON.stringify(diagnostics)), recoveryResponseBytes: Buffer.byteLength(JSON.stringify(recovery)),
     storageUnchanged: true, providerReads, consumer: 'isolated bundled module with manifest input validation',
     productionInstallation: 'not changed or accepted' }, null, 2));
 } finally { await active.stop({ reason: 'isolated-packed-status-complete' }); }
