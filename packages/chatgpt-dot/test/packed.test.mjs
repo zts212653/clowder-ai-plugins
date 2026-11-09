@@ -10,13 +10,14 @@ import { assertPackageArchiveLayout } from "../../../scripts/verify-self-contain
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 function run(command, args, cwd, env = process.env) {
+	if (command === process.execPath) args = ["--no-extra-info-on-fatal-exception", ...args];
 	const result = spawnSync(command, args, {
 		cwd,
 		env,
 		encoding: "utf8",
 		maxBuffer: 16 * 1024 * 1024,
 	});
-	assert.equal(result.status, 0, [result.stdout, result.stderr].join("\n"));
+	assert.equal(result.status, 0, [result.stdout, result.stderr].map(text => text.slice(-8192)).join("\n"));
 	return result.stdout;
 }
 
@@ -38,16 +39,8 @@ test("canonical archive installs offline and survives two independently material
 		const archive = join(packs, packed.filename);
 		assertPackageArchiveLayout(archive);
 		const members = new Set(run("tar", ["-tzf", archive], root).split("\n"));
-		for (const target of [
-			"darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64",
-			"linuxmusl-arm64", "linuxmusl-x64", "win32-x64",
-		]) {
-			assert.ok(members.has(`package/node_modules/@img/sharp-${target}/package.json`),
-				`offline archive is missing sharp for ${target}`);
-			if (!target.startsWith("win32"))
-				assert.ok(members.has(`package/node_modules/@img/sharp-libvips-${target}/package.json`),
-					`offline archive is missing libvips for ${target}`);
-		}
+		assert.ok(members.has("package/node_modules/@img/sharp-wasm32/package.json"),
+			"offline archive is missing its portable image backend");
 		await writeFile(
 			join(consumer, "package.json"),
 			JSON.stringify({ private: true, type: "module" }),
@@ -80,6 +73,9 @@ test("canonical archive installs offline and survives two independently material
 			await readFile(join(root, "packages/chatgpt-dot/assets/bin/darwin-arm64/cloudflared")),
 		);
 		assert.equal((await stat(installedTunnel)).mode & 0o777, 0o644);
+		// Exercise the portable backend, rather than silently using the packer's native library.
+		for (const target of [`${process.platform}-${process.arch}`, `linuxmusl-${process.arch}`])
+			await rm(join(installed, `node_modules/@img/sharp-${target}`), {recursive: true, force: true});
 		const actualManifest = parseYaml(
 			await readFile(join(installed, "plugin.yaml"), "utf8"),
 		);
