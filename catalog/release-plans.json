@@ -232,6 +232,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/207",
       "reason": "The recovery repair retains SDK candidate.11 indexed-storage requirements. A reviewed source release and isolated acceptance do not establish compatibility of all public catalog consumers or authorize replacing an installed instance.",
       "condition": "Verify the paired capable Host and exact self-contained archive; preserve original instance, settings, baselines and history during an owner-authorized update. Public discovery activation requires separate scoped review."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.41",
+      "integrity": "sha512-2RHxH0NGbrsFRVjTuMADMCyrJJRNv/TGw5MSSIr9D/p1nKK3b/Xz6FcZxJvepiIr1IFGZTUjN4YLnUS/1YdFvg==",
+      "disposition": "defer",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-15T09:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/208",
+      "reason": "The bounded status candidate retains SDK candidate.11 and capable Host storage.scan requirements. Source and isolated packaged validation do not replace an installed-instance acceptance or authorize installation.",
+      "condition": "Verify this exact self-contained archive with the original instance, settings and retained subscriptions during an owner-authorized update; validate actual tool schema and bounded read results. Public catalog activation requires separate scoped review."
     }
   ]
 }

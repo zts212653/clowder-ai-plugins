@@ -19,6 +19,19 @@ arrive as ordinary messages. Read the returned wait and notification coverage. U
 when requested; terminal PR/issue state also retires tracking automatically.
 Unregistering retains historical records.
 
+Read status with `github_list_tracking`: default `view:"tracking"`, 20 records;
+use `repo`, your stable `catId`, `threadId` and a small `limit` (maximum 50) for the
+needed scope. `view:"recovery",needsAttention:true` pages paused/malformed sources
+across all four recovery owners. `view:"diagnostics"` reads registration attempts.
+Keep the exact filters, view and limit when following `page.nextCursor` until null.
+An empty page with a cursor is incomplete; remaining totals are unknown and pages
+are live, not snapshots. `page.unattributed` reports scanned records whose ownership
+could not be resolved under the filters; inspect unfiltered recovery pages if needed.
+Notice histories are counted and large fields explicitly marked omitted. This is
+read-only; no observer is re-registered, resumed or paused. For a single subject's
+events/projection use the existing `github_inspect_subject` with its own pagination,
+not a full tracking read; observations do not establish subscription/recovery status.
+
 For an existing paused typed wait, inspect `polling.state` and
 `recoveryOwners.typed` in `github_list_tracking`. A successful observation clears
 the consecutive failure count; quota, local queue pressure and skipped work do
@@ -146,10 +159,14 @@ Registration is scoped to the authenticated user, cat and thread. Other threads
 may subscribe to the same subject independently; cancellation affects only the
 caller's subscription. Existing cancelled records and original IDs are retained.
 On an unknown registration response reuse the exact registrationId and input.
-`github_list_tracking` includes safe persisted `diagnostics`: phase
+`github_list_tracking` with `view:"diagnostics"` includes safe persisted `diagnostics`: phase
 (verify_authority/load_subscription/read_github/save_subscription/complete), status, failure code
-and a hashed request key, plus original exception message/stack/cause and stderr
-with credentials redacted. These are private diagnostics, never notification
+and a hashed request key, plus bounded exception message/code/stderr and one cause
+(including message/stderr), with credentials redacted. Text fields are limited to
+2000 characters; clipping is recorded in `omittedFields`, and omitted stack/deeper
+causes are marked `detailOmitted`. Read stderr for gh authentication, permission or
+quota errors: its generic `GitHub command failed` message is insufficient.
+These are private diagnostics, never notification
 content. Inspect these after a failed MCP call; never infer a PAT
 or provider failure solely from HTTP 502. First registration reads a fresh GitHub
 baseline before committing the private subscription; periodic polling starts

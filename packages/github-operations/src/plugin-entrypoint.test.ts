@@ -839,8 +839,12 @@ test('preexisting issue metadata remains readable without adopting governance or
     /private-thread|secret|guardian|signoff|assignedThread|accepted/,
   );
   assert.equal(f.deliveries.length, 0);
-  assert.deepEqual(await active.actions['github.tracking.list']!({}), { data: { tracking: [], diagnostics: [],
-    recoveryOwners: { typed: [], collection: [], migratedIssues: [], journal: { readiness: 'ready', entries: [] } } } });
+  const emptyStatus = (await active.actions['github.tracking.list']!({})) as any;
+  assert.deepEqual(emptyStatus.data.tracking, []);
+  assert.deepEqual(emptyStatus.data.diagnostics, []);
+  assert.deepEqual(emptyStatus.data.recoveryOwners, { typed: [], collection: [], migratedIssues: [],
+    journal: { readiness: 'not_inspected', entries: [] } });
+  assert.equal(emptyStatus.data.page.nextCursor, null);
   await active.stop({ reason: 'test' });
   active = await module.create(manifest).start(f.runtimeHost);
   const again = await copyLegacyIssueObservations(
