@@ -15,7 +15,7 @@ After enabling Dot, open “Dot connection”. The plugin steps explain the comp
 1. Choose a long-lived or temporary public endpoint and copy the returned Server URL. Repeating setup reuses a live endpoint and credential. Long-lived credentials have no automatic expiry; temporary ingress lasts up to 24 hours.
 2. Open <https://chatgpt.com/plugins>, choose `+` → `Add custom MCP server`, paste the URL, and select `No authentication`. Remember the plugin name you chose.
 3. Check the plugin details for Dot tools and the `dot.summoned` event. Refresh only if they are missing or their definitions have changed.
-4. Click “生成订阅消息” (Generate subscription message) and copy its result. Open <https://chatgpt.com> and switch to **Work**. In the target conversation, type `@`, select the plugin you added, and send the message. Allow the subscription when prompted; a separate pairing-preparation action is not needed.
+4. Click “Generate subscription message” and copy its result. Open <https://chatgpt.com> and switch to **Work**. In the target conversation, type `@`, select the plugin you added, and send the message. Allow the subscription when prompted; a separate pairing-preparation action is not needed.
 5. Return to “Dot connection” and wait for the subscription. The plugin starts verification automatically; no manual test is needed. Dot is ready only after it reads the source message and replies with the verification code. Then address `@dot` in a Clowder AI conversation.
 
 The [OpenAI MCP Events guide](https://developers.openai.com/plugins/build/mcp-events) uses a Work chat on ChatGPT web and requires rescanning after tool or event definitions change. See [Get started with Work](https://learn.chatgpt.com/docs/get-started-with-work) for the Work entry point.

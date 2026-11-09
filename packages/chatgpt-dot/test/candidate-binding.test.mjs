@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import sharp from "sharp";
 import { createDotPlugin } from "../src/plugin-entrypoint.ts";
 import { DotConnection } from "../src/connection.ts";
+import { DotRuntime } from "../src/runtime.ts";
+import { rpc } from "../src/rpc.ts";
+import { digest } from "../src/store.ts";
 import { CONNECTION_KEY, EXTERNAL_KEY } from "../src/store.ts";
 import { paired, mcp, delivery } from "./fixture.mjs";
 
@@ -262,4 +266,53 @@ for (const reauthorize of [false, true]) test(`late current renewal cannot overw
   assert.match(failure?.message ?? "", /dot_binding_stale/);
   const current = await f.dot.current();
   assert.equal(current.subscription?.secret ?? null, reauthorize ? authorizedSecret : null);
+});
+
+
+for (const operation of ["reply", "publish-image", "ask"]) test(`queued ${operation} cannot borrow a promoted replacement credential`, async t => {
+  const f = await candidateFixture(t);
+  if (operation === "ask") f.host.messaging.subscribe = async ({threadId}) => assert.equal(threadId, "thread-1");
+  await f.subscribe(); assert.equal((await f.finish(await f.startProof())).body.error, undefined);
+  const tokenId = f.jti, formal = await f.dot.current();
+  await f.active.deliver(delivery(f, `queued-${operation}`));
+  const id = f.webhooks.filter(w => w.data.name === "dot.summoned").at(-1).data.eventId;
+  const credential = {sub:f.host.pluginInstanceId,cap:"dot-mcp",jti:tokenId,iat:1,exp:2_000_000_000};
+  const runtime = new DotRuntime(f.host, f.dot);
+  await runtime.read(id, credential);
+  await f.begin(); await f.subscribe(); const proof = await f.startProof();
+  let entered, release, admitted;
+  const started = new Promise(r => entered = r), gate = new Promise(r => release = r);
+  const authorized = new Promise(r => admitted = r);
+  const key = operation === "ask" ? `dot/ask/${digest([formal.attemptId, "queued-ask"])}` : id;
+  const occupied = runtime.serial(key, async () => {entered(); await gate;});
+  await started;
+  const authorize = f.dot.authorizeExternal.bind(f.dot);
+  f.dot.authorizeExternal = async (...args) => {const result = await authorize(...args); if(args[1] === operation) admitted(); return result;};
+  const names = {reply:"cat_cafe_dot_reply", "publish-image":"cat_cafe_dot_publish_image", ask:"cat_cafe_dot_ask"};
+  const args = operation === "reply" ? {event_id:id,content:"retired client reply"} : operation === "ask"
+    ? {attempt_id:formal.attemptId,thread_id:"thread-1",client_message_id:"queued-ask",target_cat_ids:["cat-1"],content:"queued request"}
+    : {event_id:id,publication_key:"queued-image",png_base64:(await sharp({create:{width:1,height:1,channels:4,background:"#336699"}}).png().toBuffer()).toString("base64")};
+  const pending = rpc(runtime, {method:"POST",headers:{},credential,body:{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:names[operation],arguments:args}}});
+  await authorized;
+  try {assert.equal((await f.finish(proof)).body.error, undefined);} finally {release();}
+  const sent = f.sent.length;
+  const result = await pending; await occupied;
+  assert.match(result.body.error?.data?.reason ?? "", /dot_external_credential_rejected/, "old queued caller must be rejected before doing work");
+  assert.equal(f.sent.length, sent, "revoked caller must not publish any Host message or completion");
+  const fresh = await rpc(runtime, {method:"POST",headers:{},credential:{...credential,jti:f.jti},body:{jsonrpc:"2.0",id:2,method:"tools/call",params:{name:names[operation],arguments:args}}});
+  assert.equal(fresh.body.error, undefined, "the replacement credential can publish the same valid input");
+  assert.equal(f.sent.length, sent + 1);
+});
+
+test("formal unsubscribe restores its saved endpoint instead of advertising a revoked candidate URL", async t => {
+  const f = await candidateFixture(t);
+  await f.subscribe(); await f.finish(await f.startProof());
+  const formal = await f.dot.current(), jti = f.jti;
+  const formalUrl = await f.dot.serverUrl();
+  await f.begin(); await f.subscribe();
+  assert.notEqual(await f.dot.serverUrl(), formalUrl);
+  assert.equal((await f.rpc("events/unsubscribe", {name:"dot.summoned",arguments:{attempt_id:formal.attemptId,pairing_code:formal.pairingCode},delivery:{mode:"webhook",url:formal.subscription.url}}, jti)).body.error, undefined);
+  assert.equal(await f.dot.serverUrl(), formalUrl);
+  assert.equal(f.records.get(EXTERNAL_KEY).value.pending, null);
+  assert.equal(f.records.get(EXTERNAL_KEY).value.current.tokenId, jti);
 });

@@ -116,11 +116,11 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
             }
             case 'cat_cafe_dot_publish_image':
                 await runtime.connection.authorizeExternal(credential, 'publish-image', dotImageArguments.parse(input.arguments).event_id);
-                result = await runtime.image(dotImageArguments.parse(input.arguments));
+                result = await runtime.image(dotImageArguments.parse(input.arguments), credential);
                 break;
             case 'cat_cafe_dot_ask':
                 await runtime.connection.authorizeExternal(credential, 'ask');
-                result = await runtime.ask(dotAskArguments.parse(input.arguments));
+                result = await runtime.ask(dotAskArguments.parse(input.arguments), credential);
                 break;
             default: return { status: 200, headers, body: { jsonrpc: '2.0', id, error: { code: -32602, message: 'Unknown dot tool' } } };
         }

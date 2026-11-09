@@ -1450,6 +1450,9 @@ export class DotConnection {
 			throw new Error("dot_subscription_mismatch");
 		await this.store.updateExternal((value) => {
 			if (!value) throw new Error("dot_binding_stale");
+			const endpoint = value.pending
+				? (value.pending.previousEndpoint ?? { mode: "absent" as const })
+				: value.endpoint;
 			if (state.bindingAuthority?.tokenId) {
 				if (
 					!value.current ||
@@ -1463,6 +1466,7 @@ export class DotConnection {
 					...value,
 					revision: value.revision + 1,
 					pending: null,
+					endpoint,
 					current: {
 						...value.current,
 						binding: {
@@ -1474,7 +1478,7 @@ export class DotConnection {
 					},
 				};
 			}
-			return { ...value, revision: value.revision + 1, pending: null };
+			return { ...value, revision: value.revision + 1, pending: null, endpoint };
 		});
 		if (state.bindingAuthority?.tokenId) return {};
 		await this.store.updateConnection((current) => {

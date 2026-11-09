@@ -259,6 +259,7 @@ export class DotRuntime {
 		throw new Error("dot_webhook_unacknowledged");
 	}
 	async read(id: string, credential?: VerifiedExternalCredential) {
+		await this.connection.authorizeExternal(credential, "read", id);
 		const proof = (await this.connection.store.dispatch(id))?.candidateProof;
 		if (proof && credential?.jti !== proof.tokenId)
 			throw new Error("dot_candidate_stale");
@@ -268,6 +269,7 @@ export class DotRuntime {
 			limit: 30,
 		});
 		await this.authorize(id);
+		await this.connection.authorizeExternal(credential, "read", id);
 		await this.connection.store.updateDispatch(id, (current) => {
 			this.connection.assertLive();
 			if (!current) throw new Error("dot_dispatch_unavailable");
@@ -292,6 +294,7 @@ export class DotRuntime {
 		credential?: VerifiedExternalCredential,
 	) {
 		return this.serial(id, async () => {
+			await this.connection.authorizeExternal(credential, "reply", id);
 			const proof = (await this.connection.store.dispatch(id))?.candidateProof;
 			if (proof && credential?.jti !== proof.tokenId)
 				throw new Error("dot_candidate_stale");
@@ -314,6 +317,7 @@ export class DotRuntime {
 				return { ...current, replyDigest: contentDigest };
 			});
 			await this.authorize(id, true);
+			await this.connection.authorizeExternal(credential, "reply", id);
 			const posted = await this.host.messaging.send({
 				threadId: record.threadId,
 				identity: "dot",
@@ -344,9 +348,10 @@ export class DotRuntime {
 			return posted;
 		});
 	}
-	async image(raw: z.infer<typeof dotImageArguments>) {
+	async image(raw: z.infer<typeof dotImageArguments>, credential?: VerifiedExternalCredential) {
 		const input = dotImageArguments.parse(raw);
 		return this.serial(input.event_id, async () => {
+			await this.connection.authorizeExternal(credential, "publish-image", input.event_id);
 			const { state, record } = await this.authorize(input.event_id, true);
 			const checked = await validatePng(input.png_base64),
 				id = `dot_img_${digest([state.ownerUserId, record.eventId, input.publication_key])}`;
@@ -414,6 +419,7 @@ export class DotRuntime {
 			await this.imageBytes(asset);
 			if (!asset.messageId) {
 				await this.authorize(record.eventId, true);
+				await this.connection.authorizeExternal(credential, "publish-image", record.eventId);
 				const posted = await this.host.messaging.send({
 					threadId: record.threadId,
 					identity: "dot",
@@ -513,17 +519,18 @@ export class DotRuntime {
 			};
 		},
 	};
-	async ask(raw: z.infer<typeof dotAskArguments>) {
+	async ask(raw: z.infer<typeof dotAskArguments>, credential?: VerifiedExternalCredential) {
 		const input = dotAskArguments.parse(raw);
 		const key = `dot/ask/${digest([input.attempt_id, input.client_message_id])}`;
 		this.askRevision++;
 		try {
-			return await this.serial(key, () => this.sendAsk(input));
+			return await this.serial(key, () => this.sendAsk(input, credential));
 		} finally {
 			this.askRevision++;
 		}
 	}
-	private async sendAsk(raw: z.infer<typeof dotAskArguments>) {
+	private async sendAsk(raw: z.infer<typeof dotAskArguments>, credential?: VerifiedExternalCredential) {
+		await this.connection.authorizeExternal(credential, "ask");
 		const input = dotAskArguments.parse(raw),
 			state = await this.connection.ready();
 		if (input.attempt_id !== state.attemptId)
@@ -579,6 +586,7 @@ export class DotRuntime {
 			throw new Error("dot_state_conflict");
 		await this.connection.sameAttempt(state);
 		this.connection.assertLive();
+		await this.connection.authorizeExternal(credential, "ask");
 		const result = await this.host.messaging.send({
 			threadId: input.thread_id,
 			identity: "dot",
