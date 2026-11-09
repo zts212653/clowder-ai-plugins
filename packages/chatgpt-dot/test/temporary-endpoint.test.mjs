@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { fork } from "node:child_process";
 import { chmod, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import http from "node:http";
@@ -302,8 +303,11 @@ test("controller reaps the detached tunnel group after an unexpected runner exit
 		wrapper,
 		`import { writeFileSync } from 'node:fs';\nwriteFileSync(${JSON.stringify(runnerPidFile)}, String(process.pid));\nawait import(${JSON.stringify(runnerPath)});\n`,
 	);
+	const requestScope = new AsyncLocalStorage();
+	let endedScope = "not-called";
 	const controller = new TemporaryEndpointController({
 		runnerPath: wrapper,
+		onEnded: () => { endedScope = requestScope.getStore(); },
 		binaryPath: tunnel.path,
 		fetch: async () => new Response("{}", { status: 401 }),
 		startupTimeoutMs: 2_000,
@@ -316,18 +320,19 @@ test("controller reaps the detached tunnel group after an unexpected runner exit
 		if (tunnelPid && live(tunnelPid)) process.kill(tunnelPid, "SIGKILL");
 		await rm(root, { recursive: true, force: true });
 	});
-	await controller.start({
+	await requestScope.run("retired-request", () => controller.start({
 		upstreamLoopbackOrigin: "http://127.0.0.1:1",
 		relativePath: "/api/plugin-runtime/handle",
 		method: "POST",
 		token: "fixture-token",
 		ttlMs: 60_000,
-	});
+	}));
 	runnerPid = Number(await readFile(runnerPidFile, "utf8"));
 	tunnelPid = Number(await readFile(tunnel.pidFile, "utf8"));
 	process.kill(runnerPid, "SIGKILL");
 	await pause(1_000);
 	assert.equal(live(tunnelPid), false);
+	assert.equal(endedScope, undefined, "lease completion belongs to activation, not the request which started it");
 	assert.throws(() => controller.allowToken("late-token"), /unavailable/u);
 });
 

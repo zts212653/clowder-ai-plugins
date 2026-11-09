@@ -1,4 +1,5 @@
 import { fork, type ChildProcess } from "node:child_process";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomUUID } from "node:crypto";
 import { chmod, lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -60,6 +61,7 @@ async function waitForProcessGroupExit(pid: number, timeoutMs: number): Promise<
 
 /** Activation-owned temporary ingress. No Host-specific process or endpoint policy lives here. */
 export class TemporaryEndpointController {
+	readonly #inActivation = AsyncLocalStorage.snapshot();
 	readonly #runnerPath: string;
 	readonly #binaryPath: string;
 	readonly #now: () => number;
@@ -264,6 +266,6 @@ export class TemporaryEndpointController {
 				await waitForProcessGroupExit(pid, 250);
 			}
 		}
-		await this.#onEnded?.(active.generation, reason);
+		await this.#inActivation(() => this.#onEnded?.(active.generation, reason));
 	}
 }

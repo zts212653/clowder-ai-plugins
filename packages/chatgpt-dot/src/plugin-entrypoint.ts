@@ -390,8 +390,12 @@ export function createDotPlugin(
 			try {
 				loopback = await startMcpLoopback(runtime);
 				const external = await current.externalState();
-				if (external.endpoint.mode === "temporary-active")
-					await current.expireTemporary(external.endpoint.generation);
+				for (const lease of [
+					external.endpoint,
+					external.pending?.previousEndpoint,
+				])
+					if (lease?.mode === "temporary-active")
+						await current.expireTemporary(lease.generation);
 				await runtime.restoreSubscriptions();
 				runtime.verification.schedule();
 				let stop: Promise<void> | undefined;

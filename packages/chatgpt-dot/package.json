@@ -1,6 +1,6 @@
 {
 	"name": "@clowder-ai/chatgpt-dot",
-	"version": "0.2.0-alpha.41",
+	"version": "0.2.0-alpha.42",
 	"private": true,
 	"description": "Paired ChatGPT Dot connection and source-bound messaging plugin",
 	"license": "MIT",
@@ -31,14 +31,15 @@
 	"dependencies": {
 		"@clowder-ai/plugin-contract": "0.3.3-candidate.1",
 		"@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.12",
-		"zod": "3.24.1",
+		"zod": "3.25.76",
 		"sharp": "0.33.5"
 	},
 	"devDependencies": {
 		"@types/node": "^20.17.0",
 		"typescript": "^5.7.0",
 		"tsx": "^4.19.0",
-		"yaml": "2.9.0"
+		"yaml": "2.9.0",
+		"@modelcontextprotocol/sdk": "1.26.0"
 	},
 	"repository": {
 		"type": "git",

@@ -190,3 +190,87 @@ test("an ingress expiring during the source read cannot receive a successful web
 		0,
 	);
 });
+
+function stageSavedTemporary(f, candidateMode = "long-lived") {
+	const external = f.records.get(EXTERNAL_KEY).value;
+	external.pending = {
+		kind: "pending",
+		issuer: "plugin",
+		pluginInstanceId: f.host.pluginInstanceId,
+		token: "candidate-secret",
+		tokenId: "candidate",
+		issuedAt: 1,
+		expiresAt: null,
+		refreshRecommendedAt: null,
+		candidateId: "candidate-1",
+		revision: 1,
+		createdAt: 1,
+		discoveredAt: null,
+		pairingAttemptId: null,
+		pairingRequired: true,
+		binding: null,
+		verificationEventId: null,
+		verificationReadAt: null,
+		verificationReplyAt: null,
+		previousEndpoint: f.lease,
+	};
+	external.endpoint =
+		candidateMode === "long-lived"
+			? {
+					mode: "long-lived",
+					serverUrl: "https://candidate.example/mcp",
+					reachableAt: 1,
+				}
+			: {
+					...f.lease,
+					generation: "candidate-lease",
+					serverUrl: "https://candidate.example/mcp",
+				};
+	return external;
+}
+
+for (const candidateMode of ["long-lived", "temporary-active"])
+	test(`restart expires the saved formal temporary lease while ${candidateMode} is pending`, async (t) => {
+		const f = await protectedFixture(t);
+		stageSavedTemporary(f, candidateMode);
+		await f.active.stop({ reason: "restart" });
+		f.active = await f.module.start(f.host);
+		const state = await f.dot.externalState();
+		assert.equal(state.pending.previousEndpoint.mode, "temporary-expired");
+		assert.equal(state.pending.previousEndpoint.generation, "formal-lease");
+		assert.equal(
+			state.endpoint.mode,
+			candidateMode === "long-lived" ? "long-lived" : "temporary-expired",
+		);
+		await assert.rejects(
+			f.active.deliver(delivery(f, "after-restart")),
+			/dot_endpoint_unavailable/,
+		);
+		await f.dot.cancelPending();
+		assert.equal(
+			(await f.dot.externalState()).endpoint.mode,
+			"temporary-expired",
+		);
+		await assert.rejects(
+			f.active.deliver(delivery(f, "after-cancel")),
+			/dot_endpoint_unavailable/,
+		);
+		assert.equal(
+			f.webhooks.filter((w) => w.data.name === "dot.summoned").length,
+			0,
+		);
+	});
+
+test("lease termination expires a matching saved predecessor but cannot expire a replacement generation", async (t) => {
+	const f = await protectedFixture(t);
+	stageSavedTemporary(f, "temporary-active");
+	await f.dot.expireTemporary("formal-lease");
+	let state = await f.dot.externalState();
+	assert.equal(state.pending.previousEndpoint.mode, "temporary-expired");
+	assert.equal(state.endpoint.mode, "temporary-active");
+	assert.equal(state.endpoint.generation, "candidate-lease");
+	await f.dot.expireTemporary("retired-unrelated-lease");
+	state = await f.dot.externalState();
+	assert.equal(state.endpoint.mode, "temporary-active");
+	assert.equal(state.endpoint.generation, "candidate-lease");
+});

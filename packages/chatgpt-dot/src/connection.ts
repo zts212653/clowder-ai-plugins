@@ -355,31 +355,40 @@ export class DotConnection {
 	}
 	async expireTemporary(generation: string) {
 		return this.store.updateExternal((state) => {
-			if (
-				!state ||
-				state.endpoint.mode !== "temporary-active" ||
-				state.endpoint.generation !== generation
-			)
-				return (
-					state ?? {
-						v: 1,
-						revision: 1,
-						current: null,
-						pending: null,
-						endpoint: { mode: "absent" },
-					}
-				);
+			if (!state)
+				return {
+					v: 1,
+					revision: 1,
+					current: null,
+					pending: null,
+					endpoint: { mode: "absent" },
+				};
+			const expire = (
+				lease: DotExternalState["endpoint"],
+			): DotExternalState["endpoint"] =>
+				lease.mode === "temporary-active" && lease.generation === generation
+					? {
+							mode: "temporary-expired",
+							generation,
+							expiresAt: lease.expiresAt,
+						}
+					: lease;
+			const endpoint = expire(state.endpoint);
+			const previous = state.pending?.previousEndpoint;
+			const previousEndpoint = previous ? expire(previous) : previous;
+			if (endpoint === state.endpoint && previousEndpoint === previous)
+				return state;
 			return {
 				...state,
 				revision: state.revision + 1,
-				endpoint: {
-					mode: "temporary-expired",
-					generation,
-					expiresAt: state.endpoint.expiresAt,
-				},
+				endpoint,
+				...(state.pending
+					? { pending: { ...state.pending, previousEndpoint } }
+					: {}),
 			};
 		});
 	}
+
 	async cancelPending() {
 		return this.store.updateExternal((state) => {
 			if (!state)
