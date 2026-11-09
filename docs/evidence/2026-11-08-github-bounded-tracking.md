@@ -86,8 +86,17 @@ At implementation time, the installed plugin projection is **alpha.40 / running*
 restarted. No real GitHub observer, test issue/comment or subscription was created; validation
 uses in-memory fixtures and does not access production Redis.
 
-Full repository gate, independent review, merge and checkout disposition are still pending at this
-record's initial publication. After source integration, the original task's home retains installed
+The repository's **39 gate steps are all covered at HEAD
+`2387914065dc6d878f5749df904175656b011a4d`**. Managed job
+`managed-job-289865565e07cc6a0f1b3625995f4d3bb805a696` passed 1–20, then the unrelated Feishu
+build's fixed CLI download timed out. Both existing CLI 1.0.85 archives were verified against the
+upstream checksums and copied to this checkout's ignored cache; its build then passed without
+product changes. Job `managed-job-688a405aa34478e6e01e5016aae29a553aebf021` used the exported
+`buildGateSteps` definitions at that unchanged HEAD and passed 21–39 (733 seconds), including
+catalog/release validation and all **26 publishable-package** pack checks. This is prefix/suffix
+coverage, not a claim that the original failed command exited successfully.
+
+Independent review, merge and checkout disposition remain pending. After source integration, the original task's home retains installed
 acceptance: name the actual consumer/version, inspect the live schema, and perform bounded read-only
 queries over existing data before closing that original task. Source tests do not establish that
 the actual installed caller can use these arguments.
