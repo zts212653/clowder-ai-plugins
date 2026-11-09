@@ -37,6 +37,17 @@ test("canonical archive installs offline and survives two independently material
 		);
 		const archive = join(packs, packed.filename);
 		assertPackageArchiveLayout(archive);
+		const members = new Set(run("tar", ["-tzf", archive], root).split("\n"));
+		for (const target of [
+			"darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64",
+			"linuxmusl-arm64", "linuxmusl-x64", "win32-x64",
+		]) {
+			assert.ok(members.has(`package/node_modules/@img/sharp-${target}/package.json`),
+				`offline archive is missing sharp for ${target}`);
+			if (!target.startsWith("win32"))
+				assert.ok(members.has(`package/node_modules/@img/sharp-libvips-${target}/package.json`),
+					`offline archive is missing libvips for ${target}`);
+		}
 		await writeFile(
 			join(consumer, "package.json"),
 			JSON.stringify({ private: true, type: "module" }),

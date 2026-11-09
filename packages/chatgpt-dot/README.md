@@ -8,7 +8,7 @@ Dot 把已配对的 ChatGPT 云端对话接入 Clowder AI。安装实例可作�
 
 ## 安装与连接
 
-在插件管理器选择本地插件目录或作者提供的完整归档。归档携带实际运行依赖，不需要另装 SDK。当前完整归档已在 macOS Apple Silicon 验证；其他平台的临时入口尚未提供对应 tunnel 资产。
+在插件管理器选择本地插件目录或作者提供的完整归档。归档携带实际运行依赖，不需要另装 SDK。完整归档携带 macOS arm64/x64、Linux glibc/musl arm64/x64 和 Windows x64 的图像处理依赖；平台 CI 负责加载验证。临时入口仅提供 macOS Apple Silicon 的 tunnel，其他平台使用长期公网入口。
 
 启用后打开「Dot 连接」，完整流程在插件步骤中说明：
 

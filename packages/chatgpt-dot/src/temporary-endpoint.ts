@@ -64,6 +64,7 @@ export class TemporaryEndpointController {
 	readonly #inActivation = AsyncLocalStorage.snapshot();
 	readonly #runnerPath: string;
 	readonly #binaryPath: string;
+	readonly #usesBundledBinary: boolean;
 	readonly #now: () => number;
 	readonly #fetch: typeof fetch;
 	readonly #startupTimeoutMs: number;
@@ -77,6 +78,7 @@ export class TemporaryEndpointController {
 	constructor(options: TemporaryEndpointOptions = {}) {
 		this.#runnerPath = options.runnerPath ?? fileURLToPath(new URL("./temporary-endpoint-runner.mjs", import.meta.url));
 		this.#binaryPath = options.binaryPath ?? fileURLToPath(new URL("../assets/bin/darwin-arm64/cloudflared", import.meta.url));
+		this.#usesBundledBinary = options.binaryPath === undefined;
 		this.#now = options.now ?? Date.now;
 		this.#fetch = options.fetch ?? fetch;
 		this.#startupTimeoutMs = options.startupTimeoutMs ?? 20_000;
@@ -121,7 +123,7 @@ export class TemporaryEndpointController {
 		readonly token: string;
 		readonly ttlMs: number;
 	}): Promise<TemporaryEndpointLease> {
-		if (process.platform !== "darwin" || process.arch !== "arm64")
+		if (this.#usesBundledBinary && (process.platform !== "darwin" || process.arch !== "arm64"))
 			throw new Error("dot_temporary_platform_unsupported");
 		if (!Number.isSafeInteger(input.ttlMs) || input.ttlMs <= 0 || input.ttlMs > 24 * 60 * 60_000)
 			throw new Error("dot_temporary_ttl_invalid");

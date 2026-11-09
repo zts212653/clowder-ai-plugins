@@ -8,7 +8,7 @@ Maintainer: the Clowder AI plugin team. This is a local candidate requiring the 
 
 ## Installation and connection
 
-Choose the local plugin directory or the complete supplied archive in Plugin Manager. The archive carries its runtime dependencies; no separate SDK installation is required. The complete archive is verified on macOS Apple Silicon. Temporary ingress is not yet supplied for other platforms.
+Choose the local plugin directory or the complete supplied archive in Plugin Manager. The archive carries its runtime dependencies; no separate SDK installation is required. The archive includes image-processing dependencies for macOS arm64/x64, Linux glibc/musl arm64/x64, and Windows x64; platform CI checks entry loading. The temporary tunnel is supplied only for macOS Apple Silicon; other platforms use long-lived public ingress.
 
 After enabling Dot, open “Dot connection”. The plugin steps explain the complete setup:
 
