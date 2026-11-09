@@ -7,7 +7,29 @@ import type {
 } from '@clowder-ai/plugin-sdk';
 import type { SuperagentHost } from '../src/runtime.js';
 
-export function fixture() {
+interface Fixture {
+  host: SuperagentHost;
+  rows: Map<string, { revision: number; value: unknown }>;
+  threads: Map<string, PluginThreadSummary>;
+  tasks: Map<string, PluginTaskReadItem>;
+  sent: Map<string, Parameters<SuperagentHost['messaging']['send']>[0] & { messageId: string }>;
+  subscriptions: Set<string>;
+  history: Map<string, PluginThreadMessage[]>;
+  messages: Map<string, PluginMessage>;
+  preferences: {
+    v: number;
+    enabled: boolean;
+    name: string;
+    coordinatorId: string;
+    workerIds: string[];
+    threadIds: string[];
+    responsibility: string;
+  };
+  seed: () => ReturnType<SuperagentHost['storage']['set']>;
+  caller: (threadId: string, catId?: string) => PluginActionContext;
+}
+
+export function fixture(): Fixture {
   const rows = new Map<string, { revision: number; value: unknown }>();
   let revision = 0;
   const threads = new Map<string, PluginThreadSummary>(
