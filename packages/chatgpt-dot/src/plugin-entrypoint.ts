@@ -28,6 +28,7 @@ import {
 export interface DotPluginOptions {
 	readonly sendWebhook?: DotWebhookSend;
 	readonly now?: () => number;
+	readonly verificationDelayMs?: number;
 }
 function longLivedServerUrl(template: unknown, token: string) {
 	if (typeof template !== "string" || template.split("{token}").length !== 2)
@@ -58,9 +59,19 @@ function endpointCredentialIsLive(
 	now: number,
 	pluginInstanceId: string,
 ): boolean {
-	if (state.pending) return (state.pending.issuer !== "plugin" || state.pending.pluginInstanceId === pluginInstanceId) && credentialLive(state.pending, now);
+	if (state.pending)
+		return (
+			(state.pending.issuer !== "plugin" ||
+				state.pending.pluginInstanceId === pluginInstanceId) &&
+			credentialLive(state.pending, now)
+		);
 	if (!state.current) return false;
-	return state.current.kind === "legacy" || ((state.current.kind !== "plugin" || state.current.pluginInstanceId === pluginInstanceId) && credentialLive(state.current, now));
+	return (
+		state.current.kind === "legacy" ||
+		((state.current.kind !== "plugin" ||
+			state.current.pluginInstanceId === pluginInstanceId) &&
+			credentialLive(state.current, now))
+	);
 }
 export function createDotPlugin(
 	options: DotPluginOptions = {},
@@ -141,6 +152,7 @@ export function createDotPlugin(
 						dispatches,
 						now,
 						...(credentialStatus ? { credentialStatus } : {}),
+						verificationJob: await running?.verification.status(),
 					}),
 				};
 			};
@@ -159,7 +171,11 @@ export function createDotPlugin(
 					const existing = await current.externalState();
 					if (
 						existing.endpoint.mode === "long-lived" &&
-						endpointCredentialIsLive(existing, (options.now ?? Date.now)(),host.pluginInstanceId)
+						endpointCredentialIsLive(
+							existing,
+							(options.now ?? Date.now)(),
+							host.pluginInstanceId,
+						)
 					)
 						return endpointResult(context);
 					const input = operationInput(params);
@@ -181,7 +197,11 @@ export function createDotPlugin(
 					if (
 						before.endpoint.mode === "temporary-active" &&
 						before.endpoint.expiresAt > (options.now ?? Date.now)() &&
-						endpointCredentialIsLive(before, (options.now ?? Date.now)(),host.pluginInstanceId)
+						endpointCredentialIsLive(
+							before,
+							(options.now ?? Date.now)(),
+							host.pluginInstanceId,
+						)
 					)
 						return endpointResult(context);
 					const hours = Number(
@@ -290,6 +310,12 @@ export function createDotPlugin(
 					await running.testRoundtrip();
 					return statusRows(context);
 				},
+				"dot.retry-verification": async (_input, _native, context) => {
+					if (!running) throw new Error("dot_runtime_unavailable");
+					await current.owner(context);
+					await running.verification.retry();
+					return statusRows(context);
+				},
 				"dot.check-roundtrip": async (_input, _native, context) =>
 					statusRows(context),
 				"dot.disconnect": async (_input, _native, context) => {
@@ -341,7 +367,7 @@ export function createDotPlugin(
 			const controller = new AbortController(),
 				dotHost = host as ModulePluginHostShape & DotSettingsHost,
 				[current, refresh] = await connection(dotHost, controller),
-				runtime = new DotRuntime(host, current);
+				runtime = new DotRuntime(host, current, options.verificationDelayMs);
 			temporaryEndpoints = new TemporaryEndpointController({
 				...(options.now ? { now: options.now } : {}),
 				runtimeDirectory: join(dotHost.dataPath, "temporary-endpoint"),
@@ -361,6 +387,7 @@ export function createDotPlugin(
 				if (external.endpoint.mode === "temporary-active")
 					await current.expireTemporary(external.endpoint.generation);
 				await runtime.restoreSubscriptions();
+				runtime.verification.schedule();
 				let stop: Promise<void> | undefined;
 				const admitted = new Set<Promise<unknown>>();
 				const deliver = async (

@@ -21,7 +21,7 @@ importers:
         specifier: 0.3.3-candidate.1
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.2-candidate.11
+        specifier: 0.3.0-beta.2-candidate.12
         version: link:../plugin-sdk
       sharp:
         specifier: 0.33.5
@@ -85,7 +85,7 @@ importers:
         specifier: 0.3.3-candidate.1
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.2-candidate.11
+        specifier: 0.3.0-beta.2-candidate.12
         version: link:../plugin-sdk
       playwright:
         specifier: 1.61.1
@@ -416,7 +416,7 @@ importers:
         specifier: 0.3.3-candidate.1
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.2-candidate.11
+        specifier: 0.3.0-beta.2-candidate.12
         version: link:../plugin-sdk
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
@@ -567,7 +567,7 @@ importers:
         specifier: 0.3.3-candidate.1
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.2-candidate.11
+        specifier: 0.3.0-beta.2-candidate.12
         version: link:../plugin-sdk
       zod:
         specifier: 4.6.7

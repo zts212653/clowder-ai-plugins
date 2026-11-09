@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@clowder-ai/plugin-contract": "0.3.3-candidate.1",
-    "@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.11",
+    "@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.12",
     "playwright": "1.61.1"
   },
   "repository": {

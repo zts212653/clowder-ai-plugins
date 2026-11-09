@@ -88,8 +88,10 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
         if (method === 'events/subscribe') {
             await runtime.connection.authorizeExternal(credential, 'pairing-subscribe');
             const input = subscribeSchema.parse(params);
-            return complete(await runtime.connection.subscribe({ attemptId: input.arguments.attempt_id, pairingCode: input.arguments.pairing_code,
-                url: input.delivery.url, secret: input.delivery.secret, ...input.ttlMs === undefined ? {} : { ttlMs: input.ttlMs } }, credential));
+            const subscription = await runtime.connection.subscribe({ attemptId: input.arguments.attempt_id, pairingCode: input.arguments.pairing_code,
+                url: input.delivery.url, secret: input.delivery.secret, ...input.ttlMs === undefined ? {} : { ttlMs: input.ttlMs } }, credential);
+            runtime.verification.schedule();
+            return complete(subscription);
         }
         if (method === 'events/unsubscribe') {
             await runtime.connection.authorizeExternal(credential, 'pairing-unsubscribe');

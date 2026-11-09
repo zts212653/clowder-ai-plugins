@@ -1,5 +1,5 @@
 pluginId: official.chatgpt-dot
-version: 0.2.0-alpha.32
+version: 0.2.0-alpha.33
 contractVersion: 0.3.3-candidate.1
 name: ChatGPT Dot
 description:
@@ -17,7 +17,7 @@ steps:
   - text: 打开 https://chatgpt.com/plugins，选择「+」→「Add custom MCP server」，粘贴 Server URL，将 Authentication 设为「No authentication」，并记住添加时使用的插件名称。
   - text: 在刚添加的插件详情中确认已显示 Dot 工具和 dot.summoned 事件；只有未显示或工具与事件定义更新后，才点击 Refresh 重新扫描。
   - text: 点击「生成订阅消息」并复制结果。打开 https://chatgpt.com 并切换到 Work，在目标对话中输入 @，选择刚添加的插件，再粘贴消息并发送，按 ChatGPT 提示允许订阅。
-  - text: 回到「Dot 连接」等待订阅结果。连接建立后发起往返测试；只有读取原消息并回复校验码成功才显示可用，此后可在 Clowder AI 对话中 @dot 发送消息。
+  - text: 回到「Dot 连接」等待订阅结果。订阅建立后插件会自动验证往返；只有读取原消息并回复校验码成功才显示可用，此后可在 Clowder AI 对话中 @dot 发送消息。
 configuration:
   - key: endpointMode
     label: ChatGPT 入口类型
@@ -131,10 +131,15 @@ configuration:
         confirm: 断开后无法接收召唤，已保存的消息和原图保留。
         action: { method: dot.disconnect }
       - id: roundtrip
-        label: 发起往返测试
+        label: 重试验证
         render: row
         resultRender: rows
         action: { method: dot.roundtrip }
+      - id: retry-verification
+        label: 重试验证
+        render: row
+        resultRender: rows
+        action: { method: dot.retry-verification }
       - id: check-roundtrip
         label: 检查测试结果
         render: row

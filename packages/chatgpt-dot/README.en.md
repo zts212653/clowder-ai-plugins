@@ -16,7 +16,7 @@ After enabling Dot, open “Dot connection”. The plugin steps explain the comp
 2. Open <https://chatgpt.com/plugins>, choose `+` → `Add custom MCP server`, paste the URL, and select `No authentication`. Remember the plugin name you chose.
 3. Check the plugin details for Dot tools and the `dot.summoned` event. Refresh only if they are missing or their definitions have changed.
 4. Click “生成订阅消息” (Generate subscription message) and copy its result. Open <https://chatgpt.com> and switch to **Work**. In the target conversation, type `@`, select the plugin you added, and send the message. Allow the subscription when prompted; a separate pairing-preparation action is not needed.
-5. Return to “Dot connection” and wait for the subscription. Run the roundtrip check; Dot is ready only after it reads the source message and replies with the verification code. Then address `@dot` in a Clowder AI conversation.
+5. Return to “Dot connection” and wait for the subscription. The plugin starts verification automatically; no manual test is needed. Dot is ready only after it reads the source message and replies with the verification code. Then address `@dot` in a Clowder AI conversation.
 
 The [OpenAI MCP Events guide](https://developers.openai.com/plugins/build/mcp-events) uses a Work chat on ChatGPT web and requires rescanning after tool or event definitions change. See [Get started with Work](https://learn.chatgpt.com/docs/get-started-with-work) for the Work entry point.
 
@@ -26,9 +26,9 @@ The optional proxy supports a loopback HTTP CONNECT endpoint. Direct HTTPS callb
 
 ## Use and recovery
 
-Select Dot in a conversation and send a message. A delivery receipt confirms receipt of the summon; a model reply appears later as an ordinary plugin message. Every summon must be read separately before replying. An event from another thread or pairing does not grant reply authority. New originals enter ordinary Host message and media storage through attachment streams.
+Select Dot in a conversation and send a message. A delivery receipt confirms receipt of the summon. The reply position shows a waiting placeholder until visible text or attachments take over. A full text reply reports completion through the generic SDK response contract; acceptance alone never completes the response. Every summon must be read separately before replying. An event from another thread or pairing does not grant reply authority. New originals enter ordinary Host message and media storage through attachment streams.
 
-Connection status separates pairing from recent source-read, reply and image evidence. After enabling, start a roundtrip test, have the cloud conversation reply with the random nonce in the source, and run the connection test to confirm. A subscription or successful HTTP response does not prove a model reply.
+After subscription, Dot automatically sends a verification event and waits for the cloud conversation to read the source and return its random nonce. Duplicate subscriptions and restart reuse the verification job and existing evidence. Failure exposes a reason and Retry automatic verification; credential updates retain the protected current connection and a cancel action. An interrupted test-thread creation with an unknown outcome stops automatic recovery and asks for explicit retry, avoiding repeated thread creation. A subscription or successful HTTP response does not prove a model reply.
 
 Disable revokes the runtime and aborts network requests. Enable restores durable pairing and subscriptions only for threads with existing questions. External clients cannot continue calling a disabled plugin. Configuration, pairing, requests and original images survive disable and uninstall; historical messages are retained.
 

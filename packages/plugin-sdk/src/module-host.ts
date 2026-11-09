@@ -299,6 +299,8 @@ export type PluginMessagingDraft = Omit<MessageDraft, 'address'> & {
   readonly identity?: string;
   readonly url?: string;
   readonly meta?: Readonly<Record<string, unknown>>;
+  /** Explicit response progress for one Host-issued addressed delivery. Content alone is not completion. */
+  readonly response?: { readonly deliveryId: string; readonly status: 'processing' | 'completed' | 'failed' | 'canceled' | 'interrupted' };
 };
 
 export interface PluginMessagingSubscribeOptions {

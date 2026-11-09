@@ -14,6 +14,7 @@ type JourneyAction =
 	| "begin-pairing"
 	| "reconnect"
 	| "roundtrip"
+	| "retry-verification"
 	| "check-roundtrip"
 	| "disconnect";
 
@@ -55,6 +56,7 @@ function currentTests(
 }
 
 export interface DotJourneyInput {
+	readonly verificationJob?: import("./automatic-verification.js").VerificationJob;
 	readonly runtimeRunning: boolean;
 	readonly external: DotExternalState | null;
 	readonly connection: DotConnectionState | null;
@@ -67,7 +69,7 @@ export interface DotJourneyInput {
 	};
 }
 
-export function projectDotJourney(input: DotJourneyInput): OperationRows {
+function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 	if (!input.runtimeRunning) {
 		return {
 			rows: [
@@ -407,5 +409,72 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 				action("disconnect", "断开连接"),
 			]),
 		],
+	};
+}
+
+/** The owner watches automatic verification; only a failed attempt asks for an action. */
+export function projectDotJourney(input: DotJourneyInput): OperationRows {
+	const result = projectDotJourneyDetails(input);
+	if (
+		input.verificationJob?.stage === "failed" &&
+		result.rows[0]?.key !== "ready"
+	)
+		return {
+			rows: [
+				row(
+					"automatic-verification-failed",
+					"自动连接验证未完成",
+					input.verificationJob.error === "dot_verification_creation_unknown"
+						? "上次创建验证对话时中断，无法确认创建结果。点击重试后重新准备；已保存的连接不会被替换。"
+						: "本次验证未完成，已有测试消息和校验记录会在重试时复用。",
+					[
+						action("retry-verification", "重试验证"),
+						...(input.external?.pending && input.external.current
+							? [action("cancel-pending", "放弃本次更新")]
+							: [action("disconnect", "断开连接")]),
+					],
+				),
+			],
+		};
+	return {
+		...result,
+		rows: result.rows.map((item) => {
+			const needsStart = [
+				"verification-required",
+				"candidate-verification-required",
+			].includes(item.key);
+			const failed = /timeout|failed/.test(item.key);
+			const actions = (item.actions ?? [])
+				.filter(
+					(a) =>
+						a.action !== "check-roundtrip" &&
+						(failed || a.action !== "roundtrip"),
+				)
+				.map((a) =>
+					a.action === "roundtrip"
+						? action("retry-verification", "重试验证")
+						: a,
+				);
+			return {
+				...item,
+				...(needsStart
+					? {
+							label: input.external?.current
+								? "正在自动验证新的连接"
+								: "正在自动验证连接",
+							detail:
+								"订阅已建立，插件会自动发送测试消息，确认读取原文及校验码回复。",
+						}
+					: {}),
+				...(actions.length ? { actions } : { actions: undefined }),
+			};
+		}),
+		...(result.rows.some((item) =>
+			["verification-required", "candidate-verification-required"].includes(
+				item.key,
+			),
+		)
+			? { pollUntil: input.now + FIVE_MINUTES_MS }
+			: {}),
 	};
 }

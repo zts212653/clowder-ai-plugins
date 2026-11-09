@@ -11,6 +11,7 @@ export const dispatchSchema = z.object({
     dispatchInvocationId: ref, attemptId: ref, agentKeyId: ref, occurredAt: z.number(), webhookAcknowledgedAt: z.number().nullable(),
     sourceReadAt: z.number().nullable(), replyMessageId: ref.nullable(), imagePublicationIds: z.array(ref),
     imageReservationIds: z.array(ref).optional(), connectionTest: z.boolean().default(false),
+    verificationKey: ref.optional(),
     expectedNonce: z.string().regex(/^[a-f0-9]{16}$/).optional(), sourceRevision: ref.optional(),
     candidateProof: z.object({ candidateId: ref, tokenId: ref, bindingVersion: z.number().int().positive() }).strict().optional(),
     replyDigest: ref.optional(), deliveryId: ref.optional(), deliveryError: z.string().min(1).max(200).nullable().optional(),
