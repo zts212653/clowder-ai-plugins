@@ -585,3 +585,48 @@ for (const cancel of [false,true]) test(`temporary candidate reuses the saved fo
     assert.equal(starts,1);
   }
 });
+
+for (const window of ['before-commit','after-commit']) test(`late cancel cannot revoke or stop a replacement candidate (${window})`, async t => {
+  const original={start:TemporaryEndpointController.prototype.start,allowToken:TemporaryEndpointController.prototype.allowToken,stop:TemporaryEndpointController.prototype.stop};
+  let activeLease,sequence=0,connection;
+  TemporaryEndpointController.prototype.start=async function(input){
+    const previous=activeLease;
+    if(previous) await connection.expireTemporary(previous.generation);
+    activeLease={generation:`cancel-race-${++sequence}`,serverUrl:`https://temp.example/mcp?token=${input.token}`,startedAt:Date.now(),expiresAt:Date.now()+input.ttlMs};
+    return activeLease;
+  };
+  TemporaryEndpointController.prototype.allowToken=function(token){assert.ok(activeLease);return {...activeLease,serverUrl:`https://temp.example/mcp?token=${token}`};};
+  TemporaryEndpointController.prototype.stop=async function(reason,expected){
+    if(!activeLease || (expected!==undefined && expected!==activeLease.generation))return;
+    const stopped=activeLease;activeLease=undefined;
+    await connection.expireTemporary(stopped.generation);
+  };
+  t.after(()=>Object.assign(TemporaryEndpointController.prototype,original));
+  const x=await setup(t);
+  connection=new DotConnection(x.f.host,x.f.sendWebhook,new AbortController().signal);
+  await x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
+  await x.active.actions['dot.start-temporary']({input:{temporaryEndpointHours:1}},undefined,x.f.owner);
+  let entered,release,paused=false;
+  const reached=new Promise(r=>entered=r),gate=new Promise(r=>release=r),cas=x.f.host.storage.compareAndSet.bind(x.f.host.storage);
+  x.f.host.storage.compareAndSet=async(key,revision,value)=>{
+    if(!paused && key==='dot/external/v1' && value.pending===null){
+      paused=true;
+      if(window==='before-commit'){entered();await gate;return cas(key,revision,value);}
+      const result=await cas(key,revision,value);entered();await gate;return result;
+    }
+    return cas(key,revision,value);
+  };
+  const cancelling=x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
+  await reached;
+  const next=window==='before-commit'
+    ? await x.active.actions['dot.refresh-credential']({},undefined,x.f.owner)
+    : await x.active.actions['dot.start-temporary']({input:{temporaryEndpointHours:1}},undefined,x.f.owner);
+  const protectedState=structuredClone(x.f.records.get('dot/external/v1'));
+  const generation=activeLease.generation;
+  release();
+  if(window==='before-commit')await assert.rejects(cancelling,/dot_candidate_stale/);
+  else await cancelling;
+  assert.equal(activeLease?.generation,generation);
+  assert.deepEqual(x.f.records.get('dot/external/v1'),protectedState);
+  assert.equal(await connection.serverUrl(),next.data);
+});

@@ -139,7 +139,7 @@ export class TemporaryEndpointController {
 			detached: true,
 		});
 		const expiresAt = this.#now() + input.ttlMs;
-		const timer = setTimeout(() => void this.stop("expired"), Math.max(1, expiresAt - this.#now()));
+		const timer = setTimeout(() => void this.stop("expired", generation), Math.max(1, expiresAt - this.#now()));
 		timer.unref?.();
 		const active: ActiveEndpoint = { generation, child, timer, publicBaseUrl: null, expiresAt };
 		this.#active = active;
@@ -222,7 +222,14 @@ export class TemporaryEndpointController {
 		};
 	}
 
-	async stop(reason: string): Promise<void> {
+	async stop(reason: string, expectedGeneration?: string): Promise<void> {
+		if (expectedGeneration !== undefined) {
+			const active = this.#active;
+			if (!active || active.generation !== expectedGeneration) return;
+			// Capture synchronously and do not invalidate a newer start's epoch.
+			await this.#beginCleanup(active, reason, true);
+			return;
+		}
 		this.#epoch += 1;
 		await this.#stopActive(reason);
 	}

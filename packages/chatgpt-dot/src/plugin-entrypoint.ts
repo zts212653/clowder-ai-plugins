@@ -291,13 +291,13 @@ export function createDotPlugin(
 				"dot.cancel-pending": async (_input, _native, context) => {
 					await current.owner(context);
 					const before = await current.externalState();
-					const restored = await current.cancelPending();
+					const restored = await current.cancelPending(before.pending?.candidateId ?? null);
 					if (
 						before.endpoint.mode === "temporary-active" &&
 						(restored.endpoint.mode !== "temporary-active" ||
 							restored.endpoint.generation !== before.endpoint.generation)
 					)
-						await temporaryEndpoints?.stop("owner_stop");
+						await temporaryEndpoints?.stop("owner_stop", before.endpoint.generation);
 					return statusRows(context);
 				},
 				"dot.begin-pairing": async (_input, _native, context) => {

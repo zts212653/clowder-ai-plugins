@@ -416,3 +416,25 @@ test('legacy subscribe admitted before promotion cannot renew the replacement bi
   assert.deepEqual(f.records.get(EXTERNAL_KEY),protectedState);
   assert.equal((await f.dot.ready()).subscription.secret,secret);
 });
+
+for (const window of ['connection-cas','external-cas']) test(`old legacy unsubscribe cannot revoke a new attempt candidate (${window})`, async t => {
+  const f = await candidateFixture(t), old = await f.dot.current();
+  const method = window === 'external-cas' ? 'updateExternal' : 'updateConnection';
+  const update = f.dot.store[method].bind(f.dot.store);
+  let entered,release;
+  const reached = new Promise(r=>entered=r),gate=new Promise(r=>release=r);
+  f.dot.store[method] = async fn => { entered(); await gate; return update(fn); };
+  const retiring = f.dot.unsubscribe({attemptId:old.attemptId,pairingCode:old.pairingCode,url:old.subscription.url});
+  await reached;
+  await f.settings.actions['dot.reconnect']({},undefined,f.owner);
+  await f.settings.actions['dot.use-long-lived']({input:{longLivedServerUrlTemplate:'https://replacement.example/mcp?token={token}'}},undefined,f.owner);
+  await f.settings.actions['dot.show-instructions']({},undefined,f.owner);
+  const protectedExternal=structuredClone(f.records.get(EXTERNAL_KEY)),protectedConnection=structuredClone(f.records.get(CONNECTION_KEY));
+  assert.notEqual(protectedConnection.value.attemptId,old.attemptId);
+  assert.ok(protectedExternal.value.pending);
+  release();
+  await assert.rejects(retiring,/dot_(stale_connection|candidate_stale|binding_stale)/);
+  assert.deepEqual(f.records.get(EXTERNAL_KEY),protectedExternal);
+  assert.deepEqual(f.records.get(CONNECTION_KEY),protectedConnection);
+  assert.equal(await f.dot.serverUrl(),protectedExternal.value.endpoint.serverUrl);
+});

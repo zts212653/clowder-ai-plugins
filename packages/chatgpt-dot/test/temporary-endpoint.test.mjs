@@ -384,3 +384,24 @@ test("controller closes a provisional runner when the public probe fails", async
 	const pid = Number(await import("node:fs/promises").then(({ readFile }) => readFile(tunnel.pidFile, "utf8")));
 	assert.throws(() => process.kill(pid, 0));
 });
+
+test('generation-scoped stop preserves a replacement and does not cancel its pending start', async t => {
+  const root=await mkdtemp(join(tmpdir(),'dot-scoped-stop-'));
+  t.after(()=>rm(root,{recursive:true,force:true}));
+  const ended=[];
+  const controller=new TemporaryEndpointController({runnerPath,binaryPath:await fakeTunnel(t,root),fetch:async()=>new Response('{}',{status:401}),startupTimeoutMs:5_000,onEnded:g=>{ended.push(g);}});
+  t.after(()=>controller.stop('test-end'));
+  const input={upstreamLoopbackOrigin:'http://127.0.0.1:5182',relativePath:'/mcp',method:'POST',ttlMs:60_000};
+  const a=await controller.start({...input,token:'token-a'});
+  const b=await controller.start({...input,token:'token-b'});
+  await controller.stop('owner_stop',a.generation);
+  assert.equal(controller.allowToken('b-extra').generation,b.generation);
+  assert.deepEqual(ended,[a.generation]);
+  const starting=controller.start({...input,token:'token-c'});
+  await controller.stop('owner_stop',a.generation);
+  const c=await starting;
+  assert.equal(controller.allowToken('c-extra').generation,c.generation);
+  await controller.stop('owner_stop',c.generation);
+  assert.throws(()=>controller.allowToken('late'),/unavailable/);
+  assert.deepEqual(ended,[a.generation,b.generation,c.generation]);
+});

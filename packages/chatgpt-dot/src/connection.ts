@@ -389,8 +389,11 @@ export class DotConnection {
 		});
 	}
 
-	async cancelPending() {
+	async cancelPending(expectedCandidateId?: string | null) {
 		return this.store.updateExternal((state) => {
+			if (expectedCandidateId !== undefined &&
+				(state?.pending?.candidateId ?? null) !== expectedCandidateId)
+				throw new Error("dot_candidate_stale");
 			if (!state)
 				return {
 					v: 1,
@@ -1465,51 +1468,49 @@ export class DotConnection {
 			(state.subscription && state.subscription.url !== input.url)
 		)
 			throw new Error("dot_subscription_mismatch");
+		if (!state.bindingAuthority?.tokenId) {
+			const captured = await this.externalState();
+			// First commit the exact legacy relationship. A stale request must fail
+			// before removing any candidate from the independent external record.
+			await this.store.updateConnection((current) => {
+				this.assertLive();
+				if (!current || current.revision !== state.revision ||
+					current.attemptId !== state.attemptId || current.revokedAt !== null)
+					throw new Error("dot_stale_connection");
+				return {
+					...current, revision: current.revision + 1,
+					pairedCallbackUrl: current.pairedCallbackUrl ?? current.subscription?.url ?? null,
+					pairedAt: null, subscription: null,
+				};
+			});
+			const pending = captured.pending;
+			if (pending) await this.store.updateExternal((value) => {
+				if (!value) throw new Error("dot_binding_stale");
+				this.requireCurrentCaller(value, credential);
+				if (!value.pending || value.pending.candidateId !== pending.candidateId ||
+					value.pending.tokenId !== pending.tokenId || value.pending.revision !== pending.revision ||
+					(value.pending.pairingAttemptId !== null && value.pending.pairingAttemptId !== state.attemptId))
+					throw new Error("dot_candidate_stale");
+				return {...value, revision: value.revision + 1, pending: null,
+					endpoint: value.pending.previousEndpoint ?? {mode:"absent" as const}};
+			});
+			return {};
+		}
+		const authority = state.bindingAuthority;
 		await this.store.updateExternal((value) => {
 			if (!value) throw new Error("dot_binding_stale");
 			this.requireCurrentCaller(value, credential);
-			const endpoint = value.pending
-				? (value.pending.previousEndpoint ?? { mode: "absent" as const })
-				: value.endpoint;
-			if (state.bindingAuthority?.tokenId) {
-				if (
-					!value.current ||
-					value.current.kind === "legacy" ||
-					value.current.tokenId !== state.bindingAuthority.tokenId ||
-					!value.current.binding ||
-					value.current.binding.version !== state.bindingAuthority.version
-				)
-					throw new Error("dot_binding_stale");
-				return {
-					...value,
-					revision: value.revision + 1,
-					pending: null,
-					endpoint,
-					current: {
-						...value.current,
-						binding: {
-							...value.current.binding,
-							version: value.current.binding.version + 1,
-							subscription: null,
-							pairedAt: null,
-						},
-					},
-				};
-			}
-			return { ...value, revision: value.revision + 1, pending: null, endpoint };
-		});
-		if (state.bindingAuthority?.tokenId) return {};
-		await this.store.updateConnection((current) => {
-			this.assertLive();
-			if (!current || current.revision !== state.revision)
-				throw new Error("dot_stale_connection");
+			if (!value.current || value.current.kind === "legacy" ||
+				value.current.tokenId !== authority.tokenId || !value.current.binding ||
+				value.current.binding.version !== authority.version)
+				throw new Error("dot_binding_stale");
 			return {
-				...current,
-				revision: current.revision + 1,
-				pairedCallbackUrl:
-					current.pairedCallbackUrl ?? current.subscription?.url ?? null,
-				pairedAt: null,
-				subscription: null,
+				...value, revision: value.revision + 1, pending: null,
+				endpoint: value.pending
+					? (value.pending.previousEndpoint ?? {mode:"absent" as const})
+					: value.endpoint,
+				current: {...value.current,binding:{...value.current.binding,
+					version:value.current.binding.version + 1, subscription:null, pairedAt:null}},
 			};
 		});
 		return {};
