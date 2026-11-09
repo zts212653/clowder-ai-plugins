@@ -60,6 +60,13 @@ test("entry mode is one selector with branch-owned long-lived and temporary cont
 				next: undefined,
 				method: "dot.use-long-lived",
 			},
+			{
+				id: "refresh-credential",
+				render: "button",
+				resultRender: "text",
+				next: undefined,
+				method: "dot.refresh-credential",
+			},
 		],
 	);
 	assert.deepEqual(
@@ -80,6 +87,13 @@ test("entry mode is one selector with branch-owned long-lived and temporary cont
 				next: undefined,
 				method: "dot.start-temporary",
 			},
+			{
+				id: "refresh-credential",
+				render: "button",
+				resultRender: "text",
+				next: undefined,
+				method: "dot.refresh-credential",
+			},
 		],
 	);
 	const subscription = fields.get("subscription");
@@ -94,4 +108,20 @@ test("entry mode is one selector with branch-owned long-lived and temporary cont
 	assert.equal(connectionActionIds.includes("use-long-lived"), false);
 	assert.equal(connectionActionIds.includes("start-temporary"), false);
 	assert.equal(connectionActionIds.includes("show-instructions"), false);
+});
+
+test("credential rotation belongs to URL setup, while connection recovery is source-bound", async () => {
+	const manifest = parseYaml(
+		await readFile(new URL("../plugin.yaml", import.meta.url), "utf8"),
+	);
+	const connection = manifest.configuration.find((f) => f.key === "connection");
+	assert.equal(
+		connection.actions.some((a) => a.id === "refresh-credential"),
+		false,
+	);
+	const repair = connection.actions.find((a) => a.id === "repair-subscription");
+	assert.equal(repair.render, "row");
+	assert.equal(repair.resultRender, "text");
+	assert.equal(repair.next, "status");
+	assert.ok(repair.confirm);
 });

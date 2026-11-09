@@ -41,6 +41,7 @@ export class AutomaticDotVerification {
 			return null;
 		const state = await connection.testState(),
 			subscription = state.subscription!;
+		const credential = external.pending ?? external.current;
 		const key = digest([
 			this.runtime.host.pluginInstanceId,
 			state.attemptId,
@@ -48,6 +49,11 @@ export class AutomaticDotVerification {
 			subscription.id,
 			subscription.url,
 			subscription.secret,
+			...(credential &&
+			credential.kind !== "legacy" &&
+			credential.verificationGeneration
+				? [credential.verificationGeneration]
+				: []),
 		]);
 		return { state, key };
 	}

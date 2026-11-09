@@ -15,6 +15,7 @@ type JourneyAction =
 	| "reconnect"
 	| "roundtrip"
 	| "retry-verification"
+	| "repair-subscription"
 	| "check-roundtrip"
 	| "disconnect";
 
@@ -106,13 +107,6 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 	if (!external?.pending && !external?.current) {
 		return waitingConnection(input.now);
 	}
-	const replacementActions =
-		external.current && external.pending
-			? [action("cancel-pending", "放弃本次更新")]
-			: [];
-	const connectedActions = external.current
-		? replacementActions
-		: [action("disconnect", "断开连接")];
 	if (
 		!endpointActive &&
 		((external.current && external.current.kind !== "legacy") ||
@@ -130,22 +124,22 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 					temporary
 						? "请在上方点击「创建临时入口」，用返回的新 Server URL 在 ChatGPT 添加连接。"
 						: "请在上方生成 Server URL，再将该 URL 添加到 ChatGPT。",
-					[...replacementActions, action("disconnect", "断开连接")],
 				),
 			],
 		};
 	}
-	if (!external.pending && external.current && !currentCredentialUsable) {
+	if (
+		(external.pending &&
+			external.pending.expiresAt !== null &&
+			external.pending.expiresAt * 1000 <= input.now) ||
+		(!external.pending && external.current && !currentCredentialUsable)
+	) {
 		return {
 			rows: [
 				row(
 					"credential-unavailable",
 					"外部凭据已不可用",
-					"凭据已到期或失效。更新后请使用新 Server URL 在 ChatGPT 添加连接，并完成往返验证。",
-					[
-						action("refresh-credential", "更新外部凭据"),
-						action("disconnect", "断开连接"),
-					],
+					"请在上方重新生成 Server URL，再在 ChatGPT 添加连接并发送订阅消息。",
 				),
 			],
 		};
@@ -167,21 +161,52 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 					"waiting-discovery",
 					"等待入口确认",
 					`尚未收到 ChatGPT 对此入口的工具与事件扫描。${endpointDetail}`,
-					replacementActions,
 				),
 			],
 			pollUntil: input.now + FIVE_MINUTES_MS,
 		};
 	}
 
+	if (
+		external.pending &&
+		input.connection?.revokedAt === null &&
+		((external.pending.pairingAttemptId &&
+			external.pending.pairingAttemptId !== input.connection.attemptId) ||
+			(external.pending.binding &&
+				external.pending.binding.attemptId !== input.connection.attemptId))
+	) {
+		return {
+			rows: [
+				row(
+					"candidate-pairing-mismatch",
+					"待验证凭据与当前配对不一致",
+					"重新生成订阅消息，在使用当前 Server URL 的 ChatGPT 连接中发送。",
+					[action("repair-subscription", "重新连接")],
+				),
+			],
+		};
+	}
 	if (external.pending?.binding === null) {
+		if (
+			external.pending.pairingIntent &&
+			external.pending.pairingIntent.expiresAt <= input.now
+		)
+			return {
+				rows: [
+					row(
+						"pairing-expired",
+						"订阅消息已过期",
+						"重新生成订阅消息后，在使用当前 Server URL 的目标 Work 对话中发送。",
+						[action("repair-subscription", "重新生成订阅消息")],
+					),
+				],
+			};
 		return {
 			rows: [
 				row(
 					"waiting-subscription",
 					"等待新连接订阅",
 					"生成订阅消息并在使用新 Server URL 的 ChatGPT 连接中发送。",
-					replacementActions,
 				),
 			],
 			pollUntil: Math.min(
@@ -199,8 +224,7 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 				row(
 					"pairing-not-started",
 					"未连接",
-					"尚未准备订阅消息。",
-					replacementActions,
+					"请在上方生成订阅消息，再到目标 Work 对话发送并允许订阅。",
 				),
 			],
 			pollUntil: input.now + FIVE_MINUTES_MS,
@@ -208,9 +232,23 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 	}
 
 	if (
-		(!external.pending || external.pending.pairingRequired !== false) &&
+		(!external.pending ||
+			external.pending.binding !== undefined ||
+			external.pending.pairingRequired !== false) &&
 		!activeSubscription(current!, input.now)
 	) {
+		if (current!.subscription && current!.pairedAt !== null) {
+			return {
+				rows: [
+					row(
+						"subscription-expired",
+						"订阅已失效",
+						"重新生成订阅消息后，在原 ChatGPT 连接的目标 Work 对话中发送并允许订阅。",
+						[action("repair-subscription", "重新连接")],
+					),
+				],
+			};
+		}
 		if (current.pairingExpiresAt <= input.now) {
 			return {
 				rows: [
@@ -218,7 +256,7 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 						"pairing-expired",
 						"订阅消息已过期",
 						"请在订阅消息区重新生成；现有 Server URL 仍可复用。",
-						replacementActions,
+						[action("repair-subscription", "重新生成订阅消息")],
 					),
 				],
 				pollUntil: input.now + FIVE_MINUTES_MS,
@@ -229,8 +267,7 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 				row(
 					"waiting-subscription",
 					"等待订阅",
-					"尚未收到目标 Work 对话的订阅确认。",
-					replacementActions,
+					"请在目标 Work 对话发送上方生成的订阅消息并允许订阅；尚未收到确认。",
 				),
 			],
 			pollUntil: Math.min(
@@ -242,18 +279,6 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 
 	if (external.pending) {
 		const pending = external.pending;
-		if (pending.pairingAttemptId !== current!.attemptId) {
-			return {
-				rows: [
-					row(
-						"candidate-pairing-mismatch",
-						"待验证凭据与当前配对不一致",
-						"请放弃本次更新后重新开始。",
-						[action("cancel-pending", "放弃本次更新")],
-					),
-				],
-			};
-		}
 		const candidate =
 			pending.verificationEventId === null
 				? undefined
@@ -271,7 +296,7 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 						external.current
 							? "现有连接会保留到新凭据验证成功。"
 							: "需完成读取原消息和回复校验码的往返测试。",
-						[action("roundtrip", "发起往返测试"), ...connectedActions],
+						[action("roundtrip", "发起往返测试")],
 					),
 				],
 			};
@@ -311,7 +336,6 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 						deadline > input.now
 							? action("check-roundtrip", "检查状态")
 							: action("retry-verification", "重试验证"),
-						...connectedActions,
 					],
 				),
 			],
@@ -323,7 +347,11 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 		current!,
 		input.dispatches,
 		external.current && external.current.kind !== "legacy"
-			? external.current.verifiedEventId
+			? external.current.verificationGeneration
+				? (input.verificationJob?.eventId ??
+					external.current.verifiedEventId ??
+					"awaiting-current-verification")
+				: external.current.verifiedEventId
 			: undefined,
 	);
 	const completed = tests.find(
@@ -336,16 +364,7 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 					"ready",
 					"Dot 已可用",
 					`最近一次真实往返已读取原消息并回复（${new Date(completed.occurredAt).toISOString()}）。`,
-					[
-						action("roundtrip", "再次测试"),
-						action(
-							"refresh-credential",
-							external.current?.kind === "signed"
-								? "切换持久凭据"
-								: "轮换访问凭据",
-						),
-						action("disconnect", "断开连接"),
-					],
+					[action("disconnect", "断开连接")],
 				),
 			],
 		};
@@ -359,13 +378,7 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 					"verification-required",
 					"已连接 · 待测试",
 					"还需要一次真实往返，确认 ChatGPT 能读取原消息并把校验回复送回猫咖。",
-					[
-						action("roundtrip", "发起往返测试"),
-						...(external.current?.kind === "signed"
-							? [action("refresh-credential", "切换持久凭据")]
-							: []),
-						action("disconnect", "断开连接"),
-					],
+					[action("roundtrip", "发起往返测试")],
 				),
 			],
 		};
@@ -381,7 +394,6 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 					[
 						action("roundtrip", "重新测试"),
 						action("check-roundtrip", "检查状态"),
-						action("disconnect", "断开连接"),
 					],
 				),
 			],
@@ -400,7 +412,6 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 			rows: [
 				row("verification-pending", "正在验证真实往返", progress, [
 					action("check-roundtrip", "检查测试结果"),
-					action("disconnect", "断开连接"),
 				]),
 			],
 			pollUntil: deadline,
@@ -418,7 +429,6 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 			row("verification-timeout", "往返测试尚未完成", diagnosis, [
 				action("roundtrip", "重新测试"),
 				action("check-roundtrip", "检查状态"),
-				action("disconnect", "断开连接"),
 			]),
 		],
 	};
@@ -429,7 +439,16 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 	const result = projectDotJourneyDetails(input);
 	if (
 		input.verificationJob?.stage === "failed" &&
-		result.rows[0]?.key !== "ready"
+		[
+			"candidate-verification-required",
+			"candidate-verification-pending",
+			"candidate-verification-timeout",
+			"candidate-promoting",
+			"verification-required",
+			"verification-pending",
+			"verification-failed",
+			"verification-timeout",
+		].includes(result.rows[0]?.key ?? "")
 	)
 		return {
 			rows: [
@@ -439,12 +458,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 					input.verificationJob.error === "dot_verification_creation_unknown"
 						? "上次创建验证对话时中断，无法确认创建结果。点击重试后重新准备；已保存的连接不会被替换。"
 						: "本次验证未完成，已有测试消息和校验记录会在重试时复用。",
-					[
-						action("retry-verification", "重试验证"),
-						...(input.external?.pending && input.external.current
-							? [action("cancel-pending", "放弃本次更新")]
-							: [action("disconnect", "断开连接")]),
-					],
+					[action("retry-verification", "重试验证")],
 				),
 			],
 		};

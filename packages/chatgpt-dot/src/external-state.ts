@@ -28,6 +28,8 @@ export const signedCredentialSchema = z
 		expiresAt: z.number().int().positive(),
 		refreshRecommendedAt: z.number().int().positive(),
 		verifiedEventId: ref.optional(),
+		/** Explicit same-URL repair starts a new verification, ordinary renewal does not. */
+		verificationGeneration: ref.optional(),
 		binding: callbackBindingSchema.optional(),
 	})
 	.strict();
@@ -105,7 +107,10 @@ export const pendingCredentialSchema = signedCredentialSchema
 	.strict()
 	.superRefine((value, context) => {
 		if (value.issuer === "plugin" && !value.pluginInstanceId)
-			context.addIssue({code:z.ZodIssueCode.custom,message:"Plugin credentials require their issuing installation"});
+			context.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Plugin credentials require their issuing installation",
+			});
 		if (
 			value.issuer !== "plugin" &&
 			(value.expiresAt === null || value.refreshRecommendedAt === null)
@@ -123,7 +128,9 @@ export const dotExternalStateSchema = z
 		current: currentCredentialSchema.nullable(),
 		pending: pendingCredentialSchema.nullable(),
 		endpoint: endpointLeaseSchema,
-		retiredPluginTokenDigests: z.array(z.string().regex(/^[a-f0-9]{64}$/)).optional(),
+		retiredPluginTokenDigests: z
+			.array(z.string().regex(/^[a-f0-9]{64}$/))
+			.optional(),
 	})
 	.strict();
 

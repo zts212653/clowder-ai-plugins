@@ -147,7 +147,7 @@ test("subscription alone verifies, recurring subscribe and restart reuse its evi
 	assert.equal(status.data.rows[0].key, "ready");
 	assert.deepEqual(
 		status.data.rows[0].actions.map((a) => a.action),
-		["refresh-credential", "disconnect"],
+		["disconnect"],
 	);
 });
 for (const expired of [false, true])
@@ -458,7 +458,7 @@ for (const replacement of [false, true])
 		);
 		const actions = status.data.rows[0].actions.map((a) => a.action);
 		assert.ok(actions.includes("retry-verification"));
-		assert.ok(actions.includes(replacement ? "cancel-pending" : "disconnect"));
+		assert.deepEqual(actions, ["retry-verification"]);
 		const count = x.f.sent.length;
 		await x.active.actions["dot.retry-verification"]({}, undefined, x.f.owner);
 		await until(() =>
@@ -501,4 +501,113 @@ test("local proof recovery rejects a stored reply whose content no longer matche
 		x.f.records.get(EXTERNAL_KEY).value.pending.verificationReplyAt,
 		null,
 	);
+});
+
+test("subscription repair rejects the old candidate proof and verifies the repaired binding without replacing current early", async (t) => {
+	const x = await setup(t);
+	await x.subscribe();
+	await x.finish(await x.event());
+	const formal = structuredClone(x.f.records.get(EXTERNAL_KEY).value.current);
+	await x.rotate();
+	await x.subscribe("https://callbacks.example/repaired");
+	const oldEvent = await x.event();
+	assert.equal(
+		(
+			await x.request("tools/call", {
+				name: "cat_cafe_dot_read_source",
+				arguments: { event_id: oldEvent },
+			})
+		).body.error,
+		undefined,
+	);
+	const before = x.f.records.get(EXTERNAL_KEY).value;
+	await x.f.host.storage.set(EXTERNAL_KEY, {
+		...before,
+		pending: { ...before.pending, pairingAttemptId: "stale-attempt" },
+	});
+	await x.active.actions["dot.repair-subscription"]({}, undefined, x.f.owner);
+	const repaired = x.f.records.get(EXTERNAL_KEY).value;
+	assert.deepEqual(repaired.current, formal);
+	assert.equal(repaired.pending.token, before.pending.token);
+	const nonce = x.f.records.get(`dot/dispatch/${oldEvent}`).value.expectedNonce;
+	assert.ok(
+		(
+			await x.request("tools/call", {
+				name: "cat_cafe_dot_reply",
+				arguments: { event_id: oldEvent, content: nonce },
+			})
+		).body.error,
+	);
+	assert.deepEqual(x.f.records.get(EXTERNAL_KEY).value.current, formal);
+	const renewed = await x.subscribe("https://callbacks.example/repaired");
+	assert.equal(renewed.body.error, undefined, JSON.stringify(renewed.body));
+	const newEvent = await x.event();
+	assert.notEqual(newEvent, oldEvent);
+	await x.finish(newEvent);
+	assert.equal(x.f.records.get(EXTERNAL_KEY).value.pending, null);
+});
+
+test("an expired formal subscription reconnects at the same URL and verifies new intent across restart", async (t) => {
+	const x = await setup(t);
+	await x.subscribe();
+	await x.finish(await x.event());
+	const original = x.f.records.get(EXTERNAL_KEY).value;
+	const originalKeys = new Set(
+		[...x.f.records.keys()].filter((k) => k.startsWith("dot/verification/")),
+	);
+	await x.f.host.storage.set(EXTERNAL_KEY, {
+		...original,
+		current: {
+			...original.current,
+			binding: {
+				...original.current.binding,
+				pairingExpiresAt: 1,
+				subscription: {
+					...original.current.binding.subscription,
+					expiresAt: 1,
+				},
+			},
+		},
+	});
+	const failed = await x.active.actions["dot.status"]({}, undefined, x.f.owner);
+	assert.equal(failed.data.rows[0].key, "subscription-expired");
+	await x.active.actions["dot.repair-subscription"]({}, undefined, x.f.owner);
+	const repaired = x.f.records.get(EXTERNAL_KEY).value;
+	const waiting = await x.active.actions["dot.status"](
+		{},
+		undefined,
+		x.f.owner,
+	);
+	assert.equal(waiting.data.rows[0].key, "waiting-subscription");
+	assert.deepEqual(waiting.data.rows[0].actions ?? [], []);
+	const repeated = await x.active.actions["dot.show-instructions"](
+		{},
+		undefined,
+		x.f.owner,
+	);
+	assert.match(
+		repeated.data,
+		new RegExp(`pairing_code=${repaired.current.binding.pairingCode}`),
+	);
+	assert.equal((await x.subscribe()).body.error, undefined);
+	const id = await until(
+		() =>
+			[...x.f.records.entries()].find(
+				([k, v]) =>
+					k.startsWith("dot/verification/") &&
+					!originalKeys.has(k) &&
+					v.value.eventId,
+			)?.[1].value.eventId,
+	);
+	await x.finish(id);
+	const ready = await x.active.actions["dot.status"]({}, undefined, x.f.owner);
+	assert.equal(ready.data.rows[0].key, "ready");
+	assert.equal(
+		x.f.records.get(EXTERNAL_KEY).value.current.token,
+		original.current.token,
+	);
+	const count = x.f.sent.length;
+	await x.restart();
+	await new Promise((r) => setTimeout(r, 25));
+	assert.equal(x.f.sent.length, count);
 });

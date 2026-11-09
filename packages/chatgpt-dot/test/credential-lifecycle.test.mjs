@@ -365,7 +365,7 @@ test("cancelling a replacement restores the current credential endpoint", async 
 	assert.deepEqual(restored.endpoint, previousEndpoint);
 });
 
-test("setup rows retain replacement cancellation and its owner action restores the healthy connection", async (t) => {
+test("waiting rows omit cleanup while the underlying owner cancel still restores the healthy connection", async (t) => {
 	const f = await paired(t);
 	const dot = new DotConnection(
 		f.host,
@@ -444,16 +444,17 @@ test("setup rows retain replacement cancellation and its owner action restores t
 				rows.rows[0].actions?.some(
 					(action) => action.action === "cancel-pending",
 				) ?? false,
-				hasCurrent,
-				`${key}: only replacements need old-connection recovery`,
+				false,
+				`${key}: waiting is not an owner cleanup operation`,
 			);
 		}
 	}
 	const before = await f.settings.actions["dot.status"]({}, undefined, f.owner);
-	assert.ok(
-		before.data.rows[0].actions.some(
+	assert.equal(
+		before.data.rows[0].actions?.some(
 			(action) => action.action === "cancel-pending",
-		),
+		) ?? false,
+		false,
 	);
 	await f.settings.actions["dot.cancel-pending"]({}, undefined, f.owner);
 	assert.equal((await dot.externalState()).pending, null);
@@ -544,13 +545,10 @@ for (const remainingLeaseMs of [-60_000, 24 * 60 * 60_000]) {
 			false,
 		);
 		const before = structuredClone(f.records.get(EXTERNAL_KEY));
-		const staleRefresh = await f.settings.actions["dot.refresh-credential"](
-			{},
-			undefined,
-			f.owner,
+		await assert.rejects(
+			f.settings.actions["dot.refresh-credential"]({}, undefined, f.owner),
+			/dot_endpoint_unavailable.*请先创建/,
 		);
-		assert.equal(staleRefresh.render, "rows");
-		assert.equal(staleRefresh.data.rows[0].key, "endpoint-unavailable");
 		assert.equal(
 			issued,
 			0,

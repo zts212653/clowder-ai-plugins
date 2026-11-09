@@ -242,7 +242,9 @@ export function createDotPlugin(
 							before.endpoint.expiresAt > (options.now ?? Date.now)()
 						)
 					)
-						return statusRows(context);
+						throw new Error(
+							"dot_endpoint_unavailable: 请先创建或生成 Server URL，再轮换访问密钥。",
+						);
 					if (before.endpoint.mode === "long-lived")
 						longLivedServerUrl(input.longLivedServerUrlTemplate, "validation");
 					const { state, issued } = await current.issuePluginPending(
@@ -300,6 +302,10 @@ export function createDotPlugin(
 				"dot.show-instructions": async (_input, _native, context) => ({
 					render: "text",
 					data: (await current.begin(context, false)).instructions,
+				}),
+				"dot.repair-subscription": async (_input, _native, context) => ({
+					render: "text",
+					data: (await current.repairSubscription(context)).instructions,
 				}),
 				"dot.reconnect": async (_input, _native, context) => {
 					await current.begin(context, true);

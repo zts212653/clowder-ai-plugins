@@ -233,7 +233,7 @@ test("derives verification progress, timeout diagnostics, and readiness only fro
 	);
 });
 
-test("an expired signed current credential cannot borrow historical readiness and exposes renewal", () => {
+test("an expired signed credential points back to URL setup instead of borrowing historical readiness", () => {
 	const expired: DotExternalState = {
 		...currentExternal,
 		current: { ...currentExternal.current!, expiresAt: 2 },
@@ -260,9 +260,81 @@ test("an expired signed current credential cannot borrow historical readiness an
 		],
 	});
 	assert.equal(result.rows[0]?.key, "credential-unavailable");
-	assert.ok(
-		result.rows[0]?.actions?.some(
-			(candidate) => candidate.action === "refresh-credential",
-		),
+	assert.match(result.rows[0]?.detail ?? "", /上方重新生成 Server URL/);
+	assert.deepEqual(result.rows[0]?.actions ?? [], []);
+});
+
+test("an unavailable endpoint offers recovery rather than candidate cleanup or disconnect", () => {
+	const external: DotExternalState = {
+		...pendingExternal(now),
+		current: currentExternal.current,
+		endpoint: {
+			mode: "temporary-expired",
+			generation: "old",
+			expiresAt: now - 1,
+		},
+	};
+	const result = projectDotJourney({ ...base, external });
+	assert.equal(result.rows[0]?.key, "endpoint-unavailable");
+	assert.equal(
+		result.rows[0]?.actions?.some((a) => a.action === "cancel-pending") ??
+			false,
+		false,
 	);
+	assert.equal(
+		result.rows[0]?.actions?.some((a) => a.action === "disconnect") ?? false,
+		false,
+	);
+	assert.match(result.rows[0]?.detail ?? "", /上方.*创建临时入口/);
+});
+
+test("a healthy replacement in progress needs no owner cleanup action", () => {
+	const external: DotExternalState = {
+		...pendingExternal(null),
+		current: currentExternal.current,
+	};
+	const result = projectDotJourney({ ...base, external });
+	assert.equal(result.rows[0]?.key, "waiting-discovery");
+	assert.deepEqual(result.rows[0]?.actions ?? [], []);
+});
+
+test("a failed verification job cannot override endpoint or subscription recovery", () => {
+	const result = projectDotJourney({
+		...base,
+		external: {
+			...pendingExternal(now),
+			endpoint: {
+				mode: "temporary-expired",
+				generation: "old",
+				expiresAt: now - 1,
+			},
+		},
+		verificationJob: {
+			v: 1,
+			key: "old",
+			nonce: "old",
+			stage: "failed",
+			attempts: 1,
+			error: "network",
+		},
+	});
+	assert.equal(result.rows[0]?.key, "endpoint-unavailable");
+	assert.deepEqual(result.rows[0]?.actions ?? [], []);
+});
+
+test("an expired candidate credential directs URL setup before waiting or stale verification failure", () => {
+	const external = pendingExternal(null);
+	const result = projectDotJourney({
+		...base,
+		external: { ...external, pending: { ...external.pending!, expiresAt: 1 } },
+		verificationJob: {
+			v: 1,
+			key: "old",
+			nonce: "old",
+			stage: "failed",
+			attempts: 1,
+		},
+	});
+	assert.equal(result.rows[0]?.key, "credential-unavailable");
+	assert.deepEqual(result.rows[0]?.actions ?? [], []);
 });

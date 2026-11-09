@@ -187,9 +187,10 @@ export class DotConnection {
 				ttlSeconds > 86400)
 		)
 			throw new Error("dot_external_ttl_invalid");
-		const stored = ttlSeconds === undefined
-			? await this.host.secrets.get("externalMcpToken")
-			: undefined;
+		const stored =
+			ttlSeconds === undefined
+				? await this.host.secrets.get("externalMcpToken")
+				: undefined;
 		const configured = stored === "" ? undefined : stored;
 		if (configured !== undefined && !/^[A-Za-z0-9_-]{43,256}$/.test(configured))
 			throw new Error("dot_mcp_token_invalid");
@@ -213,7 +214,10 @@ export class DotConnection {
 			refreshRecommendedAt: null,
 		};
 		await this.assertCurrent();
-		return { state: await this.stagePending(issued, "plugin", captured.revision), issued };
+		return {
+			state: await this.stagePending(issued, "plugin", captured.revision),
+			issued,
+		};
 	}
 	private async stagePending(
 		issued: Pick<
@@ -238,7 +242,10 @@ export class DotConnection {
 			? connection
 			: null;
 		const state = await this.store.updateExternal((previous) => {
-			if (expectedRevision !== undefined && previous?.revision !== expectedRevision)
+			if (
+				expectedRevision !== undefined &&
+				previous?.revision !== expectedRevision
+			)
 				throw new Error("dot_candidate_stale");
 			const state = previous ?? {
 				v: 1 as const,
@@ -250,7 +257,9 @@ export class DotConnection {
 			const pending: PendingCredential = {
 				kind: "pending",
 				...(issuer ? { issuer } : {}),
-				...(issuer === "plugin" ? {pluginInstanceId:this.host.pluginInstanceId} : {}),
+				...(issuer === "plugin"
+					? { pluginInstanceId: this.host.pluginInstanceId }
+					: {}),
 				candidateId: randomUUID(),
 				revision: (state.pending?.revision ?? 0) + 1,
 				token: issued.token,
@@ -416,10 +425,7 @@ export class DotConnection {
 		if (typeof token !== "string" || token.length < 43 || token.length > 256)
 			throw new Error("dot_mcp_unauthorized");
 		const identity = await this.store.connection();
-		if (
-			identity &&
-			identity.pluginInstanceId !== this.host.pluginInstanceId
-		)
+		if (identity && identity.pluginInstanceId !== this.host.pluginInstanceId)
 			throw new Error("dot_mcp_unauthorized");
 		const external = await this.externalState();
 		if (external.retiredPluginTokenDigests?.includes(digest(token)))
@@ -432,7 +438,11 @@ export class DotConnection {
 						equalSecret(external.current.token, token)
 					? external.current
 					: null;
-		if (!credential || credential.pluginInstanceId !== this.host.pluginInstanceId || !credentialLive(credential, this.now()))
+		if (
+			!credential ||
+			credential.pluginInstanceId !== this.host.pluginInstanceId ||
+			!credentialLive(credential, this.now())
+		)
 			throw new Error("dot_mcp_unauthorized");
 		// A new owner-issued candidate may be discovered before the next pairing step.
 		// Its ordinary tools remain denied by the pending lane; revoked formal keys cannot return.
@@ -652,13 +662,18 @@ export class DotConnection {
 				revision: state.revision + 1,
 				current: currentCredentialSchema.parse({
 					kind: exact.issuer === "plugin" ? "plugin" : "signed",
-					...(exact.issuer === "plugin" ? {pluginInstanceId:exact.pluginInstanceId} : {}),
+					...(exact.issuer === "plugin"
+						? { pluginInstanceId: exact.pluginInstanceId }
+						: {}),
 					token: exact.token,
 					tokenId: exact.tokenId,
 					issuedAt: exact.issuedAt,
 					expiresAt: exact.expiresAt,
 					refreshRecommendedAt: exact.refreshRecommendedAt,
 					verifiedEventId: eventId,
+					...(exact.verificationGeneration
+						? { verificationGeneration: exact.verificationGeneration }
+						: {}),
 					...(exact.binding ? { binding: exact.binding } : {}),
 				}),
 				pending: null,
@@ -856,7 +871,10 @@ export class DotConnection {
 		const state = await this.store.connection();
 		if (!state || state.revokedAt !== null) return state;
 		const external = await this.externalState();
-		if (external.pending?.binding)
+		if (
+			external.pending?.binding &&
+			external.pending.binding.attemptId === state.attemptId
+		)
 			return this.applyBinding(state, external.pending.binding, {
 				key: "status",
 			});
@@ -868,6 +886,78 @@ export class DotConnection {
 				pairingExpiresAt: external.pending.pairingIntent.expiresAt,
 			};
 		return this.current();
+	}
+	/** Owner-requested subscription repair keeps the URL and formal connection intact. */
+	async repairSubscription(context: PluginHostActionContext | undefined) {
+		await this.owner(context);
+		const captured = await this.externalState();
+		const endpoint = captured.endpoint;
+		if (
+			endpoint.mode === "absent" ||
+			endpoint.mode === "temporary-expired" ||
+			(endpoint.mode === "temporary-active" && endpoint.expiresAt <= this.now())
+		)
+			throw new Error("dot_endpoint_unavailable");
+		const credential = captured.pending ?? captured.current;
+		if (
+			!credential ||
+			(credential.kind !== "legacy" && !credentialLive(credential, this.now()))
+		)
+			throw new Error("dot_credential_unavailable");
+		const pending = captured.pending;
+		const identity = await this.store.connection();
+		if (
+			pending &&
+			identity?.revokedAt === null &&
+			(pending.pairingAttemptId !== identity.attemptId ||
+				(pending.binding && pending.binding.attemptId !== identity.attemptId) ||
+				(pending.binding?.subscription?.expiresAt !== null &&
+					pending.binding?.subscription?.expiresAt !== undefined &&
+					pending.binding.subscription.expiresAt <= this.now()))
+		) {
+			const authority = await this.current();
+			await this.sameAttempt(authority, false);
+			await this.store.updateExternal((state) => {
+				if (
+					!state ||
+					state.revision !== captured.revision ||
+					state.pending?.candidateId !== pending.candidateId ||
+					state.pending.tokenId !== pending.tokenId
+				)
+					throw new Error("dot_candidate_stale");
+				return {
+					...state,
+					revision: state.revision + 1,
+					pending: {
+						...state.pending,
+						revision: state.pending.revision + 1,
+						pairingAttemptId: identity.attemptId,
+						verificationGeneration: randomUUID(),
+						pairingRequired: true,
+						pairingIntent: undefined,
+						binding: null,
+						verificationEventId: null,
+						verificationReadAt: null,
+						verificationReplyAt: null,
+						verificationBindingVersion: undefined,
+					},
+				};
+			});
+		}
+		return this.begin(context, false, async () => {
+			await this.assertCurrent();
+			const live = await this.externalState();
+			const exact = pending ? live.pending : live.current;
+			if (!exact || exact.kind === "legacy" || credential.kind === "legacy") {
+				if (credential.kind === "legacy" && exact?.kind === "legacy") return;
+				throw new Error("dot_repair_stale");
+			}
+			if (
+				exact.tokenId !== credential.tokenId ||
+				(pending && live.pending?.candidateId !== pending.candidateId)
+			)
+				throw new Error("dot_repair_stale");
+		});
 	}
 	async begin(
 		context: PluginHostActionContext | undefined,
@@ -1004,7 +1094,14 @@ export class DotConnection {
 			external.current &&
 			external.current.kind !== "legacy" &&
 			external.current.binding &&
-			!established.subscription
+			(!established.subscription ||
+				(established.subscription.expiresAt !== null &&
+					established.subscription.expiresAt <= this.now())) &&
+			!(
+				external.current.verificationGeneration &&
+				established.pairedAt === null &&
+				established.pairingExpiresAt > this.now()
+			)
 		) {
 			const binding = external.current.binding,
 				tokenId = external.current.tokenId;
@@ -1023,9 +1120,12 @@ export class DotConnection {
 					revision: value.revision + 1,
 					current: {
 						...value.current,
+						verificationGeneration: randomUUID(),
+						verifiedEventId: undefined,
 						binding: {
 							...binding,
 							version: binding.version + 1,
+							pairedAt: null,
 							pairingCode: code,
 							pairingExpiresAt: expiresAt,
 						},
