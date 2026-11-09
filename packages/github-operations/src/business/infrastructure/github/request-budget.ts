@@ -30,6 +30,13 @@ export class GitHubRateLimitError extends Error {
   }
 }
 
+/** No provider process ran: local admission pressure must not punish a subscription. */
+export class GitHubRequestDeferredError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options); this.name = 'GitHubRequestDeferredError';
+  }
+}
+
 function diagnostic(error: unknown): string {
   if (!error || typeof error !== 'object') return String(error);
   const fields = error as { message?: unknown; stdout?: unknown; stderr?: unknown };
@@ -91,7 +98,7 @@ export class GitHubRequestBudget {
     const until = this.blocked.get(key);
     if (until && until > this.now()) throw new GitHubRateLimitError(until);
     const queued = this.queued.get(key) ?? 0;
-    if (queued >= 64) throw new Error('GitHub request queue capacity exceeded; retry later');
+    if (queued >= 64) throw new GitHubRequestDeferredError('GitHub request queue capacity exceeded; retry later');
     this.queued.set(key, queued + 1);
     let queue = this.queues.get(key);
     if (!queue) {
@@ -117,6 +124,8 @@ export class GitHubRequestBudget {
       // this request/gate until its abort cleanup finishes. The credential tail
       // and the scheduler overlap lock must agree about that completion.
       if (signal.aborted && started) await pending.catch(() => {});
+      if (signal.aborted && !started) throw new GitHubRequestDeferredError(
+        error instanceof Error ? error.message : 'GitHub request deferred before execution', { cause: error });
       throw error;
     }
   }

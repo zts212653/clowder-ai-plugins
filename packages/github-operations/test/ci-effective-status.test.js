@@ -124,7 +124,7 @@ test('real provider single and batch snapshots consume effective CI, including b
       execFileAsync: async (file, args, options) => {
         const path = args[1];
         if (path === 'user') return { stdout: 'reviewer' };
-        if (path === `/repos/${repo}/pulls/1784`) return { stdout: JSON.stringify({ state: 'open', head: { sha }, mergeable_state: 'clean' }) };
+        if (path === `/repos/${repo}/pulls/1784`) return { stdout: JSON.stringify({ number: 1784, html_url: `https://github.com/${repo}/pull/1784`, state: 'open', head: { sha }, mergeable_state: 'clean' }) };
         if (path.includes('/comments?') || path.includes('/reviews?')) return { stdout: '' };
         return ci.execFileAsync(file, args, options);
       } });

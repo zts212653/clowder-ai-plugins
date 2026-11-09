@@ -1,3 +1,4 @@
+import { normalizeProviderLifecycle, reduceProviderEvent, reduceProviderHistory } from '../provider-period.js';
 /** Package-owned scheduling of the unchanged pure Community reconciler.
  * Each subject is independent in reconcile(). Bound admission and persist the
  * last attempt so a large installation makes progress across runtime restarts.
@@ -11,8 +12,12 @@ import type { ICommunityObjectStore } from '../CommunityObjectStore.js';
 import type { SlaPolicy } from '../community-sla-policy.js';
 import { type GitHubSnapshot, reconcile } from './CommunityReconciler.js';
 import type { CommunityReconciliationFindingStore } from './CommunityReconciliationFindingStore.js';
+import { parseTerminalFacts, shouldObserveTerminalFacts } from '../terminal-provider-facts.js';
+import type { TerminalFactCollection } from '../../../../terminal-fact-collection.js';
+import { providerOpenEvent, providerStateEvidence } from '../provider-open-observation.js';
 
 export interface CommunityReconcilerTaskSpecOptions extends GitHubPollOptions {
+  terminalCollection?: TerminalFactCollection;
   objectStore: Pick<ICommunityObjectStore, 'get' | 'listSubjectKeys'>;
   eventLog: ICommunityEventLog;
   projector: { apply(event: Parameters<ICommunityEventLog['append']>[0]): Promise<void>; rebuild(subjectKey: string): Promise<void> };
@@ -57,11 +62,22 @@ export async function runCommunityReconciliation(opts: CommunityReconcilerTaskSp
         opts.log.warn(`[reconciler] Failed to fetch GitHub state for ${subject}; findings retained`, error);
       }
       signal.throwIfAborted();
+      // Capture a proven new provider open period without reviving the native
+      // case. Baselines remain quiet: no intake, wake, SLA or drift action.
+      if (parsed[1] === 'pr' && snapshot?.state === 'open' && snapshot.headSha) {
+        const open = { headSha: snapshot.headSha, ...(snapshot.observedAt !== undefined ? { observedAt: snapshot.observedAt } : {}),
+          ...(snapshot.providerUpdatedAt ? { providerUpdatedAt: snapshot.providerUpdatedAt } : {}) };
+        if (opts.terminalCollection) await opts.terminalCollection.collect(subject, [], undefined, false, open);
+        else {
+          const result = providerOpenEvent(subject, providerStateEvidence(await opts.eventLog.read(subject)), open);
+          if (result.event) { await opts.eventLog.append(result.event); await opts.projector.apply(result.event); }
+        }
+      }
       if (!baselineEstablished) {
         if (fetched) await opts.markBaselineEstablished(subject);
         continue;
       }
-      await applySubject(opts, projection, snapshot, fetched, signal);
+      await applySubject(opts, await opts.objectStore.get(subject) ?? projection, snapshot, fetched, signal);
     } finally {
       await opts.writeProgress?.(subject);
     }
@@ -77,8 +93,18 @@ async function applySubject(opts: CommunityReconcilerTaskSpecOptions, projection
     baselineEstablished: true, now: (opts.now ?? Date.now)(), slaPolicy: opts.slaPolicy,
   });
   for (const warning of result.warnings) opts.log.warn(`[reconciler] ${warning}`);
-  for (const event of result.events) {
+  if (subject.startsWith('pr:') && opts.terminalCollection && result.events.length) {
+    const terminal = result.events.find(event => event.kind === 'pr.terminal_observed');
+    // Admission applies to the whole provider observation. A delayed closure
+    // cannot reject its facts yet still append its lifecycle/cascade event.
+    await opts.terminalCollection.collect(subject, result.events.filter(event => event !== terminal),
+      terminal ? parseTerminalFacts(terminal.payload.terminalFacts, subject) : undefined);
+  } else for (const rawEvent of result.events) {
     signal.throwIfAborted();
+    if (subject.startsWith('pr:') && !shouldObserveTerminalFacts(await opts.eventLog.read(subject))) continue;
+    const period = reduceProviderHistory(await opts.eventLog.read(subject));
+    const event = normalizeProviderLifecycle(rawEvent, period);
+    if (!reduceProviderEvent(period, event).accepted) continue;
     const { appended } = await opts.eventLog.append(event);
     // Never interrupt between durable append and its projection.
     if (appended) await opts.projector.apply(event);

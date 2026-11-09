@@ -113,7 +113,11 @@ node scripts/pack-self-contained-artifact.mjs packages/enterprise-workflow /abso
 
 这两个命令生成不同用途的本地制品，不执行 npm 发布。独立打包脚本使用当前工作区的 Contract／SDK 字节，并验证重定位后的声明入口。交付时记录准确文件、完整 SHA-256 和包的版本，不能仅凭路径或源码可用判断已安装。
 
-声明生产依赖的插件必须提供发布者维护的 `npm-shrinkwrap.json`，或由规范打包流程完整内置依赖；私有模块和编辑器插件也遵守这一安装边界。尚未发布 SDK／Contract 的候选需由作者交付含实体依赖的独立归档，不能要求安装者手工拼依赖。独立归档与 npm 规范归档具有不同摘要，均应列入候选矩阵。源码旁的依赖、空消费者额外安装的核心包和测试软链接不证明归档可直接安装；须用交付的闭包验证真实 Host 的设置、启动和恢复。
+声明生产依赖的插件必须提供发布者维护的 `npm-shrinkwrap.json`，或由规范打包流程完整内置依赖；私有模块和编辑器插件也遵守这一安装边界。其中目录分发的 builtin 插件必须同时提供 lockfile v3、精确的直接依赖版本、canonical npm registry 与 sha512 摘要；Host 会按锁文件执行不运行安装脚本的 `npm ci`，内置依赖不能免除这项要求。尚未发布 SDK／Contract 的候选需由作者交付含实体依赖的独立归档，不能要求安装者手工拼依赖。独立归档与 npm 规范归档具有不同摘要，均应列入候选矩阵。源码旁的依赖、空消费者额外安装的核心包和测试软链接不证明归档可直接安装；须用交付的闭包验证真实 Host 的设置、启动和恢复。
+
+同时声明 stdio MCP 的目录 builtin 应交付包内代码和 publisher lock，由 Host 统一物化依赖；归档内再放一棵 `node_modules` 会与 MCP 资源物化冲突。Feishu Meeting Intake 的消费测试覆盖 Host 锁定安装与单个归档的标准 npm 安装，两者都实际运行模块、原生 runner 和 MCP；安装时由 npm 自动取得锁定依赖，不要求用户另装 SDK／Contract。
+
+Feishu Meeting Intake 此版本不支持零 registry 的完全离线安装，本地归档安装也需要取得锁定依赖。不要把设置页的归档文件入口等同于无需网络；镜像行为未在这次修复中验证。
 
 检查实际归档中的 `README.md`、`README.en.md` 与对应源码逐字一致，声明、资源和生产依赖均存在。运行 `pnpm test:package-inventory` 检查当前包声明、双语说明和目录／发布接线；空消费者再验证实际依赖与导出。涉及打包字节的变动仍须同步目录摘要。真实账号、浏览器、原生辅助进程和 Host 安装／启停旅程需要分别验证，不能由模拟宿主或归档导入替代。
 

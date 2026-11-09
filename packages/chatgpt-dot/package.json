@@ -1,6 +1,6 @@
 {
 	"name": "@clowder-ai/chatgpt-dot",
-	"version": "0.2.0-alpha.40",
+	"version": "0.2.0-alpha.41",
 	"private": true,
 	"description": "Paired ChatGPT Dot connection and source-bound messaging plugin",
 	"license": "MIT",

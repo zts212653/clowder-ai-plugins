@@ -1,9 +1,10 @@
 import { createChatGptPageAdapter } from './chatgpt-page-adapter.mjs';
+import { ASSISTANT_CONTEXT_RETENTION_MS } from './assistant-observation-lifetime.mjs';
 
 (() => {
   const APPEND_PROTOCOL_VERSION = 2;
-  const EXTENSION_REVISION = '0.2.12';
-  const PAGE_ADAPTER_REVISION = '2026-10-26.1';
+  const EXTENSION_REVISION = '0.2.13';
+  const PAGE_ADAPTER_REVISION = '2026-11-06.1';
   const ASSISTANT_RETURN_RETRY_MS = 120_000;
   const previousListener = globalThis.__catCafePersonalChromeAdapterV2?.listener;
   if (typeof previousListener === 'function') chrome.runtime.onMessage.removeListener?.(previousListener);
@@ -100,7 +101,7 @@ import { createChatGptPageAdapter } from './chatgpt-page-adapter.mjs';
       return false;
     }
     removeHelperRevision(request.requestId);
-    const cleanupTimer = setTimeout(() => removeHelperRevision(request.requestId), 180_000);
+    const cleanupTimer = setTimeout(() => removeHelperRevision(request.requestId), ASSISTANT_CONTEXT_RETENTION_MS);
     helperRevisionByRequestId.set(request.requestId, { helper: expected?.helper, cleanupTimer });
     void adapter
       .appendMessage(request)

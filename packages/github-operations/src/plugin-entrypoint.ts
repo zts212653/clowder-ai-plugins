@@ -1,3 +1,6 @@
+import { IndexedWaitStorageUnavailableError } from './typed-wait-record.js';
+import { sendRecoveryOwnerNotice } from './recovery-owner-notice.js';
+import { SdkCommunityPrStore } from './business/domains/community/CommunityWorkflowStores.js';
 import { createGitHubSourcePublication } from './source-publication.js';
 import { MigratedIssueRuntime } from './migrated-issue-runtime.js';
 import { GitHubMigrationRuntime } from './migration-runtime.js';
@@ -17,6 +20,8 @@ import {
 import { GitHubProvider } from './github-provider.js';
 import type { GitHubTrackingProvider } from './tracking-runtime.js';
 import { TypedWaitRuntime } from './typed-wait-runtime.js';
+import { listTrackingStatus } from './tracking-status.js';
+import { diagnosticError } from './tracking-diagnostics.js';
 import { CommunityRuntime, type CommunityProvider } from './community-runtime.js';
 import type { UpsertRepoConfigInput } from './business/domains/community/CommunityRepoConfigStore.js';
 import { recommendTriage } from './triage-recommendation.js';
@@ -30,6 +35,7 @@ import { GitHubPrTitleReader, prTitleHttp } from './pr-title-reader.js';
 import { createGitHubSettings } from './settings.js';
 import { findThreadMetadata } from './metadata-thread.js';
 import type { GitHubRequestOptions } from './business/infrastructure/github/request-budget.js';
+import { TerminalReconciliationRuntime, TERMINAL_RECONCILIATION_METHOD } from './terminal-reconciliation.js';
 
 // Host declared webhook dispatch nests the request under action params. The
 // webhook handlers declare no static params; flat requests are invalid.
@@ -41,6 +47,7 @@ interface Provider extends GitHubTrackingProvider {
 export interface GitHubPluginOptions {
   readonly settingsExecFileAsync?: GitHubRequestOptions['execFileAsync'];
   readonly now?: () => number;
+  readonly pollIntervalMs?: number;
   readonly createReviewEvidenceProvider?: (
     context: FeatureContext,
   ) => Pick<GitHubProvider, 'observeReviewHead' | 'observeReviewDelivery'>;
@@ -65,7 +72,8 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   });
   const provider = options.createProvider?.(context) ?? transport;
   const prTitles =
-    options.createPrTitleReader?.(context) ?? new GitHubPrTitleReader({ token: () => context.secrets.get('token') });
+    options.createPrTitleReader?.(context) ?? new GitHubPrTitleReader({ token: () => context.secrets.get('token'),
+      records: new SdkCommunityPrStore(context.storage) });
   const reviewTriggers =
     options.createReviewTriggerReader?.(context) ??
     new ReviewTriggerReader({
@@ -79,6 +87,8 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   const publisher = options.createIssuePublisher?.(context) ?? transport;
   const drafts = new NativeIssueDraftRuntime(context, publisher);
   const community = new CommunityRuntime(context, options.createCommunityProvider?.(context) ?? transport);
+  const terminalReconciliation = new TerminalReconciliationRuntime({ storage: context.storage, provider,
+    projectionOperations: community.projectionOperations });
   const narrator = new CommunityNarratorRuntime(context);
   const reviewEvidence = options.createReviewEvidenceProvider?.(context) ?? transport;
   const reviewVerdicts = new CommunityReviewVerdictRuntime({
@@ -88,23 +98,33 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
     projectionOperations: community.projectionOperations,
   });
   const collection = new CommunityCollectionRuntime({
-    store: new SdkCommunityCollectionStore(context.storage),
+    diagnose: error => diagnosticError(error, context.secrets),
+    notify: sendRecoveryOwnerNotice(context),
+    store: new SdkCommunityCollectionStore(context.storage, options.now, options.pollIntervalMs, error => diagnosticError(error, context.secrets)),
+    now: options.now,
     provider,
     allowed: async (repo) => !!(await community.configs.getByRepo(repo)),
     collect: (target, snapshot) => community.collectTracking(target, snapshot),
-    observe: (target, snapshot) => community.observeTracking(target, snapshot),
+    observe: async (target, snapshot) => { await community.observeTracking(target, snapshot); await prTitles.observe(target, snapshot); },
   });
   const tracking = new TypedWaitRuntime({
     context,
     provider,
+    ...(options.pollIntervalMs !== undefined ? { pollIntervalMs: options.pollIntervalMs } : {}),
     ...(options.now ? { now: options.now } : {}),
     coverage: (repoFullName, prNumber, triggerCommentId) =>
       reviewTriggers.observe({ repoFullName, prNumber, triggerCommentId }),
     collect: (target, snapshot) => community.collectTracking(target, snapshot),
-    observe: (target, snapshot) => community.observeTracking(target, snapshot),
+    observe: async (target, snapshot) => { await community.observeTracking(target, snapshot); await prTitles.observe(target, snapshot); },
   });
-  const migratedIssues = new MigratedIssueRuntime(context, provider, () => provider.selfLogin(), options.now);
-  if (!(await migration.held())) await tracking.recover();
+  const migratedIssues = new MigratedIssueRuntime(context, provider, () => provider.selfLogin(), options.now, options.pollIntervalMs);
+  const recoverOwners = async () => { await Promise.all([tracking.recover(), collection.prepare(), migratedIssues.initialize()]); };
+  if (!(await migration.held())) {
+    try { await recoverOwners(); } catch (error) {
+      if (!(error instanceof IndexedWaitStorageUnavailableError)) throw error;
+      context.log('warn', 'GitHub tracking needs indexed Host storage; existing records and unrelated reads remain available');
+    }
+  }
   const http = await createCommunityHttpRouter({
     storage: context.storage,
     threads: context.threads,
@@ -143,7 +163,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   };
   return {
     actions: migration.guard({
-      ...migrationActions(context, migration, () => tracking.recover()),
+      ...migrationActions(context, migration, recoverOwners),
       ...connectionSettings.actions,
       'github.sourceMaterial': createGitHubSourcePublication({
         storage: context.storage,
@@ -153,6 +173,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
       }),
       'github.pr-title.http': prTitleHttp(prTitles),
       [REVIEW_VERDICT_METHOD]: (input: unknown, caller?: PluginActionContext) => reviewVerdicts.record(input, caller),
+      [TERMINAL_RECONCILIATION_METHOD]: (input: unknown, caller?: PluginActionContext) => terminalReconciliation.reconcile(input, caller),
       ...Object.fromEntries(
         communityNativeMethods.map((method) => [
           method,
@@ -177,16 +198,9 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
         tracking.registerIssue(value, caller),
       'github.typed-wait.unregister': (value: unknown, caller?: PluginActionContext) =>
         tracking.unregister(value, caller),
-      'github.tracking.list': async () => ({
-        data: {
-          tracking: [
-            ...(await tracking.store.listByKind('pr_tracking')),
-            ...(await tracking.store.listByKind('issue_tracking')),
-            ...(await migratedIssues.list()),
-          ],
-          diagnostics: await tracking.diagnostics(),
-        },
-      }),
+      'github.tracking.retry': (value: unknown, caller?: PluginActionContext) => tracking.retry(value, caller),
+      'github.tracking.list': (value: unknown, caller?: PluginActionContext) =>
+        listTrackingStatus(context.storage, context.secrets, value, caller),
       'github.pr-tracking': () => poll('pr'),
       'github.issue-tracking': () => poll('issue'),
       'github.repo-scan': async () => {
@@ -237,6 +251,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
         migratedIssues.stop(),
         prTitles.stop(),
         reviewVerdicts.stop(),
+        terminalReconciliation.stop(),
         narrator.stop(),
         http.stop(),
         collection.stop(),

@@ -1,0 +1,22 @@
+{
+  "version": "0.1.0-alpha.10",
+  "bytes": 157389,
+  "sha256": "afd50eec9ad231c727daaaaafaab0df01c89b19bd918c459734c2e8f42559877",
+  "integrity": "sha512-N6mohK+qmgNW08yRGa2g1N4Ja6hMbpfLOGg6IPqHB/HgzlUvqwm9/6AQqt56umDqeoe19OtgqlegMz2p0eeVMA==",
+  "shasum": "556b1334acafa6eee137c65af7f6ec029ad8f992",
+  "toolchain": {
+    "node": "v24.18.0",
+    "zlib": "1.3.1-e00f703",
+    "npm": "11.16.0"
+  },
+  "sourceTests": {
+    "passed": 277,
+    "failed": 0,
+    "skipped": 0
+  },
+  "bundledAndAdapterTargeted": {
+    "passed": 5,
+    "failed": 0
+  },
+  "productionMutations": false
+}

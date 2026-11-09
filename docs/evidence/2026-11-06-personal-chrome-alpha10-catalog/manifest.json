@@ -1,0 +1,33 @@
+{
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 1487,
+      "sha256": "21eb67edf1cbdbd4a8a22808a9a542187413e09bb820c967608e0955ca3e494c"
+    },
+    {
+      "path": "activate.log.gz",
+      "bytes": 521,
+      "sha256": "7a6d2d324be23bebc56652e220221bd8d2d404f5261e8f00a9af746b8ed668d6",
+      "decodedBytes": 1143,
+      "decodedSha256": "0d8e0a2b257e01f76ad9d04d9369da34bba97d01cba9a62d82260105577215e8"
+    },
+    {
+      "path": "check.log.gz",
+      "bytes": 518,
+      "sha256": "df3a9d4aca5299d38a6f79cb63f8f5b1286a2c22fbbc6284b2f5d968820c5958",
+      "decodedBytes": 1145,
+      "decodedSha256": "16930ec7e399c24f692543e5c00c58680083f0277471ff64df7117c1bb83aa31"
+    },
+    {
+      "path": "native-publish-run.json",
+      "bytes": 12747,
+      "sha256": "94fde07af07a87b7eb46f5b6d2a61d0673fe57b7718948b86a9e8c667f359894"
+    },
+    {
+      "path": "registry-verification.json",
+      "bytes": 616,
+      "sha256": "2884dd93b62b3cb1448c0ddfc391199550f2888663faa09b04f1da15e8a41ca7"
+    }
+  ]
+}

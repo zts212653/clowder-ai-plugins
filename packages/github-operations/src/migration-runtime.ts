@@ -1,3 +1,5 @@
+import { WAIT_PREFIX, publishWaitRecord, type WaitRecordV1 } from './typed-wait-record.js';
+import { MIGRATED_ISSUES, publishMigratedIssue } from './migrated-issue-record.js';
 import type { FeatureContext, PluginActionContext, PluginActionHandler } from '@clowder-ai/plugin-sdk';
 import type { TaskItem } from './business/model/index.js';
 import { assertBinding, isExpired, planMigration, type MigrationPlan, type MigrationTask } from './migration-plan.js';
@@ -178,7 +180,11 @@ export class GitHubMigrationRuntime {
       const row = plan.tasks.find(row => row.task.id === j.tasks.find(task => task.target === target)?.id);
       if (row && await retireClosedImportedWait(this.context, j, row, target, record,
         !!await this.context.storage.get(ackKey(j.planDigest, row.task.id)), check)) continue;
-      if (!(await this.context.storage.compareAndSet(target, null, record)).applied
+      const published = target.startsWith(WAIT_PREFIX)
+        ? await publishWaitRecord(this.context.storage, target, null, record as WaitRecordV1, this.now(), 60_000)
+        : target.startsWith(MIGRATED_ISSUES) ? await publishMigratedIssue(this.context.storage, target, null, record)
+        : await this.context.storage.compareAndSet(target, null, record);
+      if (!published.applied
         && canonicalBytes((await this.context.storage.get(target))?.value) !== canonicalBytes(record)) throw new Error('Active import target changed');
     }
     const missing = await this.verify(plan, j, check);

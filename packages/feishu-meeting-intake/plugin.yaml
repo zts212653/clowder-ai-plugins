@@ -1,5 +1,5 @@
 pluginId: official.feishu-meeting-intake
-version: 0.1.0-alpha.12
+version: 0.1.0-alpha.13
 contractVersion: 0.1.0
 name: Feishu Meeting Intake
 description: Owned meeting records, ordinary notifications and authenticated native reads.

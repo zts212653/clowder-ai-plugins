@@ -52,23 +52,6 @@ function credentials(value: Record<string, unknown>): Credentials {
   return { invocationId: value.invocationId, callbackToken: value.callbackToken };
 }
 
-function actionCapability(env: NodeJS.ProcessEnv): string {
-  if (env.CLOWDER_PLUGIN_ACTION_CREDENTIAL_FILE) {
-    const projection = readProjection(env.CLOWDER_PLUGIN_ACTION_CREDENTIAL_FILE);
-    if (
-      projection.v !== 1 ||
-      typeof projection.token !== 'string' ||
-      projection.token.length === 0 ||
-      projection.token.length > 8_192 ||
-      /\s/u.test(projection.token)
-    ) throw denied();
-    return projection.token;
-  }
-  const token = env.CLOWDER_PLUGIN_ACTION_TOKEN;
-  if (!token) throw denied();
-  return token;
-}
-
 function nativeCredentials(env: NodeJS.ProcessEnv, meta: unknown): Credentials {
   const runtime = record(meta);
   const turn = record(runtime['x-codex-turn-metadata']);
@@ -91,7 +74,7 @@ export function createModuleActionClient(options: ModuleActionClientOptions = {}
     async invoke(method: string, input: unknown, call: ModuleActionCallOptions = {}): Promise<unknown> {
       const signal = AbortSignal.any([...(call.signal ? [call.signal] : []), AbortSignal.timeout(30_000)]);
       signal.throwIfAborted();
-      if (!env.CAT_CAFE_API_URL || (!env.CLOWDER_PLUGIN_ACTION_CREDENTIAL_FILE && !env.CLOWDER_PLUGIN_ACTION_TOKEN) ||
+      if (!env.CAT_CAFE_API_URL || !env.CLOWDER_PLUGIN_ACTION_TOKEN ||
         env.CLOWDER_PLUGIN_ACTION_PATH !== '/api/plugin-runtime/action') throw denied();
       const url = new URL(env.CLOWDER_PLUGIN_ACTION_PATH, env.CAT_CAFE_API_URL);
       if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw denied();
@@ -115,7 +98,7 @@ export function createModuleActionClient(options: ModuleActionClientOptions = {}
       const response = await request(url, {
         method: 'POST', redirect: 'error', signal,
         headers: { 'content-type': 'application/json',
-          'x-clowder-plugin-action-token': actionCapability(env),
+          'x-clowder-plugin-action-token': env.CLOWDER_PLUGIN_ACTION_TOKEN,
           'x-invocation-id': auth.invocationId, 'x-callback-token': auth.callbackToken },
         body: JSON.stringify({ method, input }),
       });

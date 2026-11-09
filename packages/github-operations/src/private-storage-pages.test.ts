@@ -1,3 +1,4 @@
+import { withIndexedMemoryStorage } from '../test/indexed-memory-storage.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { PluginStorageEntry } from '@clowder-ai/plugin-sdk';
@@ -38,6 +39,7 @@ function fixture(pageSize = 2) {
       rows.delete(key); return { deleted: true, revision: ++revision };
     },
   };
+  withIndexedMemoryStorage(storage);
   return { storage, rows, scans, fullLists: () => fullLists };
 }
 
@@ -82,8 +84,8 @@ test('community projections, journal and collection reads request only their own
   const f = fixture();
   await f.storage.set('github.unrelated', { opaque: 'must stay outside these read paths' });
   await f.storage.set('community.object.fixture', { subjectKey: 'issue:example/repo#1' });
-  await f.storage.set('community.journal.v1', { next: 1, pending: null });
-  await f.storage.set('community.event.fixture', { sequence: 0, event: { subjectKey: 'issue:example/repo#1' } });
+  await new SdkCommunityEventLog(f.storage).append({ sourceEventId: 'fixture-event', subjectKey: 'issue:example/repo#1',
+    kind: 'issue.opened', classification: 'state-changing', payload: {}, at: 1 });
   assert.deepEqual(await new SdkCommunityObjectStore(f.storage).listSubjectKeys(), ['issue:example/repo#1']);
   assert.equal((await new SdkCommunityEventLog(f.storage).read('issue:example/repo#1')).length, 1);
   assert.deepEqual(await new SdkCommunityCollectionStore(f.storage).listByKind('pr_tracking'), []);

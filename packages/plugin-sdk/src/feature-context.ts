@@ -228,7 +228,13 @@ export function createFeatureContextSession(
   };
 
   const scanStorage = adapter.storage?.scan?.bind(adapter.storage);
+  const writeIndexed = adapter.storage?.compareAndSetIndexed?.bind(adapter.storage);
+  const readDue = adapter.storage?.readDue?.bind(adapter.storage);
+  const rebuildIndex = adapter.storage?.rebuildIndex?.bind(adapter.storage);
   const storage: PluginStorageHost = {
+    ...(writeIndexed ? { compareAndSetIndexed: (...args: Parameters<typeof writeIndexed>) => runWhileActive(() => adapter.storage.compareAndSetIndexed!(...args)) } : {}),
+    ...(readDue ? { readDue: (input: Parameters<typeof readDue>[0]) => runWhileActive(() => adapter.storage.readDue!(input)) } : {}),
+    ...(rebuildIndex ? { rebuildIndex: (index: string) => runWhileActive(() => adapter.storage.rebuildIndex!(index)) } : {}),
     get: (key) => runWhileActive(() => adapter.storage.get(key)),
     list: () => runWhileActive(() => adapter.storage.list()),
     ...(scanStorage ? { scan: (input: Parameters<typeof scanStorage>[0]) => runWhileActive(() => scanStorage(input)) } : {}),

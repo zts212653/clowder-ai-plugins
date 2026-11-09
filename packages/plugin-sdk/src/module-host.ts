@@ -47,7 +47,20 @@ export interface PluginStoragePage {
   readonly entries: Readonly<Record<string, PluginStorageEntry>>;
 }
 
+/** One projection per original record; the Host binds the plugin namespace. No lifecycle or multi-record transaction policy. */
+export interface PluginStorageProjection { readonly index: string; readonly score: number | null }
+export interface PluginStorageDueInput { readonly index: string; readonly before: number; readonly limit: number }
+export type PluginStorageDuePage = { readonly status: 'not_ready' } | {
+  readonly status: 'ready'; readonly version: string; readonly entries: Readonly<Record<string, PluginStorageEntry>>;
+};
+
 export interface PluginStorageHost {
+  /** Optional on older Hosts. Indexed rows reject ordinary writes that omit the projection. */
+  compareAndSetIndexed?(key: string, expectedRevision: number | null, value: unknown, projection: PluginStorageProjection): Promise<PluginStorageCompareAndSetResult>;
+  /** No scan/list fallback. not_ready is distinct from a ready empty result. */
+  readDue?(input: PluginStorageDueInput): Promise<PluginStorageDuePage>;
+  /** Explicit resumable census only, never an implicit part of a due read. */
+  rebuildIndex?(index: string): Promise<{ readonly status: 'ready'; readonly version: string }>;
   get(key: string): Promise<PluginStorageEntry | undefined>;
   list(): Promise<Readonly<Record<string, PluginStorageEntry>>>;
   /** Optional on older Hosts. New callers must not replace a missing scan with a full list. */

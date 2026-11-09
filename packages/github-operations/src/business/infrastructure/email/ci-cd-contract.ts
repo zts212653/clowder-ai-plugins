@@ -8,11 +8,16 @@ export interface CiCheckDetail {
   readonly link?: string;
   readonly workflow?: string;
   readonly description?: string;
+  /** Raw provider evidence retained for terminal historical inspection. */
+  readonly providerStatus?: string;
+  readonly providerConclusion?: string | null;
   /** Closed enum derived only from typed GitHub execution payloads. */
   readonly executionFailure?: CiExecutionFailure;
 }
 
 export interface CiPollResult {
+  /** Exact response subject and rollup commit were independently matched. */
+  readonly identityVerified?: true;
   readonly repoFullName: string;
   readonly prNumber: number;
   readonly headSha: string;

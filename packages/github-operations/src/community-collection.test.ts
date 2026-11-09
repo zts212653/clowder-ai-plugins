@@ -9,14 +9,16 @@ const route = { kind: 'case.routed', subjectKey: 'issue:org/repo#1', sourceEvent
   payload: { ownerThreadId: 'thread', catId: 'cat' } } as const;
 const snapshot: GitHubSnapshot = { state: 'open', commentsComplete: true, comments: [{ id: 11, author: 'someone', body: 'hello', commentType: 'conversation' }], reviews: [] };
 async function fixture() {
-  const storage = memoryStorage(), store = new SdkCommunityCollectionStore(storage);
+  let clock = Date.now();
+  const now = () => clock;
+  const storage = memoryStorage(), store = new SdkCommunityCollectionStore(storage, now);
   await new SdkCommunityEventLog(storage).append(route);
   await registerRoutingTracking(route, store, { userId: 'owner', fetchCommentCursor: async () => 10 });
   let fail = false, called = 0; const cursors: unknown[] = [];
-  const runtime = new CommunityCollectionRuntime({ store, allowed: async () => true,
+  const runtime = new CommunityCollectionRuntime({ store, now, allowed: async () => true,
     provider: { read: async (_target, _signal, cursor) => { cursors.push(cursor); return snapshot; } },
     collect: async () => { called++; if (fail) throw new Error('event write failed'); }, observe: async () => {} });
-  return { storage, store, runtime, cursors, called: () => called, fail: (value: boolean) => { fail = value; } };
+  return { storage, store, runtime, cursors, now, advance: () => { clock += 60_000; }, called: () => called, fail: (value: boolean) => { fail = value; } };
 }
 test('case.routed registration is private durable collection, with no native wait authority', async () => {
   const f = await fixture();
@@ -33,7 +35,8 @@ test('failed durable collection does not advance cursor and retries after runtim
   assert.equal((await f.store.getBySubject(route.subjectKey))?.automationState?.issue?.lastCommentCursor, 10);
   await f.runtime.stop();
   let restored = 0;
-  const restarted = new CommunityCollectionRuntime({ store: new SdkCommunityCollectionStore(f.storage), allowed: async () => true,
+  f.advance();
+  const restarted = new CommunityCollectionRuntime({ store: new SdkCommunityCollectionStore(f.storage, f.now), now: f.now, allowed: async () => true,
     provider: { read: async (_target, _signal, cursor) => { assert.equal(cursor?.conversation, 10); return snapshot; } },
     collect: async () => { restored++; }, observe: async () => {} });
   await restarted.poll('issue'); assert.equal(restored, 1);
