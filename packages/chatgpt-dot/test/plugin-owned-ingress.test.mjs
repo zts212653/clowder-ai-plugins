@@ -776,3 +776,16 @@ for(const action of ['dot.use-long-lived','dot.refresh-credential']) test(`disco
   await pending.catch(()=>{});
   assert.deepEqual(x.f.records.get('dot/external/v1'),disconnected);
 });
+
+
+for(const action of ['dot.use-long-lived','dot.refresh-credential'])test(`disconnect invalidates ${action} awaiting first caller authority`,async t=>{
+ const x=await setup(t),entered=Promise.withResolvers(),release=Promise.withResolvers();let paused=false;
+ if(action==='dot.use-long-lived')await x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
+ const context={...x.f.owner,assertCurrent:async()=>{if(!paused){paused=true;entered.resolve();await release.promise;}}};
+ const pending=x.active.actions[action]({input:{longLivedServerUrlTemplate:`https://new.example${path}?token={token}`}},undefined,context);
+ await entered.promise;await x.active.actions['dot.disconnect']({},undefined,x.f.owner);
+ const disconnected=structuredClone(x.f.records.get('dot/external/v1'));release.resolve();
+ await assert.rejects(pending,/dot_endpoint_operation_cancelled/);assert.deepEqual(x.f.records.get('dot/external/v1'),disconnected);
+ const fresh=await x.active.actions['dot.use-long-lived']({input:{longLivedServerUrlTemplate:`https://new.example${path}?token={token}`}},undefined,x.f.owner);
+ assert.ok(new URL(fresh.data).searchParams.get('token'),"a new explicit operation can connect after disconnect");
+});

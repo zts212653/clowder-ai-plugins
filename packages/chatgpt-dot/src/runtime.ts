@@ -141,9 +141,10 @@ export class DotRuntime {
 		const state = await this.connection.forDispatch(record);
 		const source = await this.source(record, state);
 		// Older acknowledged subscriptions will not be delivered again. Recover
-		// their classification from the durable ask receipt and exact recipient,
-		// after validating the original dispatch/source authority above.
-		if (!record.deliveryReason && record.deliveryId && source.catId) {
+		// alpha.49 Host subscription IDs have this stable family; addressed IDs
+		// are ad_<digest> and must never lose their completion carrier. Unknown
+		// IDs stay unchanged. This is old-format recovery, not current routing.
+		if (!record.deliveryReason && /^delivery_[a-f0-9]{64}$/.test(record.deliveryId ?? "") && source.catId) {
 			const parent = source.replyTo ?? source.extra?.causal?.triggerMessageId;
 			for (const [key, entry] of Object.entries(await this.host.storage.list())) {
 				if (!key.startsWith("dot/ask/")) continue;

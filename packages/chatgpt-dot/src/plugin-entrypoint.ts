@@ -80,13 +80,19 @@ export function createDotPlugin(
 	let running: DotRuntime | undefined;
 	let temporaryEndpoints: TemporaryEndpointController | undefined;
 	let loopback: Awaited<ReturnType<typeof startMcpLoopback>> | undefined;
-	const temporaryStarts = new AsyncLocalStorage<number>();
+	let endpointEpoch = 0;
+	const endpointOperations = new AsyncLocalStorage<{epoch:number;temporary?:number}>();
 	function admitAction<T>(method: string, run: () => Promise<T>): Promise<T> {
-		// Both public action tables share one ticket, captured before even the
-		// first asynchronous authority check. Disconnect invalidates that ticket.
-		if (method === "dot.start-temporary" && temporaryEndpoints && temporaryStarts.getStore() === undefined)
-			return temporaryStarts.run(temporaryEndpoints.reserveStart(), run);
+		// Capture before either public action table awaits caller authority.
+		if (["dot.start-temporary","dot.use-long-lived","dot.refresh-credential"].includes(method) &&
+			endpointOperations.getStore() === undefined)
+			return endpointOperations.run({epoch:endpointEpoch,
+				...(method === "dot.start-temporary" && temporaryEndpoints ? {temporary:temporaryEndpoints.reserveStart()} : {})}, run);
 		return run();
+	}
+	function assertEndpointOperation() {
+		if (endpointOperations.getStore()?.epoch !== endpointEpoch)
+			throw new Error("dot_endpoint_operation_cancelled");
 	}
 	async function connection(
 		host: DotSettingsHost,
@@ -176,8 +182,10 @@ export function createDotPlugin(
 				"dot.status": async (_input, _native, context) => statusRows(context),
 				"dot.use-long-lived": async (params, _native, context) => {
 					await current.owner(context);
+					assertEndpointOperation();
 					if (!running) throw new Error("dot_runtime_unavailable");
 					const existing = await current.externalState();
+					assertEndpointOperation();
 					if (
 						existing.endpoint.mode === "long-lived" &&
 						endpointCredentialIsLive(
@@ -190,7 +198,7 @@ export function createDotPlugin(
 					const input = operationInput(params);
 					const template = input.longLivedServerUrlTemplate;
 					longLivedServerUrl(template, "validation");
-					const { state, issued } = await current.issuePluginPending(context, undefined, {externalRevision:existing.revision});
+					const { state, issued } = await current.issuePluginPending(context, undefined, {externalRevision:existing.revision,assertCurrent:assertEndpointOperation});
 					const serverUrl = longLivedServerUrl(template, issued.token);
 					await current.setLongLivedServerUrl(
 						state.pending!.candidateId,
@@ -201,8 +209,11 @@ export function createDotPlugin(
 				"dot.start-temporary": async (params, _native, context) => {
 					if (!running || !temporaryEndpoints)
 						throw new Error("dot_runtime_unavailable");
-					const epoch = temporaryStarts.getStore()!;
-					const assertStart = () => temporaryEndpoints!.assertStart(epoch);
+					const epoch = endpointOperations.getStore()!.temporary!;
+					const assertStart = () => {
+						temporaryEndpoints!.assertStart(epoch);
+						assertEndpointOperation();
+					};
 					await current.owner(context);
 					assertStart();
 					const before = await current.externalState();
@@ -264,6 +275,7 @@ export function createDotPlugin(
 				},
 				"dot.refresh-credential": async (params, _native, context) => {
 					await current.owner(context);
+					assertEndpointOperation();
 					if (!running) throw new Error("dot_runtime_unavailable");
 					const before = await current.externalState();
 					const input = operationInput(params);
@@ -290,7 +302,7 @@ export function createDotPlugin(
 									),
 								)
 							: undefined,
-						{externalRevision:before.revision},
+						{externalRevision:before.revision,assertCurrent:assertEndpointOperation},
 					);
 					const candidateId = state.pending!.candidateId;
 					if (before.endpoint.mode === "long-lived") {
@@ -358,6 +370,7 @@ export function createDotPlugin(
 				"dot.check-roundtrip": async (_input, _native, context) =>
 					statusRows(context),
 				"dot.disconnect": async (_input, _native, context) => {
+					endpointEpoch++;
 					await temporaryEndpoints?.stop("owner_stop");
 					await current.revokeExternal();
 					if (await current.store.connection())

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createHash } from "node:crypto";
 import { delivery, paired, rpc } from "./fixture.mjs";
 
 test("pair, addressed receive, read and source-bound reply survive restart without a global subscription", async (t) => {
@@ -497,7 +498,7 @@ for (const restart of [false,true]) test(`old acknowledged subscription dispatch
   const question=(await rpc(f,"cat_cafe_dot_ask",{attempt_id:f.credentials.attemptId,thread_id:"thread-1",target_cat_ids:["cat-1"],content:"Question",client_message_id:"legacy-followup"})).result.structuredContent;
   const source={...f.source,id:"old-cat-reply",catId:"cat-1",replyTo:question.messageId,content:"answer",sourceRevision:"old-answer"};
   f.messages.set(source.id,source);
-  const input={...delivery(f,"old-subscription-delivery"),reason:"subscription",envelope:{...delivery(f).envelope,messageId:source.id}};
+  const input={...delivery(f,`delivery_${"a".repeat(64)}`),reason:"subscription",envelope:{...delivery(f).envelope,messageId:source.id}};
   await f.active.deliver(input);
   const id=f.webhooks.at(-1).data.eventId;
   if(restart)assert.equal((await rpc(f,"cat_cafe_dot_read_source",{event_id:id})).error,undefined);
@@ -522,4 +523,19 @@ test("explicitly addressed member replies keep their carrier even when they also
   assert.equal((await rpc(f,"cat_cafe_dot_read_source",{event_id:id})).error,undefined);
   assert.equal((await rpc(f,"cat_cafe_dot_reply",{event_id:id,content:"Back"})).error,undefined);
   assert.deepEqual(f.sent.at(-1).input.response,{deliveryId:"addressed-member-delivery",status:"completed"});
+});
+
+
+test("old addressed ask replies keep the real Host carrier across read and restart",async t=>{
+ const f=await paired(t);f.host.messaging.subscribe=async()=>{};
+ const question=(await rpc(f,"cat_cafe_dot_ask",{attempt_id:f.credentials.attemptId,thread_id:"thread-1",target_cat_ids:["cat-1"],content:"Question",client_message_id:"old-addressed"})).result.structuredContent;
+ const source={...f.source,id:"old-addressed-cat",catId:"cat-1",replyTo:question.messageId};f.messages.set(source.id,source);
+ const deliveryId=`ad_${createHash('sha256').update(f.host.pluginInstanceId).update('\0').update(source.id).digest('hex')}`;
+ await f.active.deliver({...delivery(f,deliveryId),envelope:{...delivery(f).envelope,messageId:source.id}});
+ const id=f.webhooks.at(-1).data.eventId,key=`dot/dispatch/${id}`,legacy={...f.records.get(key).value};delete legacy.deliveryReason;await f.host.storage.set(key,legacy);
+ await f.active.stop({reason:"test"});f.active=await f.module.start(f.host);
+ assert.equal((await rpc(f,"cat_cafe_dot_read_source",{event_id:id})).error,undefined);
+ assert.equal(f.records.get(key).value.deliveryId,deliveryId);
+ assert.equal((await rpc(f,"cat_cafe_dot_reply",{event_id:id,content:"Back"})).error,undefined);
+ assert.deepEqual(f.sent.at(-1).input.response,{deliveryId,status:"completed"});
 });
