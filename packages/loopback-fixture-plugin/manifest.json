@@ -1,7 +1,7 @@
 {
   "pluginId": "dev.clowder.loopback-fixture",
   "version": "0.1.0",
-  "contractVersion": "0.1.0",
+  "contractVersion": "0.4.0",
   "name": "Loopback fixture plugin",
   "features": [
     {
