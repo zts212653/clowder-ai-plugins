@@ -765,6 +765,7 @@ test('disconnect invalidates a temporary start still awaiting initial caller aut
 
 for(const action of ['dot.use-long-lived','dot.refresh-credential']) test(`disconnect invalidates ${action} paused at the first endpoint snapshot`,async t=>{
   const x=await setup(t),entered=Promise.withResolvers(),release=Promise.withResolvers();let paused=false;
+  if(action==='dot.use-long-lived')await x.active.actions['dot.cancel-pending']({},undefined,x.f.owner);
   const get=x.f.host.storage.get.bind(x.f.host.storage);
   x.f.host.storage.get=async key=>{const row=await get(key);if(!paused && key==='dot/external/v1'){paused=true;entered.resolve();await release.promise;}return row;};
   const pending=x.active.actions[action]({input:{longLivedServerUrlTemplate:`https://new.example${path}?token={token}`}},undefined,x.f.owner);
