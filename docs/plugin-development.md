@@ -33,7 +33,7 @@ SDK 公开方法是接口边界，不再按插件 ID 或 feature 能力数组复
 
 ## 2. Plugin → Host
 
-本轮候选新增可选 `runtimeInfo.get()`：仅在当前安装的 owner HTTP 操作中返回当前 Host 版本/修订、系统、Node、默认项目和有效日志目录，不提供完整环境或配置；旧 Host / 不支持的载体可不提供。`threads.create({title, projectRef?, parentThreadId?, participants?})` 中项目目录引用由 Host 按普通项目策略校验，不能同时指定 parent 与 projectRef；省略两者沿用默认项目。线程投影的 `projectRef` 是 Host 解析后的真实项目。侧栏入口来自已启用安装的 `activity-bar.bottom` 声明，图标来自插件元数据；页面从对应的已声明 GET webhook 获取标准 HTTP HTML，再交给 opaque iframe 隔离渲染，不另行调用 UI action 或使用 PluginUiPanel 信封。
+本轮候选新增可选 `runtimeInfo.get()`：仅在当前安装的 owner HTTP 操作中返回当前 Host 版本/修订、系统、Node、默认项目和有效日志目录，不提供完整环境或配置；旧 Host / 不支持的载体可不提供。`threads.create({title, projectRef?, parentThreadId?, participants?})` 中项目目录引用由 Host 按普通项目策略校验，不能同时指定 parent 与 projectRef；省略两者沿用默认项目。线程投影的 `projectRef` 是 Host 解析后的真实项目。侧栏入口来自已启用安装包的 PDL console（manifest 的 `pdl` 段、`console/app.js`、`console/i18n`），图标来自插件元数据；页面从对应的已声明 GET webhook 获取标准 HTTP HTML，再交给 opaque iframe 隔离渲染，不另行调用 UI action 或使用 PluginUiPanel 信封。
 
 参数与结果的完整类型以 [module-host.ts](../packages/plugin-sdk/src/module-host.ts)、[FeatureContext](../packages/plugin-sdk/src/feature-context.ts) 及相应类型入口为准。下表涵盖当前公开 surface；“实例”表示 Host 自动绑定的安装实例与 feature，不能由正文替换。
 
@@ -97,7 +97,7 @@ stateDiagram-v2
 | 停止／禁用 | 停止接新调用，preStop({reason,deadline}) 后 stop({reason})；保留 disabled 意图 | 中止未完成操作，停止自身定时器／连接，回收自建子进程 | 记录真实停止错误；晚到回调不能恢复活性 |
 | 卸载／销毁 | 运行时先 preStop／stop；随后 preUninstall(host)／uninstall(host)，移除安装并按数据策略处理；停用实例直接用 settings 同型 host 执行卸载，不调用 start | 停止阶段已释放运行资源；不自行删除用户保留数据 | 保留实际失败记录，不凭目录消失伪造成功 |
 
-停用状态仍可读取／编辑／保存正常配置及执行声明设置动作；保存不自动启用。已启用实例保存配置时保持启用意图，调用 configRefresh；没有 configRefresh hook 时不执行隐式 stop/start；缓存配置或持有连接的插件显式实现刷新，重读配置并替换自身资源。刷新失败由 Host 停止旧 generation。卸载上下文仅 pluginInstanceId/dataPath/config/secrets/storage/log，不授予运行能力。插件自建 helper 的 PID 与协议不属于 Host 管理接口；现存 external-runtime 则是 Host 运行插件载体的实现事实。C2 的插件自带界面仍是计划，不能把它写作当前已支持的任意 UI 注入。
+停用状态仍可读取／编辑／保存正常配置及执行声明设置动作；保存不自动启用。已启用实例保存配置时保持启用意图，调用 configRefresh；没有 configRefresh hook 时不执行隐式 stop/start；缓存配置或持有连接的插件显式实现刷新，重读配置并替换自身资源。刷新失败由 Host 停止旧 generation。卸载上下文仅 pluginInstanceId/dataPath/config/secrets/storage/log，不授予运行能力。插件自建 helper 的 PID 与协议不属于 Host 管理接口；现存 external-runtime 则是 Host 运行插件载体的实现事实。插件界面见下文“控制台界面与富卡片”，manifest 的 `pdl` 段声明包内控制台。
 
 `test` 是任意命名的普通 action。所有 action 返回的图像、轮询 data 和 receipt 都只用于本次显示，不由 Host 持久化或恢复。Host 仅保存通用步骤位置和 manifest 声明的配置／凭据目标；业务 cursor／二维码 challenge 由插件 storage 或既有不透明业务引用持有。操作 receipt 不能恢复为 runtime 健康状态；配置改变、重新安装或新操作使旧结果失效，晚响应不得覆盖更新结果。普通配置与操作顺序按 manifest。runtimeState 的 healthy/degraded/crashed 是载体健康，不是微信登录或外服连通；healthy 与插件 idle 可以同时成立。操作回执不改变这份投影。
 
@@ -125,9 +125,9 @@ Host 增加消息投影字段时，应先发布兼容的 SDK 并升级消费方�
 
 ### 插件面板挂载与业务 HTTP
 
-`ui` command 只参与发现：其 CallbackAction 的 method 与 params 必须匹配唯一的静态 GET webhook，Host 由此投影 resourcePath，不调用 command。页面 HTML、资源和业务请求统一使用既有 `/api/plugins/:pluginId/*` 分发及 `{...action.params, request}` 参数语义；页面以 `text/html` 返回，不建立另一个 UI 请求协议。opaque iframe 通过受当前插件命名空间和挂载代次限制的 HTTP 桥访问这些声明，重定向被拒绝。独立服务的页面和请求仍由插件自己的服务负责，不由 Host 增设业务协议。
+包内 PDL console 提供入口与面板，通过插件声明的 webhook 路由访问页面和业务。页面 HTML、资源和业务请求统一使用既有 `/api/plugins/:pluginId/*` 分发及 `{...action.params, request}` 参数语义；页面以 `text/html` 返回，不建立另一个 UI 请求协议。opaque iframe 通过受当前插件命名空间和挂载代次限制的 HTTP 桥访问这些声明，重定向被拒绝。独立服务的页面和请求仍由插件自己的服务负责，不由 Host 增设业务协议。
 
-例如反馈插件 alpha.2 的 `feedback.page` 声明处理 `GET panel`，其 action 与侧栏 command 一致；`feedback.http` 处理 `POST feedback`，内部业务读取 `input.request.body`。两者均返回既有 status/headers/body 结构；超过普通响应预算的已保留截图通过通用流响应交付。Host 与插件桥接修订需要配套采用，这不代表候选公共 UI 方向已经获得维护者采纳或发布。
+例如反馈插件 alpha.2 的 `feedback.page` 声明处理 `GET panel`；`feedback.http` 处理 `POST feedback`，内部业务读取 `input.request.body`。两者均返回既有 status/headers/body 结构；控制台另使用 `feedback.panel-route`（`POST feedback/panel`）webhook 路由。超过普通响应预算的已保留截图通过通用流响应交付。Host 与插件桥接修订需要配套采用，这不代表候选公共 UI 方向已经获得维护者采纳或发布。
 
 ### 项目产物交付候选（未发布）
 
@@ -140,6 +140,12 @@ producer 和 lookup 返回同一个有界 `ProjectOutputResult`：`pending`、`g
 相同 `requestId` 与相同参数接续原操作；不同参数拒绝。派发后结果未知不得再次调用 producer；恢复只查询原结果或继续交付。授权撤销、目录变化、外部文件占位与磁盘失败不能变成覆盖或付费重试。多个普通文件的依次提交不宣称整体原子性；崩溃按原预留 inode、内容摘要及前缀恢复。插件与 Host 承接的用户产物都不随停用、升级或卸载丢弃。
 
 设置动作可返回 `render: url, data: {url}`，由 Host 显示仅 HTTPS、无内嵌认证的链接；不自动打开浏览器。轮询可携带同一 `data.url` 供刷新后的卡片恢复显示。Google 等具体来源的固定域名和授权参数校验仍由插件负责。Host 设置结果不接受 `ok`；只读 `test` 则返回 `{ok, message?, details?}`，二者不可混用。
+
+## 控制台界面与富卡片
+
+Contract `0.4.0` 不再提供 `ui` contribution。插件的控制台界面（入口、面板、行模板、文字）由插件包提供：manifest 的 `pdl` 段声明控制台，`console/app.js` 实现界面，`console/i18n` 提供文字。包里的界面读写只经插件自己声明的 webhook 路由，例如问题反馈控制台使用 `feedback.panel-route`（`POST feedback/panel`）。Host 不为某个插件写界面分支。
+
+消息里的富卡片声明渲染类型：`kind` 与 `meta.kind` 写作 `card.<subtype>`；新的 subtype 以插件命名空间开头。带 subtype 的消息同时必须是带标题和正文的合法普通卡片，没有该插件模板的 Host 按普通卡片显示。
 
 ## 契约边界验证
 

@@ -9,7 +9,7 @@ created: 2026-10-28
 
 用户授权：2026-10-28“按照方案，拉 workTree 进行落地实施，然后提 PR”。此前修订的自动提交、手动兜底、字段旁复制、实际图片交付、流程进度和实际 Issue 链接均保留。
 
-业务实现位于 `packages/feedback`；宿主配套分支 `feat/feedback-host`。复用现有 UI command/slot-item 声明，无需更改 manifest schema。该候选包尚未加入发布目录、初装列表或生产 runtime。
+业务实现位于 `packages/feedback`；宿主配套分支 `feat/feedback-host`。入口与面板由 PDL console 包提供，面板经 webhook `feedback/panel`（POST → `feedback.panel`）；manifest 不声明界面。该候选包尚未加入发布目录、初装列表或生产 runtime。
 
 ## 当前实现
 
