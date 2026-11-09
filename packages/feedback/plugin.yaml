@@ -1,6 +1,6 @@
 pluginId: official.feedback
-version: 0.1.0-alpha.2
-contractVersion: 0.3.0
+version: 0.1.0-alpha.3
+contractVersion: 0.4.0
 name: 问题反馈
 description:
   default: 通过已配置的本地 Agent Client 生成脱敏报告并提交 Issue，支持草稿恢复、粘贴截图及本地选图。需要支持声明式 HTTP 面板及关闭前保存的配套 next 宿主。
@@ -29,10 +29,9 @@ configuration:
 contributions:
   - { type: identity, id: feedback.identity, displayName: 问题反馈 }
   - { type: message-subscription, id: feedback.results, binding: feedback.identity, action: { method: feedback.delivery }, presentation: v2 }
-  - { type: ui, id: feedback.open, kind: command, label: 问题反馈, action: { method: feedback.panel } }
-  - { type: ui, id: feedback.rail, kind: slot-item, label: 问题反馈, command: feedback.open, group: activity-bar.bottom, order: 90 }
   - { type: webhook, id: feedback.http, path: feedback, methods: [POST], requestBodyLimitBytes: 15728640, action: { method: feedback.http } }
   - { type: webhook, id: feedback.page, path: panel, methods: [GET], action: { method: feedback.panel } }
+  - { type: webhook, id: feedback.panel-route, path: feedback/panel, methods: [ POST ], action: { method: feedback.panel } }
 features:
   - id: feedback
     name: 问题反馈
@@ -40,10 +39,9 @@ features:
     contributions:
       - { type: identity, id: feedback.identity }
       - { type: message-subscription, id: feedback.results }
-      - { type: ui, id: feedback.open }
-      - { type: ui, id: feedback.rail }
       - { type: webhook, id: feedback.http }
       - { type: webhook, id: feedback.page }
+      - { type: webhook, id: feedback.panel-route }
 data:
   - { name: feedback-journal, dataClass: user-authored, strategy: retained }
 runtime:
