@@ -243,6 +243,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/208",
       "reason": "The bounded status candidate retains SDK candidate.11 and capable Host storage.scan requirements. Source and isolated packaged validation do not replace an installed-instance acceptance or authorize installation.",
       "condition": "Verify this exact self-contained archive with the original instance, settings and retained subscriptions during an owner-authorized update; validate actual tool schema and bounded read results. Public catalog activation requires separate scoped review."
+    },
+    {
+      "pluginId": "official.collective-connector",
+      "version": "0.1.0-alpha.26",
+      "integrity": "sha512-g4dYm0fF4cnT0C9fnxsIlyhxd205AXaa9CpCT1/mXV2vUyfm0dpeUHak7PJdachvcdH9mzvSO9WkaE42vbGAxw==",
+      "disposition": "defer",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-11T12:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/210",
+      "reason": "Await the paired Host save-path fix, final independent review, approval and canonical Linux artifact verification before live discovery changes.",
+      "condition": "Verify the exact published alpha.26 archive after both PRs pass CI and review, then change this plan to activate in the separately reviewed single-plugin catalog PR."
     }
   ]
 }
