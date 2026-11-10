@@ -1516,7 +1516,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     id: 'T-M-20',
     rawFrame: messagingRequestFrame('deliver-1', 'host.messaging.deliver', {
       deliveryId: 'delivery-1',
-      kind: 'message', executionId: 'execution-1',
+      kind: 'message', reason: 'addressed', executionId: 'execution-1',
       threadId: M0C_ENVELOPE.threadId,
       envelope: M0C_ENVELOPE,
     }),

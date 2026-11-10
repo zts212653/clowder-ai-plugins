@@ -67,7 +67,7 @@ export type ResourceReference = {
   readonly id: string;
 };
 export type ContributionReference = {
-  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'desktop-window';
+  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'external-request' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'desktop-window';
   readonly id: string;
 };
 export type PackageRelativePath = string;
@@ -205,6 +205,8 @@ export type ActionDef = {
 export type OperationRows = {
   readonly rows: readonly OperationRow[];
   readonly empty?: string;
+  readonly validUntil?: number;
+  readonly pollUntil?: number;
 };
 export type OperationRow = {
   readonly key: string;
@@ -282,6 +284,10 @@ export type McpContribution = {
     readonly export: string;
   };
 };
+export type ExternalRequestContribution = {
+  readonly type: 'external-request';
+  readonly id: string;
+};
 export type SkillContribution = {
   readonly type: 'skill';
   readonly id: string;
@@ -297,8 +303,9 @@ export type WebhookContribution = {
   readonly id: string;
   readonly path: string;
   readonly methods: readonly ('GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE')[];
-  readonly action: CallbackAction;
+  readonly action?: CallbackAction;
   readonly verificationSecretRef?: string;
+  readonly requestBodyLimitBytes?: number;
 };
 export type MessageSubscriptionContribution = {
   readonly type: 'message-subscription';
@@ -490,7 +497,7 @@ export type ContentEditorProviderContribution = {
   readonly semanticMaterializer?: SemanticMaterializerDeclaration;
   readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];
 };
-export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
+export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | ExternalRequestContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
 export type PluginFeature = {
   readonly id: string;
   readonly name: string;
@@ -538,6 +545,10 @@ export type ProjectOutputAction = {
   readonly maxBytes: number;
   readonly mcpId: string;
 };
+export type PluginCallDeclaration = {
+  readonly alias: string;
+  readonly displayName: string;
+};
 
 export type PluginManifest = {
   readonly pluginId: string;
@@ -557,6 +568,7 @@ export type PluginManifest = {
   readonly steps?: readonly SetupStep[];
   readonly signals?: SignalContribution;
   readonly projectOutputs?: readonly ProjectOutputAction[];
+  readonly call?: PluginCallDeclaration;
 };
 
 export type CatalogSemVer = string;
@@ -866,6 +878,7 @@ export type MediaReadResult = {
 };
 export type PluginMessageDelivery = {
   readonly kind: 'message';
+  readonly reason: 'addressed' | 'subscription';
   readonly deliveryId: string;
   readonly threadId: ThreadId;
   readonly executionId?: string;
@@ -1011,7 +1024,7 @@ export const DELIVERY_PRESENTATION_THREAD_KEYS = ['shortId', 'title', 'featId'] 
 export const DELIVERY_PRESENTATION_CONTEXT_KEYS = ['actor', 'thread', 'deepLinkUrl'] as const;
 export const MEDIA_READ_INPUT_KEYS = ['reference', 'offset', 'limit'] as const;
 export const MEDIA_READ_RESULT_KEYS = ['offset', 'dataBase64', 'nextOffset', 'done'] as const;
-export const PLUGIN_MESSAGE_DELIVERY_KEYS = ['kind', 'deliveryId', 'threadId', 'executionId', 'envelope', 'presentation'] as const;
+export const PLUGIN_MESSAGE_DELIVERY_KEYS = ['kind', 'reason', 'deliveryId', 'threadId', 'executionId', 'envelope', 'presentation'] as const;
 export const PLUGIN_EXECUTION_STARTED_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'presentation', 'placeholderLine', 'replyTo', 'executionId', 'kind'] as const;
 export const PLUGIN_EXECUTION_CATCHING_UP_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'executionId', 'kind'] as const;
 export const PLUGIN_EXECUTION_BLOCKED_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'reason', 'recoveryUrl', 'executionId', 'kind'] as const;
@@ -2173,6 +2186,9 @@ export const DATA_CLASS_ALLOWED_STRATEGIES = {
   'relationship': ['retained', 'ask-on-uninstall'],
   'interaction-history': ['retained', 'ask-on-uninstall'],
 } as const satisfies Readonly<Record<DataClass, readonly DataStrategy[]>>;
+
+export const PLUGIN_WEBHOOK_DEFAULT_REQUEST_BODY_LIMIT_BYTES = 1048576 as const;
+export const PLUGIN_WEBHOOK_MAX_REQUEST_BODY_LIMIT_BYTES = 15728640 as const;
 
 export const MESSAGING_BOUNDS = {
   maxElementsPerOperation: 32,

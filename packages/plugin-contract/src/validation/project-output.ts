@@ -16,7 +16,7 @@ export function projectOutputProblem(manifest: PluginManifest): string | undefin
     if (!native || !owner?.contributions?.some(c => c.type === 'mcp' && c.id === output.mcpId))
       return 'output native entrypoint and media source must have the same feature owner';
     for (const contribution of manifest.contributions ?? []) {
-      if ('action' in contribution && operationMethods.includes(contribution.action.method))
+      if ('action' in contribution && contribution.action !== undefined && operationMethods.includes(contribution.action.method))
         return 'project output is unavailable to non-native contribution actions';
     }
     for (const field of manifest.configuration ?? [])

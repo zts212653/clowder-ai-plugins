@@ -59,17 +59,25 @@ test('a conforming 0.2.0 manifest with configurationVariants validates', () => {
   assert.equal(result.valid, true, JSON.stringify(result.errors));
 });
 
-test('newer contracts retain configurationVariants used by the installed Collective package', () => {
-  for (const contractVersion of ['0.3.0', '0.3.1-candidate.0', '0.3.2-candidate.0']) {
-    const result = validateManifest(variantManifest({ contractVersion }));
-    assert.equal(result.valid, true, JSON.stringify(result.errors));
+test('configurationVariants rejects manifest protocols older than 0.2.0', () => {
+  for (const contractVersion of ['0.1.0', '0.2.0-beta.1']) {
+    const error = singleError(variantManifest({ contractVersion }));
+    assert.equal(error.keyword, 'contractVersion');
+    assert.equal(error.instancePath, '/configurationVariants');
   }
 });
 
-test('configurationVariants requires contractVersion 0.2.0 or newer', () => {
-  const error = singleError(variantManifest({ contractVersion: '0.1.0' }));
-  assert.equal(error.keyword, 'contractVersion');
-  assert.equal(error.instancePath, '/configurationVariants');
+test('configurationVariants remains available to later manifest protocols', () => {
+  for (const contractVersion of [
+    '0.3.0',
+    '0.3.1-candidate.0',
+    '0.3.1-candidate.3',
+    '0.3.2-candidate.0',
+    '0.3.3-candidate.0',
+  ]) {
+    const result = validateManifest(variantManifest({ contractVersion }));
+    assert.equal(result.valid, true, JSON.stringify(result.errors));
+  }
 });
 
 test('the discriminator must reference a declared configuration field', () => {
@@ -268,7 +276,7 @@ test('duplicate branch enum values return an invalid result without throwing', (
   assert.equal(error.keyword, 'whenUniqueOptions');
 });
 
-test('manifest admission compiles each branch only once', (t) => {
+test('manifest admission evaluates restricted branches without retaining Ajv schemas', (t) => {
   const Ajv2020 = createRequire(import.meta.url)('ajv/dist/2020') as {
     prototype: { compile: (schema: unknown) => unknown };
   };
@@ -288,5 +296,5 @@ test('manifest admission compiles each branch only once', (t) => {
   });
   const result = validateManifest(manifest);
   assert.equal(result.valid, true, JSON.stringify(result.errors));
-  assert.equal(compile.mock.callCount(), values.length);
+  assert.equal(compile.mock.callCount(), 0);
 });

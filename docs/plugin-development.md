@@ -67,9 +67,12 @@ SDK 公开方法是接口边界，不再按插件 ID 或 feature 能力数组复
 | --- | --- | --- |
 | `entrypoint.create(manifest)` | 建立已加载 module 对象，返回 start 及可选生命周期／settings hooks | Host 核安装包与声明；不是启用动作 |
 | `module.settings(host)` | 已加载模块的配置／扫码动作，返回 actions 和可选 dispose | Host 绑定实例与 owner 设置调用；不执行业务 start、不更改 enabled 意图 |
-| `module.start(host)` | 启用业务；返回 actions、configRefresh、preStop、stop 及可选 streams | 已声明 feature，Host client 绑定实例；拒绝启动则不宣称 healthy |
+| `module.start(host)` | 启用业务；返回 actions、configRefresh、preStop、stop 及可选 deliver／handle／webhook／streams | 已声明 feature，Host client 绑定实例；拒绝启动则不宣称 healthy |
 | `actions[method](input,actionContext?,hostContext?)` | 工具、配置按钮、测试、schedule、service 或声明 HTTP 请求；返回其已声明结果（包括 render/data/targetValues/advance） | 实际导出的 handler 按 method 路由；上下文由 Host 注入；signal/assertCurrent 与停止撤销 |
 | 单一 delivery action | kind 为 message 或 execution_status；公共 deliveryId，执行反馈按 executionId 关联；message 携带 envelope，status 携带 started/blocked/resumed/settled 等状态及 presentation | 声明的 message-subscription 方法；receipt 只确认本 input 处理，不能推断猫执行成功；deliveryId 幂等 |
+| `activation.deliver(input)` | 固定的 Host→插件消息入口；输入为 PluginDeliveryInput，message 由 reason 区分 addressed／subscription，回执为同一 deliveryId | `call` 只声明可被呼叫及展示信息；Host 决定调用接口，插件不能选择方法名；停止后撤销 |
+| `activation.handle(request)` | Host 验证安装 token 后转发的外部请求；插件自行解释业务协议 | 不注册为普通 Agent MCP，也不暴露方法白名单；token 只绑定安装实例 |
+| `activation.webhook.handle({contributionId,request},hostContext?)` | 固定的声明式 HTTP 入站；contributionId 选择插件自己的 webhook 资源 | 仅无 action 的已声明 webhook 且 runtime 实际实现时存在；Host 负责路径、方法、body 上限与身份；插件不能选择 Host 方法 |
 | `activation.configRefresh()` | 插件按需声明；配置改变后重读 config/secrets、更新自身连接与缓存；没有 hook 时无操作 | Host 校验实际资源与实例存活；刷新失败旧 handler 不继续执行，由管理器记录 error |
 | `activation.streams.read(reference,{signal}?)` | 与 Plugin→Host 相同的 AsyncIterable<Uint8Array>；Host 读取插件提供的附件 | 静态 media-source 声明来源归属；结束／return／abort 只释放本次 reader，不删除附件或使引用失效 |
 | `activation.preStop({reason,deadline})`、`stop({reason})`／settings `dispose()` | 排空／停止该次运行／释放设置资源；deadline 是 Unix 毫秒 | Host 控制生命周期，插件回收自己的连接、订阅、定时器及 helper 子进程 |
@@ -127,3 +130,14 @@ producer 和 lookup 返回同一个有界 `ProjectOutputResult`：`pending`、`g
 ## 契约边界验证
 
 Contract 的 schema、公开类型和 wire registry 是同一份接口真相；SDK 和独立 Loopback fixture 消费相同的契约夹具，不各自复制一套常量或方法矩阵。协议字节上限从允许的输入形状推导，并以合法最大值和 N+1、UTF-8 多字节与转义字符重新计算验证。请求与响应关联、错误结果、取消及授权撤销也须覆盖；测试通过不表示 Host 已支持或已启用该能力。
+
+
+## Dot 迁移配套候选声明
+
+本候选对应 Contract `0.3.3-candidate.1` 与 SDK `0.3.0-beta.2-candidate.12`。这是待审源码与制品的配套关系，不是已发布 npm 版本或旧 Host 兼容性的承诺；发布状态须另核注册表与 release 记录。
+
+- 可寻址插件声明顶层 `call`（例如 `{alias: 'dot', displayName: 'Dot'}`），并实现固定的 `activation.deliver(PluginDeliveryInput)`。`call` 不接受包提供的 Host 方法名；输入的 `reason` 区分 addressed 与 subscription，回执 `{deliveryId}` 只确认接收。实例、源消息、寻址和可见性由 Host 验证；需要报告回复结果时，经消息发送接口明确提供对应的 response，不能以 transport ACK 推断完成。
+- Dot 的旧数据 importer 是包的 `./migration` 导出，由 Host 的受限兼容适配器在启用前经 owner-operation 调用。它不是公开 manifest 字段、action、MCP 工具或 webhook 授权；批次只接收明确记录与原图字节，不接收服务端文件路径。一般插件不应声明 `migration.method`。
+- webhook contribution 的可选 `requestBodyLimitBytes` 为正安全整数，缺省 1 MiB，上限 15 MiB。Host 消费要求是在 body stream／preParsing 阶段按已解析的声明早拒绝，超过限额返回 413 且不调用 action；未知目标和无声明目标保持 1 MiB。声明不改变 anonymous／owner 身份规则或请求头剥离。默认值与硬上限从 schema 生成的 `PLUGIN_WEBHOOK_DEFAULT_REQUEST_BODY_LIMIT_BYTES`、`PLUGIN_WEBHOOK_MAX_REQUEST_BODY_LIMIT_BYTES` 读取。
+
+Dot 的 dot-mcp 声明 15 MiB，容纳既有 10 MiB PNG 的 base64 与 JSON-RPC 封装。其他插件保留自己的精确依赖版本与默认请求预算，不为此迁移强制升级。

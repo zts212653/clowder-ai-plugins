@@ -3,6 +3,7 @@ import type {
   PluginManifest,
   StaticContribution,
 } from '@clowder-ai/plugin-contract';
+import { defineDeliveryAction } from './delivery.js';
 
 import {
   activateDefinedFeature,
@@ -18,6 +19,7 @@ import {
 } from './feature-context.js';
 import type { ModulePluginHostShape, ModulePluginSettingsHost, PluginModuleActivationShape } from './module-host.js';
 import { requireDeliveryPresentation } from './p1-runtime.js';
+import { defineWebhookHandler } from './webhook.js';
 
 export interface PluginModuleDefinition {
   settings?(host: ModulePluginSettingsHost): {readonly actions: Readonly<Record<string, PluginActionHandler>>; dispose?(): void | Promise<void>} | Promise<{readonly actions: Readonly<Record<string, PluginActionHandler>>; dispose?(): void | Promise<void>}>;
@@ -154,6 +156,18 @@ async function startDefinedPluginModule(
   plugin: DefinedPlugin,
   host: ModulePluginHostShape,
 ): Promise<PluginModuleActivationShape> {
+  if (plugin.manifest.call !== undefined && plugin.deliver === undefined) {
+    throw new TypeError('manifest message delivery has no plugin deliver implementation');
+  }
+  const fixedWebhooks = (plugin.manifest.contributions ?? []).filter(
+    (contribution) => contribution.type === 'webhook' && contribution.action === undefined,
+  );
+  if (fixedWebhooks.length > 0 && plugin.webhook === undefined) {
+    throw new TypeError('manifest webhook declaration has no plugin webhook implementation');
+  }
+  if (fixedWebhooks.length === 0 && plugin.webhook !== undefined) {
+    throw new TypeError('plugin webhook handler is not declared by the manifest');
+  }
   const sessions: FeatureContextSession[] = [];
   const active: ActivePluginFeature[] = [];
   const actions: Record<string, PluginActionHandler> = {};
@@ -208,8 +222,32 @@ async function startDefinedPluginModule(
   }
 
   let stopPromise: Promise<void> | undefined;
+  const deliver = plugin.deliver === undefined ? undefined : defineDeliveryAction(async (input) => {
+    if (stopPromise) throw new FeatureContextRevokedError();
+    const result = await plugin.deliver!(input);
+    if (stopPromise) throw new FeatureContextRevokedError();
+    return result;
+  });
+  const handle = plugin.handle === undefined ? undefined : async (request: Readonly<Record<string, unknown>>) => {
+    if (stopPromise) throw new FeatureContextRevokedError();
+    const result = await plugin.handle!(structuredClone(request));
+    if (stopPromise) throw new FeatureContextRevokedError();
+    return result;
+  };
+  const webhook = plugin.webhook === undefined ? undefined : defineWebhookHandler(async (input, context) => {
+    if (stopPromise) throw new FeatureContextRevokedError();
+    if (!fixedWebhooks.some((contribution) => contribution.id === input.contributionId)) {
+      throw new TypeError(`webhook contribution ${input.contributionId} is not declared by the manifest`);
+    }
+    const result = await plugin.webhook!(input, context);
+    if (stopPromise) throw new FeatureContextRevokedError();
+    return result;
+  });
   return Object.freeze({
     actions: Object.freeze({ ...actions }),
+    ...(deliver ? {deliver} : {}),
+    ...(handle ? {handle} : {}),
+    ...(webhook ? {webhook} : {}),
     ...(active.some(feature => feature.configRefresh) ? {configRefresh: async () => {
       try { for (const feature of active) await feature.configRefresh?.(); }
       catch(error) {stopPromise ??= settleModuleFeatures(active,sessions);await stopPromise.catch(()=>undefined);throw error;}

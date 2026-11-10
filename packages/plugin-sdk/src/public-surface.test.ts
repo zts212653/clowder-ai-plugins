@@ -107,7 +107,7 @@ const lifecycle=['settings','preStart','start','preUninstall','uninstall'] as co
 const taskPorts=['get','list','create','update','bindDataController','revokeDataController'] as const satisfies readonly (keyof PluginTaskHost)[];
 const noUndocumentedTask:Record<Exclude<keyof PluginTaskHost,typeof taskPorts[number]>,never>={};
 void noUndocumentedTask;
-const activationPorts=['streams','configRefresh','preStop','actions','stop'] as const satisfies readonly (keyof PluginModuleActivationShape)[];
+const activationPorts=['streams','deliver','handle','webhook','configRefresh','preStop','actions','stop'] as const satisfies readonly (keyof PluginModuleActivationShape)[];
 // Adding a real author port requires a corresponding baseline entry in this same review.
 const noUndocumentedContext:Record<Exclude<keyof FeatureContext,typeof authorPorts[number]>,never>={};
 const noUndocumentedDefinition:Record<Exclude<keyof PluginModuleDefinition,typeof lifecycle[number]>,never>={};
