@@ -508,6 +508,15 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  packages/quick-phrases:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.0
+        version: 20.19.43
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   packages/stackchan:
     dependencies:
       '@clowder-ai/plugin-contract':
