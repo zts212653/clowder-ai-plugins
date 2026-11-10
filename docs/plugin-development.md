@@ -134,10 +134,10 @@ Contract 的 schema、公开类型和 wire registry 是同一份接口真相；S
 
 ## Dot 迁移配套候选声明
 
-Contract beta.40 与 SDK beta.22 提供以下声明；配套 Host 路由、迁移调用与容量限制仍须共同验收，schema 通过不代表旧 Host 已支持。
+本候选对应 Contract `0.3.3-candidate.1` 与 SDK `0.3.0-beta.2-candidate.12`。这是待审源码与制品的配套关系，不是已发布 npm 版本或旧 Host 兼容性的承诺；发布状态须另核注册表与 release 记录。
 
-- 顶层 `addressedDelivery: {method: 'deliverMessage'}` 显式选择可寻址投递，指向 activation.actions 中的实际方法。SDK 要求该 handler 存在；未声明不会从订阅或 handler 推断。输入沿用 PluginMessageDelivery，回执仅 `{deliveryId}`。实例 ID、别名与图标由 Host 管理。
-- 顶层 `migration: {method: 'dot.import'}` 是非 UI、Host-only 的迁移动作。Host 先验证本地 owner、已安装实例、包摘要与当前 fence，再用停用状态的 settings carrier 调用。它不是工具或 HTTP 授权，也不要求临时启用插件；迁移输入与幂等回执由包定义。
+- 可寻址插件声明顶层 `call`（例如 `{alias: 'dot', displayName: 'Dot'}`），并实现固定的 `activation.deliver(PluginDeliveryInput)`。`call` 不接受包提供的 Host 方法名；输入的 `reason` 区分 addressed 与 subscription，回执 `{deliveryId}` 只确认接收。实例、源消息、寻址和可见性由 Host 验证；需要报告回复结果时，经消息发送接口明确提供对应的 response，不能以 transport ACK 推断完成。
+- Dot 的旧数据 importer 是包的 `./migration` 导出，由 Host 的受限兼容适配器在启用前经 owner-operation 调用。它不是公开 manifest 字段、action、MCP 工具或 webhook 授权；批次只接收明确记录与原图字节，不接收服务端文件路径。一般插件不应声明 `migration.method`。
 - webhook contribution 的可选 `requestBodyLimitBytes` 为正安全整数，缺省 1 MiB，上限 15 MiB。Host 消费要求是在 body stream／preParsing 阶段按已解析的声明早拒绝，超过限额返回 413 且不调用 action；未知目标和无声明目标保持 1 MiB。声明不改变 anonymous／owner 身份规则或请求头剥离。默认值与硬上限从 schema 生成的 `PLUGIN_WEBHOOK_DEFAULT_REQUEST_BODY_LIMIT_BYTES`、`PLUGIN_WEBHOOK_MAX_REQUEST_BODY_LIMIT_BYTES` 读取。
 
 Dot 的 dot-mcp 声明 15 MiB，容纳既有 10 MiB PNG 的 base64 与 JSON-RPC 封装。其他插件保留自己的精确依赖版本与默认请求预算，不为此迁移强制升级。
