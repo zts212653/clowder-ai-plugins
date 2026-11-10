@@ -181,7 +181,7 @@ test("generic connection test keeps old evidence but cannot report a revoked att
 	assert.equal(result.details.revoked, true);
 });
 
-test("a fast subscribed reply is retried until its ask receipt is durably mapped", async (t) => {
+test("a fast subscribed reply resolves its durable parent before the local ask receipt is mapped", async (t) => {
 	const f = await paired(t);
 	f.host.messaging.subscribe = async () => {};
 	const args = {
@@ -224,7 +224,7 @@ test("a fast subscribed reply is retried until its ask receipt is durably mapped
 		envelope: { ...delivery(f).envelope, messageId: source.id },
 	};
 	try {
-		await assert.rejects(f.active.deliver(input), /dot_ask_receipt_pending/);
+		await f.active.deliver(input);
 	} finally {
 		release.resolve();
 		await ask;
@@ -254,7 +254,7 @@ test("proactive questions subscribe only to their thread and forward only exact 
 	const question = (await rpc(f, "cat_cafe_dot_ask", args)).result
 		.structuredContent;
 	assert.equal(question.messageId, "reply-0");
-	assert.equal(subscriptions.length, 2);
+	assert.equal(subscriptions.length, 1);
 	assert.equal(subscriptions[0].threadId, "thread-1");
 	const reply = {
 		...f.source,
@@ -469,7 +469,7 @@ test("receipt completion during a subscription storage snapshot cannot discard t
 		reason: "subscription",
 		envelope: { ...delivery(f).envelope, messageId: "snapshot-reply" },
 	};
-	await assert.rejects(f.active.deliver(input), /dot_ask_receipt_pending/);
+	await f.active.deliver(input);
 	await f.active.deliver(input);
 	assert.equal(
 		f.webhooks.filter(
@@ -541,9 +541,25 @@ test("old addressed ask replies keep the real Host carrier across read and resta
 });
 
 
-test("ask re-declares its cursor only after the receipt is durable",async t=>{
+test("ask registers once before sending without a compensating re-declaration",async t=>{
  const f=await paired(t);const seen=[];
  f.host.messaging.subscribe=async()=>{seen.push(Object.values(await f.host.storage.list()).some(entry=>entry.value.messageId && entry.value.recipientCatIds));};
  assert.equal((await rpc(f,"cat_cafe_dot_ask",{attempt_id:f.credentials.attemptId,thread_id:"thread-1",target_cat_ids:["cat-1"],content:"Question",client_message_id:"ready-cursor"})).error,undefined);
- assert.deepEqual(seen,[false,true]);
+ assert.deepEqual(seen,[false]);
+});
+
+
+test("a reply arriving before send returns is forwarded once without cursor replay", async t => {
+ const f=await paired(t);let subscriptions=0;
+ f.host.messaging.subscribe=async()=>{subscriptions++;};
+ const sent=Promise.withResolvers(),release=Promise.withResolvers();
+ const send=f.host.messaging.send;
+ f.host.messaging.send=async input=>{const receipt=await send(input);sent.resolve(receipt.messageId);await release.promise;return receipt;};
+ const ask=rpc(f,"cat_cafe_dot_ask",{attempt_id:f.credentials.attemptId,thread_id:"thread-1",target_cat_ids:["cat-1"],content:"Question",client_message_id:"before-return"});
+ const parent=await sent.promise;
+ f.messages.set("before-return-reply",{...f.source,id:"before-return-reply",catId:"cat-1",replyTo:parent});
+ const input={...delivery(f,"before-return-delivery"),reason:"subscription",envelope:{...delivery(f).envelope,messageId:"before-return-reply"}};
+ try {await f.active.deliver(input);await f.active.deliver(input);} finally {release.resolve();await ask;}
+ assert.equal(subscriptions,1);
+ assert.equal(f.webhooks.filter(w=>w.data.data?.source_message_id==="before-return-reply").length,1);
 });

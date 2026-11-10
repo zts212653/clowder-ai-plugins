@@ -78,7 +78,6 @@ export function imageReference(id: string): string {
 export class DotRuntime {
 	readonly verification: AutomaticDotVerification;
 	private readonly pending = new Map<string, Promise<unknown>>();
-	private askRevision = 0;
 	constructor(
 		readonly host: ModulePluginHostShape,
 		readonly connection: DotConnection,
@@ -543,12 +542,7 @@ export class DotRuntime {
 	async ask(raw: z.infer<typeof dotAskArguments>, credential?: VerifiedExternalCredential) {
 		const input = dotAskArguments.parse(raw);
 		const key = `dot/ask/${digest([input.attempt_id, input.client_message_id])}`;
-		this.askRevision++;
-		try {
-			return await this.serial(key, () => this.sendAsk(input, credential));
-		} finally {
-			this.askRevision++;
-		}
+		return this.serial(key, () => this.sendAsk(input, credential));
 	}
 	private async sendAsk(raw: z.infer<typeof dotAskArguments>, credential?: VerifiedExternalCredential) {
 		await this.connection.authorizeExternal(credential, "ask");
@@ -631,12 +625,6 @@ export class DotRuntime {
 		});
 		await this.connection.sameAttempt(state);
 		await this.connection.authorizeExternal(credential, "ask");
-		// Re-declare readiness after the receipt is durable. The Host schedules
-		// the same cursor, including an earlier receipt-pending delivery.
-		await this.host.messaging.subscribe({
-			threadId: input.thread_id,
-			includeOwnMessages: false,
-		});
 		return result;
 	}
 	async restoreSubscriptions() {
@@ -662,8 +650,6 @@ export class DotRuntime {
 		if (!source?.catId || !replyTo) return null;
 		const state = await this.connection.store.connection();
 		if (!state) return null;
-		let awaitingReceipt = false;
-		const askRevision = this.askRevision;
 		for (const [key, entry] of Object.entries(await this.host.storage.list())) {
 			if (!key.startsWith("dot/ask/")) continue;
 			const ask = entry.value as {
@@ -679,20 +665,23 @@ export class DotRuntime {
 			) {
 				if (ask.messageId === replyTo)
 					return this.deliver(input, ask.attemptId);
-				if (
-					ask.messageId === null &&
-					(this.pending.has(key) || askRevision !== this.askRevision)
-				)
-					awaitingReceipt = true;
+				if (ask.messageId === null && this.host.messaging.findSent) {
+					const original = await this.host.messaging.findSent({
+						threadId: ask.threadId,
+						idempotencyKey: `dot-ask:${key.slice("dot/ask/".length)}`,
+					});
+					if (
+						original?.messageId === replyTo &&
+						original.threadId === source.threadId &&
+						original.deliveryStatus !== "canceled" &&
+						original.routedCatIds.includes(source.catId)
+					) {
+						await this.connection.sameAttempt(state);
+						return this.deliver(input, ask.attemptId);
+					}
+				}
 			}
 		}
-		// A rejection retains the Host's durable subscription cursor for replay.
-		// Only an active send can still commit a receipt. A failed/interrupted
-		// reservation is retained for an explicit idempotent ask retry, but
-		// must not indefinitely block unrelated subscription pages. If a send
-		// changed while the storage snapshot was read, replay once more to
-		// observe its committed receipt rather than acknowledge stale data.
-		if (awaitingReceipt) throw new Error("dot_ask_receipt_pending");
 		return null;
 	}
 	/** Finish local proof commits from the already published nonce reply, without sending it again. */

@@ -43,3 +43,5 @@ The matching Host retains compatibility reads for historical image URLs. Import 
 Install dependencies at the workspace root, build Contract and SDK, then run this package's typecheck, test and build scripts. The runtime entry is dist/plugin-entrypoint.js. Legacy Host data migration is not a public manifest/action capability; before enable, the Host's isolated Dot compatibility adapter invokes the batch importer exported at `./migration` through its owner-operation fence. Batches accept explicit records and original bytes rather than server filesystem paths.
 
 Tests cover pairing, signed summons, read-before-reply authorization, image streams, retries, abort on disable, restart and legacy import. Account authentication, Settings and the full real roundtrip still require an isolated Host acceptance journey.
+
+Questions register their thread subscription before sending. Early replies are matched against the Host’s durable own-send record, without a second subscription to force replay. Failed tasks keep the ordinary source-position retry rules.

@@ -68,6 +68,10 @@ export function fixture(t, options = {}) {
 		secrets: { get: async () => undefined },
 		messaging: {
 			get: async (id) => messages.get(id) ?? null,
+            findSent: async ({ threadId, idempotencyKey }) => {
+                const row = sent.find(x => x.input.threadId === threadId && x.input.idempotencyKey === idempotencyKey);
+                return row ? { messageId: row.messageId, threadId, content: messages.get(row.messageId)?.content ?? "", routedCatIds: ["cat-1"] } : null;
+            },
 			send: async (input) => {
 				let row = sent.find(
 					(x) => x.input.idempotencyKey === input.idempotencyKey,
