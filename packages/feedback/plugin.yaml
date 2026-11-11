@@ -1,6 +1,6 @@
 pluginId: official.feedback
 version: 0.1.0-alpha.3
-contractVersion: 0.4.0
+contractVersion: 0.4.0-candidate.0
 name: 问题反馈
 description:
   default: 通过已配置的本地 Agent Client 生成脱敏报告并提交 Issue，支持草稿恢复、粘贴截图及本地选图。需要支持声明式 HTTP 面板及关闭前保存的配套 next 宿主。
