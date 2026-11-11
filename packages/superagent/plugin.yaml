@@ -1,6 +1,6 @@
 pluginId: official.superagent
-version: 0.1.0-alpha.2
-contractVersion: 0.1.0
+version: 0.1.0-alpha.3
+contractVersion: 0.4.0
 name: Superagent
 description:
   default: 在你选定的个人会话中接住工作、跨会话跟进，并把必要决定与结果带回原处。
@@ -145,10 +145,6 @@ features:
         id: route
       - type: tool
         id: report
-      - type: ui
-        id: conversation
-      - type: ui
-        id: top-entry
 contributions:
   - type: identity
     id: superagent
@@ -353,16 +349,15 @@ contributions:
       additionalProperties: false
     action:
       method: superagent.report
-  - type: ui
-    id: conversation
-    kind: command
-    label: 我的助手
-    action:
-      method: superagent.view
-  - type: ui
-    id: top-entry
-    kind: slot-item
-    label: 我的助手
-    command: conversation
-    group: thread-sidebar.top
-    order: 0
+pdl:
+  ns: superagent
+  inserts:
+    - id: superagent
+      anchor: nav.cafe
+      at: inside
+      node:
+        title: t:superagent.plugin.entry
+        icon: robot
+        badge: superagent
+        open:
+          action: superagentOpen

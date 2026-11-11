@@ -25,7 +25,8 @@
     "DEPLOYMENT.md",
     "deployment",
     "assets",
-    "npm-shrinkwrap.json"
+    "npm-shrinkwrap.json",
+    "console"
   ],
   "engines": {
     "node": ">=24.0.0"

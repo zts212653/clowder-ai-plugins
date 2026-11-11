@@ -533,6 +533,7 @@ export type PluginManifest = {
   readonly signals?: SignalContribution;
   readonly projectOutputs?: readonly ProjectOutputAction[];
   readonly call?: PluginCallDeclaration;
+  readonly pdl?: Readonly<Record<string, unknown>>;
 };
 
 export type CatalogSemVer = string;

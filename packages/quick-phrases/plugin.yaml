@@ -1,6 +1,6 @@
 pluginId: official.quick-phrases
 version: 0.1.0-alpha.3
-contractVersion: 0.3.0
+contractVersion: 0.4.0-candidate.0
 name: 快捷用语
 description:
   default: 在聊天输入框保存、搜索和复用常用的任务派发用语。
@@ -9,16 +9,12 @@ description:
 steps:
   - text: 启用后，在聊天输入框点击「快捷用语」。输入框有文字时可保存，无文字时可搜索、选用和删除。
 contributions:
-  - { type: ui, id: quick-phrases.open, kind: command, label: 快捷用语, action: { method: quick-phrases.entries } }
-  - { type: ui, id: quick-phrases.composer, kind: slot-item, label: 快捷用语, command: quick-phrases.open, group: composer.quick-phrases }
   - { type: webhook, id: quick-phrases.entries, path: phrases, methods: [GET, POST, DELETE], action: { method: quick-phrases.entries } }
 features:
   - id: quick-phrases
     name: 快捷用语
     resources: []
     contributions:
-      - { type: ui, id: quick-phrases.open }
-      - { type: ui, id: quick-phrases.composer }
       - { type: webhook, id: quick-phrases.entries }
 data:
   - { name: quick-phrases, dataClass: user-authored, strategy: retained }
@@ -26,3 +22,49 @@ runtime:
   transport: builtin
   entrypoint: dist/index.js
   dataDirectory: quick-phrases
+pdl:
+  ns: quickPhrases
+  inserts:
+    - id: quick-phrases
+      anchor: chat.composer.tools
+      at: inside
+      node:
+        title: t:quickPhrases.title
+        icon: bolt
+        scope: page
+        open: {node: quickPhrases.pop, as: float}
+  popups:
+    quickPhrases: {at: trigger, exit: [outside, esc]}
+  views:
+    quickPhrases.pop:
+      bare: true
+      popup: quickPhrases
+      vm: quickPhrases
+      loading: t:quickPhrases.loading
+      error: t:quickPhrases.error
+      blocks:
+        - type: dialog
+          pop: quickPhrases
+          title: t:quickPhrases.title
+          blocks:
+            - {type: search, id: qp-q, placeholder: t:quickPhrases.search, value: $.q, input: quickPhrasesQ}
+            - type: list
+              from: $.items
+              empty: t:quickPhrases.empty
+              row:
+                title: "@text"
+                act: insert
+                args: {into: chat-input, text: "@text"}
+                cols:
+                  - w: ctl
+                    control: {type: button, iconOnly: true, icon: delete, label: t:quickPhrases.remove, act: quickPhraseRemove, args: {id: "@id"}}
+            - type: toolbar
+              when: $.paged
+              items:
+                - {type: button, iconOnly: true, icon: prev, label: t:quickPhrases.prev, act: quickPhrasesPage, args: {v: "-1"}, disabled: $.first}
+                - type: text
+                  text:
+                    t: quickPhrases.page
+                    args: [$.page, $.totalPages]
+                - {type: button, iconOnly: true, icon: next, label: t:quickPhrases.next, act: quickPhrasesPage, args: {v: "1"}, disabled: $.last}
+            - {type: input, id: qp-add, placeholder: t:quickPhrases.add, go: quickPhraseAdd, add: true}

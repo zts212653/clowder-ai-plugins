@@ -2349,6 +2349,10 @@
     },
     "call": {
       "$ref": "#/$defs/PluginCallDeclaration"
+    },
+    "pdl": {
+      "type": "object",
+      "description": "Console PDL data the Host console renders (views, inserts, templates, rows, requests, icons, ns). The package carries console/app.js and console/i18n/<language>.json beside it."
     }
   },
   "required": [

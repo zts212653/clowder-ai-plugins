@@ -25,7 +25,8 @@
     "npm-shrinkwrap.json",
     "README.md",
     "assets",
-    "README.en.md"
+    "README.en.md",
+    "console"
   ],
   "engines": {
     "node": ">=20.0.0"

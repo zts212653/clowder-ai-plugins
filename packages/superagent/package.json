@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/superagent",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "Resident personal-conversation coordination for Clowder AI",
   "license": "MIT",
   "type": "module",
@@ -16,7 +16,8 @@
     "README.md",
     "README.en.md",
     "npm-shrinkwrap.json",
-    "assets"
+    "assets",
+    "console"
   ],
   "engines": {
     "node": ">=20.0.0"

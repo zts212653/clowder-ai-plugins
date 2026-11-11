@@ -20,7 +20,8 @@
     "README.en.md",
     "assets",
     "skills",
-    "npm-shrinkwrap.json"
+    "npm-shrinkwrap.json",
+    "console"
   ],
   "engines": {
     "node": ">=20.0.0"
