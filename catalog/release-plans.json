@@ -247,7 +247,7 @@
     {
       "pluginId": "official.feedback",
       "version": "0.1.0-alpha.2",
-      "integrity": "sha512-FDDaj1VMjL1vIKpj5/J/qjwjShO+VmhmVuA3hEjnySyM2FhZMMrvw8FNqGEwtf1jKZyc9Ivsa6UcgfWA5ZrzPA==",
+      "integrity": "sha512-nSHyHSTqPSS4vpZ8iyxL26lzfkFIfAlZ4S1Q6YTTdEQYPr2EnHsGYN4pwCAw0XzwvU71mzVVvA/WnjWyjoL3QA==",
       "disposition": "activate",
       "owner": "codex",
       "reviewBy": "2026-11-13T14:00:00Z",

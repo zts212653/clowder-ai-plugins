@@ -79,3 +79,22 @@ test('an earlier save acknowledgement never marks newer input as saved', async (
   assert.equal(actions.state.dirty,false);
   assert.equal(status.textContent,'草稿已保存到反馈记录');
 });
+
+test('adding pictures refuses an oversized HTTP envelope before changing the retained draft', async () => {
+  const node=()=>({dataset:{},append(){},replaceChildren(){},querySelector(){return undefined;},scrollTop:0});
+  const context=createContext({
+    document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},
+    el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'feedback-wire-budget'},
+    bridge:async()=>true,copyImage:async()=>{},Blob,setTimeout:()=>0,clearTimeout:()=>{},console,
+    normalizePicture:async()=>({mime:'image/png',base64:'a'.repeat(4_000_000),original:{base64:'b'.repeat(4_000_000)}}),
+    call:async()=>new Promise(()=>{}),
+  });
+  const source=await readFile(new URL('../ui/main.js',import.meta.url),'utf8');
+  runInContext(source.replace(/^import[^\n]+\n/gm,''),context);
+  const actions=runInContext('({state,addFiles})',context);
+  const file={size:3_000_000,type:'image/png'};
+  await actions.addFiles([file]);
+  assert.equal(actions.state.report.attachments.length,1);
+  await assert.rejects(actions.addFiles([file]),/图片合计过大/);
+  assert.equal(actions.state.report.attachments.length,1);
+});

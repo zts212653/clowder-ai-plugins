@@ -31,7 +31,7 @@ contributions:
   - { type: message-subscription, id: feedback.results, binding: feedback.identity, action: { method: feedback.delivery }, presentation: v2 }
   - { type: ui, id: feedback.open, kind: command, label: 问题反馈, action: { method: feedback.panel } }
   - { type: ui, id: feedback.rail, kind: slot-item, label: 问题反馈, command: feedback.open, group: activity-bar.bottom, order: 90 }
-  - { type: webhook, id: feedback.http, path: feedback, methods: [POST], action: { method: feedback.http } }
+  - { type: webhook, id: feedback.http, path: feedback, methods: [POST], requestBodyLimitBytes: 15728640, action: { method: feedback.http } }
   - { type: webhook, id: feedback.page, path: panel, methods: [GET], action: { method: feedback.panel } }
 features:
   - id: feedback

@@ -95,7 +95,11 @@ function pictureCards() {
 async function addFiles(files) {
   for (const file of files) {
     if (state.report.attachments.length >= 4 || file.size > 4000000 || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('最多 4 张 PNG/JPEG/WebP，单张不超过 4 MB');
-    state.report.attachments.push(await normalizePicture(file, state.report.attachments.length));
+    const picture = await normalizePicture(file, state.report.attachments.length);
+    const report = { ...state.report, attachments: [...state.report.attachments, picture] };
+    const request = { op:'save', draftOnly:true, targetId:state.targetId, revision:state.revision, report, feedbackId:state.feedbackId };
+    if (new Blob([JSON.stringify(request)]).size > 15 * 1024 * 1024) throw new Error('图片合计过大，请减少图片或裁剪后再添加');
+    state.report.attachments.push(picture);
   }
   invalidate();
 }
