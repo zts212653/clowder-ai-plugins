@@ -22,7 +22,7 @@ test('a coordinator delivery is visible as pending acceptance until its owner ac
     f.caller(main),
   );
   await runtime.actions['superagent.tick']({});
-  assert.equal(((await runtime.actions['superagent.view']({})) as { badgeCount: number }).badgeCount, 1);
+  assert.equal((JSON.parse(((await runtime.actions['superagent.view']({})) as { body: string }).body) as { badgeCount: number }).badgeCount, 1);
   assert.equal(f.tasks.get(work.id)?.entrustedWork?.closure.state, 'open');
   await runtime.actions['superagent.observe'](event('accepted', 'source-b', '这个结果验收通过。'));
   await runtime.actions['superagent.route'](
@@ -30,7 +30,7 @@ test('a coordinator delivery is visible as pending acceptance until its owner ac
     f.caller(main),
   );
   await runtime.actions['superagent.tick']({});
-  assert.equal(((await runtime.actions['superagent.view']({})) as { badgeCount: number }).badgeCount, 0);
+  assert.equal((JSON.parse(((await runtime.actions['superagent.view']({})) as { body: string }).body) as { badgeCount: number }).badgeCount, 0);
   assert.equal(f.tasks.get(work.id)?.entrustedWork?.closure.state, 'satisfied');
   await runtime.stop({ reason: 'test' });
 });

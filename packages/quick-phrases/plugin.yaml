@@ -43,9 +43,9 @@ pdl:
       loading: t:quickPhrases.loading
       error: t:quickPhrases.error
       blocks:
-        - type: dialog
-          pop: quickPhrases
-          title: t:quickPhrases.title
+        - type: pop
+          label: t:quickPhrases.title
+          pos: {up: true, span: 4}
           blocks:
             - {type: search, id: qp-q, placeholder: t:quickPhrases.search, value: $.q, input: quickPhrasesQ}
             - type: list

@@ -211,7 +211,7 @@ test('worker questions and results return in place; a result stays open until it
   );
   await runtime.actions['superagent.tick']({});
   assert.equal(f.tasks.get(task.id)?.entrustedWork?.closure.state, 'satisfied');
-  const view = await runtime.actions['superagent.view']({});
+  const view = JSON.parse(((await runtime.actions['superagent.view']({})) as { body: string }).body);
   assert.ok(view && typeof view === 'object' && 'badgeCount' in view);
   assert.equal(view.badgeCount, 0);
   await runtime.stop({ reason: 'test' });

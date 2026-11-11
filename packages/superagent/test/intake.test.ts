@@ -75,7 +75,7 @@ test('an unclear request asks in place before creating Work; an answer resolves 
   );
   await actions['superagent.tick']({});
   assert.equal(f.tasks.size, 1);
-  const view = (await actions['superagent.view']({})) as { badgeCount: number };
+  const view = JSON.parse(((await actions['superagent.view']({})) as { body: string }).body) as { badgeCount: number };
   assert.equal(view.badgeCount, 0);
   await runtime.stop({ reason: 'test' });
 });
