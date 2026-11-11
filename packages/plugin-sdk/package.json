@@ -31,7 +31,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@clowder-ai/plugin-contract": "0.3.3-candidate.1"
+    "@clowder-ai/plugin-contract": "0.4.0-candidate.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
