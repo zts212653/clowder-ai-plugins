@@ -125,3 +125,12 @@ test('invalid persisted counts are rejected at the storage boundary', async () =
     assert.equal((await invoke('GET')).status, 500);
   }
 });
+
+test('saving and recording usage are mutually exclusive POST operations', async () => {
+  const id = '00000000-0000-4000-8000-000000000001';
+  const existing = { id, text: 'Existing phrase', useCount: 2 };
+  const { invoke, list } = fixture([existing]);
+  assert.equal((await invoke('POST', { body: { id, text: 'A new phrase' } })).status, 400);
+  assert.equal((await invoke('POST', { body: { id: null, text: 'A new phrase' } })).status, 400);
+  assert.deepEqual((await list({})).items, [existing]);
+});

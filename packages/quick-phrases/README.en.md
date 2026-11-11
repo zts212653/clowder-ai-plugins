@@ -25,4 +25,4 @@ pnpm --filter @clowder-ai/quick-phrases build
 
 Build the package, then install this directory through the Host plugin manager. The Host must support the `composer.quick-phrases` entry. The plugin uses the existing plugin resource dispatcher for listing, saving, and deleting phrases.
 
-The same `phrases` resource accepts `POST { "text": "…" }` to save and `POST { "id": "<phrase-id>" }` to record one selection. Counts are scoped to the current user, and results are ranked before filtering pages. Conflicting writes retain the existing `409` retry response.
+The same `phrases` resource accepts `POST { "text": "…" }` to save and `POST { "id": "<phrase-id>" }` to record one selection. These fields are mutually exclusive; providing both returns `400`. Counts are scoped to the current user, and results are ranked before filtering pages. Conflicting writes retain the existing `409` retry response.

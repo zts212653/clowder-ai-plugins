@@ -69,6 +69,8 @@ export function createQuickPhrases(storage: PhraseStorage) {
     }
 
     if (!isRecord(body)) return json(400, { error: 'Invalid phrase' });
+    if (method === 'POST' && 'id' in body && 'text' in body)
+      return json(400, { error: 'Provide either a phrase id or text' });
     let next: Phrase[];
     if (method === 'POST' && 'id' in body) {
       const { id } = body;

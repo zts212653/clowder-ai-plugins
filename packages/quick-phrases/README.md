@@ -25,4 +25,4 @@ pnpm --filter @clowder-ai/quick-phrases build
 
 构建完成后，在 Host 插件管理中从本地目录安装此目录。需要支持 `composer.quick-phrases` 入口的 Host。本插件通过已有的插件资源转发提供列表、保存和删除。
 
-同一 `phrases` 资源接受 `POST { "text": "…" }` 保存，`POST { "id": "<phrase-id>" }` 记录一次选用。计数按用户隔离，列表在搜索和分页前按次数排序；写入冲突沿用 `409` 重试响应。
+同一 `phrases` 资源接受 `POST { "text": "…" }` 保存，`POST { "id": "<phrase-id>" }` 记录一次选用；两字段互斥，同时提供返回 `400`。计数按用户隔离，列表在搜索和分页前按次数排序；写入冲突沿用 `409` 重试响应。
