@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 interface Phrase {
   id: string;
   text: string;
+  useCount?: number;
 }
 
 export interface PhraseStorage {
@@ -25,7 +26,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isPhrase(value: unknown): value is Phrase {
-  return isRecord(value) && typeof value.id === 'string' && typeof value.text === 'string';
+  return isRecord(value) && typeof value.id === 'string' && typeof value.text === 'string'
+    && (value.useCount === undefined
+      || (typeof value.useCount === 'number' && Number.isInteger(value.useCount) && value.useCount >= 0));
 }
 
 function json(status: number, payload: object) {
@@ -56,7 +59,9 @@ export function createQuickPhrases(storage: PhraseStorage) {
       const rawPage = isRecord(query) ? query.page : undefined;
       const requestedPage = typeof rawPage === 'string' && /^\d+$/.test(rawPage) ? Number(rawPage) : 1;
       const term = typeof search === 'string' ? search.trim().toLowerCase() : '';
-      const matches = term ? phrases.filter((phrase) => phrase.text.toLowerCase().includes(term)) : phrases;
+      const matches = phrases
+        .filter((phrase) => !term || phrase.text.toLowerCase().includes(term))
+        .sort((a, b) => (b.useCount ?? 0) - (a.useCount ?? 0));
       const totalPages = Math.max(1, Math.ceil(matches.length / pageSize));
       const page = Math.min(Math.max(1, requestedPage), totalPages);
       const offset = (page - 1) * pageSize;
@@ -65,20 +70,26 @@ export function createQuickPhrases(storage: PhraseStorage) {
 
     if (!isRecord(body)) return json(400, { error: 'Invalid phrase' });
     let next: Phrase[];
-    if (method === 'POST') {
+    if (method === 'POST' && 'id' in body) {
+      const { id } = body;
+      if (typeof id !== 'string' || id.length !== 36) return json(400, { error: 'Invalid phrase id' });
+      if (!phrases.some((phrase) => phrase.id === id)) return json(404, { error: 'Phrase not found' });
+      next = phrases.map((phrase) =>
+        phrase.id === id ? { ...phrase, useCount: (phrase.useCount ?? 0) + 1 } : phrase);
+    } else if (method === 'POST') {
       const { text } = body;
       if (typeof text !== 'string' || !text.trim() || text.length > 100_000)
         return json(400, { error: 'Phrase must contain 1–100,000 characters' });
       if (phrases.some((phrase) => phrase.text === text)) return json(200, { ok: true });
-      next = [{ id: randomUUID(), text }, ...phrases];
-      if (Buffer.byteLength(JSON.stringify(next), 'utf8') > 1024 * 1024)
-        return json(413, { error: 'Phrase storage is full' });
+      next = [{ id: randomUUID(), text, useCount: 0 }, ...phrases];
     } else {
       const { id } = body;
       if (typeof id !== 'string' || id.length !== 36) return json(400, { error: 'Invalid phrase id' });
       next = phrases.filter((phrase) => phrase.id !== id);
       if (next.length === phrases.length) return json(200, { ok: true });
     }
+    if (method === 'POST' && Buffer.byteLength(JSON.stringify(next), 'utf8') > 1024 * 1024)
+      return json(413, { error: 'Phrase storage is full' });
     await context.assertCurrent();
     const write = await storage.compareAndSet(key, current?.revision ?? null, next);
     return write.applied ? json(200, { ok: true }) : json(409, { error: 'Phrases changed, please retry' });
