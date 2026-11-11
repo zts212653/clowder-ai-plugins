@@ -3,9 +3,9 @@ version: 0.1.0-alpha.2
 contractVersion: 0.3.0
 name: 问题反馈
 description:
-  default: 通过已配置的本地 Agent Client 生成脱敏分析报告，检查后自动提交 Issue；同时保留直接反馈与手动创建兜底。
+  default: 通过已配置的本地 Agent Client 生成脱敏报告并提交 Issue，保留直接反馈与手动创建。需要支持声明式 HTTP 面板的 next 宿主。
   translations:
-    en: Sanitized feedback reports with configured local Agent diagnosis, automatic Issue submission and manual fallback.
+    en: Sanitized feedback reports with local Agent diagnosis and Issue submission. Requires a next Host with declared HTTP panels.
 icon: { type: svg, src: assets/icon.svg }
 steps:
   - text: 启用后，从左侧栏底部打开“问题反馈”。建议先分析，检查完整报告和截图后再确认提交。

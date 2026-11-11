@@ -2430,9 +2430,9 @@
       "pluginId": "official.feedback",
       "name": "问题反馈",
       "description": {
-        "default": "通过已配置的本地 Agent Client 生成脱敏分析报告，检查后自动提交 Issue；同时保留直接反馈与手动创建兜底。",
+        "default": "通过已配置的本地 Agent Client 生成脱敏报告并提交 Issue，保留直接反馈与手动创建。需要支持声明式 HTTP 面板的 next 宿主。",
         "translations": {
-          "en": "Sanitized feedback reports with configured local Agent diagnosis, automatic Issue submission and manual fallback."
+          "en": "Sanitized feedback reports with local Agent diagnosis and Issue submission. Requires a next Host with declared HTTP panels."
         }
       },
       "icon": {
@@ -2444,11 +2444,11 @@
         "name": "Clowder AI"
       },
       "keywords": [
-        "??",
-        "????",
         "bug",
         "feedback",
-        "issue"
+        "issue",
+        "反馈",
+        "问题反馈"
       ],
       "versions": [
         {
@@ -2460,8 +2460,8 @@
             "packageName": "@clowder-ai/feedback",
             "version": "0.1.0-alpha.2",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/feedback/-/feedback-0.1.0-alpha.2.tgz",
-            "integrity": "sha512-nSHyHSTqPSS4vpZ8iyxL26lzfkFIfAlZ4S1Q6YTTdEQYPr2EnHsGYN4pwCAw0XzwvU71mzVVvA/WnjWyjoL3QA==",
-            "shasum": "6f1b00ed8ad5bc7a72a0e79aacd9f678a692f93e",
+            "integrity": "sha512-2iym9Tje8VKP0p6RTri4M8fmaO4P2KhEdz3RJ+IBpX4fjzHyvIb2A1JPtSGn2U0OXkJccjBZi5ET3IY5Si0HUA==",
+            "shasum": "a0ce1093c96e3fe13c6381ef91da278fb1702cb2",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/feedback"
