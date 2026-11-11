@@ -53,8 +53,8 @@ pdl:
               empty: t:quickPhrases.empty
               row:
                 title: "@text"
-                act: insert
-                args: {into: chat-input, text: "@text"}
+                act: quickPhrasePick
+                args: {id: "@id", text: "@text"}
                 cols:
                   - w: ctl
                     control: {type: button, iconOnly: true, icon: delete, label: t:quickPhrases.remove, act: quickPhraseRemove, args: {id: "@id"}}
