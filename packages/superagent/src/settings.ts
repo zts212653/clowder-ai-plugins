@@ -127,6 +127,7 @@ export function createSettings(
                       {
                         action: 'page',
                         label: '继续选择',
+                        // row inputs are flat scalars (contract OperationRowAction)
                         input: {
                           lastActiveAt: last.lastActiveAt,
                           id: last.id,
