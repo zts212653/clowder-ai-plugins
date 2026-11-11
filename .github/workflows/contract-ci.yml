@@ -52,6 +52,12 @@ jobs:
   validate:
     name: Typecheck + Conformance
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48
+      options: --ipc=host
+    defaults:
+      run:
+        shell: bash
     permissions:
       contents: read
       pull-requests: read
@@ -108,7 +114,7 @@ jobs:
         run: pnpm gate:ci
 
       - name: Companion browser layout contract
-        run: pnpm --filter @clowder-ai/companion exec playwright install --with-deps chromium && pnpm --filter @clowder-ai/companion test:browser
+        run: pnpm --filter @clowder-ai/companion test:browser
 
       # Pure package checks also run in gate:ci. Keep the browser journey
       # explicit alongside this workflow's package checks, mirroring main.

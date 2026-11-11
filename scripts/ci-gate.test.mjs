@@ -20,6 +20,24 @@ const workspacePackage = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
 );
 
+test('browser validation uses the pinned Playwright image matching both package versions', () => {
+  const validation = parse(workflowText).jobs.validate;
+  assert.match(validation.container?.image ?? '', /^mcr\.microsoft\.com\/playwright:v([\d.]+)-noble@sha256:[a-f0-9]{64}$/);
+  const version = validation.container.image.match(/:v([\d.]+)-noble/)[1];
+  for (const name of ['companion', 'xiangqi']) {
+    const pkg = JSON.parse(readFileSync(new URL(`../packages/${name}/package.json`, import.meta.url), 'utf8'));
+    assert.equal(version, pkg.devDependencies.playwright, `${name} must match the baked browser revision`);
+  }
+  assert.equal(validation.defaults.run.shell, 'bash');
+  for (const name of ['Companion browser layout contract', 'Xiangqi browser journey']) {
+    const step = validation.steps.find(entry => entry.name === name);
+    assert.match(step.run, /test:browser/);
+    assert.doesNotMatch(step.run, /install --with-deps/);
+    assert.equal(step.if, undefined, 'browser validation must remain unconditional');
+    assert.notEqual(step['continue-on-error'], true);
+  }
+});
+
 test('artifact toolchain env is read from the workflow, not duplicated', () => {
   const env = loadArtifactToolchainEnv(workflowText);
   assert.deepEqual(env, {
