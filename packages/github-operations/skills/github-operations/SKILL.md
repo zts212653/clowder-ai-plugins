@@ -19,6 +19,54 @@ arrive as ordinary messages. Read the returned wait and notification coverage. U
 when requested; terminal PR/issue state also retires tracking automatically.
 Unregistering retains historical records.
 
+Read status with `github_list_tracking`: default `view:"tracking"`, 20 records;
+use `repo`, your stable `catId`, `threadId` and a small `limit` (maximum 50) for the
+needed scope. `view:"recovery",needsAttention:true` pages paused/malformed sources
+across all four recovery owners. `view:"diagnostics"` reads registration attempts.
+Keep the exact filters, view and limit when following `page.nextCursor` until null.
+An empty page with a cursor is incomplete; remaining totals are unknown and pages
+are live, not snapshots. `page.unattributed` reports scanned records whose ownership
+could not be resolved under the filters; inspect unfiltered recovery pages if needed.
+Notice histories are counted and large fields explicitly marked omitted. This is
+read-only; no observer is re-registered, resumed or paused. For a single subject's
+events/projection use the existing `github_inspect_subject` with its own pagination,
+not a full tracking read; observations do not establish subscription/recovery status.
+
+For an existing paused typed wait, inspect `polling.state` and
+`recoveryOwners.typed` in `github_list_tracking`. A successful observation clears
+the consecutive failure count; quota, local queue pressure and skipped work do
+not consume or clear it. `lastError` is redacted historical failure evidence.
+When the owner authorizes recovery, use `github_retry_tracking` with that row's
+`taskId`, `recovery.scope` and `recovery.revision` (not `sourceRevision`). It only
+retries a wait paused for `github_observation_failed` belonging to the current
+authenticated user. A maintenance cat/thread may retry that user's wait while
+its original owner, route, baseline, generation, delivery progress and history
+stay intact. A stale request makes no changes: inspect again. A scheduled retry
+is not proof that observation succeeded. Do not re-register to recover a pause;
+a new live baseline can hide changes that occurred while the observer was stopped.
+
+## A merged PR starts post-merge follow-up
+
+`subject_terminal`, a retired subscription and an author's merge are provider facts,
+not completion of the maintained work. On **every merged PR notification**, read the
+repository's post-merge workflow (for example `opensource-ops`) before closing the turn.
+For upstream/community changes, complete downstream intake/backport, or verify and
+record why the change is already present or public-only. Do this regardless of who
+clicked merge. A closed linked issue is not downstream delivery evidence.
+
+The responsible execution thread continues through intake. A separate review-only
+recipient hands the remaining work to that named execution owner with the existing
+work coordinates. The maintainer/routing thread arranges authorized execution and
+verifies acceptance; it does not become the implementation site. Record the owner
+and next step. Do not silently leave this to a periodic sync, create a second intake
+writer, or reopen the completed PR subscription. Continue
+already authorized work without asking for the same approval again; the notification
+does not itself grant new implementation, merge or deployment authority.
+
+Report **upstream merged / intake status / accountable owner / next step**. If another
+owner has genuinely accepted the remaining work, name that handoff instead of saying
+the whole contribution is complete. Only review/notification tracking may be finished.
+
 New tracking is a package-private notification subscription. Declared schedules poll
 GitHub and use `messaging.send` to post ordinary thread messages; the normal message
 route wakes the recipient. For new subscriptions, do not create or update Host Tasks, register a second
@@ -57,8 +105,19 @@ in the original history; do not infer current delivery, approval or ownership.
 
 Use current subject inspection for derived PR/issue status. Follow its
 pagination cursor for older/later records.
-These observations do not register a typed review verdict or complete an action
+These observations do not register a Host typed review verdict or complete an action
 lease; those remain the Host's authenticated governance operations.
+
+Use `github_record_external_review_verdict` in the assigned reviewer's authenticated
+thread to record a private exact-HEAD review result. It does not publish to GitHub
+or complete a Host Task/action lease. A refusal returns `status`, `body.error.code`,
+`outcome` and a recovery action. Read `lastReviewVerdictFailure` through exact subject
+inspection for its timestamp, request attribution and redacted diagnostic; it is the
+latest failed attempt, not the current review state. `diagnosticPersisted=false` means
+that failure could not be saved. `unknown` requires inspecting current events and
+projection before retrying the unchanged submission. Keep the original delivery URL;
+do not republish a GitHub review, change reviewer ownership, or reuse approval for a
+new HEAD to repair private registration. `pending_verification` is not completion.
 
 Use the triage-recommendation tool to compare supplied observations. Its source
 labels identify evidence, not authenticated reviewers. A recommendation never
@@ -100,10 +159,14 @@ Registration is scoped to the authenticated user, cat and thread. Other threads
 may subscribe to the same subject independently; cancellation affects only the
 caller's subscription. Existing cancelled records and original IDs are retained.
 On an unknown registration response reuse the exact registrationId and input.
-`github_list_tracking` includes safe persisted `diagnostics`: phase
+`github_list_tracking` with `view:"diagnostics"` includes safe persisted `diagnostics`: phase
 (verify_authority/load_subscription/read_github/save_subscription/complete), status, failure code
-and a hashed request key, plus original exception message/stack/cause and stderr
-with credentials redacted. These are private diagnostics, never notification
+and a hashed request key, plus bounded exception message/code/stderr and one cause
+(including message/stderr), with credentials redacted. Text fields are limited to
+2000 characters; clipping is recorded in `omittedFields`, and omitted stack/deeper
+causes are marked `detailOmitted`. Read stderr for gh authentication, permission or
+quota errors: its generic `GitHub command failed` message is insufficient.
+These are private diagnostics, never notification
 content. Inspect these after a failed MCP call; never infer a PAT
 or provider failure solely from HTTP 502. First registration reads a fresh GitHub
 baseline before committing the private subscription; periodic polling starts

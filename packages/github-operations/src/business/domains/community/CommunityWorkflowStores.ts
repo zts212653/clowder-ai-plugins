@@ -1,3 +1,4 @@
+import { storageEntries } from '../../../storage-pages.js';
 import { createHash, randomUUID } from 'node:crypto';
 import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { z } from 'zod';
@@ -28,7 +29,8 @@ const issueMutable = z.object({
 }).strict();
 const issueSchema = issueMutable.extend({ id: text, repo, issueNumber: number, createdAt: timestamp, updatedAt: timestamp }).strict();
 const prCreate = z.object({ repo, prNumber: number, title: text, author: text, state: z.enum(['open', 'merged', 'closed']), replyState: z.enum(['unreplied', 'replied', 'has-new-activity']), headSha: z.string(), draft: z.boolean() }).strict();
-const prSchema = prCreate.extend({ id: text, lastReviewedSha: z.string().nullable(), createdAt: timestamp, updatedAt: timestamp }).strict();
+const titleObservation = z.object({ observedAt: timestamp, providerUpdatedAt: timestamp.optional() }).strict();
+const prSchema = prCreate.extend({ id: text, lastReviewedSha: z.string().nullable(), createdAt: timestamp, updatedAt: timestamp, titleObservation: titleObservation.optional() }).strict();
 const prUpdate = prSchema.pick({ title: true, state: true, replyState: true, headSha: true, lastReviewedSha: true, draft: true }).partial().strict();
 
 /** Whole Community workflow state lives in plugin-private storage. The old
@@ -48,7 +50,7 @@ class SubjectRecords<T extends { id: string; repo: string; updatedAt: number }> 
     return item;
   }
   async listAll(): Promise<T[]> {
-    return Object.entries(await this.storage.list()).filter(([key]) => key.startsWith(this.prefix)).map(([key, entry]) => {
+    return (await storageEntries(this.storage, this.prefix)).map(([key, entry]) => {
       const item = this.decode(entry.value);
       if (key !== this.prefix + item.id) throw new Error('Community record identity mismatch');
       return item;
@@ -97,7 +99,7 @@ export class SdkCommunityWorkflowIssueStore implements ICommunityIssueStore {
 
 export class SdkCommunityPrStore implements ICommunityPrStore {
   private readonly records: SubjectRecords<CommunityPrItem>;
-  constructor(storage: PluginStorageHost) {
+  constructor(private readonly storage: PluginStorageHost) {
     this.records = new SubjectRecords(storage, 'community.workflow.pr.', value => {
       const item = prSchema.parse(value);
       if (item.id !== subjectId('pr', item.repo, item.prNumber)) throw new Error('Community PR identity mismatch');
@@ -107,6 +109,31 @@ export class SdkCommunityPrStore implements ICommunityPrStore {
   create(input: CreateCommunityPrInput): Promise<CommunityPrItem | null> {
     const parsed = prCreate.parse(input); const now = Date.now();
     return this.records.create({ ...parsed, id: subjectId('pr', parsed.repo, parsed.prNumber), lastReviewedSha: null, createdAt: now, updatedAt: now });
+  }
+  async observeTitle(input: CreateCommunityPrInput, observation: NonNullable<CommunityPrItem['titleObservation']>): Promise<CommunityPrItem> {
+    const parsed = prCreate.parse(input);
+    const observed = titleObservation.parse(observation);
+    const id = subjectId('pr', parsed.repo, parsed.prNumber);
+    const key = 'community.workflow.pr.' + id;
+    for (let attempt = 0; attempt < 64; attempt++) {
+      const entry = await this.storage.get(key);
+      const previous = entry ? prSchema.parse(entry.value) : null;
+      if (previous && previous.id !== id) throw new Error('Community PR identity mismatch');
+      const prior = previous?.titleObservation;
+      if (prior) {
+        // Provider revisions order renames even when HEAD is unchanged. For
+        // equal/absent provider dates, order by request start, never completion.
+        const providerOrder = observed.providerUpdatedAt !== undefined && prior.providerUpdatedAt !== undefined
+          ? observed.providerUpdatedAt - prior.providerUpdatedAt : 0;
+        if (providerOrder < 0 || (providerOrder === 0 && observed.observedAt <= prior.observedAt)) return previous;
+      }
+      const now = Date.now();
+      const next = prSchema.parse(previous
+        ? { ...previous, title: parsed.title, titleObservation: observed, updatedAt: now }
+        : { ...parsed, id, lastReviewedSha: null, createdAt: now, updatedAt: now, titleObservation: observed });
+      if ((await this.storage.compareAndSet(key, entry?.revision ?? null, next)).applied) return next;
+    }
+    throw new Error('Community PR title changed concurrently');
   }
   get(id: string) { return this.records.get(id); }
   getByRepoAndNumber(repository: string, n: number) { return this.get(subjectId('pr', repository, n)); }

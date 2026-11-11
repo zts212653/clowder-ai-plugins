@@ -239,6 +239,14 @@ async function routeIdentityPost(
         collectiveId: requiredString(body, 'collectiveId'),
       }),
     );
+  } else if (pathname === '/api/invites/preview') {
+    writeJson(response, 200, store.previewInvite(requiredString(body, 'inviteToken')));
+  } else if (pathname === '/api/invites/revoke') {
+    writeJson(response, 200, await store.revokeInvite({
+      sessionToken: requireBearer(request),
+      collectiveId: requiredString(body, 'collectiveId'),
+      inviteId: requiredString(body, 'inviteId'),
+    }));
   } else if (pathname === '/api/join') {
     writeJson(response, 201, await store.joinInvite(requireFields(body, ['inviteToken', 'displayName'])));
   } else if (pathname === '/api/memberships/self-leave') {

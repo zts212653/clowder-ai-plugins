@@ -1,3 +1,4 @@
+import { withIndexedMemoryStorage } from '../test/indexed-memory-storage.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { PluginStorageHost, PluginMessagingDraft } from '@clowder-ai/plugin-sdk';
@@ -5,6 +6,7 @@ import { GitHubWaitStorage } from './typed-wait-storage.js';
 import { GitHubWaitLifecycleService } from './business/domains/github-signals/GitHubWaitLifecycleService.js';
 import { WaitLifecycleRecoverySweep } from './business/domains/ball-custody/WaitLifecycleRecoverySweep.js';
 import type { TaskItem, GitHubWaitOutcomeV1 } from './business/model/index.js';
+import { scanMemory } from '../test/memory-storage.js';
 
 function fixture() {
   const rows = new Map<string, { revision: number; value: unknown }>();
@@ -12,6 +14,7 @@ function fixture() {
   const storage: PluginStorageHost = {
     async get(k) { return structuredClone(rows.get(k)); },
     async list() { return structuredClone(Object.fromEntries(rows)); },
+    async scan(input) { return scanMemory(rows, input); },
     async set(k, value) { rows.set(k, { revision: ++revision, value: structuredClone(value) }); return { revision }; },
     async compareAndSet(k, expected, value) {
       if ((rows.get(k)?.revision ?? null) !== expected) return { applied: false };
@@ -22,7 +25,7 @@ function fixture() {
       rows.delete(k); return { deleted: true, revision: ++revision };
     },
   };
-  const store = new GitHubWaitStorage(storage, () => 500);
+  const store = new GitHubWaitStorage(withIndexedMemoryStorage(storage), () => 500);
   const task: TaskItem = {
     id: 'task1', kind: 'pr_tracking', threadId: 'thread1', subjectKey: 'pr:owner/repo#7',
     title: 'PR', why: '', status: 'doing', ownerCatId: 'astra', createdBy: 'astra', userId: 'owner',
@@ -118,14 +121,14 @@ test('a lost terminal collector write is unrecorded, preserves receipt bytes and
     at: 90, delivery: 'delivered' as const, actor: { kind: 'system' as const } };
   await f.store.create({ ...f.task, status: 'done', automationState: { waitOutcome: receipt } });
   const before = await f.store.get(f.task.id);
-  const cas = f.storage.compareAndSet;
-  f.storage.compareAndSet = async () => ({ applied: false });
+  const cas = f.storage.compareAndSetIndexed!;
+  f.storage.compareAndSetIndexed = async () => ({ applied: false });
   const input = { taskId: f.task.id, facts: {}, subjectState: 'merged' as const,
     collectorPatch: { ci: { prState: 'merged' as const, terminalObservedAt: 500 } } };
   assert.deepEqual(await f.lifecycle().observe(input), { kind: 'unrecorded', reason: 'generation_changed_concurrently' });
   assert.deepEqual(await f.store.get(f.task.id), before);
   assert.equal(f.messages.length, 0);
-  f.storage.compareAndSet = cas;
+  f.storage.compareAndSetIndexed = cas;
   assert.equal((await f.lifecycle().observe(input)).kind, 'state_only');
   assert.deepEqual((await f.store.get(f.task.id))?.automationState?.waitOutcome, receipt);
   assert.equal(f.messages.length, 0);

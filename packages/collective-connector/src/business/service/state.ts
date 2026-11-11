@@ -88,7 +88,9 @@ const inviteSchema = z
     tokenDigest: z.string(),
     expiresAt: z.string().datetime(),
     createdAt: z.string().datetime(),
+    createdByHumanId: z.string().optional(),
     consumedAt: z.string().datetime().optional(),
+    revokedAt: z.string().datetime().optional(),
   })
   .strict();
 

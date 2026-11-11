@@ -5,11 +5,13 @@ import { GITHUB_PR_WAIT_PREDICATE_LIMIT } from './business/model/index.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ModuleActionCallOptions } from '@clowder-ai/plugin-sdk';
 import { registerPrTrackingInputSchema, registerIssueTrackingInputSchema, unregisterTrackingInputSchema } from './tracking-mcp-schemas.js';
+import { TERMINAL_RECONCILIATION_METHOD, terminalReconciliationInput, terminalReconciliationDescription } from './terminal-reconciliation.js';
 
 /** The installed plugin owns these handlers. No callback URL or Host GitHub route. */
 export interface TrackingMcpHandlers {
   bindMigration?(input: unknown, call: ModuleActionCallOptions): Promise<unknown>;
   reviewVerdict?(input: unknown, call: ModuleActionCallOptions): Promise<unknown>;
+  reconcileTerminal?(input: unknown, call: ModuleActionCallOptions): Promise<unknown>;
   community?(method: CommunityNativeMethod, input: unknown, call: ModuleActionCallOptions): Promise<unknown>;
   registerPr(input: unknown, call: ModuleActionCallOptions): Promise<unknown>;
   registerIssue(input: unknown, call: ModuleActionCallOptions): Promise<unknown>;
@@ -29,6 +31,7 @@ export function createRemoteTrackingMcpServer(client: {
   return createTrackingMcpServer({
     bindMigration: (input, call) => client.invoke('github.migration.bind-wait', input, call),
     reviewVerdict: (input, call) => client.invoke(REVIEW_VERDICT_METHOD, input, call),
+    reconcileTerminal: (input, call) => client.invoke(TERMINAL_RECONCILIATION_METHOD, input, call),
     community: (method, input, call) => client.invoke(method, input, call),
     registerPr: (input, call) => client.invoke(TRACKING_ACTION_METHODS.registerPr, input, call),
     registerIssue: (input, call) => client.invoke(TRACKING_ACTION_METHODS.registerIssue, input, call),
@@ -40,7 +43,9 @@ export function createTrackingMcpServer(handlers: TrackingMcpHandlers): McpServe
   const server = new McpServer({ name: 'clowder-github-tracking', version: '0.1.0' });
   const respond = (handler: TrackingMcpHandlers['registerPr']) => async (input: unknown, call: ModuleActionCallOptions) => {
     try {
-      return { content: [{ type: 'text' as const, text: JSON.stringify(await handler(input, call)) }] };
+      const result = await handler(input, call);
+      const failed = !!result && typeof result === 'object' && 'status' in result && typeof result.status === 'number' && result.status >= 400;
+      return { ...(failed ? { isError: true } : {}), content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
     } catch (error) {
       return { isError: true, content: [{ type: 'text' as const,
         text: error instanceof Error ? error.message : 'GitHub tracking failed' }] };
@@ -72,12 +77,13 @@ export function createTrackingMcpServer(handlers: TrackingMcpHandlers): McpServe
     { taskId: z.string().min(1).max(500), expectedDigest: z.string().regex(/^[a-f0-9]{64}$/) },
     respond((input, call) => handlers.bindMigration!(input, call)));
   if (handlers.reviewVerdict) server.tool('github_record_external_review_verdict',
-    'Submit a verdict for the assigned exact PR HEAD under the current native invocation and action lease. ' +
-    'Use the exact lease generation and review/comment URL, or an explicit pending_delivery reason. ' +
-    'Persists the submission before Host completion verification. pending_verification is NOT review completion; ' +
-    'retry the same submission from a fresh authenticated invocation after the missing evidence is available. ' +
-    'No caller identity, timestamp or verifier selection is accepted. Does not publish to GitHub.',
+    'Record a private exact-HEAD review result. Use when: the assigned reviewer submits a GitHub review/comment URL or pending_delivery reason in its authenticated thread. ' +
+    'NOT for: publishing to GitHub, changing reviewer assignment, or completing a Host Task/action lease. ' +
+    'Output: a persisted private verdict/pending verification result, or a structured refusal with code, outcome and recovery action. ' +
+    'GOTCHA: pending_verification is not completion. After refusal, inspect the exact subject and its lastReviewVerdictFailure before retrying the same valid submission; never republish the review to repair registration.',
     reviewVerdictInput.shape, respond((input, call) => handlers.reviewVerdict!(input, call)));
+  if (handlers.reconcileTerminal) server.tool('github_reconcile_terminal_pr', terminalReconciliationDescription,
+    terminalReconciliationInput.shape, respond((input, call) => handlers.reconcileTerminal!(input, call)));
   if (handlers.community) for (const method of communityNativeMethods) {
     server.tool(method.replaceAll('.', '_').replaceAll('-', '_'),
       `Submit Community ${method.slice('github.community.'.length)} through the authenticated native callback. ` +

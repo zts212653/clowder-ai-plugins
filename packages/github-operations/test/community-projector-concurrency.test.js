@@ -11,8 +11,8 @@ class MemoryEventLog {
     return { appended: true, sequence: this.events.length - 1 };
   }
 
-  async read(subjectKey) {
-    return this.events.filter((event) => event.subjectKey === subjectKey).map((event) => structuredClone(event));
+  async read(subjectKey, fromSequence = 0) {
+    return this.events.filter((event) => event.subjectKey === subjectKey).slice(fromSequence).map((event) => structuredClone(event));
   }
 
   async listSubjects() {
@@ -115,6 +115,7 @@ describe('CommunityProjector subject admission', () => {
       issueFixEvidence: null,
       externalReview: null,
       appliedEventCount: 1,
+      journalCursor: 2,
       lastRejectedEvent: null,
       deliveryCursor: null,
       createdAt: 1,

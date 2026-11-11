@@ -26,6 +26,17 @@
     "CompanionAppAssistAction": {
       "enum": ["dismiss", "timeout", "accept"]
     },
+    "CompanionDeskRef": {
+      "description": "Opaque Host-issued reference bound to one current desk scope, delivery or delivered item. The renderer only returns it to the Host; it is correlation data, not a URL, command or authority.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "CompanionDeskSettleAction": {
+      "description": "shown, dismiss and timeout settle the whole delivery; open and add settle one item.",
+      "enum": ["shown", "open", "add", "dismiss", "timeout"]
+    },
     "CompanionCorrelatableId": {
       "description": "A bounded single-line opaque identity issued by the Host or its current provider session.",
       "type": "string",
@@ -433,7 +444,8 @@
                 "decisions",
                 "transcript",
                 "settings",
-                "app-assist"
+                "app-assist",
+                "desk"
               ]
             },
             "width": {
@@ -626,6 +638,39 @@
             "action": { "$ref": "#/$defs/CompanionAppAssistAction" }
           },
           "required": ["kind", "scopeRef", "offerRef", "action"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "desk.settle" },
+            "scopeRef": { "$ref": "#/$defs/CompanionDeskRef" },
+            "deliveryRef": { "$ref": "#/$defs/CompanionDeskRef" },
+            "action": { "$ref": "#/$defs/CompanionDeskSettleAction" },
+            "itemRef": { "$ref": "#/$defs/CompanionDeskRef" }
+          },
+          "required": ["kind", "scopeRef", "deliveryRef", "action"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "desk.thumbnail.read" },
+            "scopeRef": { "$ref": "#/$defs/CompanionDeskRef" },
+            "deliveryRef": { "$ref": "#/$defs/CompanionDeskRef" },
+            "itemRef": { "$ref": "#/$defs/CompanionDeskRef" }
+          },
+          "required": ["kind", "scopeRef", "deliveryRef", "itemRef"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "desk.avatar.read" },
+            "scopeRef": { "$ref": "#/$defs/CompanionDeskRef" },
+            "deliveryRef": { "$ref": "#/$defs/CompanionDeskRef" }
+          },
+          "required": ["kind", "scopeRef", "deliveryRef"],
           "additionalProperties": false
         },
         {
@@ -1098,6 +1143,198 @@
       "required": ["kind", "scopeRef", "revision", "offerRef", "action", "outcome"],
       "additionalProperties": false
     },
+    "CompanionDeskItem": {
+      "description": "One Host-prepared thing a desk cat brings. The renderer receives display text and opaque references only; opening or adding stays a Host action.",
+      "type": "object",
+      "properties": {
+        "itemRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "kind": { "enum": ["work", "suggestion"] },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001F\\u007F-\\u009F\\u061C\\u200E\\u200F\\u2028-\\u202E\\u2066-\\u2069]+$"
+        },
+        "sentence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001F\\u007F-\\u009F\\u061C\\u200E\\u200F\\u2028-\\u202E\\u2066-\\u2069]+$"
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "conversationTitle": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "^(?=.*\\S)[^\\u0000-\\u001F\\u007F-\\u009F\\u061C\\u200E\\u200F\\u2028-\\u202E\\u2066-\\u2069]+$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "action": { "enum": ["open", "add"] },
+        "thumbnail": { "type": "boolean" }
+      },
+      "required": ["itemRef", "kind", "title", "source", "action", "thumbnail"],
+      "additionalProperties": false
+    },
+    "CompanionDeskDelivery": {
+      "description": "One Host-owned delivery. from:null means the items come from several cats, so the renderer names the desk cat itself. A single delivery carries exactly one item.",
+      "type": "object",
+      "properties": {
+        "deliveryRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "mode": { "enum": ["single", "bundle"] },
+        "from": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "catId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "pattern": "^[A-Za-z0-9._-]+$"
+                },
+                "displayName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60,
+                  "pattern": "^(?=.*\\S)[^\\u0000-\\u001F\\u007F-\\u009F\\u061C\\u200E\\u200F\\u2028-\\u202E\\u2066-\\u2069]+$"
+                },
+                "role": { "const": "watcher" }
+              },
+              "required": ["catId", "displayName"],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/CompanionDeskItem" }
+        },
+        "more": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+      },
+      "required": ["deliveryRef", "mode", "from", "items", "more"],
+      "additionalProperties": false
+    },
+    "CompanionDeskState": {
+      "type": "object",
+      "properties": {
+        "scopeRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "status": { "enum": ["off", "ready", "suspended"] },
+        "delivery": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/CompanionDeskDelivery" }
+          ]
+        }
+      },
+      "required": ["scopeRef", "revision", "status", "delivery"],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "status": { "const": "ready" },
+            "delivery": {}
+          },
+          "required": ["status", "delivery"]
+        },
+        {
+          "properties": {
+            "status": { "enum": ["off", "suspended"] },
+            "delivery": { "const": null }
+          },
+          "required": ["status", "delivery"]
+        }
+      ]
+    },
+    "CompanionDeskSettlement": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "desk-settlement" },
+        "scopeRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "deliveryRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "action": { "$ref": "#/$defs/CompanionDeskSettleAction" },
+        "itemRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "outcome": { "enum": ["settled", "stale_delivery", "failed"] },
+        "saved": {
+          "description": "Only a timeout settlement may report that the Host kept the delivery in its original conversation.",
+          "type": "boolean"
+        }
+      },
+      "required": ["kind", "scopeRef", "revision", "deliveryRef", "action", "outcome"],
+      "additionalProperties": false
+    },
+    "CompanionDeskThumbnail": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "desk-thumbnail" },
+        "scopeRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "deliveryRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "itemRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "image": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "mediaType": { "enum": ["image/jpeg", "image/png", "image/webp"] },
+                "dataBase64": {
+                  "type": "string",
+                  "minLength": 4,
+                  "maxLength": 400000,
+                  "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+                },
+                "width": { "type": "integer", "minimum": 1, "maximum": 1024 },
+                "height": { "type": "integer", "minimum": 1, "maximum": 1024 }
+              },
+              "required": ["mediaType", "dataBase64", "width", "height"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["kind", "scopeRef", "deliveryRef", "itemRef", "image"],
+      "additionalProperties": false
+    },
+    "CompanionDeskAvatar": {
+      "description": "The delivering cat's avatar for one delivery, read by delivery reference. The Host resolves the cat; the renderer never names a cat, path or URL.",
+      "type": "object",
+      "properties": {
+        "kind": { "const": "desk-avatar" },
+        "scopeRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "deliveryRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "image": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "mediaType": { "enum": ["image/png", "image/webp", "image/jpeg"] },
+                "dataBase64": {
+                  "type": "string",
+                  "minLength": 4,
+                  "maxLength": 60000,
+                  "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+                },
+                "width": { "type": "integer", "minimum": 1, "maximum": 256 },
+                "height": { "type": "integer", "minimum": 1, "maximum": 256 }
+              },
+              "required": ["mediaType", "dataBase64", "width", "height"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["kind", "scopeRef", "deliveryRef", "image"],
+      "additionalProperties": false
+    },
     "CompanionState": {
       "type": "object",
       "properties": {
@@ -1155,6 +1392,9 @@
         "appAssist": {
           "$ref": "#/$defs/CompanionAppAssistState"
         },
+        "desk": {
+          "$ref": "#/$defs/CompanionDeskState"
+        },
         "nativeWork": {
           "$ref": "#/$defs/CompanionNativeWork"
         }
@@ -1173,6 +1413,7 @@
         "liveTransport",
         "meeting",
         "appAssist",
+        "desk",
         "nativeWork"
       ],
       "additionalProperties": false
@@ -1879,6 +2120,15 @@
         },
         {
           "$ref": "#/$defs/CompanionAppAssistSettlement"
+        },
+        {
+          "$ref": "#/$defs/CompanionDeskSettlement"
+        },
+        {
+          "$ref": "#/$defs/CompanionDeskThumbnail"
+        },
+        {
+          "$ref": "#/$defs/CompanionDeskAvatar"
         },
         {
           "type": "object",

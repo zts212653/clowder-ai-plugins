@@ -17,6 +17,7 @@ test('request and collector projectors cannot overwrite each other after reading
   const events = new SdkCommunityEventLog(storage), objects = new SdkCommunityObjectStore(storage);
   const operations = new CommunityProjectionOperations();
   const background = new CommunityProjector(events, objects, operations);
+  await events.append(event('case.bootstrap', 1));
   await background.apply(event('case.bootstrap', 1));
   let read!: () => void, release!: () => void;
   const entered = new Promise<void>(resolve => { read = resolve; });
@@ -26,8 +27,10 @@ test('request and collector projectors cannot overwrite each other after reading
     get: async key => { const value = await objects.get(key); if (intercept) { intercept = false; read(); await blocked; } return value; },
     save: value => objects.save(value), delete: key => objects.delete(key), listSubjectKeys: () => objects.listSubjectKeys(),
   }, operations);
+  await events.append(event('case.reported', 2));
   const reporting = request.applyChecked(event('case.reported', 2));
   await entered;
+  await events.append(event('issue.closed', 3));
   const closing = background.apply(event('issue.closed', 3));
   await new Promise(resolve => setImmediate(resolve));
   release();

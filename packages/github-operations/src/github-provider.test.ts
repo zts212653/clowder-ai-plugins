@@ -8,6 +8,14 @@ import { createRepoCommentPoller } from './business/infrastructure/connectors/gi
 
 const target = { kind: 'pr' as const, repoFullName: 'example/project', number: 12, threadId: 'thread-1', catId: 'cat-1' };
 
+function ciJson(headRefOid: string, contexts: readonly unknown[] = []) {
+  return { stdout: JSON.stringify({ data: { r0: { p0: { headRefOid, state: 'OPEN',
+    commits: { nodes: [{ commit: { statusCheckRollup: { contexts: {
+      nodes: contexts, pageInfo: { hasNextPage: false },
+    } } } }] },
+  } } } }) };
+}
+
 function repositoryCommentsFixture(failLastPage = false) {
   const calls: string[] = [];
   const provider = new GitHubProvider({ token: async () => 'isolated-repository-comments', log: { warn() {} },
@@ -125,9 +133,9 @@ test('cloud observation fetches complete paginated comment history and retains r
   const head = 'a'.repeat(40);
   const provider = new GitHubProvider({ token: async () => undefined, log: { warn() {} }, execFileAsync: async (_file, args) => {
     const path = args[1]!; calls.push(path);
-    if (args[0] === 'pr' && path === 'view') return { stdout: JSON.stringify({ headRefOid: head, state: 'OPEN', statusCheckRollup: [] }) };
+    if (path === 'graphql') return ciJson(head);
     if (path === 'user') return { stdout: 'owner' };
-    if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ state: 'open', head: { sha: head } }) };
+    if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ number: 12, html_url: 'https://github.com/example/project/pull/12', state: 'open', head: { sha: head } }) };
     if (path.includes('/pulls/12/comments?')) {
       const row = (id: number) => JSON.stringify({ id, user: { login: 'bot' }, body: 'P2', pull_request_review_id: 77, commit_id: head });
       return { stdout: path.includes('page=2') ? row(101) : Array.from({ length: 100 }, (_, i) => row(i + 1)).join('\n') };
@@ -157,7 +165,7 @@ test('one scoped CI batch serves multiple real provider snapshots without a cros
       return { stdout: JSON.stringify({ data: { r0: { p0: pr, p1: pr } } }) };
     }
     if (path === 'user') return { stdout: 'owner' };
-    if (/\/pulls\/(12|13)$/.test(path)) return { stdout: JSON.stringify({ state: 'open', head: { sha: head } }) };
+    if (/\/pulls\/(12|13)$/.test(path)) return { stdout: JSON.stringify({ number: Number(path.split('/').at(-1)), html_url: 'https://github.com/example/project/pull/' + path.split('/').at(-1), state: 'open', head: { sha: head } }) };
     if (path.includes('/comments?') || path.includes('/reviews?')) return { stdout: '' };
     throw new Error(`Unexpected request ${args.join(' ')}`);
   } });
@@ -177,11 +185,11 @@ function fixture() {
   let rollup: unknown[] = [];
   const exec: NonNullable<GitHubRequestOptions['execFileAsync']> = async (file, args) => {
     assert.equal(file, 'gh'); calls.push(args);
-    if (args[0] === 'pr' && args[1] === 'view') return { stdout: JSON.stringify({ headRefOid: head, state: 'OPEN', statusCheckRollup: rollup }) };
+    if (args[1] === 'graphql') return ciJson(head, rollup);
     if (args[0] === 'pr' && args[1] === 'checks') return { stdout: '[]' };
     const path = args[1]!;
     if (path === 'user') return { stdout: 'owner\n' };
-    if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ state: 'open', head: { sha: 'a'.repeat(40) }, mergeable_state: 'clean' }) };
+    if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ number: 12, html_url: 'https://github.com/example/project/pull/12', state: 'open', head: { sha: 'a'.repeat(40) }, mergeable_state: 'clean' }) };
     if (path === '/repos/example/project/issues/comments/99') return { stdout: JSON.stringify({ id: 99, created_at: '2026-10-01T10:00:00Z' }) };
     if (path.includes('/issues/12/comments?')) return { stdout: JSON.stringify({ id: 100, user: { login: 'maintainer' }, body: 'new comment' }) };
     if (path.includes('/pulls/12/comments?') || path.includes('/pulls/12/reviews?')) return { stdout: '' };
@@ -213,7 +221,7 @@ test('real provider derives notification identity from account, author and posit
       execFileAsync: async (_file, args) => {
         const path = args[1];
         if (path === 'user') return { stdout: 'Reviewer\n' };
-        if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ state: 'open', head: { sha: head },
+        if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ number: 12, html_url: 'https://github.com/example/project/pull/12', state: 'open', head: { sha: head },
           user: { login: 'author' }, requested_reviewers: ground === 'review_requested' ? [{ login: 'reviewer' }] : [],
           base: { repo: { permissions: { push: ground === 'repo_write_access' } } } }) };
         if (path?.includes('/reviews?')) return { stdout: ground === 'review_submitted'
@@ -243,15 +251,15 @@ test('real provider preserves billing-only infrastructure classification and ref
     execFileAsync: async (_file, args) => {
       const json = (value: unknown) => ({ stdout: JSON.stringify(value) });
       const head = 'a'.repeat(40);
-      if (args[0] === 'pr' && args[1] === 'view') return json({ headRefOid: head, state: 'OPEN', statusCheckRollup: [
-        { __typename: 'CheckRun', status: 'COMPLETED', conclusion: 'FAILURE' },
-      ] });
+      if (args[1] === 'graphql') return ciJson(head, ['build', ...(mixed ? ['tests'] : [])].map(name => ({
+        __typename: 'CheckRun', name, status: 'COMPLETED', conclusion: 'FAILURE',
+      })));
       if (args[0] === 'pr' && args[1] === 'checks') return json([
         { name: 'build', bucket: 'fail' }, ...(mixed ? [{ name: 'tests', bucket: 'fail' }] : []),
       ]);
       const path = args[1]!;
       if (path === 'user') return { stdout: 'owner' };
-      if (path === '/repos/example/project/pulls/12') return json({ state: 'open', head: { sha: head } });
+      if (path === '/repos/example/project/pulls/12') return json({ number: 12, html_url: 'https://github.com/example/project/pull/12', state: 'open', head: { sha: head } });
       if (path.includes('/comments?') || path.includes('/reviews?')) return { stdout: '' };
       if (path.includes('/check-runs?')) return json({ check_runs: [{ id: 7, name: 'build', conclusion: 'failure' }] });
       if (path.includes('/actions/runs?')) return json({ workflow_runs: [{ id: 8, conclusion: 'failure' }] });

@@ -131,6 +131,7 @@ export {
 export type {
   ModulePluginHostShape,
   ModulePluginSettingsHost,
+  PluginCapabilityHost,
   ModulePluginLogLevel,
   PluginMessageContent,
   PluginMessagingDelivery,
@@ -142,6 +143,11 @@ export type {
   PluginStorageDeleteResult,
   PluginStorageEntry,
   PluginStorageHost,
+  PluginStorageProjection,
+  PluginStorageDueInput,
+  PluginStorageDuePage,
+  PluginStoragePage,
+  PluginStorageScanInput,
   PluginTaskCreateInput,
   PluginTaskWorkTime,
   PluginTaskWorkData,
@@ -197,9 +203,16 @@ export type { PluginRuntimeInfo, PluginRuntimeInfoHost, PluginUiPanel } from './
 
 export * from './members.js';
 export type * from './member-sessions.js';
+export type * from './owner-chat.js';
 
 
 export { createStreamsClient, type PluginStreams, type PluginStreamReadOptions } from './streams.js';
 export type { PluginStopContext, PluginPreStopContext } from './module-host.js';
 
 export * from './delivery.js';
+export {
+  defineWebhookHandler,
+  type PluginWebhookHandler,
+  type PluginWebhookRequest,
+  type PluginWebhookSurface,
+} from './webhook.js';

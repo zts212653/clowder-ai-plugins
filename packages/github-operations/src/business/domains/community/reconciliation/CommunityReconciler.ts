@@ -19,6 +19,8 @@
 
 import type { CommunityEvent, CommunityObjectProjection } from '../../../model/index.js';
 import { DEFAULT_SLA_POLICY, evaluateSlaFindings, type SlaPolicy } from '../community-sla-policy.js';
+import type { PrTerminalFacts } from '../../../model/types/provider-terminal.js';
+import { terminalObservationEvent } from '../terminal-provider-facts.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -29,6 +31,10 @@ export interface GitHubSnapshot {
   state: 'open' | 'closed';
   closedAt: string | null;
   mergedAt: string | null;
+  terminalFacts?: PrTerminalFacts;
+  headSha?: string;
+  observedAt?: number;
+  providerUpdatedAt?: string;
 }
 
 export interface ReconcilerInput {
@@ -121,6 +127,11 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
       continue;
     }
 
+    if (ghSnap.terminalFacts && ghSnap.state === 'closed' && projection.type === 'pr') {
+      if (ghSnap.terminalFacts.subjectKey !== projection.subjectKey) throw new TypeError('reconciler terminal subject mismatch');
+      events.push(terminalObservationEvent(ghSnap.terminalFacts));
+    }
+
     // ── Drift detection ─────────────────────────────────────────────────
 
     const caseIsActive = isActiveCaseState(projection.state);
@@ -128,11 +139,13 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
     const ghIsOpen = ghSnap.state === 'open';
 
     // D3.5: GitHub closed while case is active (not yet closed/declined)
-    if (caseIsActive && ghIsClosed) {
+    if (ghIsClosed && (caseIsActive || projection.type === 'pr' &&
+        (!!projection.providerOpen || !!ghSnap.mergedAt && projection.providerPeriod?.state === 'closed'))) {
       const eventKind = resolveCloseEventKind(projection.type, ghSnap);
       // Include closedAt/mergedAt as fact key so reopen→close cycles produce unique IDs
       const factKey = ghSnap.mergedAt ?? ghSnap.closedAt ?? '';
       const sourceEventId = reconcilerEventId(projection.subjectKey, eventKind, factKey);
+      const providerObservedAt = ghSnap.observedAt ?? (ghSnap.terminalFacts?.source === 'github-api' ? ghSnap.terminalFacts.observedAt : undefined);
 
       events.push({
         sourceEventId,
@@ -143,6 +156,8 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
           closedAt: ghSnap.closedAt,
           mergedAt: ghSnap.mergedAt,
           source: 'reconciler',
+          ...(providerObservedAt !== undefined ? { providerObservedAt } : {}),
+          ...(ghSnap.headSha ? { headSha: ghSnap.headSha } : {}),
         },
         at: ghSnap.closedAt ? new Date(ghSnap.closedAt).getTime() : now,
       });
@@ -156,7 +171,8 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
       });
     }
 
-    // D3.7: GitHub reopened after internal close (issues only — PRs can't reopen)
+    // Issue reopening changes its case. PR reopening is a provider fact owned
+    // by collection and never revokes its original native review fence.
     // Takes priority over D3.6 for closed issues — the reopened event is the
     // concrete fact; D3.6 is the generic drift signal for PRs/declined.
     if (projection.state === 'closed' && ghIsOpen && projection.type === 'issue') {
@@ -171,6 +187,8 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
         classification: 'state-changing',
         payload: {
           source: 'reconciler',
+          ...(ghSnap.observedAt !== undefined ? { providerObservedAt: ghSnap.observedAt } : {}),
+          ...(ghSnap.headSha ? { headSha: ghSnap.headSha } : {}),
         },
         at: now,
       });
@@ -186,7 +204,7 @@ export function reconcile(input: ReconcilerInput): ReconcilerResult {
 
     // D3.6: Case closed/declined while GitHub is open — no fake event, just finding.
     // Skipped for closed issues (handled by D3.7 above).
-    else if (!caseIsActive && ghIsOpen) {
+    else if (!caseIsActive && ghIsOpen && !(projection.type === 'pr' && projection.providerOpen)) {
       findings.push({
         findingId: `reconcile:${projection.subjectKey}:case-closed-github-open`,
         subjectKey: projection.subjectKey,

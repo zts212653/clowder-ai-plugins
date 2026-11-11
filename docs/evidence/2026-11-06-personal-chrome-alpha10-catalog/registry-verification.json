@@ -1,0 +1,11 @@
+{
+  "observedAt": "2026-11-06T12:17:05.255Z",
+  "version": "0.1.0-alpha.10",
+  "packageName": "@clowder-ai/personal-chrome-companion",
+  "registry": "https://registry.npmjs.org/@clowder-ai%2fpersonal-chrome-companion/0.1.0-alpha.10",
+  "tarball": "https://registry.npmjs.org/@clowder-ai/personal-chrome-companion/-/personal-chrome-companion-0.1.0-alpha.10.tgz",
+  "bytes": 157389,
+  "sha256": "afd50eec9ad231c727daaaaafaab0df01c89b19bd918c459734c2e8f42559877",
+  "integrity": "sha512-N6mohK+qmgNW08yRGa2g1N4Ja6hMbpfLOGg6IPqHB/HgzlUvqwm9/6AQqt56umDqeoe19OtgqlegMz2p0eeVMA==",
+  "reviewedArchiveByteIdentical": true
+}

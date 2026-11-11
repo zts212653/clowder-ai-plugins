@@ -1,4 +1,4 @@
-import {gitHubAdmissionCanContinue, gitHubObjectSignal} from './business/infrastructure/github/admission-budget.js';
+import {gitHubObjectSignal} from './business/infrastructure/github/admission-budget.js';
 import { createHash, randomUUID } from 'node:crypto';
 import type { PluginMessagingDraft, PluginStorageHost, PluginThreadHost } from '@clowder-ai/plugin-sdk';
 import { createGitHubFeedbackFilter } from './business/infrastructure/email/github-feedback-filter.js';
@@ -12,6 +12,9 @@ import { classifyExternalCloudReview, type CloudReviewRequest } from './business
 import type { ExternalCloudObservation } from './business/domains/community/external-review/ExternalReviewCoordinator.js';
 import { copyLegacyIssueProgress, readLegacyIssueProgress } from './legacy-issue-progress.js';
 import { legacyIssueOperationInput } from './legacy-issue-observations.js';
+import { storagePages } from './storage-pages.js';
+import { POST_MERGE_FOLLOWUP } from './business/domains/github-signals/post-merge-followup.js';
+import { pollTrackingPages, type TrackingChannel as Channel } from './tracking-polling.js';
 
 export interface GitHubTarget {
   readonly kind: 'pr' | 'issue';
@@ -43,6 +46,11 @@ export interface GitHubReview {
   readonly authorAssociation?: string;
 }
 export interface GitHubSnapshot {
+  readonly observedAt?: number;
+  readonly providerUpdatedAt?: string;
+  readonly terminalFacts?: import('./business/model/types/provider-terminal.js').PrTerminalFacts;
+  readonly title?: string;
+  readonly draft?: boolean;
   readonly trackingIdentity?: import('./business/model/index.js').GitHubTrackingIdentityV1;
   readonly state: 'open' | 'closed' | 'merged';
   readonly authorLogin?: string;
@@ -62,7 +70,6 @@ export interface GitHubTrackingProvider {
   read(target: GitHubTarget, signal: AbortSignal, cursor?: { inline: number; conversation: number }): Promise<GitHubSnapshot>;
   forCiBatch?(targets: readonly GitHubTarget[], signal: AbortSignal): Promise<GitHubTrackingProvider>;
 }
-type Channel = 'cicd-check' | 'conflict-check' | 'review-feedback' | 'issue-tracking';
 interface Marker {
   readonly headSha?: string;
   readonly ci?: string;
@@ -158,6 +165,7 @@ export class GitHubTrackingRuntime {
   private readonly lifecycle = new AbortController();
   private readonly queues = new Map<string, Promise<unknown>>();
   private readonly polling = new Map<string, AbortController>();
+  private readonly ciBatchPolling = new Map<string, AbortController>();
   private stopping = false;
   private readonly now: () => number;
   private readonly pollBudgetMs: number;
@@ -238,7 +246,9 @@ export class GitHubTrackingRuntime {
 
   async unregister(target: Pick<GitHubTarget, 'kind' | 'repoFullName' | 'number'>): Promise<{ active: false }> {
     const key = keyOf(target);
-    this.polling.get(key)?.abort(new Error('tracking unregistered'));
+    const reason = new Error('tracking unregistered');
+    this.polling.get(key)?.abort(reason);
+    this.ciBatchPolling.get(key)?.abort(reason);
     return this.serialize(key, async () => {
       const current = await this.deps.storage.get(key);
       if (current) {
@@ -251,8 +261,13 @@ export class GitHubTrackingRuntime {
   }
 
   async list(): Promise<readonly { subjectKey: string; target: GitHubTarget; active: boolean; pending: number }[]> {
-    const all = await this.deps.storage.list();
-    return Object.entries(all).filter(([key]) => key.startsWith(PREFIX)).map(([, entry]) => {
+    const records = new Map<string, { revision: number; value: unknown }>();
+    for await (const page of storagePages(this.deps.storage, PREFIX, { signal: this.lifecycle.signal })) {
+      for (const [key, entry] of Object.entries(page)) {
+        if (key.startsWith(PREFIX) && entry.revision >= (records.get(key)?.revision ?? 0)) records.set(key, entry);
+      }
+    }
+    return [...records.values()].map(entry => {
       const record = recordOf(entry.value);
       return { subjectKey: subject(record.target), target: record.target, active: record.active, pending: record.pending.length };
     });
@@ -263,48 +278,38 @@ export class GitHubTrackingRuntime {
   }
 
   private async pollBatch(channel: Channel): Promise<void> {
-    this.lifecycle.signal.throwIfAborted();
-    const deadline = this.now() + this.pollBudgetMs;
-    const failures: unknown[] = [];
-    const entries = await this.deps.storage.list();
-    const eligible = Object.entries(entries).filter(([key, entry]) => {
-      if (!key.startsWith(PREFIX)) return false;
-      const record = recordOf(entry.value);
-      return record.active && (channel === 'issue-tracking') === (record.target.kind === 'issue');
-    }).map(([key]) => key).sort();
-    if (!eligible.length) return;
-    const cursorKey = `github.poll-cursor.${channel}`;
-    const cursor = (await this.deps.storage.get(cursorKey))?.value;
-    if (cursor !== undefined && typeof cursor !== 'string') throw new TypeError('invalid persisted GitHub poll cursor');
-    const resume = typeof cursor === 'string' ? eligible.findIndex(key => key > cursor) : 0;
-    const start = resume < 0 ? 0 : resume;
-    let ordered = [...eligible.slice(start), ...eligible.slice(0, start)];
-    let provider = this.deps.provider;
-    if (channel === 'cicd-check' && provider.forCiBatch) {
-      // Bound GraphQL query size and rotate the remaining subjects next tick.
-      ordered = ordered.slice(0, 20);
-      const targets = ordered.map(key => recordOf(entries[key]!.value).target);
-      const signal = gitHubObjectSignal({signal:this.lifecycle.signal,deadlineMs:deadline,now:this.now,objectTimeoutMs:this.objectTimeoutMs})!;
-      try {
-        provider = await provider.forCiBatch(targets, signal);
-        signal.throwIfAborted();
-      } catch (error) {
-        this.lifecycle.signal.throwIfAborted();
-        await this.deps.storage.set(cursorKey, ordered.at(-1)!);
-        throw error;
+    return pollTrackingPages({
+      storage: this.deps.storage, prefix: PREFIX, channel, signal: this.lifecycle.signal,
+      provider: this.deps.provider, now: this.now, pollBudgetMs: this.pollBudgetMs,
+      ...(this.deps.provider.forCiBatch ? { forCiBatch: (targets: readonly GitHubTarget[], signal: AbortSignal) => this.readCiBatch(targets, signal) } : {}),
+      objectTimeoutMs: this.objectTimeoutMs, record: recordOf,
+      pollTarget: (key, deadline, provider) => this.serialize(key, () => this.pollTarget(key, channel, deadline, provider)),
+    });
+  }
+
+  private async readCiBatch(targets: readonly GitHubTarget[], signal: AbortSignal): Promise<GitHubTrackingProvider> {
+    const controller = new AbortController();
+    const currentSignal = AbortSignal.any([signal, controller.signal]);
+    const keys = targets.map(keyOf);
+    for (const key of keys) this.ciBatchPolling.set(key, controller);
+    try {
+      const currentTargets: GitHubTarget[] = [];
+      for (const key of keys) {
+        currentSignal.throwIfAborted();
+        const entry = await this.deps.storage.get(key);
+        currentSignal.throwIfAborted();
+        if (!entry) continue;
+        const record = recordOf(entry.value);
+        if (record.active && record.target.kind === 'pr') currentTargets.push(record.target);
       }
+      currentSignal.throwIfAborted();
+      if (!currentTargets.length) return this.deps.provider;
+      const provider = await this.deps.provider.forCiBatch!(currentTargets, currentSignal);
+      currentSignal.throwIfAborted();
+      return provider;
+    } finally {
+      for (const key of keys) if (this.ciBatchPolling.get(key) === controller) this.ciBatchPolling.delete(key);
     }
-    for (const [index,key] of ordered.entries()) {
-      this.lifecycle.signal.throwIfAborted();
-      if (this.now() >= deadline || (index > 0 && !gitHubAdmissionCanContinue({deadlineMs:deadline,now:this.now}))) break;
-      try { await this.serialize(key, () => this.pollTarget(key, channel, deadline, provider)); }
-      catch (error) { this.lifecycle.signal.throwIfAborted(); failures.push(error); }
-      // Failed remote targets also advance fairness. Their registration and
-      // observation cursors remain intact for a later round.
-      await this.deps.storage.set(cursorKey, key);
-    }
-    if (failures.length === 1) throw failures[0];
-    if (failures.length > 1) throw new AggregateError(failures, 'GitHub poll failed for multiple targets');
   }
 
   private async pollTarget(key: string, channel: Channel, deadline: number, provider: GitHubTrackingProvider): Promise<void> {
@@ -374,6 +379,7 @@ export class GitHubTrackingRuntime {
         `🔔 **GitHub update** — ${renderGitHubSubjectLink(subject(record.target))}`,
         '',
         ...changes,
+        ...(record.target.kind === 'pr' && snapshot.state === 'merged' ? ['', POST_MERGE_FOLLOWUP] : []),
       ].join('\n');
       const pollSequence = record.pollSequence + 1;
       if (!Number.isSafeInteger(pollSequence)) throw new Error('GitHub tracking poll sequence exhausted');

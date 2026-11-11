@@ -109,6 +109,7 @@ test('connector gate covers all seven connectors in the workflow order', () => {
 test('every package gate runs typecheck, test, lint, and build like the workflow', () => {
   const steps = buildGateSteps();
   for (const name of [
+    'Dot plugin gates',
     'Feishu intake gates',
     'Video analysis gates',
     'Video generation gates',
@@ -150,6 +151,9 @@ test('both validation workflows have no package command missing from the local g
   const gate = buildGateSteps().map(step => step.command).join(' && ');
   const externalSteps = new Set([
     'Assert tested HEAD is the PR\'s live head',
+    // Needs the PR's exact base object, like the live-HEAD check above. The
+    // production command has its own Git-backed lifecycle regression journey.
+    'Validate release destinations before merge',
     'Companion browser layout contract',
     'Xiangqi browser journey',
     'Capture exact-head pack evidence',

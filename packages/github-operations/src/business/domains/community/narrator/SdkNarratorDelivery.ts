@@ -1,3 +1,4 @@
+import { storagePages } from '../../../../storage-pages.js';
 import { createHash } from 'node:crypto';
 import type { PluginMessagingHost, PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { z } from 'zod';
@@ -38,8 +39,12 @@ export class SdkNarratorDelivery implements NarratorDelivery {
   recover(): Promise<void> { return this.track(() => this.recoverAll()); }
   private async recoverAll(): Promise<void> {
     this.assertActive();
-    for (const [key] of Object.entries(await this.storage.list())) {
-      if (key.startsWith(prefix)) await this.flush(key);
+    for await (const page of storagePages(this.storage, prefix)) {
+      this.assertActive();
+      for (const key of Object.keys(page)) {
+        this.assertActive();
+        if (key.startsWith(prefix)) await this.flush(key);
+      }
     }
   }
   async status(sourceEventId: string): Promise<'pending' | 'delivered'> {

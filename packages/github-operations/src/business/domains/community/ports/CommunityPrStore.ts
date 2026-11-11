@@ -3,6 +3,7 @@ export interface CommunityPrItem {
   repo: string;
   prNumber: number;
   title: string;
+  titleObservation?: { observedAt: number; providerUpdatedAt?: number };
   author: string;
   state: 'open' | 'merged' | 'closed';
   replyState: 'unreplied' | 'replied' | 'has-new-activity';
@@ -30,6 +31,7 @@ export type UpdateCommunityPrInput = Partial<
 
 export interface ICommunityPrStore {
   create(input: CreateCommunityPrInput): Promise<CommunityPrItem | null>;
+  observeTitle(input: CreateCommunityPrInput, observation: NonNullable<CommunityPrItem['titleObservation']>): Promise<CommunityPrItem>;
   get(id: string): Promise<CommunityPrItem | null>;
   getByRepoAndNumber(repo: string, prNumber: number): Promise<CommunityPrItem | null>;
   listByRepo(repo: string): Promise<CommunityPrItem[]>;

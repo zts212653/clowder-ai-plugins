@@ -1,0 +1,74 @@
+{
+  "provenance": "Record shapes and relative event times from three retained ordinary addressed exchanges. Identities, bodies, revisions and digests are substituted. These are replay fixtures, not original credentials or a final-version soak certificate.",
+  "cases": [
+    {
+      "case": "ordinary-1",
+      "replyContent": "anonymized answer",
+      "dispatch": {
+        "eventId": "dot_evt_a1a9624f4c5bdbb7c109aaead45a7faf6b36c16b8aec03b1f871204a73419a02",
+        "ownerUserId": "owner",
+        "threadId": "thread-1",
+        "sourceMessageId": "source-1",
+        "dispatchInvocationId": "history-invocation-1",
+        "attemptId": "history-attempt",
+        "agentKeyId": "history-key",
+        "occurredAt": 0,
+        "webhookAcknowledgedAt": 2510,
+        "sourceReadAt": 28993,
+        "replyMessageId": "history-reply-1",
+        "imagePublicationIds": [],
+        "connectionTest": false,
+        "deliveryError": null,
+        "deliveryId": "ad_0cef76d2327d9624c71baba5bbe01d44366e135f1626d34182006cea949d50e6",
+        "sourceRevision": "rev-1",
+        "replyDigest": "b2d905684b1140354031ffe8c18671b5f5081d7be148d8e24dd3b16bfc7a5ca2"
+      }
+    },
+    {
+      "case": "ordinary-2",
+      "replyContent": "anonymized answer",
+      "dispatch": {
+        "eventId": "dot_evt_d40a8dfa276d75a544d7e705802419b52ace12deb701c70e933bffc8e67c0f05",
+        "ownerUserId": "owner",
+        "threadId": "thread-1",
+        "sourceMessageId": "source-1",
+        "dispatchInvocationId": "history-invocation-2",
+        "attemptId": "history-attempt",
+        "agentKeyId": "history-key",
+        "occurredAt": 0,
+        "webhookAcknowledgedAt": 2162,
+        "sourceReadAt": 30692,
+        "replyMessageId": "history-reply-2",
+        "imagePublicationIds": [],
+        "connectionTest": false,
+        "deliveryError": null,
+        "deliveryId": "ad_b83ee013bfdd65699e244194cbae71629f4d7b329d0ccc985f9ce5f578b14029",
+        "sourceRevision": "rev-1",
+        "replyDigest": "b2d905684b1140354031ffe8c18671b5f5081d7be148d8e24dd3b16bfc7a5ca2"
+      }
+    },
+    {
+      "case": "ordinary-3",
+      "replyContent": "anonymized answer",
+      "dispatch": {
+        "eventId": "dot_evt_f02be2521f0eb6b3fdf9bf88e3eb78459251bf35f761b7265406084335dfe490",
+        "ownerUserId": "owner",
+        "threadId": "thread-1",
+        "sourceMessageId": "source-1",
+        "dispatchInvocationId": "history-invocation-3",
+        "attemptId": "history-attempt",
+        "agentKeyId": "history-key",
+        "occurredAt": 0,
+        "webhookAcknowledgedAt": 1688,
+        "sourceReadAt": 23974,
+        "replyMessageId": "history-reply-3",
+        "imagePublicationIds": [],
+        "connectionTest": false,
+        "deliveryError": null,
+        "deliveryId": "ad_b779295d689d38dfb7911044bdd24a1be6c7ed1fdb34e84efd195b58c112a755",
+        "sourceRevision": "rev-1",
+        "replyDigest": "b2d905684b1140354031ffe8c18671b5f5081d7be148d8e24dd3b16bfc7a5ca2"
+      }
+    }
+  ]
+}

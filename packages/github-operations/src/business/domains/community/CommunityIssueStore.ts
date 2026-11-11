@@ -1,3 +1,4 @@
+import { storageEntries } from '../../../storage-pages.js';
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
@@ -73,7 +74,7 @@ export class SdkCommunityIssueStore implements ICommunityIssueStore {
   getByRepoAndNumber(repo: string, number: number): Promise<CommunityIssueObservation | null> { return this.get(idOf(repo, number)); }
   async listByRepo(repo: string): Promise<CommunityIssueObservation[]> { return (await this.listAll()).filter(item => item.repo === repo.toLowerCase()); }
   async listAll(): Promise<CommunityIssueObservation[]> {
-    return Object.entries(await this.storage.list()).filter(([key]) => key.startsWith(prefix))
+    return (await storageEntries(this.storage, prefix))
       .map(([key, entry]) => {
         const item = observation(entry.value);
         if (key !== prefix + item.id) throw new TypeError('invalid issue observation identity');

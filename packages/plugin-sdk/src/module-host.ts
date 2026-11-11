@@ -33,9 +33,38 @@ export interface PluginStorageDeleteResult {
   readonly revision?: number;
 }
 
+export interface PluginStorageScanInput {
+  readonly prefix: string;
+  readonly suffix?: string;
+  readonly cursor?: string;
+  /** Redis COUNT is a work hint, not a hard response limit. */
+  readonly count?: number;
+}
+
+export interface PluginStoragePage {
+  /** An empty page may be nonterminal. "0" completes an iteration. No snapshot guarantee. */
+  readonly cursor: string;
+  readonly entries: Readonly<Record<string, PluginStorageEntry>>;
+}
+
+/** One projection per original record; the Host binds the plugin namespace. No lifecycle or multi-record transaction policy. */
+export interface PluginStorageProjection { readonly index: string; readonly score: number | null }
+export interface PluginStorageDueInput { readonly index: string; readonly before: number; readonly limit: number }
+export type PluginStorageDuePage = { readonly status: 'not_ready' } | {
+  readonly status: 'ready'; readonly version: string; readonly entries: Readonly<Record<string, PluginStorageEntry>>;
+};
+
 export interface PluginStorageHost {
+  /** Optional on older Hosts. Indexed rows reject ordinary writes that omit the projection. */
+  compareAndSetIndexed?(key: string, expectedRevision: number | null, value: unknown, projection: PluginStorageProjection): Promise<PluginStorageCompareAndSetResult>;
+  /** No scan/list fallback. not_ready is distinct from a ready empty result. */
+  readDue?(input: PluginStorageDueInput): Promise<PluginStorageDuePage>;
+  /** Explicit resumable census only, never an implicit part of a due read. */
+  rebuildIndex?(index: string): Promise<{ readonly status: 'ready'; readonly version: string }>;
   get(key: string): Promise<PluginStorageEntry | undefined>;
   list(): Promise<Readonly<Record<string, PluginStorageEntry>>>;
+  /** Optional on older Hosts. New callers must not replace a missing scan with a full list. */
+  scan?(input: PluginStorageScanInput): Promise<PluginStoragePage>;
   set(key: string, value: unknown): Promise<{ readonly revision: number }>;
   compareAndSet(
     key: string,
@@ -283,6 +312,8 @@ export type PluginMessagingDraft = Omit<MessageDraft, 'address'> & {
   readonly identity?: string;
   readonly url?: string;
   readonly meta?: Readonly<Record<string, unknown>>;
+  /** Explicit response progress for one Host-issued addressed delivery. Content alone is not completion. */
+  readonly response?: { readonly deliveryId: string; readonly status: 'processing' | 'completed' | 'failed' | 'canceled' | 'interrupted' };
 };
 
 export interface PluginMessagingSubscribeOptions {
@@ -311,14 +342,37 @@ export interface PluginMessagingHost {
   }>;
   subscribe(input: {
     readonly threadId: string;
-    readonly method: string;
+    /** Omit to route through this instance's fixed delivery surface. */
+    readonly method?: string;
     readonly includeOwnMessages?: boolean;
   }): Promise<void>;
   unsubscribe(input: { readonly threadId: string }): Promise<void>;
 }
 
+export interface PluginCapabilityHost {
+  issueExternal(input: { readonly capabilityId: string; readonly ttlSeconds: number }): Promise<{
+    readonly token: string;
+    readonly tokenId: string;
+    readonly issuedAt: number;
+    readonly expiresAt: number;
+    readonly refreshRecommendedAt: number;
+    readonly forwarding: {
+      readonly upstreamLoopbackOrigin: string;
+      readonly relativePath: string;
+      readonly method: 'POST';
+    };
+  }>;
+  inspectExternal(input: { readonly token: string; readonly capabilityId: string }): Promise<{
+    readonly usable: boolean;
+    readonly reason: string;
+    readonly expiresAt?: number;
+    readonly remainingSeconds?: number;
+    readonly refreshRecommended: boolean;
+  }>;
+}
+
 /** Available while installed, including disabled setup and uninstall. No runtime effects. */
-export type ModulePluginSettingsHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'dataPath' | 'config' | 'secrets' | 'storage' | 'log'>;
+export type ModulePluginSettingsHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'capability' | 'external' | 'dataPath' | 'config' | 'secrets' | 'storage' | 'log'>;
 
 /** Structural mirror of the Host-owned in-process module surface. */
 export interface ModulePluginHostShape {
@@ -327,9 +381,13 @@ export interface ModulePluginHostShape {
   readonly collectiveArtifactOwner?: import('./collective-artifact-owner.js').CollectiveArtifactOwnerPort;
   /** Installation attribution supplied by the Host, never the manifest's package id. */
   readonly pluginInstanceId: string;
+  /** Host-authenticated capability operations; caller identity is never accepted as input. */
+  readonly capability?: PluginCapabilityHost;
   readonly members?: import('./members.js').PluginMemberHost;
   /** Available only on Hosts with persistent, controlled member execution. */
   readonly memberSessions?: import('./member-sessions.js').PluginMemberSessionsHost;
+  /** Current native owner Chat source and call-lifetime fences; absent on older Hosts. */
+  readonly ownerChat?: import('./owner-chat.js').PluginOwnerChatHost;
   readonly config: { get(key: string): Promise<unknown> };
   readonly secrets: { get(key: string): Promise<string | undefined> };
   readonly storage: PluginStorageHost;
@@ -337,6 +395,8 @@ export interface ModulePluginHostShape {
   readonly threads: PluginThreadHost;
   readonly messaging: PluginMessagingHost;
   readonly streams: import('./streams.js').PluginStreams;
+  /** Host-owned request endpoint and the sole token for this installed instance. */
+  readonly external: { readonly endpoint: string; readonly token: string };
   /** Stable per-installation storage directory, supplied without a separate grant. */
   readonly dataPath: string;
   readonly log: (
@@ -351,6 +411,11 @@ export interface PluginPreStopContext extends PluginStopContext { /** Absolute U
 
 export interface PluginModuleActivationShape {
   readonly streams?: import('./streams.js').PluginStreams;
+  /** Single Host-to-plugin port for addressed and subscribed delivery. */
+  deliver?(input: import('./delivery.js').PluginDeliveryInput): Promise<import('./delivery.js').PluginDeliveryReceipt>;
+  /** Host-authenticated external request port selected by the installation token. */
+  handle?(request: Readonly<Record<string, unknown>>): unknown | Promise<unknown>;
+  readonly webhook?: import('./webhook.js').PluginWebhookSurface;
   configRefresh?(): void | Promise<void>;
   preStop?(context: PluginPreStopContext): void | Promise<void>;
   readonly actions: Readonly<Record<string, import('./feature-context.js').PluginActionHandler>>;

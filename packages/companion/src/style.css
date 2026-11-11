@@ -1,4 +1,5 @@
 @import url("./theme.css");
+@import url("./desk-delivery.css");
 :root {
   --pet-scale: 1;
   --desktop-paper: #fffbf6;
@@ -255,7 +256,7 @@ button:disabled { opacity: .45; cursor: default; }
 .reply-card { position: relative; max-height: 500px; overflow-y: auto; padding: 12px 14px 10px; }
 .reply-head { display: flex; align-items: flex-start; gap: 8px; }
 .reply-input-text { min-width: 0; flex: 1; color: var(--desktop-muted); font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
-#chat .reply-ring, #chat .reply-close, #chat .reply-history-close { width: 24px; height: 24px; flex: none; display: grid; place-items: center; padding: 0; color: var(--desktop-muted); }
+#chat .reply-ring, #chat .reply-close, #chat .reply-history-close, #desk .reply-ring, #desk .reply-close { width: 24px; height: 24px; flex: none; display: grid; place-items: center; padding: 0; color: var(--desktop-muted); }
 .reply-ring svg { width: 18px; height: 18px; transform: rotate(-90deg); }
 .reply-ring circle { fill: none; stroke-width: 1; }
 .reply-ring-track { stroke: var(--desktop-line); }

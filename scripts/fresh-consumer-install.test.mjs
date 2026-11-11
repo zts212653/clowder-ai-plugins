@@ -162,6 +162,19 @@ test('packed public packages install and import in a fresh npm consumer', async 
     await mkdir(staged);
     run('tar', ['-xzf', tarballs[2], '-C', staged], root);
     const stagedPackage = join(staged, 'package');
+    // Catalog builtins execute the publisher-locked closure, not raw unpacked
+    // bundles. Install into the Host-shaped parent without changing package bytes.
+    const stagedMetadata = JSON.parse(await readFile(join(stagedPackage, 'package.json'), 'utf8'));
+    await writeFile(join(staged, 'package.json'), JSON.stringify({
+      private: true, name: stagedMetadata.name, version: stagedMetadata.version,
+      dependencies: stagedMetadata.dependencies, optionalDependencies: stagedMetadata.optionalDependencies,
+    }));
+    await writeFile(join(staged, 'npm-shrinkwrap.json'), await readFile(join(stagedPackage, 'npm-shrinkwrap.json')));
+    const userconfig = join(staged, '.npmrc');
+    await writeFile(userconfig, '');
+    runNpm(['ci', '--ignore-scripts', '--omit=dev', '--no-audit', '--no-fund',
+      '--registry=https://registry.npmjs.org/', '--userconfig', userconfig,
+      '--cache', join(staged, '.npm-cache')], staged);
     const stagedRunnerUrl = pathToFileURL(join(stagedPackage, 'dist/lark-cli-runner.js')).href;
     const stagedEntrypointUrl = pathToFileURL(join(stagedPackage, 'dist/plugin-entrypoint.js')).href;
     run(
@@ -463,10 +476,13 @@ test('packed public packages install and import in a fresh npm consumer', async 
     const sourceIntake = JSON.parse(await readFile(join(repoRoot, 'packages/feishu-meeting-intake/package.json'), 'utf8'));
     assert.deepEqual(feishuPackage.dependencies, sourceIntake.dependencies);
     assert.equal(feishuPackage.dependencies['@larksuite/cli'], '1.0.85');
-    assert.deepEqual(
-      [...feishuPackage.bundledDependencies].sort(),
-      Object.keys(feishuPackage.dependencies).sort(),
-    );
+    assert.equal(feishuPackage.bundledDependencies, undefined,
+      'catalog builtin dependencies must come from its publisher lock');
+    const feishuLock = JSON.parse(await readFile(
+      join(consumer, 'node_modules/@clowder-ai/feishu-meeting-intake/npm-shrinkwrap.json'), 'utf8',
+    ));
+    assert.equal(feishuLock.lockfileVersion, 3);
+    assert.deepEqual(feishuLock.packages[''].dependencies, feishuPackage.dependencies);
     assert.equal(feishuManifest.version, feishuPackage.version);
     assert.deepEqual(feishuManifest.runtime, {
       transport: 'builtin',
@@ -745,7 +761,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       [
         '--input-type=module',
         '--eval',
-        "const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url); const contract = await import('@clowder-ai/plugin-contract'); const conformance = await import('@clowder-ai/plugin-contract/conformance'); const companionSdk = await import('@clowder-ai/plugin-sdk/companion'); const metadata = require('@clowder-ai/plugin-contract/schemas/plugin-metadata'); const fixture = require('@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants'); const sdk = await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); const companion = await import('@clowder-ai/personal-chrome-companion'); const video = await import('@clowder-ai/video-analysis'); const xiangqi = await import('@clowder-ai/xiangqi'); const generation = await import('@clowder-ai/video-generation'); const weixinMp = await import('@clowder-ai/weixin-mp'); const wechatReader = await import('@clowder-ai/wechat-visible-reader'); const enterprise = await import('@clowder-ai/enterprise-workflow'); const calls=[]; const client=companionSdk.createCompanionClient({request:async command=>{calls.push(command);return {kind:'app-assist-settlement',scopeRef:'fresh-scope',revision:2,offerRef:'fresh-offer',action:'dismiss',outcome:'settled'};},subscribe:()=>()=>{}}); const settlement=await client.settleAppAssist('fresh-scope','fresh-offer','dismiss'); if (calls[0]?.kind !== 'app-assist.settle' || settlement.outcome !== 'settled' || typeof contract.validateManifest !== 'function' || typeof contract.validatePluginCatalog !== 'function' || metadata.title !== 'Clowder AI Plugin Product Metadata (v1)' || conformance.M0C_BEHAVIOR_CASE_IDS.length !== 12 || fixture.cases.length !== 12 || typeof sdk.definePlugin !== 'function' || typeof plugin.createFeishuMeetingIntakeRuntime !== 'function' || typeof video.createVideoAnalysisMcpServer !== 'function' || typeof xiangqi.createHostedBoard !== 'function' || typeof generation.startVideoGenerationServer !== 'function' || typeof weixinMp.createWeixinMpHandlers !== 'function' || typeof wechatReader.createWeChatVisibleReaderHandlers !== 'function' || typeof enterprise.createEnterpriseWorkflowPluginModule !== 'function' || typeof companion.default?.create !== 'function' || companion.PERSONAL_CHROME_APPEND_MESSAGE_METHOD !== 'personal-chrome-host.append-message') process.exit(1);",
+        "const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url); const contract = await import('@clowder-ai/plugin-contract'); const conformance = await import('@clowder-ai/plugin-contract/conformance'); const companionSdk = await import('@clowder-ai/plugin-sdk/companion'); const metadata = require('@clowder-ai/plugin-contract/schemas/plugin-metadata'); const fixture = require('@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants'); const sdk = await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); const companion = await import('@clowder-ai/personal-chrome-companion'); const video = await import('@clowder-ai/video-analysis'); const xiangqi = await import('@clowder-ai/xiangqi'); const generation = await import('@clowder-ai/video-generation'); const weixinMp = await import('@clowder-ai/weixin-mp'); const wechatReader = await import('@clowder-ai/wechat-visible-reader'); const enterprise = await import('@clowder-ai/enterprise-workflow'); const calls=[]; const client=companionSdk.createCompanionClient({request:async command=>{calls.push(command);return {kind:'app-assist-settlement',scopeRef:'fresh-scope',revision:2,offerRef:'fresh-offer',action:'dismiss',outcome:'settled'};},subscribe:()=>()=>{}}); const settlement=await client.settleAppAssist('fresh-scope','fresh-offer','dismiss'); const deskCalls=[]; const desk=companionSdk.createCompanionClient({request:async command=>{deskCalls.push(command);return {kind:'desk-settlement',scopeRef:'fresh-desk',revision:3,deliveryRef:'fresh-delivery',action:'add',itemRef:'fresh-item',outcome:'settled'};},subscribe:()=>()=>{}}); const deskSettlement=await desk.settleDesk('fresh-desk','fresh-delivery','add','fresh-item'); if (calls[0]?.kind !== 'app-assist.settle' || settlement.outcome !== 'settled' || deskCalls[0]?.kind !== 'desk.settle' || deskCalls[0]?.itemRef !== 'fresh-item' || deskSettlement.outcome !== 'settled' || contract.validateCompanionReply(deskSettlement) !== true || typeof contract.validateManifest !== 'function' || typeof contract.validatePluginCatalog !== 'function' || metadata.title !== 'Clowder AI Plugin Product Metadata (v1)' || conformance.M0C_BEHAVIOR_CASE_IDS.length !== 12 || fixture.cases.length !== 12 || typeof sdk.definePlugin !== 'function' || typeof plugin.createFeishuMeetingIntakeRuntime !== 'function' || typeof video.createVideoAnalysisMcpServer !== 'function' || typeof xiangqi.createHostedBoard !== 'function' || typeof generation.startVideoGenerationServer !== 'function' || typeof weixinMp.createWeixinMpHandlers !== 'function' || typeof wechatReader.createWeChatVisibleReaderHandlers !== 'function' || typeof enterprise.createEnterpriseWorkflowPluginModule !== 'function' || typeof companion.default?.create !== 'function' || companion.PERSONAL_CHROME_APPEND_MESSAGE_METHOD !== 'personal-chrome-host.append-message') process.exit(1);",
       ],
       consumer,
     );

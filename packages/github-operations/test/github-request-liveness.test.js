@@ -154,7 +154,7 @@ test('request deadline includes time waiting behind another credential request',
   try {
     await assert.rejects(
       budget.execute(['api', '/user'], { ghToken: 'queued-deadline', execFileAsync, timeoutMs: 10, interactive: true }),
-      /timeout|timed out/i,
+      error => { assert.equal(error.name, 'GitHubRequestDeferredError'); assert.match(error.message, /timeout|timed out/i); return true; },
     );
     assert.equal(calls, 1);
   } finally {
@@ -200,7 +200,9 @@ test('interactive admission cannot bypass the shared queue capacity or credentia
   } };
   const requests = [budget.execute(['api', '/user'], options)]; await started;
   requests.push(...Array.from({ length: 63 }, () => budget.execute(['api', '/user'], options)));
-  await assert.rejects(budget.execute(['api', '/user'], { ...options, interactive: true }), /capacity/);
+  await assert.rejects(budget.execute(['api', '/user'], { ...options, interactive: true }), error => {
+    assert.equal(error.name, 'GitHubRequestDeferredError'); assert.match(error.message, /capacity/); return true;
+  });
   const settled = Promise.allSettled(requests);
   release(); assert.ok((await settled).every(result => result.status === 'rejected'));
   await assert.rejects(budget.execute(['api', '/user'], { ...options, interactive: true }), /quota/);

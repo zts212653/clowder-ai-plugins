@@ -1,3 +1,4 @@
+import { storageEntries } from './storage-pages.js';
 import { createHash, randomUUID } from 'node:crypto';
 import type { FeatureContext, PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { previewPublicIssue } from './community-read-model.js';
@@ -91,7 +92,7 @@ export class NativeIssueDraftRuntime {
   }
   list() {
     return this.run(async () => {
-      const records = Object.entries(await this.context.storage.list()).filter(([key]) => key.startsWith(this.prefix))
+      const records = (await storageEntries(this.context.storage, this.prefix))
         .map(([key, entry]) => readDraft(entry.value, key.slice(this.prefix.length))).sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id));
       return { render: 'rows' as const, label: `Latest ${Math.min(records.length, 200)} of ${records.length} drafts. Full records remain available by draft ID.`, data: { rows: records.slice(0, 200).map(draft => {
         return { key: draft.id, label: draft.title.slice(0, 200),

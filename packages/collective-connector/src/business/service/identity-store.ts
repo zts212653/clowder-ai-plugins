@@ -1,6 +1,8 @@
 import { CollectiveServiceError } from './errors.js';
 import { channelRecordKey, initialChannelRecord } from './channel-authority.js';
 import type { HumanAuthProvider, HumanAuthProviderId } from './human-auth-provider.js';
+import { type AuthenticatedHuman, findHumanAuthBinding, requireHumanAuthBinding, resolveSession } from './identity-session.js';
+import { listInvites, previewInvite, revokeInvite } from './invite-lifecycle.js';
 import {
   applyAuthenticatedIdentity,
   createHumanSession,
@@ -25,15 +27,11 @@ import {
   type HumanRecord,
   membershipKey,
   type ServiceState,
-  type SessionRecord,
 } from './state.js';
 
 export { requireMembership, requireSteward };
-
-export interface AuthenticatedHuman {
-  readonly human: HumanRecord;
-  readonly session: SessionRecord;
-}
+export { requireHumanAuthBinding, resolveSession } from './identity-session.js';
+export type { AuthenticatedHuman } from './identity-session.js';
 
 export type BeginHumanAuthIntent =
   | { readonly kind: 'bind' }
@@ -172,11 +170,24 @@ export class CollectiveIdentityStore {
         inviteId,
         collectiveId: input.collectiveId,
         tokenDigest: digestSecret(inviteToken),
+        createdByHumanId: auth.human.humanId,
         createdAt: new Date(now).toISOString(),
         expiresAt: new Date(now + (input.ttlMs ?? 24 * 60 * 60 * 1_000)).toISOString(),
       };
-      return { inviteId, inviteToken, collectiveId: input.collectiveId };
+      return { inviteId, inviteToken, collectiveId: input.collectiveId, expiresAt: state.invites[inviteId].expiresAt };
     });
+  }
+
+  listInvites(input: { sessionToken: string; collectiveId: string; limit: number; cursor?: string }) {
+    return listInvites(this.persistence, this.now(), input);
+  }
+
+  previewInvite(inviteToken: string) {
+    return previewInvite(this.persistence, this.now(), inviteToken);
+  }
+
+  revokeInvite(input: { sessionToken: string; collectiveId: string; inviteId: string }) {
+    return revokeInvite(this.persistence, this.now, input);
   }
 
   getHumanAuthProviders() {
@@ -308,31 +319,6 @@ export class CollectiveIdentityStore {
     }
     return provider;
   }
-}
-
-export function resolveSession(state: ServiceState, sessionToken: string): AuthenticatedHuman {
-  const session = Object.values(state.sessions).find((candidate) => secretMatches(sessionToken, candidate.tokenDigest));
-  const human = session ? state.humans[session.humanId] : undefined;
-  if (!session || !human) {
-    throw new CollectiveServiceError('AUTHENTICATION_REQUIRED', 'A valid human session is required', 401);
-  }
-  return { human, session };
-}
-
-export function requireHumanAuthBinding(state: ServiceState, humanId: string) {
-  const binding = findHumanAuthBinding(state, humanId);
-  if (!binding) {
-    throw new CollectiveServiceError(
-      'HUMAN_AUTH_REQUIRED',
-      'Bind an authenticated Human identity before using the Collective',
-      401,
-    );
-  }
-  return binding;
-}
-
-function findHumanAuthBinding(state: ServiceState, humanId: string) {
-  return Object.values(state.humanAuthBindings).find((binding) => binding.humanId === humanId);
 }
 
 function resolveAuthIntent(

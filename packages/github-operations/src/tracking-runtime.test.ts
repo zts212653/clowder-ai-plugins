@@ -3,6 +3,8 @@ import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { GitHubTrackingRuntime, type GitHubSnapshot } from './tracking-runtime.js';
 import { legacyIssueProgressBytes } from './legacy-issue-progress.js';
+import { scanMemory } from '../test/memory-storage.js';
+import type { PluginStorageScanInput } from '@clowder-ai/plugin-sdk';
 
 function fixture() {
   const records = new Map<string, { revision: number; value: unknown }>();
@@ -11,6 +13,7 @@ function fixture() {
   const storage = {
     async get(key: string) { return structuredClone(records.get(key)); },
     async list() { return structuredClone(Object.fromEntries(records)); },
+    async scan(input: PluginStorageScanInput) { return scanMemory(records, input); },
     async set(key: string, value: unknown) { records.set(key, { revision: ++revision, value: structuredClone(value) }); return { revision }; },
     async compareAndSet(key: string, expected: number | null, value: unknown) {
       if ((records.get(key)?.revision ?? null) !== expected) return { applied: false };
@@ -218,6 +221,8 @@ test('activation without tracking does no IO; registered comments use SDK messag
   f.set({ ...f.snapshot(), state: 'merged' });
   await runtime.poll('review-feedback');
   assert.equal(f.messages.length, 2);
+  assert.match(JSON.stringify(f.messages[1]), /Post-merge: intake \/ delivery remains/);
+  assert.match(JSON.stringify(f.messages[1]), /original maintainer/);
   const count = f.requests();
   await runtime.poll('review-feedback');
   assert.equal(f.requests(), count);

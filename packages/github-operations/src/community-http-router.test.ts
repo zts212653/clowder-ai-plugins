@@ -10,6 +10,7 @@ import { NativeIssueDraftRuntime } from './native-issue-drafts.js';
 import { SdkCommunityEventLog } from './business/domains/community/CommunityEventLog.js';
 import { SdkCommunityObjectStore } from './business/domains/community/CommunityObjectStore.js';
 import { CommunityReconciliationFindingStore } from './business/domains/community/reconciliation/CommunityReconciliationFindingStore.js';
+import { GitHubPrTitleReader } from './pr-title-reader.js';
 
 function options(): CommunityHttpRouterOptions {
   const storage=memoryStorage();
@@ -28,6 +29,61 @@ function options(): CommunityHttpRouterOptions {
   };
 }
 const principal = { kind: 'owner', id: 'owner' } as const;
+
+for (const changedHead of [false, true]) {
+  test(`delayed production PR sync retains a newer title and syncs workflow fields (changed HEAD: ${changedHead})`, async t => {
+    const deps = options(), records = new SdkCommunityPrStore(deps.storage);
+    const reviewedHead = 'a'.repeat(40), head = changedHead ? 'b'.repeat(40) : reviewedHead;
+    let entered!: () => void, release!: () => void;
+    const began = new Promise<void>(resolve => { entered = resolve; });
+    const resume = new Promise<void>(resolve => { release = resolve; });
+    deps.issues.fetchPrs = async () => {
+      entered(); await resume;
+      return [{ number: 12, title: 'Old title', state: 'open', merged_at: null, user: 'author',
+        head_sha: head, draft: false, labels: [], updated_at: new Date(1000).toISOString() }];
+    };
+    deps.issues.fetchPrReviews = async () => [{ user: 'reviewer', state: 'APPROVED', commit_id: reviewedHead }];
+    const router = await createCommunityHttpRouter(deps);
+    t.after(async () => { release(); await router.stop(); });
+    const reader = new GitHubPrTitleReader({ records, token: async () => { throw new Error('No title-provider call'); } });
+    t.after(() => reader.stop());
+    const request = { principal, method: 'POST', path: 'github/community-issues/sync-prs', query: { repo: 'org/repo' } };
+    const pending = router.forwardOwner(request);
+    await began;
+    await reader.observe({ kind: 'pr', repoFullName: 'org/repo', number: 12, threadId: 'thread', catId: 'codex' }, {
+      title: 'New title', observedAt: 2000, providerUpdatedAt: new Date(2000).toISOString(),
+      authorLogin: 'author', headSha: reviewedHead, draft: false, state: 'open', comments: [], reviews: [],
+    });
+    release();
+    const result = await pending;
+    assert.equal(result.status, 200);
+    assert.equal(result.body.updated, 1);
+    const saved = await records.getByRepoAndNumber('org/repo', 12);
+    assert.equal(saved?.titleObservation?.providerUpdatedAt, 2000);
+    assert.equal(saved?.state, 'open');
+    assert.equal(saved?.headSha, head);
+    assert.equal(saved?.lastReviewedSha, reviewedHead);
+    assert.equal(saved?.replyState, changedHead ? 'has-new-activity' : 'replied');
+    assert.equal(await reader.readLocal('org/repo#12'), 'New title');
+    deps.issues.fetchPrs = async () => [{ number: 12, title: 'Newest title', state: 'closed',
+      merged_at: new Date(4000).toISOString(), user: 'author', head_sha: head, draft: false, labels: [],
+      updated_at: new Date(4000).toISOString() }];
+    const refreshed = await createCommunityHttpRouter(deps);
+    t.after(() => refreshed.stop());
+    assert.equal((await refreshed.forwardOwner(request)).status, 200);
+    assert.equal(await reader.readLocal('org/repo#12'), 'Newest title');
+    assert.equal((await records.getByRepoAndNumber('org/repo', 12))?.state, 'merged');
+  });
+}
+
+async function seedReportProjection(deps: CommunityHttpRouterOptions, thread = 'thread') {
+  const events = new SdkCommunityEventLog(deps.storage), objects = new SdkCommunityObjectStore(deps.storage);
+  const projector = new CommunityProjector(events, objects, deps.projectionOperations);
+  const seed = { sourceEventId: 'test-report-bootstrap', subjectKey: 'issue:org/repo#1', kind: 'case.bootstrap' as const,
+    classification: 'state-changing' as const, payload: { mappedState: 'fixed', ownerThreadId: thread, ownerRole: 'assigned' }, at: 1 };
+  await events.append(seed); await projector.apply(seed);
+  return { events, objects, projector, projection: (await objects.get(seed.subjectKey))! };
+}
 
 test('real PR sync refuses failed review read without overwriting the existing workflow', async t => {
   const deps = options(), store = new SdkCommunityPrStore(deps.storage), head = 'a'.repeat(40);
@@ -154,7 +210,7 @@ test('native report rejects other case owners, other threads and forged actors',
   const issues = new SdkCommunityWorkflowIssueStore(deps.storage);
   const issue = (await issues.create({ repo: 'org/repo', issueNumber: 1, issueType: 'bug', title: 'Bug' }))!;
   await issues.update(issue.id, { assignedCatId: 'assigned', assignedThreadId: 'assigned-thread', state: 'accepted' });
-  await new SdkCommunityObjectStore(deps.storage).save({ repo: 'org/repo', type: 'issue', number: 1, subjectKey: 'issue:org/repo#1', state: 'fixed', ownerThreadId: 'assigned-thread', ownerRole: 'assigned', nextOwner: 'role', lastExternalActivityAt: null, lastPublicCommentAt: null, linkedIssues: [], linkedPrs: [], closureWaiver: null, issueFixEvidence: null, externalReview: null, appliedEventCount: 0, lastRejectedEvent: null, deliveryCursor: null, createdAt: 1, updatedAt: 1 });
+  await seedReportProjection(deps, 'assigned-thread');
   const router = await createCommunityHttpRouter(deps); t.after(() => router.stop());
   const caller = { catId: 'intruder', threadId: 'assigned-thread', userId: 'owner', invocationId: 'inv', assertCurrent: async () => {} };
   const payload = { actor: 'assigned', publicCommentUrl: 'https://github.com/org/repo/issues/1#issuecomment-123' };
@@ -188,14 +244,14 @@ for (const terminal of ['closed', 'declined'] as const) test(`report cannot reop
   const issues = new SdkCommunityWorkflowIssueStore(deps.storage);
   const issue = (await issues.create({ repo: 'org/repo', issueNumber: 1, issueType: 'bug', title: 'Bug' }))!;
   await issues.update(issue.id, { assignedCatId: 'assigned', assignedThreadId: 'thread' });
-  const objects = new SdkCommunityObjectStore(deps.storage);
-  const projection = { repo: 'org/repo', type: 'issue' as const, number: 1, subjectKey: 'issue:org/repo#1', state: 'fixed' as const, ownerThreadId: 'thread', ownerRole: 'assigned', nextOwner: 'role' as const, lastExternalActivityAt: null, lastPublicCommentAt: null, linkedIssues: [], linkedPrs: [], closureWaiver: null, issueFixEvidence: null, externalReview: null, appliedEventCount: 0, lastRejectedEvent: null, deliveryCursor: null, createdAt: 1, updatedAt: 1 };
-  await objects.save(projection);
+  const { objects, projection, events, projector } = await seedReportProjection(deps);
   const router = await createCommunityHttpRouter(deps);
   t.after(async () => { release(); await router.stop(); });
   const pending = router.invokeNative('github.community.report', { id: issue.id, payload: { publicCommentUrl: 'https://github.com/org/repo/issues/1#issuecomment-123' } }, { catId: 'assigned', threadId: 'thread', userId: 'owner', invocationId: 'inv', assertCurrent: async () => {} });
   await verifying;
-  await objects.save({ ...projection, state: terminal });
+  const closing = { sourceEventId: 'terminal-during-verification', subjectKey: projection.subjectKey,
+    kind: 'case.bootstrap' as const, classification: 'state-changing' as const, payload: { mappedState: terminal }, at: 2 };
+  await events.append(closing); await projector.apply(closing);
   release();
   const response = await pending;
   const final = await objects.get(projection.subjectKey);
@@ -242,7 +298,8 @@ test('shared collector queue preserves request authority when a native report ex
   const deps = options();
   const events = new SdkCommunityEventLog(deps.storage), objects = new SdkCommunityObjectStore(deps.storage);
   const background = new CommunityProjector(events, objects, deps.projectionOperations);
-  await background.apply({ sourceEventId: 'seed', subjectKey: 'issue:org/repo#1', kind: 'case.bootstrap', classification: 'state-changing', at: 1, payload: { mappedState: 'fixed' } });
+  const seed = { sourceEventId: 'seed', subjectKey: 'issue:org/repo#1', kind: 'case.bootstrap' as const, classification: 'state-changing' as const, at: 1, payload: { mappedState: 'fixed' } };
+  await events.append(seed); await background.apply(seed);
   const issues = new SdkCommunityWorkflowIssueStore(deps.storage);
   const issue = (await issues.create({ repo: 'org/repo', issueNumber: 1, issueType: 'bug', title: 'Bug' }))!;
   await issues.update(issue.id, { assignedCatId: 'assigned', assignedThreadId: 'thread', state: 'accepted' });
@@ -262,7 +319,8 @@ test('shared collector queue preserves request authority when a native report ex
   assert.equal((await request).status, 500);
   assert.equal((await objects.get('issue:org/repo#1'))?.lastPublicCommentAt, null);
   // Failed request neither poisons the shared queue nor lends its identity to the collector.
-  await background.apply({ sourceEventId: 'declined', subjectKey: 'issue:org/repo#1', kind: 'case.declined', classification: 'state-changing', at: 3, payload: {} });
+  const declined = { sourceEventId: 'declined', subjectKey: 'issue:org/repo#1', kind: 'case.declined' as const, classification: 'state-changing' as const, at: 3, payload: {} };
+  await events.append(declined); await background.apply(declined);
   assert.equal((await objects.get('issue:org/repo#1'))?.state, 'declined');
 });
 
@@ -293,7 +351,7 @@ test('native report reaches the bounded provider reader and records only verifie
   const store = new SdkCommunityWorkflowIssueStore(deps.storage);
   const issue = (await store.create({ repo: 'org/repo', issueNumber: 1, issueType: 'bug', title: 'Bug' }))!;
   await store.update(issue.id, { assignedCatId: 'assigned', assignedThreadId: 'thread', state: 'accepted' });
-  await new SdkCommunityObjectStore(deps.storage).save({ repo: 'org/repo', type: 'issue', number: 1, subjectKey: 'issue:org/repo#1', state: 'fixed', ownerThreadId: 'thread', ownerRole: 'case-owner', nextOwner: 'role', lastExternalActivityAt: null, lastPublicCommentAt: null, linkedIssues: [], linkedPrs: [], closureWaiver: null, issueFixEvidence: null, externalReview: null, appliedEventCount: 0, lastRejectedEvent: null, deliveryCursor: null, createdAt: 1, updatedAt: 1 });
+  await seedReportProjection(deps);
   const router = await createCommunityHttpRouter(deps); t.after(() => router.stop());
   const caller = { catId: 'assigned', userId: 'owner', threadId: 'thread', invocationId: 'inv', assertCurrent: async () => {} };
   const result = await router.invokeNative('github.community.report', { id: issue.id, payload: { publicCommentUrl: url } }, caller);

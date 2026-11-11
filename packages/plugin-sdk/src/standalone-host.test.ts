@@ -30,6 +30,7 @@ const validManifest = {
 
 const deliverInput = {
   kind: 'message',
+  reason: 'addressed',
   threadId: 'thread-1',
   deliveryId: 'delivery-1',
   envelope: {

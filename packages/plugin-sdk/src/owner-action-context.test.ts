@@ -20,7 +20,7 @@ const manifest = {
   ],
 };
 function fixtureHost(): ModulePluginHostShape {
-  return { pluginInstanceId: 'installed-browser-fixture', config: { async get() {} }, secrets: { async get() { return undefined; } }, storage: {} as never, tasks: {} as never,
+  return { pluginInstanceId: 'installed-browser-fixture', external: { endpoint: 'https://host.example/api/plugins/external', token: 'fixture-external-token' }, config: { async get() {} }, secrets: { async get() { return undefined; } }, storage: {} as never, tasks: {} as never,
     threads: {} as never, messaging: {} as never, streams: {} as never, dataPath: '/isolated/browser-fixture', log() {} };
 }
 const owner = (): PluginOwnerOperationContext => ({ kind: 'owner-operation', userId: 'owner', pluginInstanceId: 'instance',

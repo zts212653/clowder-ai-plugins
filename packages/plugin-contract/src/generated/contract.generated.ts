@@ -67,7 +67,7 @@ export type ResourceReference = {
   readonly id: string;
 };
 export type ContributionReference = {
-  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'desktop-window';
+  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'external-request' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'desktop-window';
   readonly id: string;
 };
 export type PackageRelativePath = string;
@@ -205,6 +205,8 @@ export type ActionDef = {
 export type OperationRows = {
   readonly rows: readonly OperationRow[];
   readonly empty?: string;
+  readonly validUntil?: number;
+  readonly pollUntil?: number;
 };
 export type OperationRow = {
   readonly key: string;
@@ -282,6 +284,10 @@ export type McpContribution = {
     readonly export: string;
   };
 };
+export type ExternalRequestContribution = {
+  readonly type: 'external-request';
+  readonly id: string;
+};
 export type SkillContribution = {
   readonly type: 'skill';
   readonly id: string;
@@ -297,8 +303,9 @@ export type WebhookContribution = {
   readonly id: string;
   readonly path: string;
   readonly methods: readonly ('GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE')[];
-  readonly action: CallbackAction;
+  readonly action?: CallbackAction;
   readonly verificationSecretRef?: string;
+  readonly requestBodyLimitBytes?: number;
 };
 export type MessageSubscriptionContribution = {
   readonly type: 'message-subscription';
@@ -466,7 +473,7 @@ export type DesktopWindowContribution = {
     readonly entrypoint: PackageRelativePath & `${string}.html`;
     readonly integrity: string;
   };
-  readonly bridgeVersion: '1.0.0' | '1.1.0' | '1.2.0' | '1.3.0' | '1.4.0' | '1.5.0' | '1.6.0';
+  readonly bridgeVersion: '1.0.0' | '1.1.0' | '1.2.0' | '1.3.0' | '1.4.0' | '1.5.0' | '1.6.0' | '1.7.0';
   readonly presentation: {
     readonly width: number;
     readonly height: number;
@@ -490,7 +497,7 @@ export type ContentEditorProviderContribution = {
   readonly semanticMaterializer?: SemanticMaterializerDeclaration;
   readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];
 };
-export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
+export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | ExternalRequestContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
 export type PluginFeature = {
   readonly id: string;
   readonly name: string;
@@ -538,6 +545,10 @@ export type ProjectOutputAction = {
   readonly maxBytes: number;
   readonly mcpId: string;
 };
+export type PluginCallDeclaration = {
+  readonly alias: string;
+  readonly displayName: string;
+};
 
 export type PluginManifest = {
   readonly pluginId: string;
@@ -557,6 +568,7 @@ export type PluginManifest = {
   readonly steps?: readonly SetupStep[];
   readonly signals?: SignalContribution;
   readonly projectOutputs?: readonly ProjectOutputAction[];
+  readonly call?: PluginCallDeclaration;
 };
 
 export type CatalogSemVer = string;
@@ -866,6 +878,7 @@ export type MediaReadResult = {
 };
 export type PluginMessageDelivery = {
   readonly kind: 'message';
+  readonly reason: 'addressed' | 'subscription';
   readonly deliveryId: string;
   readonly threadId: ThreadId;
   readonly executionId?: string;
@@ -1011,7 +1024,7 @@ export const DELIVERY_PRESENTATION_THREAD_KEYS = ['shortId', 'title', 'featId'] 
 export const DELIVERY_PRESENTATION_CONTEXT_KEYS = ['actor', 'thread', 'deepLinkUrl'] as const;
 export const MEDIA_READ_INPUT_KEYS = ['reference', 'offset', 'limit'] as const;
 export const MEDIA_READ_RESULT_KEYS = ['offset', 'dataBase64', 'nextOffset', 'done'] as const;
-export const PLUGIN_MESSAGE_DELIVERY_KEYS = ['kind', 'deliveryId', 'threadId', 'executionId', 'envelope', 'presentation'] as const;
+export const PLUGIN_MESSAGE_DELIVERY_KEYS = ['kind', 'reason', 'deliveryId', 'threadId', 'executionId', 'envelope', 'presentation'] as const;
 export const PLUGIN_EXECUTION_STARTED_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'presentation', 'placeholderLine', 'replyTo', 'executionId', 'kind'] as const;
 export const PLUGIN_EXECUTION_CATCHING_UP_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'executionId', 'kind'] as const;
 export const PLUGIN_EXECUTION_BLOCKED_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'reason', 'recoveryUrl', 'executionId', 'kind'] as const;
@@ -1226,6 +1239,8 @@ export type CompanionCallId = string;
 export type CompanionClientMessageId = string;
 export type CompanionAppAssistRef = string;
 export type CompanionAppAssistAction = 'dismiss' | 'timeout' | 'accept';
+export type CompanionDeskRef = string;
+export type CompanionDeskSettleAction = 'shown' | 'open' | 'add' | 'dismiss' | 'timeout';
 export type CompanionCorrelatableId = string;
 export type CompanionOpaqueReadReference = string;
 export type CompanionConversationScopeRef = string;
@@ -1309,7 +1324,7 @@ export type CompanionCommand = {
   readonly expanded: boolean;
 } | {
   readonly kind: 'view.layout';
-  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat' | 'decisions' | 'transcript' | 'settings' | 'app-assist';
+  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat' | 'decisions' | 'transcript' | 'settings' | 'app-assist' | 'desk';
   readonly width: number;
   readonly height: number;
   readonly call?: {
@@ -1365,6 +1380,21 @@ export type CompanionCommand = {
   readonly scopeRef: CompanionAppAssistRef;
   readonly offerRef: CompanionAppAssistRef;
   readonly action: CompanionAppAssistAction;
+} | {
+  readonly kind: 'desk.settle';
+  readonly scopeRef: CompanionDeskRef;
+  readonly deliveryRef: CompanionDeskRef;
+  readonly action: CompanionDeskSettleAction;
+  readonly itemRef?: CompanionDeskRef;
+} | {
+  readonly kind: 'desk.thumbnail.read';
+  readonly scopeRef: CompanionDeskRef;
+  readonly deliveryRef: CompanionDeskRef;
+  readonly itemRef: CompanionDeskRef;
+} | {
+  readonly kind: 'desk.avatar.read';
+  readonly scopeRef: CompanionDeskRef;
+  readonly deliveryRef: CompanionDeskRef;
 } | {
   readonly kind: 'companion.disable';
 } | {
@@ -1530,6 +1560,72 @@ export type CompanionAppAssistSettlement = {
   readonly action: CompanionAppAssistAction;
   readonly outcome: 'settled' | 'stale_offer';
 };
+export type CompanionDeskItem = {
+  readonly itemRef: CompanionDeskRef;
+  readonly kind: 'work' | 'suggestion';
+  readonly title: string;
+  readonly sentence?: string;
+  readonly source: {
+    readonly conversationTitle?: string;
+  };
+  readonly action: 'open' | 'add';
+  readonly thumbnail: boolean;
+};
+export type CompanionDeskDelivery = {
+  readonly deliveryRef: CompanionDeskRef;
+  readonly mode: 'single' | 'bundle';
+  readonly from: null | {
+    readonly catId: string;
+    readonly displayName: string;
+    readonly role?: 'watcher';
+  };
+  readonly items: readonly CompanionDeskItem[];
+  readonly more: number;
+};
+export type CompanionDeskState = {
+  readonly scopeRef: CompanionDeskRef;
+  readonly revision: number;
+  readonly status: 'ready';
+  readonly delivery: null | CompanionDeskDelivery;
+} | {
+  readonly scopeRef: CompanionDeskRef;
+  readonly revision: number;
+  readonly status: 'off' | 'suspended';
+  readonly delivery: null;
+};
+export type CompanionDeskSettlement = {
+  readonly kind: 'desk-settlement';
+  readonly scopeRef: CompanionDeskRef;
+  readonly revision: number;
+  readonly deliveryRef: CompanionDeskRef;
+  readonly action: CompanionDeskSettleAction;
+  readonly itemRef?: CompanionDeskRef;
+  readonly outcome: 'settled' | 'stale_delivery' | 'failed';
+  readonly saved?: boolean;
+};
+export type CompanionDeskThumbnail = {
+  readonly kind: 'desk-thumbnail';
+  readonly scopeRef: CompanionDeskRef;
+  readonly deliveryRef: CompanionDeskRef;
+  readonly itemRef: CompanionDeskRef;
+  readonly image: null | {
+    readonly mediaType: 'image/jpeg' | 'image/png' | 'image/webp';
+    readonly dataBase64: string;
+    readonly width: number;
+    readonly height: number;
+  };
+};
+export type CompanionDeskAvatar = {
+  readonly kind: 'desk-avatar';
+  readonly scopeRef: CompanionDeskRef;
+  readonly deliveryRef: CompanionDeskRef;
+  readonly image: null | {
+    readonly mediaType: 'image/png' | 'image/webp' | 'image/jpeg';
+    readonly dataBase64: string;
+    readonly width: number;
+    readonly height: number;
+  };
+};
 export type CompanionState = {
   readonly kind: 'state';
   readonly phase: 'idle' | 'preparing' | 'ready' | 'connecting' | 'talking' | 'closed' | 'failed';
@@ -1545,6 +1641,7 @@ export type CompanionState = {
   readonly audio?: CompanionAudioState;
   readonly meeting: CompanionMeetingState;
   readonly appAssist: CompanionAppAssistState;
+  readonly desk: CompanionDeskState;
   readonly nativeWork: CompanionNativeWork;
 };
 export type CompanionDecisionNavigationTarget = 'origin' | 'approval_card' | 'action';
@@ -1807,7 +1904,7 @@ export type CompanionConversationBodyV2 = {
 export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
 export type CompanionReply = {
   readonly kind: 'ok';
-} | CompanionState | CompanionWorkOverview | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionDeliveryReceiptV2 | CompanionConversationDraftV1 | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | CompanionAppAssistSettlement | {
+} | CompanionState | CompanionWorkOverview | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionDeliveryReceiptV2 | CompanionConversationDraftV1 | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | CompanionAppAssistSettlement | CompanionDeskSettlement | CompanionDeskThumbnail | CompanionDeskAvatar | {
   readonly kind: 'selection';
   readonly selectionId: CompanionSelectionId;
 } | CompanionConversationPageV2 | CompanionConversationBodyV2 | {
@@ -2089,6 +2186,9 @@ export const DATA_CLASS_ALLOWED_STRATEGIES = {
   'relationship': ['retained', 'ask-on-uninstall'],
   'interaction-history': ['retained', 'ask-on-uninstall'],
 } as const satisfies Readonly<Record<DataClass, readonly DataStrategy[]>>;
+
+export const PLUGIN_WEBHOOK_DEFAULT_REQUEST_BODY_LIMIT_BYTES = 1048576 as const;
+export const PLUGIN_WEBHOOK_MAX_REQUEST_BODY_LIMIT_BYTES = 15728640 as const;
 
 export const MESSAGING_BOUNDS = {
   maxElementsPerOperation: 32,

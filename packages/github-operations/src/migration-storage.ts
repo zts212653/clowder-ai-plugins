@@ -1,9 +1,13 @@
-import type { PluginStorageEntry, PluginStorageHost } from '@clowder-ai/plugin-sdk';
+import type { PluginStorageEntry, PluginStorageProjection, PluginStorageHost } from '@clowder-ai/plugin-sdk';
 
 /** Local planning only. The planner validates the whole batch before any Host write. */
 export class PlanningStorage implements PluginStorageHost {
   private readonly values = new Map<string, PluginStorageEntry>();
   private revision = 0;
+  /** Pure planning retains the same canonical value/projection intent; it never queries or publishes Host work. */
+  async compareAndSetIndexed(key: string, expected: number | null, value: unknown, _projection: PluginStorageProjection) {
+    return this.compareAndSet(key, expected, value);
+  }
   async get(key: string) { return structuredClone(this.values.get(key)); }
   async list() { return structuredClone(Object.fromEntries(this.values)); }
   async set(key: string, value: unknown) {

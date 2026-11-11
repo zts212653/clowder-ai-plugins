@@ -5,8 +5,8 @@ import { createAssistantReturnInbox } from '../native-host/assistant-return-inbo
 
 const revisions = {
   helper: `sha512:${'0'.repeat(128)}`,
-  extension: '0.2.12',
-  pageAdapter: '2026-10-26.1',
+  extension: '0.2.13',
+  pageAdapter: '2026-11-06.1',
 };
 
 function observed() {
@@ -89,6 +89,8 @@ it('durably records an exact source-bound assistant observation failure without 
   });
   assert.equal(JSON.stringify(entry.assistantObservationFailure).includes('must never be persisted'), false);
   assert.equal(persistCount, 1);
+  assert.equal(entry.submitted, true, 'answer observation expiry cannot undo submission');
+  assert.equal(entry.hostMessageId, 'conversation-turn-41', 'delivery receipt survives answer observation expiry');
 
   assert.equal(await inbox.acceptObservationFailure(observationFailure()), 'accepted');
   assert.equal(persistCount, 1, 'an exact retry must not rewrite the durable observation failure');

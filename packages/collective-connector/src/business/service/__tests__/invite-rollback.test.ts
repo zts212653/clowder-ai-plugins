@@ -1,0 +1,65 @@
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { expect, it } from 'vitest';
+import { prepareInviteRollback, restoreInviteMetadata } from '../invite-rollback.js';
+import { CollectiveServiceStore } from '../store.js';
+import { participationFixture } from './participation-fixture.js';
+
+it('prepares an old-reader snapshot without reactivating revoked invitations and restores metadata after rollback', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'invite-rollback-'));
+  try {
+    const f = await participationFixture(directory);
+    const ready = await f.store.createInvite({ sessionToken: f.owner.sessionToken, collectiveId: f.coordinates.collectiveId });
+    const revoked = await f.store.createInvite({ sessionToken: f.owner.sessionToken, collectiveId: f.coordinates.collectiveId });
+    await f.store.revokeInvite({ sessionToken: f.owner.sessionToken, collectiveId: f.coordinates.collectiveId, inviteId: revoked.inviteId });
+    const original = JSON.parse(await readFile(join(directory, 'collective-service.json'), 'utf8'));
+    const originalCopy = structuredClone(original);
+    const prepared24 = prepareInviteRollback(original, '0.1.0-alpha.24');
+    expect(prepared24.metadata.target).toBe('0.1.0-alpha.24');
+    expect(restoreInviteMetadata(prepared24.state, prepared24.metadata).invites[revoked.inviteId].revokedAt)
+      .toBe(original.invites[revoked.inviteId].revokedAt);
+    const prepared = prepareInviteRollback(original, '0.1.0-alpha.22');
+    expect(prepared.metadata.target).toBe('0.1.0-alpha.22');
+    // @ts-expect-error Unsupported versions must also fail at runtime.
+    expect(() => prepareInviteRollback(original, '0.1.0-alpha.23')).toThrow();
+    expect(original).toEqual(originalCopy);
+    expect(prepared.state.invites[ready.inviteId]).not.toHaveProperty('createdByHumanId');
+    expect(prepared.state.invites[revoked.inviteId]).not.toHaveProperty('revokedAt');
+    expect(prepared.state.invites[revoked.inviteId].consumedAt).toBe(original.invites[revoked.inviteId].revokedAt);
+    expect(prepared.state.invites[ready.inviteId].consumedAt).toBeUndefined();
+
+    // The older release may advance state while running; restoration must not replace that state with a stale backup.
+    prepared.state.invites[ready.inviteId].consumedAt = '2026-10-30T01:00:00.000Z';
+    const restored = restoreInviteMetadata(prepared.state, prepared.metadata);
+    expect(restored.invites[ready.inviteId].consumedAt).toBe('2026-10-30T01:00:00.000Z');
+    expect(restored.invites[ready.inviteId].createdByHumanId).toBe(f.owner.human.humanId);
+    expect(restored.invites[revoked.inviteId].revokedAt).toBe(original.invites[revoked.inviteId].revokedAt);
+    expect(restored.invites[revoked.inviteId].consumedAt).toBe(original.invites[revoked.inviteId].revokedAt);
+    expect(restored.events).toEqual(prepared.state.events);
+    const wrongState = structuredClone(prepared.state);
+    wrongState.invites[ready.inviteId].tokenDigest = 'f'.repeat(64);
+    expect(() => restoreInviteMetadata(wrongState, prepared.metadata)).toThrow();
+    const alreadyChanged = structuredClone(prepared.state);
+    alreadyChanged.invites[ready.inviteId].createdByHumanId = 'human_conflicting';
+    expect(() => restoreInviteMetadata(alreadyChanged, prepared.metadata)).toThrow();
+
+    // A revoked invite retains a consumed marker for the old reader. After restoring,
+    // both the preview and a repeated steward revoke must still report revocation.
+    await writeFile(join(directory, 'collective-service.json'), `${JSON.stringify(restored)}\n`);
+    const reopened = (await CollectiveServiceStore.open({ dataDirectory: directory, humanAuthProvider: f.humanAuthProvider })).store;
+    expect(reopened.previewInvite(revoked.inviteToken)).toMatchObject({ status: 'revoked' });
+    await expect(reopened.revokeInvite({
+      sessionToken: f.owner.sessionToken,
+      collectiveId: f.coordinates.collectiveId,
+      inviteId: revoked.inviteId,
+    })).resolves.toEqual({ status: 'revoked' });
+    await expect(reopened.revokeInvite({
+      sessionToken: f.owner.sessionToken,
+      collectiveId: f.coordinates.collectiveId,
+      inviteId: ready.inviteId,
+    })).resolves.toEqual({ status: 'used' });
+  } finally {
+    await rm(directory, { recursive: true });
+  }
+});

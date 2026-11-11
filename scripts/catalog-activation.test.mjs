@@ -370,13 +370,13 @@ test('the ordinary npm publication job never activates live discovery', async ()
   for (const step of workflow.jobs.publish.steps) {
     assert.doesNotMatch(step.run ?? '', /catalog:activate|catalog-activation\.mjs\s+--activate/);
   }
-  assert.equal(workflow.jobs.publish.steps.at(-1).run, 'pnpm catalog:activation-check');
+  assert.equal(workflow.jobs.publish.steps.at(-1).run, 'pnpm catalog:release-audit');
 });
 
-test('manual npm publication is covered by a scheduled read-only activation audit', async () => {
+test('manual publication has a daily audit that can write reminders without changing discovery', async () => {
   const audit = parse(await readFile(new URL('../.github/workflows/catalog-activation.yml', import.meta.url), 'utf8'));
   assert.ok(audit.on.workflow_dispatch);
   assert.ok(audit.on.schedule.length > 0);
-  assert.deepEqual(audit.permissions, { contents: 'read' });
-  assert.equal(audit.jobs.activation.steps.at(-1).run, 'pnpm catalog:activation-check');
+  assert.deepEqual(audit.permissions, { contents: 'read', issues: 'write' });
+  assert.equal(audit.jobs.activation.steps.at(-1).run, 'pnpm catalog:release-audit -- --notify');
 });

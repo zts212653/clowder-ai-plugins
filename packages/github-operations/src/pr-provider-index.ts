@@ -1,3 +1,4 @@
+import { storageEntries } from './storage-pages.js';
 import { createHash, randomUUID } from 'node:crypto';
 import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { mapGitHubPr, type GhPrFull, type GhPrReview } from './business/domains/community/github/GitHubPrFetcher.js';
@@ -250,9 +251,9 @@ export class PrProviderIndex {
 
   async repositories() {
     this.lifetime.signal.throwIfAborted();
-    const entries = await this.storage.list();
+    const entries = await storageEntries(this.storage, 'github.pr-index.v1.', { suffix: '.root', signal: this.lifetime.signal });
     const result: { repo: string; publishedGeneration: string; observedAt: number; count: number }[] = [];
-    for (const [key, entry] of Object.entries(entries)) {
+    for (const [key, entry] of entries) {
       if (!/^github\.pr-index\.v1\.[a-f0-9]{64}\.root$/.test(key)) continue;
       const repo = repoOf(object(entry.value).repo);
       if (key !== rootKey(repo)) throw new TypeError('invalid PR repository key');

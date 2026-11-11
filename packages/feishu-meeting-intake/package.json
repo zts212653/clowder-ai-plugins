@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/feishu-meeting-intake",
-  "version": "0.1.0-alpha.12",
+  "version": "0.1.0-alpha.13",
   "description": "Official Feishu/Lark generated-meeting-artifact intake adapter for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
@@ -21,7 +21,8 @@
     "schemas",
     "plugin.yaml",
     "scripts",
-    "README.en.md"
+    "README.en.md",
+    "npm-shrinkwrap.json"
   ],
   "engines": {
     "node": ">=20.0.0"
@@ -54,25 +55,6 @@
     "@modelcontextprotocol/sdk": "1.26.0",
     "zod": "3.25.76"
   },
-  "bundledDependencies": [
-    "@clack/core",
-    "@clack/prompts",
-    "@clowder-ai/plugin-contract",
-    "@clowder-ai/plugin-sdk",
-    "@larksuite/cli",
-    "ajv",
-    "ajv-formats",
-    "fast-deep-equal",
-    "fast-string-truncated-width",
-    "fast-string-width",
-    "fast-uri",
-    "fast-wrap-ansi",
-    "json-schema-traverse",
-    "require-from-string",
-    "sisteransi",
-    "@modelcontextprotocol/sdk",
-    "zod"
-  ],
   "devDependencies": {
     "@types/node": "^20.17.0",
     "tsx": "^4.19.0",

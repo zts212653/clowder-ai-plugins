@@ -1,0 +1,1115 @@
+{
+  "provenance": {
+    "repository": "zts212653/clowder-ai",
+    "pullRequest": 1784,
+    "headSha": "7733392245566f9374519414d39f160d6b1dc725",
+    "capturedAt": "2026-11-03T06:10:43.403Z",
+    "originalEvidence": "guard749 / provider-view.json",
+    "identitySource": "canonical gh api graphql CheckSuite.app/commit/workflowRun; same rollup links/conclusions verified against original 34-row sample"
+  },
+  "pr": {
+    "headRefOid": "7733392245566f9374519414d39f160d6b1dc725",
+    "state": "OPEN",
+    "mergedAt": null,
+    "mergedBy": null,
+    "commits": {
+      "nodes": [
+        {
+          "commit": {
+            "oid": "7733392245566f9374519414d39f160d6b1dc725",
+            "statusCheckRollup": {
+              "contexts": {
+                "nodes": [
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWU1hg",
+                    "databaseId": 125718312326,
+                    "name": "Lint",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627319/job/125718312326",
+                    "startedAt": "2026-11-03T04:01:28Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6Nw",
+                        "runNumber": 8350,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWU1KQ",
+                    "databaseId": 125718312233,
+                    "name": "Test (Windows)",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627308/job/125718312233",
+                    "startedAt": "2026-11-03T04:01:28Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6LA",
+                        "runNumber": 7277,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4O_mw7",
+                          "name": "Windows Smoke"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWU0Gw",
+                    "databaseId": 125718311963,
+                    "name": "Native launchd identity witness",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627148/job/125718311963",
+                    "startedAt": "2026-11-03T04:01:28Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm5jA",
+                        "runNumber": 684,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4W4YO5",
+                          "name": "macOS Preview Lifecycle"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWXFzg",
+                    "databaseId": 125718349262,
+                    "name": "Lint",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718349262",
+                    "startedAt": "2026-11-03T04:01:36Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWVRgw",
+                    "databaseId": 125718319491,
+                    "name": "Test (Windows)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628378/job/125718319491",
+                    "startedAt": "2026-11-03T04:01:41Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm-Wg",
+                        "runNumber": 7278,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4O_mw7",
+                          "name": "Windows Smoke"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWVMww",
+                    "databaseId": 125718318275,
+                    "name": "Native launchd identity witness",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628167/job/125718318275",
+                    "startedAt": "2026-11-03T04:01:31Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm9hw",
+                        "runNumber": 685,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4W4YO5",
+                          "name": "macOS Preview Lifecycle"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWU1-w",
+                    "databaseId": 125718312443,
+                    "name": "Build",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627319/job/125718312443",
+                    "startedAt": "2026-11-03T04:01:28Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6Nw",
+                        "runNumber": 8350,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWU2Vg",
+                    "databaseId": 125718312534,
+                    "name": "Test (Windows, installed layout)",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627308/job/125718312534",
+                    "startedAt": "2026-11-03T04:01:28Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6LA",
+                        "runNumber": 7277,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4O_mw7",
+                          "name": "Windows Smoke"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWUzAQ",
+                    "databaseId": 125718311681,
+                    "name": "Preview lifecycle (macOS)",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627148/job/125718311681",
+                    "startedAt": "2026-11-03T04:01:28Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm5jA",
+                        "runNumber": 684,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4W4YO5",
+                          "name": "macOS Preview Lifecycle"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWXEJA",
+                    "databaseId": 125718348836,
+                    "name": "Build",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718348836",
+                    "startedAt": "2026-11-03T04:01:36Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWVQFQ",
+                    "databaseId": 125718319125,
+                    "name": "Test (Windows, installed layout)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628378/job/125718319125",
+                    "startedAt": "2026-11-03T04:01:31Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm-Wg",
+                        "runNumber": 7278,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4O_mw7",
+                          "name": "Windows Smoke"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWVN-w",
+                    "databaseId": 125718318587,
+                    "name": "Preview lifecycle (macOS)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628167/job/125718318587",
+                    "startedAt": "2026-11-03T04:01:30Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm9hw",
+                        "runNumber": 685,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4W4YO5",
+                          "name": "macOS Preview Lifecycle"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWU2TQ",
+                    "databaseId": 125718312525,
+                    "name": "Test (Web First-run Onboarding)",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627319/job/125718312525",
+                    "startedAt": "2026-11-03T04:01:28Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6Nw",
+                        "runNumber": 8350,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWXF5Q",
+                    "databaseId": 125718349285,
+                    "name": "Test (Web First-run Onboarding)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718349285",
+                    "startedAt": "2026-11-03T04:01:36Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWU13Q",
+                    "databaseId": 125718312413,
+                    "name": "Public test plan",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627319/job/125718312413",
+                    "startedAt": "2026-11-03T04:01:28Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6Nw",
+                        "runNumber": 8350,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWXFgQ",
+                    "databaseId": 125718349185,
+                    "name": "Public test plan",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718349185",
+                    "startedAt": "2026-11-03T04:01:37Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWU0VA",
+                    "databaseId": 125718312020,
+                    "name": "Public contract surfaces",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627319/job/125718312020",
+                    "startedAt": "2026-11-03T04:01:28Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6Nw",
+                        "runNumber": 8350,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWXFuw",
+                    "databaseId": 125718349243,
+                    "name": "Public contract surfaces",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718349243",
+                    "startedAt": "2026-11-03T04:01:36Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWU1lg",
+                    "databaseId": 125718312342,
+                    "name": "Directory Size Guard",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627319/job/125718312342",
+                    "startedAt": "2026-11-03T04:01:28Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6Nw",
+                        "runNumber": 8350,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWXFsg",
+                    "databaseId": 125718349234,
+                    "name": "Directory Size Guard",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718349234",
+                    "startedAt": "2026-11-03T04:01:36Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWVSNw",
+                    "databaseId": 125718319671,
+                    "name": "Public test (${{ matrix.lane }})",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627319/job/125718319671",
+                    "startedAt": "2026-11-03T04:01:29Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6Nw",
+                        "runNumber": 8350,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRXL2vQ",
+                    "databaseId": 125719213757,
+                    "name": "Public test (serial-shared)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213757",
+                    "startedAt": "2026-11-03T04:04:13Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRXL2-g",
+                    "databaseId": 125719213818,
+                    "name": "Public test (distributable-1)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213818",
+                    "startedAt": "2026-11-03T04:04:13Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRXL3Pw",
+                    "databaseId": 125719213887,
+                    "name": "Public test (distributable-2)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213887",
+                    "startedAt": "2026-11-03T04:04:13Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRXL29g",
+                    "databaseId": 125719213814,
+                    "name": "Public test (distributable-3)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213814",
+                    "startedAt": "2026-11-03T04:04:13Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRXL2ig",
+                    "databaseId": 125719213706,
+                    "name": "Public test (distributable-4)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213706",
+                    "startedAt": "2026-11-03T04:04:13Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRXL2jw",
+                    "databaseId": 125719213711,
+                    "name": "Public test (distributable-5)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213711",
+                    "startedAt": "2026-11-03T04:04:13Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRXL2YA",
+                    "databaseId": 125719213664,
+                    "name": "Public test (distributable-6)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213664",
+                    "startedAt": "2026-11-03T04:04:23Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWVSCw",
+                    "databaseId": 125718319627,
+                    "name": "Public test (serial bootstrap)",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627319/job/125718319627",
+                    "startedAt": "2026-11-03T04:01:29Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6Nw",
+                        "runNumber": 8350,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRXL7-Q",
+                    "databaseId": 125719215097,
+                    "name": "Public test (serial bootstrap)",
+                    "status": "COMPLETED",
+                    "conclusion": "SKIPPED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719215097",
+                    "startedAt": "2026-11-03T04:04:11Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWVQrg",
+                    "databaseId": 125718319278,
+                    "name": "Public test evidence",
+                    "status": "COMPLETED",
+                    "conclusion": "CANCELLED",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627319/job/125718319278",
+                    "startedAt": "2026-11-03T04:01:29Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6Nw",
+                        "runNumber": 8350,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRcDwMg",
+                    "databaseId": 125724323890,
+                    "name": "Public test evidence",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125724323890",
+                    "startedAt": "2026-11-03T04:20:06Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRWVMiw",
+                    "databaseId": 125718318219,
+                    "name": "Test (Public)",
+                    "status": "COMPLETED",
+                    "conclusion": "FAILURE",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575627319/job/125718318219",
+                    "startedAt": "2026-11-03T04:01:30Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm6Nw",
+                        "runNumber": 8350,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "__typename": "CheckRun",
+                    "id": "CR_kwDORlB5ac8AAAAdRcOj5Q",
+                    "databaseId": 125724500965,
+                    "name": "Test (Public)",
+                    "status": "COMPLETED",
+                    "conclusion": "SUCCESS",
+                    "detailsUrl": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125724500965",
+                    "startedAt": "2026-11-03T04:20:37Z",
+                    "checkSuite": {
+                      "app": {
+                        "id": "MDM6QXBwMTUzNjg=",
+                        "slug": "github-actions"
+                      },
+                      "commit": {
+                        "oid": "7733392245566f9374519414d39f160d6b1dc725"
+                      },
+                      "workflowRun": {
+                        "id": "WFR_kwLORlB5ac8AAAAJrhm97g",
+                        "runNumber": 8351,
+                        "runAttempt": 1,
+                        "workflow": {
+                          "id": "W_kwDORlB5ac4OnoXd",
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": "MzQ"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "checks": [
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125724500965",
+      "name": "Test (Public)",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125724323890",
+      "name": "Public test evidence",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213664",
+      "name": "Public test (distributable-6)",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213706",
+      "name": "Public test (distributable-4)",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213887",
+      "name": "Public test (distributable-2)",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213818",
+      "name": "Public test (distributable-1)",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213757",
+      "name": "Public test (serial-shared)",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213814",
+      "name": "Public test (distributable-3)",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719213711",
+      "name": "Public test (distributable-5)",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "skipping",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125719215097",
+      "name": "Public test (serial bootstrap)",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628378/job/125718319491",
+      "name": "Test (Windows)",
+      "workflow": "Windows Smoke"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718349185",
+      "name": "Public test plan",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718349234",
+      "name": "Directory Size Guard",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718349285",
+      "name": "Test (Web First-run Onboarding)",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718349243",
+      "name": "Public contract surfaces",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718348836",
+      "name": "Build",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628270/job/125718349262",
+      "name": "Lint",
+      "workflow": "CI"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628378/job/125718319125",
+      "name": "Test (Windows, installed layout)",
+      "workflow": "Windows Smoke"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628167/job/125718318275",
+      "name": "Native launchd identity witness",
+      "workflow": "macOS Preview Lifecycle"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575628167/job/125718318587",
+      "name": "Preview lifecycle (macOS)",
+      "workflow": "macOS Preview Lifecycle"
+    },
+    {
+      "bucket": "cancel",
+      "link": "https://github.com/zts212653/clowder-ai/actions/runs/41575627319/job/125718319671",
+      "name": "Public test (${{ matrix.lane }})",
+      "workflow": "CI"
+    }
+  ]
+}

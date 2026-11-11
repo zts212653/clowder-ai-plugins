@@ -72,7 +72,9 @@ export function buildGateSteps() {
     { name: 'SDK typecheck', command: 'pnpm --filter @clowder-ai/plugin-sdk typecheck' },
     { name: 'SDK unit tests', command: 'pnpm --filter @clowder-ai/plugin-sdk test' },
     { name: 'SDK build', command: 'pnpm --filter @clowder-ai/plugin-sdk build' },
+    { name: 'Superagent package gates', command: chain('@clowder-ai/superagent', ['typecheck', 'test', 'build']) },
     { name: 'Feedback package', command: chain('@clowder-ai/feedback', ['typecheck', 'build', 'test', 'lint']) },
+    { name: 'Quick phrases package', command: chain('@clowder-ai/quick-phrases', ['typecheck', 'build', 'test']) },
     {
       name: 'Music module and installed native entrypoint',
       command: chain('@clowder-ai/music-generation', ['build', 'typecheck', 'test', 'test:installed']),
@@ -90,6 +92,7 @@ export function buildGateSteps() {
       name: 'Enterprise workflow package gates',
       command: chain('@clowder-ai/enterprise-workflow', ['typecheck', 'test', 'lint', 'build']),
     },
+    { name: 'Dot plugin gates', command: chain('@clowder-ai/chatgpt-dot', ['typecheck', 'test', 'lint', 'build']) },
     { name: 'Connector command entrypoint parity', command: 'node --import tsx --test scripts/connector-command-entrypoints.test.mjs' },
     { name: 'Script test coverage', command: 'node scripts/assert-script-tests-covered.mjs' },
     { name: 'Script-only unit tests', command: 'pnpm test:scripts' },

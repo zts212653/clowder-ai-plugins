@@ -64,11 +64,13 @@ describe('fetchPrCiStatuses', () => {
                     },
                   },
                   p1: {
+                    number: 8,
+                    repository: { nameWithOwner: 'owner/repo' },
                     headRefOid: 'b'.repeat(40),
                     state: 'MERGED',
                     mergedAt: '2026-08-21T00:00:00Z',
                     mergedBy: { login: 'maintainer' },
-                    commits: { nodes: [] },
+                    commits: { nodes: [{ commit: { oid: 'b'.repeat(40), statusCheckRollup: null } }] },
                   },
                 },
               },
@@ -101,15 +103,18 @@ function rawGitHubFixture(annotationTexts, jobCheckRunId = 91, jobFields = {}) {
       assert.equal(file, 'gh');
       commands.push([...args]);
       const command = args.join(' ');
-      if (command.startsWith('pr view ')) {
+      if (command.startsWith('api graphql ')) {
         return {
-          stdout: JSON.stringify({
+          stdout: JSON.stringify({ data: { r0: { p0: {
             headRefOid: 'a'.repeat(40),
             state: 'OPEN',
             mergedAt: null,
             mergedBy: null,
-            statusCheckRollup: [{ name: 'gate', status: 'COMPLETED', conclusion: 'failure', __typename: 'CheckRun' }],
-          }),
+            commits: { nodes: [{ commit: { statusCheckRollup: { contexts: {
+              nodes: [{ name: 'gate', status: 'COMPLETED', conclusion: 'failure', __typename: 'CheckRun', detailsUrl: 'https://github.example/check/91' }],
+              pageInfo: { hasNextPage: false },
+            } } } }] },
+          } } } }),
         };
       }
       if (command.startsWith('pr checks ')) {
@@ -219,16 +224,16 @@ describe('classifyGitHubExecutionFailure', () => {
         async execFileAsync(file, args) {
           assert.equal(file, 'gh');
           commands.push([...args]);
-          assert.equal(args[0], 'pr');
-          assert.equal(args[1], 'view');
+          assert.equal(args[0], 'api');
+          assert.equal(args[1], 'graphql');
           return {
-            stdout: JSON.stringify({
+            stdout: JSON.stringify({ data: { r0: { p0: {
               headRefOid: 'b'.repeat(40),
               state: 'OPEN',
               mergedAt: null,
               mergedBy: null,
-              statusCheckRollup: [],
-            }),
+              commits: { nodes: [{ commit: { statusCheckRollup: { contexts: { nodes: [], pageInfo: { hasNextPage: false } } } } }] },
+            } } } }),
           };
         },
       },

@@ -14,6 +14,7 @@ import type {
 } from '@clowder-ai/plugin-contract';
 import type { StackChanActionExecutor } from './action-executor.js';
 import { isPhysicalLimbInstruction } from './physical-limb-validator.js';
+import { parseStackChanPlayScene, type StackChanPlayResult, type StackChanPlayScene } from './play-controller.js';
 
 const MAX_REQUEST_BYTES = 64 * 1024;
 
@@ -24,6 +25,7 @@ export interface StackChanRemoteLimbServerOptions {
   readonly health: () => Promise<'online' | 'busy' | 'degraded' | 'offline'>;
   readonly host?: string;
   readonly port?: number;
+  readonly play?: (scene: StackChanPlayScene) => Promise<StackChanPlayResult>;
 }
 
 export interface StackChanRemoteLimbServerAddress {
@@ -140,6 +142,17 @@ export function createStackChanRemoteLimbServer(
 
     if (request.method === 'GET' && request.url === '/health') {
       sendJson(response, 200, { status: await options.health() });
+      return;
+    }
+    if (request.method === 'POST' && request.url === '/play' && options.play) {
+      try {
+        const scene = parseStackChanPlayScene(await readJsonBody(request));
+        sendJson(response, 200, await options.play(scene));
+      } catch (error) {
+        if (error instanceof PayloadTooLargeError) sendJson(response, 413, { error: error.message });
+        else if (error instanceof TypeError) sendJson(response, 400, { error: error.message });
+        else sendJson(response, 409, { error: error instanceof Error ? error.message : 'StackChan play failed' });
+      }
       return;
     }
     if (request.method !== 'POST' || request.url !== '/invoke') {

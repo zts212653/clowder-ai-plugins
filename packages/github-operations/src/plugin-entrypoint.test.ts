@@ -1,3 +1,4 @@
+import { withIndexedMemoryStorage } from '../test/indexed-memory-storage.js';
 import assert from 'node:assert/strict';
 import { createHash, createHmac } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -16,14 +17,16 @@ import { copyLegacyRepositoryProgress, legacyRepositorySnapshotBytes } from './l
 import { createGitHubPluginModule } from './plugin-entrypoint.js';
 import { GitHubPrTitleReader } from './pr-title-reader.js';
 import { ReviewTriggerReader } from './review-trigger-observation.js';
+import type { FailureDiagnostic } from './review-verdict-failure.js';
 import type { GitHubSnapshot } from './tracking-runtime.js';
+import { scanMemory } from '../test/memory-storage.js';
 
 const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
 
 test('declared owner PR title HTTP reads immediately, is side-effect free and stops with its module', async (t) => {
   const f = host();
   let calls = 0;
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createPrTitleReader: () =>
       new GitHubPrTitleReader({
         token: async () => 'isolated-module-title',
@@ -110,7 +113,7 @@ test('owner HTTP cancellation reaches the title transport through ordinary modul
   const began = new Promise<void>((resolve) => {
     entered = resolve;
   });
-  const active = await createGitHubPluginModule({
+  const active = await createGitHubPluginModule({ pollIntervalMs: 0,
     createPrTitleReader: (context) =>
       new GitHubPrTitleReader({
         token: () => context.secrets.get('token'),
@@ -222,7 +225,7 @@ function coveredTriggerReader() {
 test('PR index refresh publishes provider metadata in existing repository inspection and survives module restart', async () => {
   const f = host();
   let calls = 0;
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createPrIndexProvider: () => ({
       page: async () => {
         calls++;
@@ -264,7 +267,7 @@ test('PR index refresh publishes provider metadata in existing repository inspec
 test('PR readback adapts to repository discovery, board and decision queue without invented identity or activity time', async () => {
   const f = host();
   const updated = ['2026-10-07T01:00:00Z', '2026-10-08T02:00:00Z'];
-  const active = await createGitHubPluginModule({
+  const active = await createGitHubPluginModule({ pollIntervalMs: 0,
     createPrIndexProvider: () => ({
       page: async () =>
         updated.map((updated_at, i) => ({
@@ -339,7 +342,7 @@ test('declared review trigger observation stays read-only and module stop joins 
   });
   let finish!: () => void;
   let aborted = false;
-  const active = await createGitHubPluginModule({
+  const active = await createGitHubPluginModule({ pollIntervalMs: 0,
     createReviewTriggerReader: () =>
       new ReviewTriggerReader({
         token: async () => 'isolated-module-trigger',
@@ -390,7 +393,7 @@ test('declared review trigger observation stays read-only and module stop joins 
 test('declared exact-trigger tool returns the bounded observation without storage or notification writes', async () => {
   const f = host();
   let calls = 0;
-  const active = await createGitHubPluginModule({
+  const active = await createGitHubPluginModule({ pollIntervalMs: 0,
     createReviewTriggerReader: () =>
       new ReviewTriggerReader({
         token: async () => 'isolated-module-observation',
@@ -430,7 +433,7 @@ test('declared exact-trigger tool returns the bounded observation without storag
 test('preexisting history remains readable after restart without an import action or live delivery', async () => {
   const f = host();
   let reads = 0;
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createCommunityProvider: () => ({
       listOpen: async () => {
         reads++;
@@ -523,7 +526,7 @@ test('tracking uses authenticated invocation and repository registration checks 
     if (rejection) throw new Error(rejection);
     return originalGet(...args);
   };
-  const active = await createGitHubPluginModule({
+  const active = await createGitHubPluginModule({ pollIntervalMs: 0,
     createProvider: () => ({
       selfLogin: () => 'owner',
       async read() {
@@ -594,7 +597,7 @@ test('historical issue copy stays inert; fresh typed registration freezes its ow
       commentType: 'conversation',
     })),
   };
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createProvider: () => ({
       selfLogin: () => 'owner',
       async read(_target, _signal, cursor) {
@@ -666,7 +669,7 @@ test('legacy repository progress stays inert until registration and resumes base
   let requests = 0;
   const sinceValues: Array<string | undefined> = [];
   const repo = target.repoFullName;
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createCommunityProvider: () => ({
       listOpen: async () => {
         requests++;
@@ -751,7 +754,7 @@ test('legacy repository progress stays inert until registration and resumes base
 test('repository intake sends a bounded sanitized provider briefing through ordinary messaging without narrator governance wiring', async () => {
   const f = host();
   let items: RepoSubject[] = [];
-  const active = await createGitHubPluginModule({
+  const active = await createGitHubPluginModule({ pollIntervalMs: 0,
     createCommunityProvider: () => ({
       listOpen: async () => items,
       repoComments: async () => [],
@@ -836,7 +839,12 @@ test('preexisting issue metadata remains readable without adopting governance or
     /private-thread|secret|guardian|signoff|assignedThread|accepted/,
   );
   assert.equal(f.deliveries.length, 0);
-  assert.deepEqual(await active.actions['github.tracking.list']!({}), { data: { tracking: [], diagnostics: [] } });
+  const emptyStatus = (await active.actions['github.tracking.list']!({})) as any;
+  assert.deepEqual(emptyStatus.data.tracking, []);
+  assert.deepEqual(emptyStatus.data.diagnostics, []);
+  assert.deepEqual(emptyStatus.data.recoveryOwners, { typed: [], collection: [], migratedIssues: [],
+    journal: { readiness: 'not_inspected', entries: [] } });
+  assert.equal(emptyStatus.data.page.nextCursor, null);
   await active.stop({ reason: 'test' });
   active = await module.create(manifest).start(f.runtimeHost);
   const again = await copyLegacyIssueObservations(
@@ -859,7 +867,7 @@ test('native draft owner operation publishes once and recovers partial success a
   f.runtimeHost.config.get = async (key) => (key === 'publishRepositories' ? 'example/project' : undefined);
   let creates = 0;
   let published: { number: number; url: string } | null = null;
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createIssuePublisher: () => ({
       create: async () => {
         creates++;
@@ -934,7 +942,7 @@ for (const length of [0, 10001, 65000])
     const f = host();
     f.runtimeHost.config.get = async (key) => (key === 'publishRepositories' ? 'example/project' : undefined);
     const published: string[] = [];
-    const active = await createGitHubPluginModule({
+    const active = await createGitHubPluginModule({ pollIntervalMs: 0,
       createIssuePublisher: () => ({
         create: async (draft) => {
           published.push(draft.bodyMarkdown);
@@ -980,7 +988,7 @@ test('native draft ambiguous publication never retries POST, and stop waits for 
   const cleanup = new Promise<void>((resolve) => {
     release = resolve;
   });
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createIssuePublisher: () => ({
       create: async (_draft, signal) => {
         creates++;
@@ -1116,7 +1124,7 @@ for (const path of ['repo-scan', 'repo-comment-poll', 'webhook'] as const)
       updatedAt: '2026-10-08T10:00:00Z',
       isPullRequest: false,
     };
-    const active = await createGitHubPluginModule({
+    const active = await createGitHubPluginModule({ pollIntervalMs: 0,
       createCommunityProvider: () => ({
         listOpen: async () => items,
         repoComments: async () => [comment],
@@ -1209,7 +1217,7 @@ test('real cloud tracking projects findings across restart and an explicit wait 
     reviews: [],
     commentsComplete: true,
   };
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     now: () => now,
     createReviewTriggerReader: coveredTriggerReader,
     createProvider: () => ({ read: async () => completeSnapshot(snapshot), selfLogin: () => 'owner' }),
@@ -1350,7 +1358,7 @@ test('real builtin projects provider HEAD and CI without accepting or writing a 
     };
   }
   let snapshot: GitHubSnapshot = { state: 'open', headSha: 'a'.repeat(40), ci: 'pending', comments: [], reviews: [] };
-  const active = await createGitHubPluginModule({
+  const active = await createGitHubPluginModule({ pollIntervalMs: 0,
     createProvider: () => ({
       read: async () => completeSnapshot(snapshot),
       selfLogin: () => 'owner',
@@ -1388,7 +1396,7 @@ test('real builtin projects provider HEAD and CI without accepting or writing a 
     Object.keys(active.actions).filter((method) => /verdict|(^|[.])lease([.]|$)|admission/.test(method)),
     ['github.review.record-verdict'],
   );
-  await assert.rejects(async () => active.actions['github.review.record-verdict']!({}), /native action context/);
+  assert.match(JSON.stringify(await active.actions['github.review.record-verdict']!({})), /native_context_required/);
   assert.equal(f.deliveries.length, 1, 'ordinary CI notification uses existing SDK messaging exactly once');
   snapshot = { ...snapshot, ci: 'pending' };
   await active.actions['github.pr-tracking']!({});
@@ -1434,7 +1442,7 @@ test('real builtin projects provider HEAD and CI without accepting or writing a 
 test('the actual carrier preserves both a review and its later dismissal in the private journal', async () => {
   const f = host();
   let snapshot: GitHubSnapshot = { state: 'open', headSha: 'a'.repeat(40), ci: 'pending', comments: [], reviews: [] };
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createProvider: () => ({ read: async () => completeSnapshot(snapshot), selfLogin: () => 'owner' }),
   });
   const active = await module.create(manifest).start(f.runtimeHost);
@@ -1480,7 +1488,7 @@ test('real carrier keeps dismissed reviews final in journal, cloud projection an
     comments: [trigger],
     reviews: [],
   };
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createReviewTriggerReader: coveredTriggerReader,
     createProvider: () => ({ read: async () => completeSnapshot(snapshot), selfLogin: () => 'owner' }),
   });
@@ -1562,6 +1570,7 @@ function host() {
   const storage: ModulePluginHostShape['storage'] = {
     get: async (key) => structuredClone(entries.get(key)),
     list: async () => structuredClone(Object.fromEntries(entries)),
+    scan: async input => scanMemory(entries, input),
     set: async (key, value) => {
       entries.set(key, { revision: ++revision, value: structuredClone(value) });
       return { revision };
@@ -1573,6 +1582,7 @@ function host() {
     },
     delete: async (key) => ({ deleted: entries.delete(key) }),
   };
+  withIndexedMemoryStorage(storage);
   const runtimeHost: ModulePluginHostShape = {
     storage,
     config: { get: async () => undefined },
@@ -1660,7 +1670,7 @@ test('real manifest → SDK builtin activation → tracking → schedule → ord
   const f = host();
   let snapshot: GitHubSnapshot = { state: 'open', headSha: 'a'.repeat(40), ci: 'pending', comments: [], reviews: [] };
   let reads = 0;
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createProvider: () => ({
       read: async () => {
         reads++;
@@ -1708,7 +1718,7 @@ test('builtin stop awaits in-flight provider cleanup and prevents a late notific
     release = resolve;
   });
   let aborted = false;
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createProvider: () => ({
       async read(_target, signal) {
         if (++reads > 1) {
@@ -1761,7 +1771,7 @@ test('all five declared schedules stay idle without registrations; repository in
       draft: false,
     },
   ];
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createCommunityProvider: () => ({
       listOpen: async () => {
         requests++;
@@ -1810,7 +1820,7 @@ test('repository scan keeps the five-item budget and continues past a failing re
   let fail = false;
   let current: RepoSubject[] = [];
   const visited: string[] = [];
-  const module = createGitHubPluginModule({
+  const module = createGitHubPluginModule({ pollIntervalMs: 0,
     createCommunityProvider: () => ({
       listOpen: async (repo) => {
         visited.push(repo);
@@ -1912,7 +1922,7 @@ test('declared webhook authenticates exact bytes, delivers via SDK, deduplicates
 test('tracking logs facts before delivery, rejects stale inline feedback, and retries a terminal collection failure', async () => {
   const f = host();
   let snapshot: GitHubSnapshot = { state: 'open', headSha: 'b'.repeat(40), ci: 'pending', comments: [], reviews: [] };
-  const active = await createGitHubPluginModule({
+  const active = await createGitHubPluginModule({ pollIntervalMs: 0,
     createProvider: () => ({
       read: async () => completeSnapshot(snapshot),
       selfLogin: () => 'owner',
@@ -1959,7 +1969,7 @@ test('production schedule collects routed cases without a native registration or
   const { registerRoutingTracking } = await import('./business/domains/community/community-auto-tracking.js');
   const f = host();
   let reads = 0;
-  const active = await createGitHubPluginModule({
+  const active = await createGitHubPluginModule({ pollIntervalMs: 0,
     createProvider: () => ({
       selfLogin: () => undefined,
       read: async () => {
@@ -2358,4 +2368,112 @@ test('production module exposes ordinary review records without private Host com
   assert.equal(typeof active.actions['github.review.record-verdict'],'function');
   assert.equal(manifest.contributions.some((row:{type:string})=>row.type==='terminal-predicate-provider'),false);
  } finally {await active.stop({reason:'test'});}
+});
+
+test('declared review refusal is readable by exact subject after module restart', async t => {
+ const f = host(), module = createGitHubPluginModule();
+ let active = await module.create(manifest).start(f.runtimeHost);
+ t.after(() => active.stop({ reason: 'test' }));
+ await active.actions['github.repository.register']!({
+  repo: target.repoFullName, guardThreadId: target.threadId, guardCatId: target.catId,
+  reviewMode: 'maintainer_review', cloudReviewPolicy: 'optional',
+ });
+ const subjectKey = 'pr:example/project#12';
+ const input = {
+  repoFullName: target.repoFullName, prNumber: 12, reviewedHeadSha: 'a'.repeat(40),
+  verdict: 'approved', summary: 'Existing GitHub review',
+  delivery: { kind: 'delivered', githubUrl: 'https://github.com/example/project/pull/12#pullrequestreview-80' },
+ };
+ const result = await active.actions['github.review.record-verdict']!(input, caller);
+ assert.match(JSON.stringify(result), /review_unassigned/);
+ await active.stop({ reason: 'test' });
+ active = await module.create(manifest).start(f.runtimeHost);
+ const inspected = await active.actions['github.subject.inspect']!({ subjectKey }) as {
+  data: { lastReviewVerdictFailure: FailureDiagnostic | null; events: unknown[] };
+ };
+ const diagnostic = inspected.data.lastReviewVerdictFailure;
+ assert.equal(diagnostic?.failure.body.error.code, 'review_unassigned');
+ assert.equal(diagnostic?.failure.body.diagnosticPersisted, true);
+ assert.equal(diagnostic?.failure.body.subjectKey, subjectKey);
+ assert.equal(diagnostic?.failure.body.reviewedHeadSha, input.reviewedHeadSha);
+ assert.equal(diagnostic?.catId, caller.catId);
+ assert.equal(diagnostic?.threadId, caller.threadId);
+ assert.deepEqual(inspected.data.events, []);
+ assert.deepEqual(await f.runtimeHost.tasks.list({}), []);
+ assert.equal(f.deliveries.length, 0);
+});
+
+test('an older Host keeps unrelated readonly actions available while dependent tracking rejects before saving', async (t) => {
+  const f = host();
+  delete f.runtimeHost.storage.compareAndSetIndexed;
+  delete f.runtimeHost.storage.readDue;
+  delete f.runtimeHost.storage.rebuildIndex;
+  const original = { sourceEventId: 'old-host-history', subjectKey: 'issue:owner/repo#1', kind: 'issue.commented',
+    classification: 'informational', at: 1, payload: { commentId: 10 } };
+  const eventKey = 'community.event.' + createHash('sha256').update(original.sourceEventId).digest('hex');
+  await f.runtimeHost.storage.set(eventKey, { sequence: 0, event: original });
+  await f.runtimeHost.storage.set('community.journal.v1', { next: 1, pending: null });
+  const retained = await f.runtimeHost.storage.list();
+  const active = await createGitHubPluginModule().create(manifest).start(f.runtimeHost);
+  t.after(() => active.stop({ reason: 'test' }));
+  const result = await active.actions['github.repository.list']!({});
+  assert.ok(result);
+  const inspected = await active.actions['github.subject.inspect']!({ subjectKey: original.subjectKey }) as { data: { events: unknown[] } };
+  assert.deepEqual(inspected.data.events, [original]);
+  const observations = await active.actions['github.repository.observations']!({ repo: 'owner/repo' }) as { data: { items: unknown[] } };
+  assert.equal(observations.data.items.length, 1);
+  assert.deepEqual(await f.runtimeHost.storage.list(), retained, 'history inspection must not initialize or repair the journal');
+  const before = await f.runtimeHost.storage.list();
+  await assert.rejects(async () => active.actions['github.typed-wait.register-pr']!({ registrationId: 'old-host', repoFullName: 'owner/repo', prNumber: 1 },
+    { userId: 'owner', catId: 'codex61-sol', threadId: 'home', invocationId: 'native', assertCurrent: async () => {} }), /Indexed private storage is unavailable/);
+  assert.deepEqual(await f.runtimeHost.storage.list(), before);
+});
+
+test('tracking inspection exposes typed recovery facts and retains malformed records without interrupting the report', async (t) => {
+  const f = host(); let now = 1000, failed = false;
+  const active = await createGitHubPluginModule({ now: () => now,
+    createProvider: () => ({ selfLogin: () => 'owner', read: async () => {
+      if (failed) throw new Error('provider observation failed');
+      return { state: 'open', headSha: 'a'.repeat(40), ci: 'pending', comments: [], reviews: [], commentsComplete: true,
+        trackingIdentity: { selfLogin: 'owner', subjectAuthorLogin: 'owner' } };
+    } }),
+  }).create(manifest).start(f.runtimeHost);
+  t.after(() => active.stop({ reason: 'test' }));
+  await active.actions['github.typed-wait.register-pr']!({ registrationId: 'recovery-inspection', repoFullName: 'owner/repo', prNumber: 1 }, caller);
+  failed = true;
+  for (let round = 0; round < 7; round++) { now += 60_001; await active.actions['github.pr-tracking']!({}); }
+  const source = Object.entries(await f.runtimeHost.storage.list()).find(([key]) => key.startsWith('github.typed-wait.v1.'))!;
+  const malformedKey = 'github.typed-wait.v1.' + createHash('sha256').update('corrupt-original').digest('hex');
+  const malformed = { schemaVersion: 1, task: { id: 'corrupt-original', kind: 'broken' } };
+  await f.runtimeHost.storage.compareAndSetIndexed!(malformedKey, null, malformed, { index: 'github-pr-waits', score: 0 });
+  now += 60_001; await active.actions['github.pr-tracking']!({});
+  const before = await f.runtimeHost.storage.list();
+  const report = await active.actions['github.tracking.list']!({}) as { data: { tracking: Array<{ id: string; polling: { state: string } }>; recoveryOwners: { typed: Array<{
+    sourceKey: string; sourceRevision: number; taskId?: string;
+    recovery: { failures: number; disposition: string; reasonCode: string; scope: string; revision: number };
+  }> } } };
+  const entries = report.data.recoveryOwners.typed;
+  const paused = entries.find((row: { sourceKey: string }) => row.sourceKey === source[0]);
+  assert.ok(paused);
+  assert.equal(paused.recovery.failures, 5);
+  assert.equal(paused.recovery.disposition, 'needs_attention');
+  assert.equal(paused.recovery.reasonCode, 'github_observation_failed');
+  assert.equal(paused.sourceRevision, before[source[0]]!.revision);
+  assert.equal(paused.taskId, (source[1].value as { task: { id: string } }).task.id);
+  const broken = entries.find((row: { sourceKey: string }) => row.sourceKey === malformedKey);
+  assert.ok(broken);
+  assert.equal(broken.recovery.disposition, 'needs_attention');
+  assert.equal(broken.recovery.reasonCode, 'invalid_wait_record');
+  assert.equal(report.data.tracking.length, 1, 'invalid business data is retained in diagnostics, not decoded as a healthy wait');
+  assert.deepEqual(await f.runtimeHost.storage.list(), before, 'inspection cannot mutate owner facts');
+  assert.equal(report.data.tracking[0]!.polling.state, 'paused');
+  assert.ok(manifest.contributions.some((entry: { type: string; name?: string; action?: { method: string } }) =>
+    entry.type === 'tool' && entry.name === 'github_retry_tracking' && entry.action?.method === 'github.tracking.retry'));
+  const retry = await active.actions['github.tracking.retry']!({ taskId: paused.taskId,
+    expectedScope: paused.recovery.scope, expectedRecoveryRevision: paused.recovery.revision }, caller) as { data: { retried: boolean } };
+  assert.equal(retry.data.retried, true);
+  const resumed = await active.actions['github.tracking.list']!({}) as typeof report;
+  assert.equal(resumed.data.tracking[0]!.polling.state, 'scheduled');
+  assert.deepEqual(((await f.runtimeHost.storage.get(source[0]))!.value as { task: unknown }).task,
+    (source[1].value as { task: unknown }).task, 'retry preserves the original business record');
 });

@@ -19,6 +19,7 @@ test('state carries only the Host-bound meeting presentation without a meeting s
     nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
     meeting: { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom' },
     appAssist: { scopeRef: 'fixture-view-a', revision: 1, status: 'off', offer: null },
+    desk: { scopeRef: 'fixture-desk-a', revision: 1, status: 'off', delivery: null },
     nativeWork: { scopeId: '0123456789abcdef', revision: 1, active: [], recent: [] },
   };
   const client = createCompanionClient({
@@ -84,6 +85,74 @@ test('application assistance settlement carries only Host-issued scope, offer an
   }]);
   assert.equal(reply.kind, 'app-assist-settlement');
   assert.equal(reply.outcome, 'settled');
+});
+
+test('desk settlement relays only Host-issued refs, naming an item only for open and add', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command);
+    if (command.kind !== 'desk.settle') return { kind: 'ok' };
+    return {
+      kind: 'desk-settlement', scopeRef: command.scopeRef, revision: 9, deliveryRef: command.deliveryRef,
+      action: command.action, ...(command.itemRef === undefined ? {} : { itemRef: command.itemRef }),
+      outcome: 'settled', ...(command.action === 'timeout' ? { saved: true } : {}),
+    };
+  }, subscribe: () => () => {} });
+
+  await client.settleDesk('fixture-desk-a', 'delivery-1', 'shown');
+  const added = await client.settleDesk('fixture-desk-a', 'delivery-1', 'add', 'item-notes');
+  const timedOut = await client.settleDesk('fixture-desk-a', 'delivery-1', 'timeout');
+
+  assert.deepEqual(calls, [
+    { kind: 'desk.settle', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1', action: 'shown' },
+    { kind: 'desk.settle', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1', action: 'add', itemRef: 'item-notes' },
+    { kind: 'desk.settle', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1', action: 'timeout' },
+  ]);
+  assert.equal('itemRef' in calls[0]!, false, 'whole-delivery actions never carry an item key');
+  assert.equal(added.kind, 'desk-settlement');
+  assert.equal(added.itemRef, 'item-notes');
+  assert.equal(timedOut.saved, true);
+});
+
+test('desk thumbnail reads return inline bytes for one opaque item and reject other reply kinds', async () => {
+  const calls: CompanionCommand[] = [];
+  let response: CompanionReply = {
+    kind: 'desk-thumbnail', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1', itemRef: 'item-sheet',
+    image: { mediaType: 'image/jpeg', dataBase64: 'AAAA', width: 320, height: 200 },
+  };
+  const client = createCompanionClient({ request: async command => { calls.push(command); return response; },
+    subscribe: () => () => {} });
+
+  const thumbnail = await client.readDeskThumbnail('fixture-desk-a', 'delivery-1', 'item-sheet');
+
+  assert.deepEqual(calls, [{ kind: 'desk.thumbnail.read', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1', itemRef: 'item-sheet' }]);
+  assert.equal(thumbnail.image?.mediaType, 'image/jpeg');
+  response = { kind: 'ok' };
+  await assert.rejects(client.readDeskThumbnail('fixture-desk-a', 'delivery-1', 'item-sheet'),
+    (error: unknown) => error instanceof CompanionRequestError && error.code === 'unavailable');
+  response = { kind: 'error', code: 'permission_required' };
+  await assert.rejects(client.settleDesk('fixture-desk-a', 'delivery-1', 'dismiss'),
+    (error: unknown) => error instanceof CompanionRequestError && error.code === 'permission_required');
+});
+
+test('desk avatar reads name only the delivery and reject other reply kinds', async () => {
+  const calls: CompanionCommand[] = [];
+  let response: CompanionReply = {
+    kind: 'desk-avatar', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1',
+    image: { mediaType: 'image/png', dataBase64: 'AAAA', width: 128, height: 128 },
+  };
+  const client = createCompanionClient({ request: async command => { calls.push(command); return response; },
+    subscribe: () => () => {} });
+
+  const avatar = await client.readDeskAvatar('fixture-desk-a', 'delivery-1');
+
+  assert.deepEqual(calls, [{ kind: 'desk.avatar.read', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1' }]);
+  assert.equal(avatar.image?.width, 128);
+  response = {
+    kind: 'desk-thumbnail', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1', itemRef: 'item-sheet', image: null,
+  };
+  await assert.rejects(client.readDeskAvatar('fixture-desk-a', 'delivery-1'),
+    (error: unknown) => error instanceof CompanionRequestError && error.code === 'unavailable');
 });
 
 test('presentation observation relays only the visible-text event, call fence, time and source reference', async () => {
