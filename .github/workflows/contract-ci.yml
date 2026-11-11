@@ -52,12 +52,8 @@ jobs:
   validate:
     name: Typecheck + Conformance
     runs-on: ubuntu-latest
-    container:
-      image: mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48
-      options: --ipc=host
-    defaults:
-      run:
-        shell: bash
+    env:
+      PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48
     permissions:
       contents: read
       pull-requests: read
@@ -114,7 +110,13 @@ jobs:
         run: pnpm gate:ci
 
       - name: Companion browser layout contract
-        run: pnpm --filter @clowder-ai/companion test:browser
+        run: |
+          docker run --rm --init --ipc=host \
+            --volume "$PWD:$PWD" --workdir "$PWD" \
+            --volume "${PNPM_HOME%/.bin}:/pnpm:ro" \
+            --env PATH=/pnpm/.bin:/usr/local/bin:/usr/bin:/bin \
+            "$PLAYWRIGHT_IMAGE" \
+            pnpm --filter @clowder-ai/companion test:browser
 
       # Pure package checks also run in gate:ci. Keep the browser journey
       # explicit alongside this workflow's package checks, mirroring main.
@@ -122,7 +124,13 @@ jobs:
         run: pnpm --filter @clowder-ai/xiangqi test && pnpm --filter @clowder-ai/xiangqi lint && pnpm --filter @clowder-ai/xiangqi build
 
       - name: Xiangqi browser journey
-        run: pnpm --filter @clowder-ai/xiangqi test:browser
+        run: |
+          docker run --rm --init --ipc=host \
+            --volume "$PWD:$PWD" --workdir "$PWD" \
+            --volume "${PNPM_HOME%/.bin}:/pnpm:ro" \
+            --env PATH=/pnpm/.bin:/usr/local/bin:/usr/bin:/bin \
+            "$PLAYWRIGHT_IMAGE" \
+            pnpm --filter @clowder-ai/xiangqi test:browser
 
       - name: Loopback fixture typecheck
         run: pnpm --filter @clowder-ai/loopback-fixture-plugin typecheck

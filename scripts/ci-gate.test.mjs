@@ -22,16 +22,19 @@ const workspacePackage = JSON.parse(
 
 test('browser validation uses the pinned Playwright image matching both package versions', () => {
   const validation = parse(workflowText).jobs.validate;
-  assert.match(validation.container?.image ?? '', /^mcr\.microsoft\.com\/playwright:v([\d.]+)-noble@sha256:[a-f0-9]{64}$/);
-  const version = validation.container.image.match(/:v([\d.]+)-noble/)[1];
+  const image = validation.env?.PLAYWRIGHT_IMAGE ?? '';
+  assert.match(image, /^mcr\.microsoft\.com\/playwright:v([\d.]+)-noble@sha256:[a-f0-9]{64}$/);
+  const version = image.match(/:v([\d.]+)-noble/)[1];
   for (const name of ['companion', 'xiangqi']) {
     const pkg = JSON.parse(readFileSync(new URL(`../packages/${name}/package.json`, import.meta.url), 'utf8'));
     assert.equal(version, pkg.devDependencies.playwright, `${name} must match the baked browser revision`);
   }
-  assert.equal(validation.defaults.run.shell, 'bash');
+  assert.equal(validation.container, undefined, 'keep the gate toolchain on the original runner');
   for (const name of ['Companion browser layout contract', 'Xiangqi browser journey']) {
     const step = validation.steps.find(entry => entry.name === name);
     assert.match(step.run, /test:browser/);
+    assert.match(step.run, /docker run --rm --init --ipc=host/);
+    assert.match(step.run, /"\$PLAYWRIGHT_IMAGE"/);
     assert.doesNotMatch(step.run, /install --with-deps/);
     assert.equal(step.if, undefined, 'browser validation must remain unconditional');
     assert.notEqual(step['continue-on-error'], true);
