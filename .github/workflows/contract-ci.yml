@@ -252,6 +252,9 @@ jobs:
       - name: Build SDK package
         run: pnpm --filter @clowder-ai/plugin-sdk build
 
+      - name: Build feedback package
+        run: pnpm --filter @clowder-ai/feedback build
+
       - name: Build connector packages
         run: |
           set -euo pipefail
@@ -316,6 +319,12 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/plugin-sdk
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish feedback prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/feedback
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish Collective prerelease

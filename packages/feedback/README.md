@@ -14,7 +14,9 @@
 
 ## 安装与宿主要求
 
-需要配套 Host #1732 的通用 `ui` command / `activity-bar.bottom` 面板能力；分析复用普通 `members`、`threads`、`messaging` 和可选 `runtimeInfo.get()`。此包仍为候选，尚未加入发布目录或默认安装列表；旧 Host 不会显示侧栏入口，不能单独宣称兼容。通用能力诉求见 Host Issue #1734。
+需要包含 Host #1762 的 `next` 版本，该变更已迁移 #1732 的通用侧栏能力并接入面板 HTTP。分析复用普通 `members`、`threads`、`messaging` 和可选 `runtimeInfo.get()`。正式目录激活后，在设置的插件仓库中搜索“问题反馈”，安装、测试并启用，再从左栏底部打开。此插件按需安装；未提供这些能力的旧 Host 不受支持。
+
+源码联调可构建本地包：
 
 ```sh
 pnpm --filter @clowder-ai/feedback build
