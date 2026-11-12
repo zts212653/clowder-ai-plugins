@@ -105,17 +105,19 @@ function pictureCards() {
   ])));
 }
 async function addFiles(files) {
+  const attachments = [...state.report.attachments];
   for (const file of files) {
-    if (state.report.attachments.length >= 4 || file.size > 4000000 || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('最多 4 张 PNG/JPEG/WebP，单张不超过 4 MB');
-    const picture = await normalizePicture(file, state.report.attachments.length);
-    const report = { ...state.report, attachments: [...state.report.attachments, picture] };
+    if (attachments.length >= 4 || file.size > 4000000 || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('最多 4 张 PNG/JPEG/WebP，单张不超过 4 MB');
+    const picture = await normalizePicture(file, attachments.length);
+    const report = { ...state.report, attachments: [...attachments, picture] };
     const request = { op:'save', draftOnly:true, targetId:state.targetId,clientId:state.clientId,projectRef:state.projectRef,revision:state.revision,report,feedbackId:state.feedbackId };
     checkRequestBudget(request);
     if(report.attachments.reduce((sum,item)=>sum+atob(item.base64).length,0)>8_000_000)throw new Error('发送图片总大小不能超过 8 MB，请减少图片或裁剪');
     if(report.attachments.reduce((sum,item)=>sum+(item.original?atob(item.original.base64).length:0),0)>8_000_000)throw new Error('原图总大小不能超过 8 MB，请减少图片或裁剪');
-    state.report.attachments.push(picture);
-    invalidate();
+    attachments.push(picture);
   }
+  state.report.attachments=attachments;
+  invalidate();
 }
 async function saveReview(checkTarget = true) {
   await flushDraft();
