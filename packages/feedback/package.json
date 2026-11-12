@@ -34,7 +34,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@clowder-ai/plugin-sdk": "workspace:0.3.0-beta.2-candidate.13",
+    "@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.13",
     "@types/node": "^20.17.0",
     "typescript": "^5.7.0",
     "tsx": "^4.19.0",

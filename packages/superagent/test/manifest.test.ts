@@ -4,7 +4,6 @@ import test from 'node:test';
 import { validateManifest } from '@clowder-ai/plugin-contract';
 import { parse } from 'yaml';
 import { z } from 'zod';
-import { parse } from 'yaml';
 import { planSchema, reportSchema } from '../src/state.js';
 
 test('published tool schemas describe exactly what the runtime accepts', async () => {
