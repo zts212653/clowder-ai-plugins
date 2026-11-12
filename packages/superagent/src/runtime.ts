@@ -103,7 +103,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
   const tick = () => {
     const run = tail.then(async () => {
       current();
-      const { pref, runtime } = await reconcile();
+      const { pref, runtime, works } = await reconcile();
       if (!runtime.mainThreadId) return;
       for (const report of await queued(host, 'reports', 'report:', reportSchema)) {
         current();
@@ -112,14 +112,15 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
           await editQueue(host, 'reports', key, false);
           continue;
         }
-        const { work, task } = await findWork(host, report.workId);
-        const source = await host.messaging.get(work.sourceMessageId);
+        const retained = works.find((work) => work.taskId === report.workId);
+        const source = retained ? await host.messaging.get(retained.sourceMessageId) : null;
         if (source?.catId) {
-          await host.storage.set(`refused-report:${key}`, { workId: work.taskId, reason: 'non-user-admission' });
+          await host.storage.set(`refused-report:${key}`, { workId: report.workId, reason: 'non-user-admission' });
           await host.storage.set(`report:${key}`, { ...report, applied: true });
           await editQueue(host, 'reports', key, false);
           continue;
         }
+        const { work, task } = await findWork(host, report.workId);
         if (task.entrustedWork?.closure.state !== 'open') {
           await host.storage.set(`report:${key}`, { ...report, applied: true });
           await editQueue(host, 'reports', key, false);

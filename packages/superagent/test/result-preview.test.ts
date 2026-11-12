@@ -29,6 +29,7 @@ test('a queued report from a legacy non-user admission cannot overwrite a stoppe
   await f.host.storage.set('report:legacy:result', { workId: task.id, reportId: 'result', kind: 'result', content: '请验收重复交付。'.repeat(200), applied: false, invocationId: 'legacy' });
   await f.host.storage.set('queue', { works: [key], reports: ['legacy:result'] });
   f.messages.set('handoff', { id: 'handoff', threadId: 'source-a', userId: 'owner', catId: 'existing-owner', content: '旧的审查交接', mentions: [], timestamp: 1, sourceRevision: '1' });
+  f.host.tasks.get = async () => null; // A stopped/revoked legacy Task may no longer have a package read projection.
   const runtime = await startSuperagent(f.host);
   await runtime.actions['superagent.tick']({});
   assert.deepEqual(f.tasks.get(task.id), task, 'a queued old result must retain the stop instruction');
