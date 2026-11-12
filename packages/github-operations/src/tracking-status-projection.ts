@@ -99,7 +99,7 @@ export async function projectStatus(source: StatusSource, sourceKey: string, ent
   } }, source, sourceKey, entry);
   const facts = rawFacts(row);
   const recovery: Record<string, unknown> = scalars(facts,
-    ['v', 'scope', 'index', 'revision', 'nextPollAt', 'nextAt', 'failures', 'disposition', 'reasonCode', 'pending', 'lastFailureAt']);
+    ['v', 'scope', 'index', 'revision', 'nextPollAt', 'nextAt', 'failures', 'disposition', 'reasonCode', 'pending', 'lastFailureAt', 'retryable']);
   if (facts.notices) {
     const notices = Object.values(object(facts.notices));
     recovery.noticeSummary = { total: notices.length, pending: notices.filter(n => object(n).state === 'pending').length,

@@ -4,6 +4,7 @@ import type { TaskItem } from './business/model/index.js';
 import { OwnerIndexedStorage } from './owner-indexed-storage.js';
 import { recoveryOwnerNotice, recoveryNoticeScore, type RecoveryOwnerNotice } from './recovery-owner-notice.js';
 import type { RecoveryErrorFacts } from './recovery-attempt.js';
+import { resumeLegacyNetworkFailure } from './observation-recovery.js';
 
 export const MIGRATED_ISSUES = 'github.migrated-issue.v1.';
 export const MIGRATED_ISSUE_INDEX = 'github-migrated-issues';
@@ -30,10 +31,13 @@ export function materializeMigratedIssue(value: unknown, key?: string): unknown 
       row.task.userId, row.sourceUpdatedAt])).digest('hex');
     const previous = row.recovery;
     if (previous && (previous.v !== 1 || !Number.isSafeInteger(previous.revision) || !Number.isSafeInteger(previous.failures)
-      || previous.failures < 0 || !Number.isFinite(previous.nextAt) || previous.scope !== scope)) throw new Error('Invalid migrated issue recovery facts');
-    const recovery = previous ?? { v: 1 as const, scope, revision: 0, failures: 0, nextAt: 0 };
+      || previous.failures < 0 || !Number.isFinite(previous.nextAt) || previous.scope !== scope
+      || previous.retryable !== undefined && typeof previous.retryable !== 'boolean')) throw new Error('Invalid migrated issue recovery facts');
+    const recovery = resumeLegacyNetworkFailure(previous ?? { v: 1 as const, scope, revision: 0, failures: 0, nextAt: 0 });
     const intent = recoveryOwnerNotice('migrated-issue', scope, row.task.threadId, row.task.subjectKey ?? row.task.id);
-    const notice = row.notice ?? (recovery.disposition && intent?.key !== recovery.lastNoticeKey ? intent : undefined);
+    const notice = recovery !== previous && previous?.disposition && recovery.retryable && row.notice?.state === 'pending'
+      ? { ...row.notice, state: 'cancelled' as const }
+      : row.notice ?? (recovery.disposition && intent?.key !== recovery.lastNoticeKey ? intent : undefined);
     return { ...row, recovery, notice };
   } catch { return { _migratedIssueRecoveryCorruption: value, disposition: 'needs_attention', reasonCode: 'invalid_migrated_issue_source' }; }
 }
@@ -46,7 +50,7 @@ export function migratedIssueProjection(value: unknown): PluginStorageProjection
   return { index: MIGRATED_ISSUE_INDEX, score: live === null ? notice : notice === null ? live : Math.min(live, notice) };
 }
 export function migratedIssueIndexOwner(storage: PluginStorageHost) {
-  return new OwnerIndexedStorage(storage, { prefix: MIGRATED_ISSUES, census: 'github.migrated-issue.census.v1',
+  return new OwnerIndexedStorage(storage, { prefix: MIGRATED_ISSUES, census: 'github.migrated-issue.census.v2',
     indexes: [MIGRATED_ISSUE_INDEX], materialize: materializeMigratedIssue,
     validate: (key, value) => { decodeMigratedIssue(value, key); }, projection: migratedIssueProjection });
 }

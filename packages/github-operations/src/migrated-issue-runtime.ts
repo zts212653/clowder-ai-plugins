@@ -4,7 +4,8 @@ import { MIGRATED_ISSUES, MIGRATED_ISSUE_INDEX, migratedIssueKey, decodeMigrated
   migratedIssueIndexOwner, type MigratedIssueRecord as RecordV1 } from './migrated-issue-record.js';
 import { GitHubRateLimitError, GitHubRequestDeferredError } from './business/infrastructure/github/request-budget.js';
 import { diagnosticError, type DiagnosticError } from './tracking-diagnostics.js';
-import { consecutiveFailures, type RecoveryAttempt } from './recovery-attempt.js';
+import { type RecoveryAttempt } from './recovery-attempt.js';
+import { observationAttempt, observationRetryDelay } from './observation-recovery.js';
 import { gitHubPollBudget, gitHubAdmissionCanContinue, gitHubObjectAdmission } from './business/infrastructure/github/admission-budget.js';
 import { advanceRecoveryNotice, sendRecoveryOwnerNotice } from './recovery-owner-notice.js';
 import type { TaskItem } from './business/model/index.js';
@@ -79,11 +80,11 @@ export class MigratedIssueRuntime {
   }
   private async finish(key: string, source: PluginStorageEntry, outcome: RecoveryAttempt, notBefore = 0, error?: DiagnosticError) {
     const current = await this.context.storage.get(key); if (!current || current.revision !== source.revision) return;
-    const row = decodeMigratedIssue(current.value), recovery = row.recovery!;
-    const failures = consecutiveFailures(recovery.failures, outcome);
+    const row = decodeMigratedIssue(current.value), recovery = observationAttempt(row.recovery!, outcome, this.now(), error);
+    const delay = recovery.retryable ? observationRetryDelay(recovery.failures, this.intervalMs, recovery.scope) : this.intervalMs;
     await this.indexed.publish(key, current.revision, { ...row, recovery: { ...recovery, revision: recovery.revision + 1,
-      failures, nextAt: Math.max(this.now() + this.intervalMs, notBefore), ...(error ? { lastError: error, lastFailureAt: this.now() } : {}),
-      ...(failures >= 5 ? { disposition: 'needs_attention', reasonCode: 'migrated_issue_observation_failed' } : {}) } });
+      nextAt: Math.max(this.now() + delay, notBefore),
+      ...(recovery.failures >= 5 && !recovery.retryable ? { disposition: 'needs_attention', reasonCode: 'migrated_issue_observation_failed' } : {}) } });
   }
   private async one(key: string, attempt: { entry: PluginStorageEntry }, signal: AbortSignal) {
     const check = () => signal.throwIfAborted();

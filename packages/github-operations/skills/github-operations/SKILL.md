@@ -36,6 +36,10 @@ For an existing paused typed wait, inspect `polling.state` and
 `recoveryOwners.typed` in `github_list_tracking`. A successful observation clears
 the consecutive failure count; quota, local queue pressure and skipped work do
 not consume or clear it. `lastError` is redacted historical failure evidence.
+Transient network failures use `polling.state: "backing_off"` with a persisted
+`nextPollAt` and automatic probes capped at fifteen-minute intervals. Do not
+re-register or manually reset these waits. Only a successful observation clears
+the streak; a cold start retains the deadline and original baseline.
 When the owner authorizes recovery, use `github_retry_tracking` with that row's
 `taskId`, `recovery.scope` and `recovery.revision` (not `sourceRevision`). It only
 retries a wait paused for `github_observation_failed` belonging to the current

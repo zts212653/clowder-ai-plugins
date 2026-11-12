@@ -4,7 +4,7 @@ import type { FeatureContext, PluginStorageHost } from '@clowder-ai/plugin-sdk';
 
 export interface RecoveryOwnerNotice {
   key: string; scope: string; threadId: string; subject: string;
-  state: 'pending' | 'delivered' | 'needs_attention'; failures: number; nextAt: number;
+  state: 'pending' | 'delivered' | 'needs_attention' | 'cancelled'; failures: number; nextAt: number;
   messageId?: string; archiveAttempts?: number;
 }
 export type RecoveryNoticeSender = (notice: RecoveryOwnerNotice) => Promise<{ messageId: string }>;
