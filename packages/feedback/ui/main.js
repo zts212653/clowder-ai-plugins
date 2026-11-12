@@ -50,7 +50,7 @@ async function saveDraft(asNew=false) {
   state.journal=saved.journal;state.revision=saved.revision;state.saveError='';state.saveErrorCode='';state.selectionSaved=saved.selectionSaved;
   if(asNew){state.feedbackId=saved.journal.id;state.analysis=undefined;state.stage='edit';state.error='';}
   if(version===editVersion)state.dirty=false;
-  if(status)status.textContent=version===editVersion?'草稿已保存到反馈记录':'草稿有更新，将自动保存';
+  if(status)status.textContent=version===editVersion?(saved.selectionSaved===false?'草稿已保存，可从反馈记录继续':'草稿已保存到反馈记录'):'草稿有更新，将自动保存';
 }
 function hasDraft(){return state.journal||state.dirty;}
 async function flushDraft(){clearTimeout(draftTimer);await pendingDraft;await saveDraft();}
@@ -111,6 +111,8 @@ async function addFiles(files) {
     const report = { ...state.report, attachments: [...state.report.attachments, picture] };
     const request = { op:'save', draftOnly:true, targetId:state.targetId,clientId:state.clientId,projectRef:state.projectRef,revision:state.revision,report,feedbackId:state.feedbackId };
     checkRequestBudget(request);
+    if(report.attachments.reduce((sum,item)=>sum+atob(item.base64).length,0)>8_000_000)throw new Error('发送图片总大小不能超过 8 MB，请减少图片或裁剪');
+    if(report.attachments.reduce((sum,item)=>sum+(item.original?atob(item.original.base64).length:0),0)>8_000_000)throw new Error('原图总大小不能超过 8 MB，请减少图片或裁剪');
     state.report.attachments.push(picture);
     invalidate();
   }
