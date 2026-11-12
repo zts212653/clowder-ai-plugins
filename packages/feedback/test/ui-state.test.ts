@@ -113,7 +113,7 @@ test('closing waits for the automatic save of a completed analysis', async () =>
   const closing=closePanel();
   await Promise.resolve();
   assert.deepEqual(messages,[]);
-  release({journal:{id:'draft',state:'draft',digest:'saved',target:{}},revision:1});
+  release({journal:{id:'draft',state:'draft',digest:'saved',target:{},report:structuredClone(actions.state.report)},revision:1});
   await poll;await closing;
   assert.ok(messages.includes('close'),'the queued close must finish after analysis saving');
 });

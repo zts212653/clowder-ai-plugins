@@ -56,7 +56,17 @@ async function saveDraft(asNew=false) {
   if(state.feedbackId!==id)return;
   state.journal=saved.journal;state.revision=saved.revision;state.saveError='';state.saveErrorCode='';state.selectionSaved=saved.selectionSaved;
   if(asNew){state.feedbackId=saved.journal.id;state.analysis=undefined;state.stage='edit';state.error='';}
-  if(version===editVersion)state.dirty=false;
+  if(version===editVersion){
+    state.dirty=false;
+    if(state.stage!=='edit'){
+      state.report=saved.journal.report;
+      ['title','body'].forEach(field=>{
+        const control=document.getElementById(`feedback-${field}`);
+        if(control)control.value=state.report[field];
+      });
+      document.querySelector('[aria-label="报告正文预览"]')?.replaceWith(reportPreview(state.report.body,el));
+    }
+  }
   if(status)status.textContent=version===editVersion?(saved.selectionSaved===false?'草稿已保存，可从反馈记录继续':'草稿已保存到反馈记录'):'草稿有更新，将自动保存';
 }
 function hasDraft(){return state.journal||state.dirty;}
