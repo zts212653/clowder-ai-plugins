@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { numberQuery, requireBearer, requiredQuery, writeJson } from './http-transport.js';
 import type { CollectiveServiceStore } from './store.js';
 import { assertComposerContentReader, assertMessageContentReader, messageContentVersionHeader } from './message-content-compatibility.js';
+import { readInviteAccessProfile } from './invite-access-profile.js';
 
 /** Read APIs retain their authentication and membership checks in the canonical Store. */
 export async function routeCollectiveRead(
@@ -62,6 +63,19 @@ export async function routeCollectiveRead(
       limit: numberQuery(url, 'limit', 20),
       ...(cursor ? { cursor } : {}),
     }));
+    return true;
+  }
+  if (url.pathname === '/api/invites/access-profile') {
+    const collectiveId = requiredQuery(url, 'collectiveId');
+    // Reuse the invitation list's authenticated, bound-human and active-steward checks.
+    store.listInvites({ sessionToken: requireBearer(request), collectiveId, limit: 1 });
+    const profile = readInviteAccessProfile(process.env, request.socket.localAddress, request.socket.localPort);
+    writeJson(response, 200, {
+      status: profile ? 'ready' : 'unconfigured',
+      serviceInstanceId: store.serviceInstanceId,
+      collectiveId,
+      ...(profile ?? {}),
+    });
     return true;
   }
   if (url.pathname === '/api/members') {

@@ -4,10 +4,17 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const serviceDir = new URL('../../../packages/collective-connector/dist/business/service/', import.meta.url);
+const packageRoot = process.env.F290_NEW_PACKAGE_ROOT;
+const serviceDir = packageRoot
+  ? pathToFileURL(`${resolve(packageRoot, 'dist/business/service')}${sep}`)
+  : new URL('../../../packages/collective-connector/dist/business/service/', import.meta.url);
+if (packageRoot) {
+  const manifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
+  console.log(`Testing candidate package ${manifest.name}@${manifest.version}`);
+}
 const { CollectiveServiceStore: NewStore } = await import(new URL('store.js', serviceDir));
 const { prepareInviteRollback, restoreInviteMetadata } = await import(new URL('invite-rollback.js', serviceDir));
 

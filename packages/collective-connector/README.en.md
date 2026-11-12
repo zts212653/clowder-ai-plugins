@@ -80,7 +80,7 @@ Reading or suggesting one shared material rechecks only its selected original so
 
 ## Standalone Service over private SSH (alpha.16)
 
-The package ships `clowder-collective-service`, its matching Client and a durable ordinary-attachment owner. See [DEPLOYMENT.md](DEPLOYMENT.md) for installation, loopback forwarding, initial setup, media dependencies, stopped backups and upgrades. Shared Works stay with their original Café owner over the existing relay and become unavailable while that owner is offline.
+The package ships `clowder-collective-service`, its matching Client and a durable ordinary-attachment owner. See [DEPLOYMENT.md](DEPLOYMENT.md) for installation, loopback forwarding, initial setup, media dependencies, stopped backups and upgrades. [Invitation connection setup](https://github.com/zts212653/clowder-ai-plugins/blob/main/docs/collective-invitation-access.md) covers friends who already have an SSH key. Shared Works stay with their original Café owner over the existing relay and become unavailable while that owner is offline.
 
 This version uses Contract `0.3.0` / SDK `0.3.0-beta.1`. The remote launch entry requires a matching Host containing Core `64019020ac268cb3695a1b9025dfad1cc5a104c8`. The Client retains the 542 verified source inputs above and was neither rebuilt nor rolled back. Install the exact package and digest in the release receipt. Engineering checks cover installed packages, isolated OpenSSH, attachments, original Works and lost-response recovery; a real cloud server, two computers, two Humans and the production GitHub provider remain deployment acceptance.
 

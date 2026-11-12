@@ -73,7 +73,7 @@ Human 身份、A→B→A 世界历史、刷新恢复、断网重试与卡片边�
 
 ## 独立 Service 与 SSH 私有部署（alpha.16）
 
-包内提供 `clowder-collective-service` 命令、同版 Client 和持久普通附件 owner。安装、loopback SSH、首次设置、媒体依赖、停机备份和升级恢复见[完整部署说明](DEPLOYMENT.md)。家内 Works 原件仍由原 Café 经 relay 提供，owner 离线时明确不可读。
+包内提供 `clowder-collective-service` 命令、同版 Client 和持久普通附件 owner。安装、loopback SSH、首次设置、媒体依赖、停机备份和升级恢复见[完整部署说明](DEPLOYMENT.md)。已有 SSH key 的朋友所需邀请连接资料见[配置说明](https://github.com/zts212653/clowder-ai-plugins/blob/main/docs/collective-invitation-access.md)。家内 Works 原件仍由原 Café 经 relay 提供，owner 离线时明确不可读。
 
 该版本使用 Contract `0.3.0` / SDK `0.3.0-beta.1`；远端入口要求包含 Core `64019020ac268cb3695a1b9025dfad1cc5a104c8` 的匹配 Host。随包 Client 保留上述 542 个已验源输入；这次没有重建或回退 Client。正式安装以发布回执的精确包与摘要为准。工程验证覆盖实际安装、独立 OpenSSH、附件与原作品两条链及丢回复恢复；真实云机、两台电脑、两位真人与正式 GitHub provider 仍须在部署窗口验收。
 
