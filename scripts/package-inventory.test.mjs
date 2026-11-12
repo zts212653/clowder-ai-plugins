@@ -44,14 +44,19 @@ test('public runtime plugins cannot disappear behind a noncanonical manifest fil
   }
 });
 
-test('public runtime sources declare a catalog destination or an explicit source-only exception', () => {
-  // These existing plugins are installed from source rather than the npm catalog.
+test('public runtime sources declare a catalog destination or a reviewed noncatalog disposition', () => {
+  // Pending admission is not a permanent source-only decision.
   // Keep this list explicit: deriving it from missing catalog rows hides omissions.
-  const sourceOnly = new Set(['official.feedback', 'official.quick-phrases', 'official.tripo-studio']);
+  const noncatalog = new Set([
+    'official.feedback', // Admission pending: https://github.com/zts212653/clowder-ai-plugins/issues/212
+    'official.superagent', // Admission pending: https://github.com/zts212653/clowder-ai-plugins/issues/214
+    'official.quick-phrases', // Source-only installation.
+    'official.tripo-studio', // Source-only installation.
+  ]);
   for (const plugin of plugins.filter(p => p.pkg.private !== true && p.manifest.runtime)) {
     assert.ok(catalog.plugins.some(entry => entry.pluginId === plugin.manifest.pluginId) ||
-      sourceOnly.has(plugin.manifest.pluginId),
-    `${plugin.directory}: public runtime needs a candidate and release plan or reviewed source-only disposition`);
+      noncatalog.has(plugin.manifest.pluginId),
+    `${plugin.directory}: public runtime needs a candidate and release plan or reviewed noncatalog disposition`);
   }
 });
 
