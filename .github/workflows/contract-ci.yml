@@ -1,457 +1,60 @@
-name: Contract CI
-
-env:
-  ARTIFACT_NODE_VERSION: '24.18.0'
-  ARTIFACT_NPM_VERSION: '11.16.0'
-  ARTIFACT_ZLIB_VERSION: '1.3.1-e00f703'
+name: Quick phrases package OIDC authorization probe
 
 on:
-  pull_request: {}
   push:
-    branches: [main]
-    paths:
-      - 'packages/plugin-contract/**'
-      - 'packages/plugin-sdk/**'
-      - 'packages/companion/**'
-      - 'packages/collective-connector/**'
-      - 'packages/connector-dingtalk/**'
-      - 'packages/connector-feishu/**'
-      - 'packages/connector-telegram/**'
-      - 'packages/connector-wecom-agent/**'
-      - 'packages/connector-wecom-bot/**'
-      - 'packages/connector-weixin/**'
-      - 'packages/connector-xiaoyi/**'
-      - 'packages/enterprise-workflow/**'
-      - 'packages/personal-chrome-companion/**'
-      - 'packages/feishu-meeting-intake/**'
-      - 'packages/video-analysis/**'
-      - 'packages/tripo-studio/**'
-      - 'packages/video-generation/**'
-      - 'packages/wechat-visible-reader/**'
-      - 'packages/weixin-mp/**'
-      - 'packages/xiangqi/**'
-      - 'packages/genoffice-docx/**'
-      - 'packages/github-operations/**'
-      - 'packages/feedback/**'
-      - 'packages/quick-phrases/**'
-      - 'packages/stackchan/**'
-      - 'packages/superagent/**'
-      - 'catalog/**'
-      - 'scripts/**'
-      - 'package.json'
-      - '.npmrc'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/contract-ci.yml'
-      - '.github/actions/publish-prerelease/**'
+    branches:
+      - diag/quick-phrases-oidc-20261112-sol
 
-# Cancel in-progress runs for the same PR/branch
-concurrency:
-  group: contract-ci-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 jobs:
-  validate:
-    name: Typecheck + Conformance
+  probe:
+    if: github.repository == 'zts212653/clowder-ai-plugins' && github.actor == 'zts212653'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      # B1 class: a run must test the PR's live head. A push to the wrong
-      # remote (or a head advance after checkout) otherwise leaves a stale
-      # green run readable as "the new head passed".
-      - name: Assert tested HEAD is the PR's live head
-        if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          checked_out="$(git rev-parse HEAD)"
-          expected="${{ github.event.pull_request.head.sha }}"
-          if [ "$checked_out" != "$expected" ]; then
-            echo "checkout mismatch: git rev-parse HEAD=$checked_out but PR head is $expected" >&2
-            exit 1
-          fi
-          node scripts/assert-pr-head.mjs \
-            "${{ github.repository }}" \
-            "${{ github.event.pull_request.number }}" \
-            "$expected"
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.ARTIFACT_NODE_VERSION }}
-          cache: 'pnpm'
-
-      # The required PR job checks ownership before publication is possible.
-      # A separate catalog PR is normal, so pending activation cannot fail main.
-      - name: Validate release destinations before merge
-        if: github.event_name == 'pull_request'
-        env:
-          RELEASE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-          git fetch --no-tags --depth=1 origin "$RELEASE_BASE_SHA"
-          pnpm install --frozen-lockfile
-          pnpm catalog:release-check -- --base-sha "$RELEASE_BASE_SHA"
-
-      # Local gate replica: `pnpm gate:ci` (scripts/ci-gate.mjs) runs the
-      # artifact-toolchain check, install, and every check through pack:gate
-      # in this job's former order. The workflow delegates to the script so
-      # local pre-push runs and CI cannot drift apart; edit steps there.
-      - name: Local gate (toolchain to pack:gate)
-        run: pnpm gate:ci
-
-      - name: Companion browser layout contract
-        run: pnpm --filter @clowder-ai/companion exec playwright install chromium && pnpm --filter @clowder-ai/companion test:browser
-
-      # Pure package checks also run in gate:ci. Keep the browser journey
-      # explicit alongside this workflow's package checks, mirroring main.
-      - name: Xiangqi package tests and build
-        run: pnpm --filter @clowder-ai/xiangqi test && pnpm --filter @clowder-ai/xiangqi lint && pnpm --filter @clowder-ai/xiangqi build
-
-      - name: Xiangqi browser journey
-        run: pnpm --filter @clowder-ai/xiangqi test:browser
-
-      - name: Loopback fixture typecheck
-        run: pnpm --filter @clowder-ai/loopback-fixture-plugin typecheck
-
-      - name: Loopback fixture tests
-        run: pnpm --filter @clowder-ai/loopback-fixture-plugin test
-
-      - name: Loopback fixture lint
-        run: pnpm --filter @clowder-ai/loopback-fixture-plugin lint
-
-      - name: Loopback fixture build
-        run: pnpm --filter @clowder-ai/loopback-fixture-plugin build
-
-      - name: Conformance runner
-        run: pnpm --filter @clowder-ai/plugin-contract conformance
-
-      - name: Capture exact-head pack evidence
-        env:
-          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: node scripts/capture-exact-head-pack-evidence.mjs packages/plugin-contract "$RUNNER_TEMP/plugin-contract-pack.json" "$RUNNER_TEMP/plugin-contract-pack-evidence.json" "$EXPECTED_HEAD_SHA"
-
-      - name: Capture exact-head SDK pack evidence
-        env:
-          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: node scripts/capture-exact-head-pack-evidence.mjs packages/plugin-sdk "$RUNNER_TEMP/plugin-sdk-pack.json" "$RUNNER_TEMP/plugin-sdk-pack-evidence.json" "$EXPECTED_HEAD_SHA"
-
-      - name: Verify immutable published package identity
-        working-directory: packages/plugin-contract
-        env:
-          PACK_JSON_PATH: ${{ runner.temp }}/plugin-contract-pack.json
-          REGISTRY_JSON_PATH: ${{ runner.temp }}/plugin-contract-existing-registry.json
-          REGISTRY_ERROR_PATH: ${{ runner.temp }}/plugin-contract-existing-registry.err
-        run: |
-          set -euo pipefail
-          PACKAGE_NAME=$(node --input-type=module <<'NODE'
-          import { readFileSync } from 'node:fs';
-
-          const [artifact] = JSON.parse(readFileSync(process.env.PACK_JSON_PATH, 'utf8'));
-          if (typeof artifact?.name !== 'string' || artifact.name.length === 0) {
-            throw new Error('npm pack did not report package name');
-          }
-          process.stdout.write(artifact.name);
-          NODE
-          )
-          PACKAGE_VERSION=$(node --input-type=module <<'NODE'
-          import { readFileSync } from 'node:fs';
-
-          const [artifact] = JSON.parse(readFileSync(process.env.PACK_JSON_PATH, 'utf8'));
-          if (typeof artifact?.version !== 'string' || artifact.version.length === 0) {
-            throw new Error('npm pack did not report package version');
-          }
-          process.stdout.write(artifact.version);
-          NODE
-          )
-          EXPECTED_INTEGRITY=$(node --input-type=module <<'NODE'
-          import { readFileSync } from 'node:fs';
-
-          const [artifact] = JSON.parse(readFileSync(process.env.PACK_JSON_PATH, 'utf8'));
-          if (typeof artifact?.integrity !== 'string' || artifact.integrity.length === 0) {
-            throw new Error('npm pack did not report package integrity');
-          }
-          process.stdout.write(artifact.integrity);
-          NODE
-          )
-          export PACKAGE_NAME PACKAGE_VERSION EXPECTED_INTEGRITY
-
-          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2> "$REGISTRY_ERROR_PATH"; then
-            node --input-type=module <<'NODE'
-          import { readFileSync } from 'node:fs';
-
-          const metadata = JSON.parse(readFileSync(process.env.REGISTRY_JSON_PATH, 'utf8'));
-          if (metadata.version !== process.env.PACKAGE_VERSION) {
-            throw new Error(`registry version mismatch: ${metadata.version}`);
-          }
-          if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
-            throw new Error(`immutable registry integrity mismatch: ${metadata.dist?.integrity}`);
-          }
-          NODE
-          elif grep -q 'E404' "$REGISTRY_ERROR_PATH"; then
-            echo "No published $PACKAGE_NAME@$PACKAGE_VERSION; release publication remains eligible."
-          else
-            cat "$REGISTRY_ERROR_PATH" >&2
-            exit 1
-          fi
-
-      - name: Upload exact-head pack evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: plugin-contract-pack-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/plugin-contract-pack-evidence.json
-          if-no-files-found: error
-
-      - name: Upload exact-head SDK pack evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: plugin-sdk-pack-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/plugin-sdk-pack-evidence.json
-          if-no-files-found: error
-
-  # Publication does not change live discovery. Candidate coordinates are in
-  # catalog/candidate.json; after publication a normal reviewed catalog update
-  # is prepared with pnpm catalog:activate.
-  publish:
-    name: Publish to npm
-    needs: validate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - uses: actions/setup-node@v6
         with:
-          node-version: ${{ env.ARTIFACT_NODE_VERSION }}
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'pnpm'
-
-      - name: Verify artifact toolchain
-        run: node packages/plugin-contract/scripts/verify-artifact-toolchain.mjs
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build public packages
-        run: pnpm --filter @clowder-ai/plugin-contract build
-
-      - name: Build SDK package
-        run: pnpm --filter @clowder-ai/plugin-sdk build
-
-      - name: Build feedback package
-        run: pnpm --filter @clowder-ai/feedback build
-
-      - name: Build quick phrases package
-        run: pnpm --filter @clowder-ai/quick-phrases build
-
-      - name: Build connector packages
+          node-version: '24.18.0'
+      - name: Probe quick phrases OIDC exchange without publishing or storing credentials
         run: |
-          set -euo pipefail
-          for package in \
-            @clowder-ai/connector-telegram \
-            @clowder-ai/connector-dingtalk \
-            @clowder-ai/connector-feishu \
-            @clowder-ai/connector-wecom-agent \
-            @clowder-ai/connector-wecom-bot \
-            @clowder-ai/connector-weixin \
-            @clowder-ai/connector-xiaoyi
-          do
-            pnpm --filter "$package" build
-          done
-
-      - name: Build Collective package
-        run: pnpm --filter @clowder-ai/collective-connector build
-
-      - name: Build enterprise workflow package
-        run: pnpm --filter @clowder-ai/enterprise-workflow build
-
-      - name: Build personal Chrome companion package
-        run: pnpm --filter @clowder-ai/personal-chrome-companion build
-
-      - name: Build Feishu meeting intake package
-        run: pnpm --filter @clowder-ai/feishu-meeting-intake build
-
-      - name: Build companion package
-        run: pnpm --filter @clowder-ai/companion build
-
-      - name: Build Xiangqi package
-        run: pnpm --filter @clowder-ai/xiangqi build
-
-      - name: Build video analysis package
-        run: pnpm --filter @clowder-ai/video-analysis build
-
-      - name: Build video generation package
-        run: pnpm --filter @clowder-ai/video-generation build
-
-      - name: Build Weixin MP package
-        run: pnpm --filter @clowder-ai/weixin-mp build
-
-      - name: Build WeChat visible reader package
-        run: pnpm --filter @clowder-ai/wechat-visible-reader build
-
-      - name: Build GitHub operations package
-        run: pnpm --filter @clowder-ai/github-operations build
-
-      - name: Build and verify frozen GenOffice renderer
-        run: |
-          pnpm --filter @clowder-ai/genoffice-docx build:renderer
-          pnpm --filter @clowder-ai/genoffice-docx prepack
-
-      - name: Publish contract prerelease
-        uses: ./.github/actions/publish-prerelease
+          node <<'NODE'
+          const fs = require('node:fs');
+          (async () => {
+            const expectedRepo = 'zts212653/clowder-ai-plugins';
+            const expectedRef = 'refs/heads/diag/quick-phrases-oidc-20261112-sol';
+            if (process.env.GITHUB_REPOSITORY !== expectedRepo || process.env.GITHUB_REF !== expectedRef) throw new Error('Unexpected repository/ref');
+            const requestUrl = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
+            requestUrl.searchParams.set('audience', 'npm:registry.npmjs.org');
+            const identityResponse = await fetch(requestUrl, { headers: { Authorization: 'Bearer ' + process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN } });
+            if (!identityResponse.ok) throw new Error('GitHub identity request failed: HTTP ' + identityResponse.status);
+            const identity = await identityResponse.json();
+            if (typeof identity.value !== 'string') throw new Error('GitHub identity token missing');
+            const claims = JSON.parse(Buffer.from(identity.value.split('.')[1], 'base64url'));
+            const expectedWorkflow = expectedRepo + '/.github/workflows/contract-ci.yml@';
+            if (claims.repository !== expectedRepo || !claims.workflow_ref.startsWith(expectedWorkflow)) throw new Error('Unexpected workflow identity');
+            const packageName = '@clowder-ai/quick-phrases';
+            const response = await fetch('https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/' + encodeURIComponent(packageName), {
+              method: 'POST', headers: { Authorization: 'Bearer ' + identity.value },
+            });
+            const result = await response.json().catch(() => ({}));
+            const accepted = response.ok && typeof result.token === 'string' && result.token.length > 0;
+            const safe = (value) => typeof value === 'string' ? value.replace(/https?:\/\/\S+/g, '[URL]').replace(/[A-Za-z0-9_~+\/-]{48,}/g, '[redacted]').slice(0, 300) : null;
+            const receipt = { package: packageName, status: response.status, accepted, errorCode: safe(result.code), errorMessage: accepted ? null : safe(result.error || result.message), repository: claims.repository, workflowRef: claims.workflow_ref, sourceRun: process.env.GITHUB_RUN_ID, published: false, credentialsPersisted: false };
+            fs.writeFileSync(process.env.RUNNER_TEMP + '/quick-phrases-oidc-probe.json', JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 });
+            console.log(JSON.stringify(receipt));
+            if (!accepted) process.exitCode = 1;
+          })().catch((error) => { console.error(error.message); process.exitCode = 1; });
+          NODE
+      - name: Upload credential-free proof
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          package-directory: packages/plugin-contract
-          npm-token: ${{ secrets.NPM_TOKEN }}
-          allowed-stable-version: '0.3.0'
+          name: quick-phrases-oidc-probe-${{ github.sha }}
+          path: ${{ runner.temp }}/quick-phrases-oidc-probe.json
+          if-no-files-found: warn
 
-      - name: Publish SDK prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/plugin-sdk
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish feedback prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/feedback
-          npm-token: ''
-
-      - name: Publish Collective prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/collective-connector
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish enterprise workflow prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/enterprise-workflow
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish personal Chrome companion prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/personal-chrome-companion
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish Feishu meeting intake prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/feishu-meeting-intake
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish Telegram connector prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/connector-telegram
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish DingTalk connector prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/connector-dingtalk
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish Feishu connector prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/connector-feishu
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish WeCom agent connector prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/connector-wecom-agent
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish WeCom bot connector prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/connector-wecom-bot
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish WeChat Personal connector prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/connector-weixin
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish XiaoYi connector prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/connector-xiaoyi
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish companion prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/companion
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish video analysis prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/video-analysis
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish video generation prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/video-generation
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish Weixin MP prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/weixin-mp
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish WeChat visible reader prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/wechat-visible-reader
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish GenOffice prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/genoffice-docx
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish Xiangqi prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/xiangqi
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish GitHub operations prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/github-operations
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish quick phrases prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/quick-phrases
-          npm-token: ''
-
-      # Publication and discovery are separate transitions. The PR already
-      # declared an owner; the daily audit delivers durable follow-up reminders.
-      - name: Report catalog release follow-up
-        run: pnpm catalog:release-audit
