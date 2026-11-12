@@ -463,7 +463,6 @@ test('main publishes the public dependency chain through one hardened action', (
     'packages/wechat-visible-reader',
     'packages/genoffice-docx',
     'packages/xiangqi',
-    'packages/superagent',
     'packages/github-operations',
   ];
   const publishedPackages = publishedPackageDirectories(releaseWorkflow);
