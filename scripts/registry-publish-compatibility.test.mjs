@@ -268,13 +268,14 @@ test('unpublished current versions and matching published history pass together'
 });
 
 
-async function runPublicationAction(t, { published, tags, integrity = 'sha512-exact', registryIntegrity = integrity, restoreRaceNext, packageExists = true, version = '0.1.0-beta.12' }) {
+async function runPublicationAction(t, { published, tags, integrity = 'sha512-exact', registryIntegrity = integrity, restoreRaceNext, packageExists = true, version = '0.1.0-beta.12', visibilityDelayStep, visibilityDelayPolls = 0 }) {
   const root = await mkdtemp(join(tmpdir(), 'clowder-publication-action-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const bin = join(root, 'bin');
   await mkdir(bin);
   const statePath = join(root, 'registry.json');
-  const state = { published, tags, integrity: registryIntegrity, restoreRaceNext, packageExists, mutations: [] };
+  const state = { published, tags, integrity: registryIntegrity, restoreRaceNext, packageExists, mutations: [],
+    visibilityDelayStep, visibilityDelayPolls, delayedLookups: 0 };
   await writeFile(statePath, JSON.stringify(state));
   await writeFile(join(bin, 'npm'), `#!${process.execPath}
 const fs = require('node:fs');
@@ -289,7 +290,14 @@ if (args[0] === 'view') {
     }
     console.log(JSON.stringify(state.tags));
   }
-  else if (state.published) console.log(JSON.stringify({version:process.env.PACKAGE_VERSION,dist:{integrity:state.integrity}}));
+  else if (state.published) {
+    if (state.visibilityDelayStep && process.env.REGISTRY_JSON_PATH?.endsWith(state.visibilityDelayStep)) {
+      state.delayedLookups += 1;
+      fs.writeFileSync(process.env.MOCK_REGISTRY, JSON.stringify(state));
+      if (state.delayedLookups <= state.visibilityDelayPolls) { console.error('E404: upload accepted, version not readable yet'); process.exit(1); }
+    }
+    console.log(JSON.stringify({version:process.env.PACKAGE_VERSION,dist:{integrity:state.integrity}}));
+  }
   else { console.error('E404'); process.exit(1); }
 } else if (args[0] === 'publish') {
   state.published = true;
@@ -305,10 +313,11 @@ if (args[0] === 'view') {
   fs.writeFileSync(process.env.MOCK_REGISTRY, JSON.stringify(state));
 } else { throw new Error('unexpected npm call: '+JSON.stringify(args)); }
 `);
-  // One failed inspection is enough to reproduce a tag mismatch without a five-minute wait.
-  await writeFile(join(bin, 'seq'), '#!/bin/sh\necho 1\n');
+  // Keep the real action's retry count for propagation regressions. Other tests
+  // need only one inspection to reject a bad identity or tag.
+  if (!visibilityDelayPolls) await writeFile(join(bin, 'seq'), '#!/bin/sh\necho 1\n');
   await writeFile(join(bin, 'sleep'), '#!/bin/sh\nexit 0\n');
-  for (const name of ['npm', 'seq', 'sleep']) await chmod(join(bin, name), 0o755);
+  for (const name of ['npm', 'sleep', ...(!visibilityDelayPolls ? ['seq'] : [])]) await chmod(join(bin, name), 0o755);
   const action = parse(await readFile(new URL('../.github/actions/publish-prerelease/action.yml', import.meta.url), 'utf8'));
   const outputs = { pack: { name: '@clowder-ai/plugin-sdk', version, integrity, filename: 'exact.tgz' }, registry: {} };
   const inputs = { 'npm-token': '', 'allowed-stable-version': '0.3.0' };
@@ -327,7 +336,7 @@ if (args[0] === 'view') {
       PACKAGE_VERSION: outputs.pack.version, GITHUB_OUTPUT: outputPath,
       ...Object.fromEntries(Object.entries(step.env ?? {}).map(([key, value]) => [key, interpolate(value)])) };
     for (const key of Object.keys(env)) if (key.toUpperCase().includes('TOKEN')) delete env[key];
-    const result = spawnSync('bash', ['-c', step.run], { env, cwd: new URL('../', import.meta.url), encoding: 'utf8' });
+    const result = spawnSync('bash', ['-c', step.run], { env, cwd: new URL('../', import.meta.url), encoding: 'utf8', timeout: 30_000 });
     if (result.status !== 0) { failure = { step: step.name, status: result.status, stderr: result.stderr }; break; }
     if (step.id) for (const line of (await readFile(outputPath, 'utf8')).trim().split('\n')) {
       const split = line.indexOf('=');
@@ -342,6 +351,31 @@ test('ordinary current publisher still owns next and preserves stable latest', a
     tags: { latest: '1.0.0', next: '0.1.0-beta.11' } });
   assert.equal(result.failure, undefined, JSON.stringify(result.failure));
   assert.deepEqual(result.state.tags, { latest: '1.0.0', next: '0.1.0-beta.12' });
+  assert.equal(result.state.mutations.length, 1);
+});
+
+for (const step of ['prerelease-published-version.json', 'prerelease-final-version.json']) {
+  test(`publisher tolerates six-minute registry visibility delay in ${step}`, async t => {
+    // The real upload returned success at 18:43:16, but npm did not expose the
+    // version until 18:49:25. At the action's five-second cadence this needs 75
+    // lookups. Mock sleep only; execute the checked-in Bash, Node checks and seq.
+    const result = await runPublicationAction(t, { published: false,
+      tags: { latest: '1.0.0', next: '0.1.0-beta.11' },
+      visibilityDelayStep: step, visibilityDelayPolls: 74 });
+    assert.equal(result.failure, undefined, JSON.stringify(result.failure));
+    assert.equal(result.state.delayedLookups, 75);
+    assert.equal(result.state.mutations.length, 1, 'waiting must never upload the immutable version again');
+    assert.deepEqual(result.state.tags, { latest: '1.0.0', next: '0.1.0-beta.12' });
+  });
+}
+
+test('registry visibility timeout remains bounded and fails without a second upload', async t => {
+  const result = await runPublicationAction(t, { published: false,
+    tags: { latest: '1.0.0', next: '0.1.0-beta.11' },
+    visibilityDelayStep: 'prerelease-published-version.json', visibilityDelayPolls: 1000 });
+  assert.equal(result.failure?.step, 'Inspect published registry state');
+  assert.match(result.failure.stderr, /registry inspection failed/);
+  assert.ok(result.state.delayedLookups <= 120, 'stop within the ten-minute polling budget');
   assert.equal(result.state.mutations.length, 1);
 });
 
