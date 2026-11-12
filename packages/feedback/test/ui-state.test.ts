@@ -161,6 +161,16 @@ test('adding pictures refuses an oversized HTTP envelope before changing the ret
   assert.equal(actions.state.report.attachments.length,1);
   await assert.rejects(actions.addFiles([file]),/图片合计过大/);
   assert.equal(actions.state.report.attachments.length,1);
+  const medium=Buffer.alloc(1_500_000).toString('base64');
+  context.normalizePicture=async()=>({mime:'image/png',base64:medium,original:{base64:medium}});
+  actions.state.report.attachments=[];
+  await assert.rejects(actions.addFiles([file,file,file,file]),/图片合计过大/);
+  assert.equal(actions.state.report.attachments.length,3,'4×1.5 MB retains the first three, refusing the last picture');
+  const large=Buffer.alloc(4_000_000).toString('base64');
+  context.normalizePicture=async()=>({mime:'image/png',base64:large,original:{base64:large}});
+  actions.state.report.attachments=[];
+  await assert.rejects(actions.addFiles([file,file,file]),/图片合计过大/);
+  assert.equal(actions.state.report.attachments.length,1,'3×4 MB is rejected before it can exceed the Host bridge');
 });
 
 test('legacy analysis settings are adopted, while a different saved context cannot apply an old report',async()=>{
