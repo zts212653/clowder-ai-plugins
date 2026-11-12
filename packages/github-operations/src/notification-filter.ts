@@ -36,7 +36,9 @@ function isExactSelfReceipt(
   const [, surface, id] = anchor;
   if (surface === 'pullrequestreview') {
     if (match.kind !== 'pr_review_decision_changed' && match.kind !== 'pr_review_result_available') return false;
-    return sourceId(match.sourceRef, ['review:', 'github:pr-review:']) === id;
+    const reviewId = sourceId(match.sourceRef, ['review:', 'github:pr-review:']);
+    if (snapshot.reviews.some(review => String(review.id) === reviewId && review.state === 'DISMISSED')) return false;
+    return reviewId === id;
   }
   if (match.kind !== 'pr_conversation_comment_added' && match.kind !== 'pr_inline_comment_added' && match.kind !== 'pr_review_result_available') return false;
   const prefixes = surface === 'issuecomment'
@@ -61,8 +63,9 @@ function shouldCoalescePendingHeadUpdate(
   receipt: ExternalReviewAggregate | null,
 ): boolean {
   const { task, subjectState } = options;
-  if (match.kind !== 'pr_head_changed' || snapshot.ci !== 'pending' || subjectState ||
-      snapshot.mergeState === 'CONFLICTING' || !hasFormalReview(task)) return false;
+  const awaitsCiTerminal = task?.automationState?.await?.continuation.when.some(predicate => predicate.kind === 'pr_ci_terminal') === true;
+  if (match.kind !== 'pr_head_changed' || snapshot.ci !== 'pending' || snapshot.ciRollup !== 'present' ||
+      !awaitsCiTerminal || subjectState || snapshot.mergeState === 'CONFLICTING' || !hasFormalReview(task)) return false;
   return !allMatches.some(other =>
     other !== match && other.kind !== 'pr_head_changed' && !isExactSelfReceipt(other, receipt, task, snapshot));
 }
