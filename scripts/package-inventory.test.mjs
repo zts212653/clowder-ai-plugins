@@ -50,7 +50,6 @@ test('public runtime sources declare a catalog destination or a reviewed noncata
   const noncatalog = new Set([
     'official.feedback', // Admission pending: https://github.com/zts212653/clowder-ai-plugins/issues/212
     'official.superagent', // Admission pending: https://github.com/zts212653/clowder-ai-plugins/issues/214
-    'official.quick-phrases', // Source-only installation.
     'official.tripo-studio', // Source-only installation.
   ]);
   for (const plugin of plugins.filter(p => p.pkg.private !== true && p.manifest.runtime)) {

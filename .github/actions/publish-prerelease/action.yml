@@ -6,8 +6,9 @@ inputs:
     description: Repository-relative public package directory
     required: true
   npm-token:
-    description: npm automation token
-    required: true
+    description: Optional npm automation token; leave empty for OIDC-only publication
+    required: false
+    default: ''
   allowed-stable-version:
     description: Exact stable version authorized by this workflow (empty = prerelease versions only)
     required: false

@@ -2570,6 +2570,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.44",
+          "contractVersion": "0.3.2-candidate.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/github-operations",
+            "version": "0.1.0-alpha.44",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.44.tgz",
+            "integrity": "sha512-7JwH4K13Uu9V+V7sMMxN/X2tIW1ap9UNklIeBl9onKZKSLO7xOuPgNSA8mvYM/+l+o4bTMAdlAZb7dEj6NhO9w==",
+            "shasum": "aa87f287ea919fec4df6885c7cc4cecba820c4c1",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/github-operations"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.43",
           "contractVersion": "0.3.2-candidate.0",
           "manifestPath": "plugin.yaml",
@@ -2872,6 +2889,49 @@
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/github-operations"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.quick-phrases",
+      "name": "快捷用语",
+      "description": {
+        "default": "在聊天输入框保存、搜索和复用常用的任务派发用语。",
+        "translations": {
+          "en": "Save, search, and reuse common instructions from the chat composer."
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "composer",
+        "quick phrases",
+        "snippets",
+        "快捷用语"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.3",
+          "contractVersion": "0.3.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/quick-phrases",
+            "version": "0.1.0-alpha.3",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/quick-phrases/-/quick-phrases-0.1.0-alpha.3.tgz",
+            "integrity": "sha512-186xs+a9mgHec3j8zfg1iczgDoL1JldRsi6U0sqgOaTCGcm00BTL0C5ZYxddLxjP2Q8w6On96kwtHtu8OSL+Ig==",
+            "shasum": "22939cc23cfe47a0920105435725dad594ff1d73",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/quick-phrases"
             }
           }
         }

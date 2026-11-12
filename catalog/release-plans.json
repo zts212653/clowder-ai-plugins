@@ -245,6 +245,17 @@
       "condition": "Verify this exact self-contained archive with the original instance, settings and retained subscriptions during an owner-authorized update; validate actual tool schema and bounded read results. Public catalog activation requires separate scoped review."
     },
     {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.44",
+      "integrity": "sha512-7JwH4K13Uu9V+V7sMMxN/X2tIW1ap9UNklIeBl9onKZKSLO7xOuPgNSA8mvYM/+l+o4bTMAdlAZb7dEj6NhO9w==",
+      "disposition": "defer",
+      "owner": "kimi31-pro",
+      "reviewBy": "2026-11-15T09:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/217",
+      "reason": "The wake-coalescing candidate retains SDK candidate.11 and capable Host storage.scan requirements. Source and isolated packaged validation do not replace an installed-instance acceptance or authorize installation.",
+      "condition": "Verify this exact self-contained archive with the original instance, settings and retained subscriptions during an owner-authorized update; validate actual tool schema and bounded read results. Public catalog activation requires separate scoped review."
+    },
+    {
       "pluginId": "official.feedback",
       "version": "0.1.0-alpha.2",
       "integrity": "sha512-P1jybx+cXxJUsq+C2k0rAGXNoNppihbfxxSdKwpVC7lY8QjVQ/PlXWojxZGVTikOXHPZXhOj7UyBgLTwGh09ew==",
@@ -263,6 +274,15 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/219",
       "reason": "The automatic network recovery release retains SDK candidate.11 indexed private storage requirements. Isolated native Host acceptance does not establish compatibility of all public catalog consumers; public discovery remains unchanged.",
       "condition": "Complete independent review and required CI, verify the exact published package, and validate original-instance adoption without altering settings, baselines or ownership. Public activation requires separate scoped compatibility review."
+    },
+    {
+      "pluginId": "official.quick-phrases",
+      "version": "0.1.0-alpha.3",
+      "integrity": "sha512-186xs+a9mgHec3j8zfg1iczgDoL1JldRsi6U0sqgOaTCGcm00BTL0C5ZYxddLxjP2Q8w6On96kwtHtu8OSL+Ig==",
+      "disposition": "activate",
+      "owner": "kimi31-pro",
+      "reviewBy": "2026-11-13T16:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/218"
     },
     {
       "pluginId": "official.collective-connector",

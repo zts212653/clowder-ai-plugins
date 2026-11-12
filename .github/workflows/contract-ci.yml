@@ -33,6 +33,7 @@ on:
       - 'packages/genoffice-docx/**'
       - 'packages/github-operations/**'
       - 'packages/feedback/**'
+      - 'packages/quick-phrases/**'
       - 'packages/stackchan/**'
       - 'packages/superagent/**'
       - 'catalog/**'
@@ -255,6 +256,9 @@ jobs:
       - name: Build feedback package
         run: pnpm --filter @clowder-ai/feedback build
 
+      - name: Build quick phrases package
+        run: pnpm --filter @clowder-ai/quick-phrases build
+
       - name: Build connector packages
         run: |
           set -euo pipefail
@@ -325,6 +329,12 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/feedback
+          npm-token: ''
+
+      - name: Publish quick phrases prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/quick-phrases
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish Collective prerelease

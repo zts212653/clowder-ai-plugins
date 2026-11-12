@@ -218,10 +218,15 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string, action = pre
     'publication must verify the toolchain before building package bytes',
   );
   assert.match(workflow, /^      id-token: write$/m);
+  assert.match(
+    namedWorkflowStep(workflow, 'Publish feedback prerelease'),
+    /^          npm-token: ''$/m,
+    'feedback must use OIDC without falling back to a personal npm token',
+  );
   assert.equal(
     workflow.match(/npm-token: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length,
-    publishedPackageDirectories(workflow).length,
-    'each public package action must receive the operator-authorized npm token',
+    publishedPackageDirectories(workflow).length - 1,
+    'the other public packages retain their existing npm token inputs',
   );
   assert.equal(
     action.match(/NODE_AUTH_TOKEN: \$\{\{ inputs\.npm-token \}\}/g)?.length,
@@ -446,6 +451,7 @@ test('main publishes the public dependency chain through one hardened action', (
     'packages/plugin-contract',
     'packages/plugin-sdk',
     'packages/feedback',
+    'packages/quick-phrases',
     'packages/collective-connector',
     'packages/enterprise-workflow',
     'packages/personal-chrome-companion',
