@@ -76,6 +76,7 @@ pdl:
           props:
             className: inbox
             label: t:feedback.plugin.entry
+            close: feedback
             blocks:
               - type: frame
                 html: $.html
