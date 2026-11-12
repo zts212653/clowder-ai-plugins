@@ -101,7 +101,11 @@ export async function pollGitHubDueWaits(runtime: GitHubDuePollPorts, kind: 'pr'
           await runtime.options.observe?.(target, observed.snapshot); await check();
           await runtime.options.collect?.(target, waitEventSnapshot(current, observed.snapshot)); await check();
           await runtime.currentSubscription(current); await check();
-          const notificationFilter = await readNotificationFilter(runtime.options.context, snapshot, observed.observation.facts.review?.reviewer);
+          const notificationFilter = await readNotificationFilter(runtime.options.context, snapshot, observed.observation.facts.review?.reviewer, {
+            task: current,
+            storage: runtime.options.context.storage,
+            ...(observed.observation.subjectState ? { subjectState: observed.observation.subjectState } : {}),
+          });
           await lifecycle.observe({ ...observed.observation, notificationFilter });
           await runtime.projectImportedWait(task.id, check);
           succeeded = true;

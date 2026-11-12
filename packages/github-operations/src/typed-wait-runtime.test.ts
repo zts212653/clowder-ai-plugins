@@ -71,7 +71,7 @@ for (const state of ['APPROVED', 'CHANGES_REQUESTED'] as const) {
         const first = (await runtime.store.get(tracked.id))!.automationState!.await!.baseline;
         assert.ok('headSha' in first);
         assert.equal(first.review?.decision, undefined);
-        assert.equal(f.sent.length, 1, 'the push advances the generation once');
+        assert.equal(f.sent.length, 0, 'a no-action HEAD update is consumed without a duplicate wake while CI is pending');
         await runtime.stop();
         runtime = new TypedWaitRuntime(f.options);
         f.setSnapshot({ ...f.snapshot(), ci: 'pass' });
@@ -81,21 +81,21 @@ for (const state of ['APPROVED', 'CHANGES_REQUESTED'] as const) {
         assert.equal(second.review?.decision, undefined,
           'a second renewal cannot rebind an omitted old verdict to the new HEAD');
         assert.equal(second.review?.verdicts?.['10']?.commitId, oldHead);
-        assert.equal(f.sent.length, 2, 'only the CI transition is delivered');
+        assert.equal(f.sent.length, 1, 'only the CI transition is delivered');
         f.setSnapshot({ ...f.snapshot(), reviews: [{ ...oldReview, state: 'DISMISSED' }] });
         await runtime.poll('pr');
-        assert.equal(f.sent.length, 3, 'old HEAD dismissal still notifies');
+        assert.equal(f.sent.length, 2, 'old HEAD dismissal still notifies');
         await runtime.poll('pr');
-        assert.equal(f.sent.length, 3, 'dismissal does not replay');
+        assert.equal(f.sent.length, 2, 'dismissal does not replay');
         f.setSnapshot({ ...f.snapshot(), reviews: [{ ...oldReview, state: 'DISMISSED' },
           { id: 11, author: 'maintainer', state: 'APPROVED', commitId: newHead }] });
         await runtime.poll('pr');
-        assert.equal(f.sent.length, 4, 'a real new-HEAD verdict remains available');
+        assert.equal(f.sent.length, 3, 'a real new-HEAD verdict remains available');
         const final = (await runtime.store.get(tracked.id))!.automationState!.await!.baseline;
         assert.ok('headSha' in final);
         assert.equal(final.review?.decision, 'APPROVED');
         await runtime.poll('pr');
-        assert.equal(f.sent.length, 4);
+        assert.equal(f.sent.length, 3);
       } finally { await runtime.stop(); }
     });
   }
