@@ -88,6 +88,55 @@ test("approved generic get reaches a feature as detached frozen public facts, pr
     await f.activation.stop({reason:'test'});
   }
 });
+test("canonical sender facts survive the actual module reader without trusting display identity", async () => {
+  for (const from of [
+    { kind: "user", userId: "canonical-owner" },
+    { kind: "agent", catId: "canonical-agent" },
+    { kind: "external" },
+    { kind: "plugin" },
+    { kind: "system" },
+  ]) {
+    const original = { ...fact(), from };
+    const f = await fixture(async () => original);
+    try {
+      const result = await f.read("original");
+      assert.deepEqual(result, original);
+      assert.ok(result);
+      const sender = Reflect.get(result, "from");
+      assert.notEqual(sender, from);
+      assert.ok(Object.isFrozen(sender));
+      Reflect.set(from, "kind", "forged-display-kind");
+      assert.notDeepEqual(sender, from);
+    } finally {
+      await f.activation.stop({ reason: "test" });
+    }
+  }
+});
+test("sender facts reject malformed identities, private expansion and accessors", async () => {
+  let from: unknown;
+  const f = await fixture(async () => ({ ...fact(), from }));
+  let getterReads = 0;
+  const getter = Object.defineProperty({ kind: "user" }, "userId", {
+    enumerable: true,
+    get() { getterReads++; return "untrusted"; },
+  });
+  try {
+    for (from of [
+      null, [], "user", {}, { kind: "unknown" },
+      { kind: "user" }, { kind: "user", userId: "" }, { kind: "user", userId: 7 },
+      { kind: "agent" }, { kind: "agent", catId: "" }, { kind: "agent", catId: 7 },
+      { kind: "user", userId: "owner", catId: "agent" },
+      { kind: "agent", catId: "agent", userId: "owner" },
+      { kind: "plugin", instanceId: "private" },
+      { kind: "external", connectorId: "private" },
+      { kind: "system", service: "private" },
+      { kind: "plugin", userId: "owner" }, getter,
+    ]) await assert.rejects(f.read("original"), { name: "TypeError", message: "Invalid Host message read fact" });
+    assert.equal(getterReads, 0);
+  } finally {
+    await f.activation.stop({ reason: "test" });
+  }
+});
 test("read refuses malformed selectors before Host effects", async () => {
   let calls = 0;
   const f = await fixture(async () => {

@@ -103,6 +103,14 @@ stateDiagram-v2
 
 模块 Host 另可提供 `host.messaging.findSent({threadId,idempotencyKey})`。它只查本实例、当前用户的原始持久消息与已准入 Queue 目标，返回 `{messageId,threadId,content,routedCatIds}` 或 `null`；不是执行完成或已读回执。恢复未知发送时，先核原正文和目标，再决定是否沿原请求继续；不得用短期 transport ledger 过期作为重新发信理由。旧 Host 可能没有此方法，依赖永久幂等恢复的插件应明确暂停。该入口目前属于 module Host，不宣称 stdio 或 feature-context 已支持。
 
+SDK `0.3.0-beta.2-candidate.13` 候选读取器支持 Host 消息的可选 `from`：真人是 `{kind:'user',userId}`，成员是 `{kind:'agent',catId}`，外部、插件、系统来源仅投影 `{kind:'external'|'plugin'|'system'}`，不接收其私有安装、地址或服务标识。该事实经过严格校验、复制和冻结；`source` 等展示字段不能替代可信来源，也不提供执行授权。旧 Host 可以不返回 `from`，需要可信作者的业务必须明确拒绝缺失，不能从展示身份补猜。线程摘要另有可选 `createdBy`，可读不等于属于当前用户。原消息可见性、撤权期间拒绝晚到读取与未知字段拒绝保持。
+
+需要确认指定真人作者时，消费方须要求 `from.kind === 'user'`，并将 `from.userId`、`message.userId` 与预期 owner 一并核对；SDK 只校验 `from` 的结构，不做上述交叉校验。
+
+跨仓验证可设置 `CLOWDER_HOST_API_SRC` 为对应 Host 的 `packages/api/src` 绝对路径，再运行 SDK 的 `src/message-read-host.test.ts`；它直接调用真实消息投影和 SDK feature 读取器，使用合成 Store，不启动服务或调用提供方。普通 SDK-only checkout 明确跳过这一项，消息模块与非法来源测试仍正常运行。依赖方应在 SDK 新版本真实发布后锁定 registry tarball/integrity；源码候选不代表已经可从 npm 取得。
+
+Host 增加消息投影字段时，应先发布兼容的 SDK 并升级消费方，再上线 Host 新字段，避免封闭键集的旧读取器拒绝整个消息。
+
 需要保留具体接收者的 module 发送可用 `wake:{catId,exact:true}`。目标失效时拒绝该次唤醒，沿原幂等键恢复，不能回退其他成员；原有 `wake:{catId}` 继续使用普通对话路由语义。`findSent` 的目标合并当前 Queue 与原消息 History 投递记录，Queue 已消费不代表原目标消失；可选 deliveryStatus 为 canceled 时不可重新发送该原消息。
 
 模块 Host 的可选 `host.memberSessions`（SDK `0.3.0-beta.2-candidate.5` 候选类型）承接受限成员执行；旧 Host 或缺少持久化支持时可以不提供，插件应明确暂停，不能退回普通工作线程或只读工具模式。`create(input)` 由 Host 创建独立线程并准备授权；`prepare(input)` 仅续接本实例已创建的受限线程；两者与 `revoke(sessionId)` 都只接受 Host 认证的当前 owner 操作上下文，正文没有批准字段。输入只含真实成员、已声明 MCP/identity、现有账号引用及已批准记忆引用，不含 key、登录态、任意工作目录或模型替身。返回的 summary 记录真实 client/model/carrier/authType/accountRevision、授权 generation、已消费语义游标，以及可选 Host activationId。
