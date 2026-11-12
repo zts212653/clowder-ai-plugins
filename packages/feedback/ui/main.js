@@ -15,12 +15,19 @@ let editVersion=0;
 const checkRequestBudget = request=>{
   if(new Blob([JSON.stringify(request)]).size>15*1024*1024)throw new Error('图片合计过大，请减少图片或裁剪后再添加');
 };
-const recordCall = (input,feedbackId=state.feedbackId)=>Promise.resolve().then(()=>{
+const recordCall = (input,feedbackId=state.feedbackId)=>{
+  const sourceId=state.feedbackId;
+  return Promise.resolve().then(()=>{
   const request={...input,feedbackId};if(input.op==='save')checkRequestBudget(request);return call(request);
 }).catch(error=>{
-  if(input.op==='save'&&feedbackId===state.feedbackId){state.saveError=error.message;state.saveErrorCode=error.code;}
+  if(input.op==='save'&&sourceId===state.feedbackId){
+    state.saveError=error.message;
+    // A failed copy still leaves the original record in conflict; retain its recovery action.
+    if(feedbackId===sourceId)state.saveErrorCode=error.code;
+  }
   throw error;
 });
+};
 const button = (label, action, style = 'secondary', disabled = false) => el('button', { type: 'button', text: label, className: style, disabled: disabled || state.busy, onClick: () => run(action) });
 const note = (text, className = 'hint') => el('p', { text, className });
 function input(label, field, multiline = false, copy = false) {
@@ -77,7 +84,7 @@ async function openRecord(id,value){
   Object.assign(state,value,{feedbackId:id,report:{...value.journal.report,kind:value.journal.report.kind??(/^feat:/i.test(value.journal.report.title)?'feat':'bug')},
     targetId:value.journal.target.id,analysis:value.analysis,material:value.analysis?.material,hash:value.analysis?.hash,preflight:undefined,dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,preview:true});
   state.clientId=value.journal.clientId??value.analysis?.clientId??state.clientId;state.projectRef=value.journal.projectRef??value.analysis?.projectRef??'';
-  const sameContext=value.analysis?.clientId===state.clientId&&(value.analysis?.projectRef??'')===(state.projectRef||state.projectRoot||'');
+  const sameContext=value.analysis?.clientId===state.clientId&&(value.analysis?.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||'');
   state.stage=value.journal.state==='published'?'submitted':value.journal.reviewReady||locked()?'review':'edit';
   if(sameContext&&['prepared','preparing','starting','running','blocked'].includes(value.analysis?.state)){
     state.material=value.analysis.material;state.hash=value.analysis.hash;state.stage=value.analysis.state==='prepared'?'scope':'analyzing';
@@ -215,7 +222,7 @@ function render() {
   } else if (state.stage === 'edit') {
     content.append(...feedbackForm(state,{input,note,button,pictureCards,addFiles,invalidate,run,render}));
     footer.append(button('保存草稿',flushDraft,'text'),button('直接反馈',saveReview),button('生成分析报告',prepareAnalysis,'primary',!state.clients.length));
-    if(state.analysis?.state==='ready'&&state.analysis.clientId===state.clientId&&(state.analysis.projectRef??'')===(state.projectRef||state.projectRoot||''))footer.append(button('查看本条分析报告',async()=>{state.report.title=state.analysis.title;state.report.body=state.analysis.body;await saveReview();},'text'));
+    if(state.analysis?.state==='ready'&&state.analysis.clientId===state.clientId&&(state.analysis.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||''))footer.append(button('查看本条分析报告',async()=>{state.report.title=state.analysis.title;state.report.body=state.analysis.body;await saveReview();},'text'));
   } else if (['scope', 'analyzing'].includes(state.stage)) {
     const client = state.clients.find(c=>c.id===(state.analysis?.clientId??state.clientId));
     content.append(el('div', { className: 'notice', text: `分析成员：${client?.label ?? '已选成员'} · ${client?.model ?? ''}。${state.report.kind === 'feat' ? '版本和功能建议' : '版本、问题描述及近期错误线索'}先在本地脱敏，再交给该成员分析；如其模型在云端，脱敏材料会发送到该模型。截图不交给模型。` }),

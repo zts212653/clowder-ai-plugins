@@ -120,6 +120,7 @@ test('closing waits for the automatic save of a completed analysis', async () =>
 
 test('a stale window can preserve its edits as a new draft and then close', async () => {
   let closePanel!:()=>Promise<void>;
+  let failCopy=false;
   const messages:string[]=[];
   const node=()=>({dataset:{},append(){},replaceChildren(){},addEventListener(){},querySelector(){},scrollTop:0});
   const context=createContext({Blob,atob,document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,
@@ -128,6 +129,7 @@ test('a stale window can preserve its edits as a new draft and then close', asyn
     call:async(input:{op:string;feedbackId?:string;report?:unknown})=>{
       if(input.op==='bootstrap')return{targets:[],clients:[],items:[]};
       if(input.feedbackId==='old')throw Object.assign(new Error('草稿版本已变化，请重新打开'),{code:'revision_conflict'});
+      if(failCopy)throw new Error('copy storage unavailable');
       return{journal:{id:'copy',state:'draft',target:{id:'clowder'},report:input.report},revision:3};
     }});
   const source=await readFile(new URL('../ui/main.js',import.meta.url),'utf8');
@@ -136,6 +138,10 @@ test('a stale window can preserve its edits as a new draft and then close', asyn
   Object.assign(actions.state,{feedbackId:'old',revision:1,dirty:true,journal:{id:'old',state:'draft',target:{id:'clowder'}},report:{title:'my edit',body:'unsaved contents',attachments:[]}});
   await closePanel();
   assert.deepEqual(messages,['close.cancel']);
+  failCopy=true;
+  await assert.rejects(actions.saveDraft(true),/copy storage unavailable/);
+  assert.equal(actions.state.saveError,'copy storage unavailable');
+  failCopy=false;
   await actions.saveDraft(true);
   assert.equal(actions.state.feedbackId,'copy');
   assert.equal(actions.state.report.body,'unsaved contents');
@@ -192,6 +198,8 @@ test('legacy analysis settings are adopted, while a different saved context cann
   assert.equal(writes[0]?.clientId,'old-member');assert.equal(writes[0]?.projectRef,'C:/old-project');
   await actions.openRecord('draft',{journal:{...journal,clientId:'new-member',projectRef:'C:/new-project'},analysis,revision:3});
   assert.equal(actions.state.report.body,'original body');assert.equal(writes.length,1);
+  await actions.openRecord('draft',{journal:{...journal,clientId:'old-member',projectRef:''},analysis:{...analysis,projectRef:''},projectRoot:'C:/runtime',revision:4});
+  assert.equal(actions.state.report.body,'analyzed body');assert.equal(writes.length,2);
 });
 
 test('a rejected multi-select preserves the saved draft when saving and reopening it', async () => {
