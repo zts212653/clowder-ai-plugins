@@ -14,6 +14,7 @@ steps:
 test: { action: { method: feedback.check } }
 configuration:
   - key: destinations
+    hidden: true
     label: 反馈目标 JSON（可选）
     description: 留空使用公开 GitHub。配置示例及 CLI JSON 协议见插件 README；更改目标或报告会撤销旧确认。
     kind: string

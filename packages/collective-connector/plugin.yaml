@@ -24,6 +24,7 @@ configuration:
         label: Connect to remote
         hint: The Service runs elsewhere. This computer connects through SSH.
   - key: servicePort
+    hidden: true
     label: Local Service port
     kind: string
     required: false

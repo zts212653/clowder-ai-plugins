@@ -30,6 +30,7 @@ configuration:
         action:
           method: github.sourceMaterial
   - key: recoveryMode
+    hidden: true
     label: 接续旧跟踪（可选）
     description: 新安装留空。接续旧记录时，在启用替代实例前填写 import-only；
       核验旧进度并明确释放前，采集和登记保持暂停。
@@ -65,6 +66,7 @@ configuration:
     kind: string
     required: false
   - key: webhookSecret
+    hidden: true
     label: 仓库 Webhook 签名密钥（可选）
     description: 仅接收 GitHub 仓库推送事件时填写，并使用 Host 提供的回调地址。定时跟踪不需要此项。
     kind: secret

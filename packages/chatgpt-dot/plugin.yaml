@@ -34,11 +34,13 @@ configuration:
     required: true
     description: 指向插件转发路径的 HTTPS 地址，含且只含一次 {token}，例如 https://host.example/api/plugins/official.chatgpt-dot/mcp?token={token}。
   - key: externalMcpToken
+    hidden: true
     label: 自定义访问密钥（可选）
     kind: secret
     required: false
     description: 留空自动生成。自定义时用 43–256 位字母、数字、_ 或 -，保存后再生成 Server URL；已撤销的不能再用。
   - key: temporaryEndpointHours
+    hidden: true
     label: 临时入口有效小时数
     kind: number
     required: false
@@ -79,6 +81,7 @@ configuration:
         confirm: 轮换后 Server URL 会变，要在 ChatGPT 重新添加连接并发送订阅消息；新连接验证成功前旧连接保留。
         action: { method: dot.refresh-credential }
   - key: webhookProxyUrl
+    hidden: true
     label: 回调代理（可选）
     kind: string
     required: false
