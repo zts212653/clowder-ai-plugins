@@ -283,6 +283,17 @@
       "owner": "kimi31-pro",
       "reviewBy": "2026-11-13T16:00:00Z",
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/218"
+    },
+    {
+      "pluginId": "official.collective-connector",
+      "version": "0.1.0-alpha.26",
+      "integrity": "sha512-j8g92uFGhXLrk2KNYVyAoD3BETSpHaJENcW+ZdSINsul8Wfv1vHB+m7Zt4KpM4BenBQiR0acDgtn8aShb/saaQ==",
+      "disposition": "defer",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-19T12:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/210",
+      "reason": "Await the paired Host save-path fix, final independent review, approval and canonical Linux artifact verification before live discovery changes.",
+      "condition": "Verify the exact published alpha.26 archive after both PRs pass CI and review, then change this plan to activate in the separately reviewed single-plugin catalog PR."
     }
   ]
 }
