@@ -2,23 +2,38 @@ const channel = 'clowder-plugin-ui/v1';
 const nonce = window.name;
 const pending = new Map();
 let sequence = 0;
+let closeHandler;
 window.addEventListener('message', event => {
   const data = event.data;
   if (event.source !== parent || !data || data.channel !== channel || data.nonce !== nonce) return;
+  if (data.type === 'before-close') { void closeHandler?.(); return; }
   const request = pending.get(data.requestId);
   if (!request) return;
   pending.delete(data.requestId); clearTimeout(request.timer);
   if (data.error) request.reject(new Error(data.error)); else request.resolve(data.result);
+});
+export function beforeClose(action) {
+  closeHandler = action;
+  return bridge('close.guard', true);
+}
+window.addEventListener('keydown', event => {
+  if (event.isComposing || event.key !== 'Escape' || !closeHandler) return;
+  event.preventDefault();
+  void closeHandler();
 });
 export function bridge(type, input) {
   const requestId = ++sequence;
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => { pending.delete(requestId); reject(new Error('操作超时。提交结果可能待核对，请重新打开检查状态。')); }, 185000);
     pending.set(requestId, { resolve, reject, timer });
-    parent.postMessage({ channel, nonce, requestId, type, ...(type === 'invoke' ? { input } : { value: input }) }, '*');
+    parent.postMessage({ channel, nonce, requestId, type, ...(type === 'http' ? { request: input } : { value: input }) }, '*');
   });
 }
-export const call = input => bridge('invoke', input);
+export const call = async input => {
+  const response = await bridge('http', { method: 'POST', path: 'feedback', body: input });
+  if (response.status < 200 || response.status >= 300) throw Object.assign(new Error(response.body?.error ?? '反馈操作未完成'), {code:response.body?.code});
+  return response.body;
+};
 export function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {

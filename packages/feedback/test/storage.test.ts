@@ -43,6 +43,8 @@ test('partial uploads retain each receipt and allow explicit edit recovery witho
   assert.equal(failed.journal.uploads?.length, 1); assert.match(JSON.stringify(writes), /first\.png/);
   const reset = await f.call({ op: 'reset-upload', digest: failed.journal.digest, confirmed: true });
   assert.equal(reset.journal.state, 'draft'); assert.notEqual(reset.journal.id, failed.journal.id);
+  const resumed=await f.service.dispatch({op:'bootstrap',resume:true},f.ctx) as {journal:{id:string}};
+  assert.equal(resumed.journal.id,reset.journal.id);
   await assert.rejects(f.call({ op: 'approve', digest: failed.journal.digest, confirmed: true }), /版本已变化/);
   assert.equal(uploads, 2, 'reset never uploads');
 });

@@ -243,6 +243,15 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/208",
       "reason": "The bounded status candidate retains SDK candidate.11 and capable Host storage.scan requirements. Source and isolated packaged validation do not replace an installed-instance acceptance or authorize installation.",
       "condition": "Verify this exact self-contained archive with the original instance, settings and retained subscriptions during an owner-authorized update; validate actual tool schema and bounded read results. Public catalog activation requires separate scoped review."
+    },
+    {
+      "pluginId": "official.feedback",
+      "version": "0.1.0-alpha.2",
+      "integrity": "sha512-P1jybx+cXxJUsq+C2k0rAGXNoNppihbfxxSdKwpVC7lY8QjVQ/PlXWojxZGVTikOXHPZXhOj7UyBgLTwGh09ew==",
+      "disposition": "activate",
+      "owner": "codex",
+      "reviewBy": "2026-11-13T14:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/179"
     }
   ]
 }

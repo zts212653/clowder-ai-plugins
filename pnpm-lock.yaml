@@ -312,7 +312,7 @@ importers:
   packages/feedback:
     devDependencies:
       '@clowder-ai/plugin-sdk':
-        specifier: workspace:*
+        specifier: 0.3.0-beta.2-candidate.13
         version: link:../plugin-sdk
       '@types/node':
         specifier: ^20.17.0
