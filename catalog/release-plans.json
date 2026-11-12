@@ -252,6 +252,17 @@
       "owner": "codex",
       "reviewBy": "2026-11-13T14:00:00Z",
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/179"
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.43",
+      "integrity": "sha512-JZRwEF8bklOTnVkeU073zFMTUvq+OgJoV8jX0lefjdgxfH2RWRF9aF8IRfRcFAtaV195H86ZvOZDt5nUO4voBg==",
+      "disposition": "defer",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-19T14:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/219",
+      "reason": "The automatic network recovery release retains SDK candidate.11 indexed private storage requirements. Isolated native Host acceptance does not establish compatibility of all public catalog consumers; public discovery remains unchanged.",
+      "condition": "Complete independent review and required CI, verify the exact published package, and validate original-instance adoption without altering settings, baselines or ownership. Public activation requires separate scoped compatibility review."
     }
   ]
 }
