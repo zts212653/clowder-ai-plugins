@@ -335,6 +335,7 @@
         },
         "kind": {
           "type": "string",
+          "description": "member: the value is a Host member id; the Host supplies the choices from its member list, the manifest declares no options.",
           "enum": [
             "string",
             "secret",
@@ -342,7 +343,8 @@
             "boolean",
             "number",
             "url",
-            "operation"
+            "operation",
+            "member"
           ]
         },
         "required": {
@@ -480,7 +482,8 @@
               "kind": {
                 "enum": [
                   "string",
-                  "select"
+                  "select",
+                  "member"
                 ]
               }
             },

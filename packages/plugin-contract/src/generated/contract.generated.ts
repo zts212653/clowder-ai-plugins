@@ -174,6 +174,18 @@ export type ConfigurationField = {
   readonly options?: never;
   readonly target?: readonly string[];
   readonly actions: readonly ActionDef[];
+} | {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'member';
+  readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
+  readonly default?: string;
+  readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
 };
 export type EnvironmentBinding = {
   readonly source: 'config';
