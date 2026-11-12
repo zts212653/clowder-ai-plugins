@@ -17,4 +17,9 @@ test('packed entry serves HTML and business operations through declared HTTP han
   assert.match(panel.headers['content-type'],/text\/html/);
   assert.match(panel.body,/<!doctype html>/i);
   await assert.rejects(activation.actions['feedback.panel']({request:{method:'POST',path:'panel'}},undefined,f.ctx),/GET/);
+  const save={op:'save',feedbackId:'conflict',targetId:'clowder',report:{title:'first',body:'body',attachments:[]}};
+  await activation.actions['feedback.http']({request:{method:'POST',path:'feedback',body:save}},undefined,f.ctx);
+  const conflict=await activation.actions['feedback.http']({request:{method:'POST',path:'feedback',body:save}},undefined,f.ctx);
+  assert.equal(conflict.status,409);
+  assert.equal(conflict.body.code,'revision_conflict');
 });
