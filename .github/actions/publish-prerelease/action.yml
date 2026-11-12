@@ -159,8 +159,9 @@ runs:
       run: |
         set -euo pipefail
         # npm can accept an upload before registry processing makes it readable.
-        # Keep every identity/tag check intact and allow a bounded five minutes.
-        for attempt in $(seq 1 60); do
+        # Registry visibility has taken over six minutes after npm returned
+        # success. Keep every identity/tag check and allow about ten minutes.
+        for attempt in $(seq 1 120); do
           if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null &&
             npm view "$PACKAGE_NAME" dist-tags --json > "$DIST_TAGS_JSON_PATH" 2>/dev/null; then
             if node --input-type=module <<'NODE'
@@ -199,7 +200,7 @@ runs:
               exit 0
             fi
           fi
-          if [[ "$attempt" -lt 60 ]]; then
+          if [[ "$attempt" -lt 120 ]]; then
             sleep 5
           fi
         done
@@ -221,7 +222,7 @@ runs:
         DIST_TAGS_JSON_PATH: ${{ runner.temp }}/prerelease-final-tags.json
       run: |
         set -euo pipefail
-        for attempt in $(seq 1 60); do
+        for attempt in $(seq 1 120); do
           if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null &&
             npm view "$PACKAGE_NAME" dist-tags --json > "$DIST_TAGS_JSON_PATH" 2>/dev/null; then
             if node --input-type=module <<'NODE'
@@ -259,7 +260,7 @@ runs:
               exit 0
             fi
           fi
-          if [[ "$attempt" -lt 60 ]]; then
+          if [[ "$attempt" -lt 120 ]]; then
             sleep 5
           fi
         done
