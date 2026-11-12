@@ -28,7 +28,7 @@ test('a queued report from a legacy non-user admission cannot overwrite a stoppe
   await f.host.storage.set(`work:${key}`, { key, taskId: task.id, threadId: task.threadId, sourceThreadId: 'source-a', sourceMessageId: 'handoff', workerId: 'worker', title: task.title, outcome: '误派' });
   await f.host.storage.set('report:legacy:result', { workId: task.id, reportId: 'result', kind: 'result', content: '请验收重复交付。'.repeat(200), applied: false, invocationId: 'legacy' });
   await f.host.storage.set('queue', { works: [key], reports: ['legacy:result'] });
-  f.messages.set('handoff', { id: 'handoff', threadId: 'source-a', userId: 'owner', catId: 'existing-owner', from: { kind: 'agent', catId: 'existing-owner' }, content: '旧的审查交接', mentions: [], timestamp: 1, sourceRevision: '1' });
+  f.messages.set('handoff', { id: 'handoff', threadId: 'source-a', userId: 'owner', catId: 'existing-owner', content: '旧的审查交接', mentions: [], timestamp: 1, sourceRevision: '1' });
   const runtime = await startSuperagent(f.host);
   await runtime.actions['superagent.tick']({});
   assert.deepEqual(f.tasks.get(task.id), task, 'a queued old result must retain the stop instruction');

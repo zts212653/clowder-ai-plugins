@@ -114,7 +114,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         }
         const { work, task } = await findWork(host, report.workId);
         const source = await host.messaging.get(work.sourceMessageId);
-        if ((source?.from && source.from.kind !== 'user') || source?.catId) {
+        if (source?.catId) {
           await host.storage.set(`refused-report:${key}`, { workId: work.taskId, reason: 'non-user-admission' });
           await host.storage.set(`report:${key}`, { ...report, applied: true });
           await editQueue(host, 'reports', key, false);
