@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24.18.0'
-      - name: Probe feedback OIDC exchange without publishing or storing credentials
+      - name: Probe two package OIDC exchanges without publishing
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -37,23 +37,55 @@ jobs:
             const claims = JSON.parse(Buffer.from(identity.value.split('.')[1], 'base64url'));
             const expectedWorkflow = expectedRepo + '/.github/workflows/contract-ci.yml@';
             if (claims.repository !== expectedRepo || !claims.workflow_ref.startsWith(expectedWorkflow)) throw new Error('Unexpected workflow identity');
-            const packageName = '@clowder-ai/feedback';
-            const response = await fetch('https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/' + encodeURIComponent(packageName), {
-              method: 'POST', headers: { Authorization: 'Bearer ' + identity.value },
-            });
-            const result = await response.json().catch(() => ({}));
-            const accepted = response.ok && typeof result.token === 'string' && result.token.length > 0;
             const safe = (value) => typeof value === 'string' ? value.replace(/https?:\/\/\S+/g, '[URL]').replace(/[A-Za-z0-9_~+\/-]{48,}/g, '[redacted]').slice(0, 300) : null;
-            const receipt = { package: packageName, status: response.status, accepted, errorCode: safe(result.code), errorMessage: accepted ? null : safe(result.error || result.message), repository: claims.repository, workflowRef: claims.workflow_ref, sourceRun: process.env.GITHUB_RUN_ID, published: false, credentialsPersisted: false };
+            const results = [];
+            for (const packageName of ['@clowder-ai/feedback', '@clowder-ai/xiangqi']) {
+              const response = await fetch('https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/' + encodeURIComponent(packageName), {
+                method: 'POST', headers: { Authorization: 'Bearer ' + identity.value }, redirect: 'error',
+              });
+              const result = await response.json().catch(() => ({}));
+              const accepted = response.ok && typeof result.token === 'string' && result.token.length > 0;
+              results.push({ package: packageName, status: response.status, accepted, errorCode: safe(result.code), errorMessage: accepted ? null : safe(result.error || result.message) });
+            }
+            const receipt = { repository: claims.repository, workflowRef: claims.workflow_ref, sourceRun: process.env.GITHUB_RUN_ID, published: false, credentialsPersisted: false, results };
             fs.writeFileSync(process.env.RUNNER_TEMP + '/feedback-oidc-probe.json', JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 });
             console.log(JSON.stringify(receipt));
-            if (!accepted) process.exitCode = 1;
+            if (results.some(result => !result.accepted)) process.exitCode = 1;
           })().catch((error) => { console.error(error.message); process.exitCode = 1; });
+          NODE
+      - name: Inspect existing fallback credential with GET-only registry requests
+        if: always()
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const credential = process.env.NPM_TOKEN;
+          delete process.env.NPM_TOKEN;
+          (async () => {
+            if (!credential) throw new Error('Existing fallback credential is not configured');
+            const results = [];
+            for (const packageName of ['@clowder-ai/feedback', '@clowder-ai/xiangqi']) {
+              const path = '/-/package/' + encodeURIComponent(packageName) + '/trust';
+              const response = await fetch('https://registry.npmjs.org' + path, {
+                method: 'GET', redirect: 'error', signal: AbortSignal.timeout(15000),
+                headers: { authorization: 'Bearer ' + credential, accept: 'application/json' },
+              });
+              const body = response.ok ? await response.json() : null;
+              const entries = Array.isArray(body) ? body : (body?.configs || body?.trustedPublishers || body?.items || []);
+              results.push({ package: packageName, trustListStatus: response.status, configurationCount: Array.isArray(entries) ? entries.length : null });
+            }
+            const receipt = { method: 'GET only', credentialPersisted: false, sourceRun: process.env.GITHUB_RUN_ID, results };
+            fs.writeFileSync(process.env.RUNNER_TEMP + '/feedback-trust-read.json', JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 });
+            console.log(JSON.stringify(receipt));
+          })().catch(() => { console.error('Read-only registry probe failed'); process.exitCode = 1; });
           NODE
       - name: Upload credential-free proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: feedback-oidc-probe-${{ github.sha }}
-          path: ${{ runner.temp }}/feedback-oidc-probe.json
+          path: |
+            ${{ runner.temp }}/feedback-oidc-probe.json
+            ${{ runner.temp }}/feedback-trust-read.json
           if-no-files-found: warn
