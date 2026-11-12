@@ -335,7 +335,7 @@
         },
         "kind": {
           "type": "string",
-          "description": "member: the value is a Host member id; the Host supplies the choices from its member list, the manifest declares no options.",
+          "description": "member: the value is a Host member id; the Host supplies the choices from its member list, the manifest declares no options. thread: the value is a Host thread id; the Host supplies the choices from its conversation list, the manifest declares no options.",
           "enum": [
             "string",
             "secret",
@@ -344,8 +344,13 @@
             "number",
             "url",
             "operation",
-            "member"
+            "member",
+            "thread"
           ]
+        },
+        "multiple": {
+          "type": "boolean",
+          "description": "member and thread only: the value is a JSON array string of ids."
         },
         "required": {
           "type": "boolean",
@@ -483,7 +488,8 @@
                 "enum": [
                   "string",
                   "select",
-                  "member"
+                  "member",
+                  "thread"
                 ]
               }
             },
@@ -544,6 +550,27 @@
             "properties": {
               "target": false,
               "actions": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "member",
+                  "thread"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {},
+          "else": {
+            "properties": {
+              "multiple": false
             }
           }
         }

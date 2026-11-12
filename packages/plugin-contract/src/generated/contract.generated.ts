@@ -95,6 +95,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'string';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -107,6 +108,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'secret';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -119,6 +121,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'select';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -131,6 +134,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'boolean';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -143,6 +147,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'number';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -155,6 +160,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'url';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -167,6 +173,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'operation';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: never;
   readonly requiredWhen?: never;
@@ -179,6 +186,20 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'member';
+  readonly multiple?: boolean;
+  readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
+  readonly default?: string;
+  readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
+} | {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'thread';
+  readonly multiple?: boolean;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
