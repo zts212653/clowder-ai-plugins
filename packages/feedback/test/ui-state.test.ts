@@ -98,3 +98,45 @@ test('adding pictures refuses an oversized HTTP envelope before changing the ret
   await assert.rejects(actions.addFiles([file]),/图片合计过大/);
   assert.equal(actions.state.report.attachments.length,1);
 });
+
+test('a rejected multi-select preserves the saved draft when saving and reopening it', async () => {
+  const status={textContent:'草稿已保存到反馈记录'};
+  const node=()=>({dataset:{},append(){},replaceChildren(){},querySelector(){return undefined;},scrollTop:0});
+  const report={kind:'bug',title:'bug: saved',body:'retained description',attachments:[{mime:'image/png',base64:'saved-picture'}]};
+  let journal={id:'saved-draft',state:'draft',digest:'saved-digest',target:{id:'test'},report:structuredClone(report)};
+  let saveRequests=0;
+  const context=createContext({
+    document:{getElementById:node,querySelector:()=>status,querySelectorAll:()=>[]},
+    el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'saved-draft'},
+    bridge:async()=>true,copyImage:async()=>{},Blob,setTimeout:()=>0,clearTimeout:()=>{},console,
+    normalizePicture:async()=>({mime:'image/png',base64:'a'.repeat(4_000_000),original:{base64:'b'.repeat(4_000_000)}}),
+    call:async(input:{op:string;feedbackId?:string;report?:typeof report})=>{
+      if(input.op==='save') {
+        assert.ok(input.report);
+        saveRequests++;
+        journal={...journal,report:structuredClone(input.report)};
+        return{journal:structuredClone(journal),revision:2};
+      }
+      if(input.op==='bootstrap'&&input.feedbackId)return{journal:structuredClone(journal),revision:1};
+      return new Promise(()=>{});
+    },
+  });
+  const source=await readFile(new URL('../ui/main.js',import.meta.url),'utf8');
+  runInContext(source.replace(/^import[^\n]+\n/gm,''),context);
+  const actions=runInContext('({state,addFiles,flushDraft,openRecord})',context);
+  Object.assign(actions.state,{busy:false,stage:'edit',dirty:false,journal:structuredClone(journal),revision:1,report:structuredClone(report)});
+  const file={size:3_000_000,type:'image/png'};
+
+  await assert.rejects(actions.addFiles([file,file]),/图片合计过大/);
+  assert.equal(actions.state.report.attachments.length,report.attachments.length);
+  assert.equal(JSON.stringify(actions.state.report),JSON.stringify(report));
+  assert.equal(actions.state.dirty,false);
+  assert.equal(status.textContent,'草稿已保存到反馈记录');
+  await actions.flushDraft();
+  assert.equal(saveRequests,0);
+
+  actions.state.report={kind:'bug',title:'',body:'',attachments:[]};
+  await actions.openRecord('saved-draft');
+  assert.equal(JSON.stringify(actions.state.report),JSON.stringify(report));
+  assert.equal(actions.state.dirty,false);
+});
