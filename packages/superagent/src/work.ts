@@ -78,6 +78,12 @@ export async function applyPlan(
     const key = createHash('sha256')
       .update(JSON.stringify([host.pluginInstanceId, plan.eventId, index]))
       .digest('hex');
+    if (decision.kind === 'start' && inbox.delivery.envelope.actor.kind !== 'user') {
+      await host.storage.set(`refused-start:${key}`, {
+        eventId: plan.eventId, sourceMessageId: inbox.delivery.envelope.messageId, reason: 'non-user-source',
+      });
+      continue;
+    }
     if ((decision.kind === 'start' || decision.kind === 'ignore') && decision.questionId) {
       const question = await read(host, `question:${decision.questionId}`, questionSchema);
       if (!question || question.workId || inbox.delivery.envelope.actor.kind !== 'user')

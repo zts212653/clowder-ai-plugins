@@ -1,4 +1,4 @@
-import type { PluginDeliveryInput } from '@clowder-ai/plugin-contract';
+import type { PluginDeliveryInput, PluginMessageDelivery } from '@clowder-ai/plugin-contract';
 import { z } from 'zod';
 import type { SuperagentHost } from './runtime.js';
 import {
@@ -13,6 +13,15 @@ import {
   workSchema,
 } from './state.js';
 import { send } from './work.js';
+
+async function needsCoordination(host: SuperagentHost, input: PluginMessageDelivery, assignedWork: boolean) {
+  if (assignedWork || input.envelope.actor.kind === 'user') return true;
+  if (input.envelope.actor.kind !== 'cat') return false;
+  const response = (await host.threads.readMessages(input.threadId, { limit: 100 })).find(
+    (message) => message.id === input.envelope.messageId && message.sender.catId === input.envelope.actor.id,
+  )?.response;
+  return response !== undefined && response.status !== 'processing' && response.status !== 'completed';
+}
 
 export async function observe(
   host: SuperagentHost,
@@ -57,6 +66,7 @@ export async function observe(
       if (terminal?.workId === work.taskId) return;
     }
   }
+  if (!(await needsCoordination(host, input, Boolean(work)))) return;
   const existing = await read(host, `inbox:${input.deliveryId}`, inboxSchema);
   if (!existing)
     await host.storage.compareAndSet(`inbox:${input.deliveryId}`, null, {
@@ -103,6 +113,11 @@ export async function advanceInbox(host: SuperagentHost, pref: Preferences, main
       ...next,
       phase: 'done',
     });
+    await editQueue(host, 'inbox', next.delivery.deliveryId, false);
+    return;
+  }
+  if (!(await needsCoordination(host, next.delivery, works.some((work) => work.threadId === next.delivery.threadId)))) {
+    await host.storage.set(`inbox:${next.delivery.deliveryId}`, { ...next, phase: 'done' });
     await editQueue(host, 'inbox', next.delivery.deliveryId, false);
     return;
   }

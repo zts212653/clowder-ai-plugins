@@ -8,6 +8,8 @@ While enabled, a read-only baseline covers existing work in selected conversatio
 
 A failed judgment remains available for explicit retry while other conversations continue. Status checks do not invoke a model. Pausing stops new checks; disabling and restarting preserve the deduplication snapshot.
 
+Routine member updates, review handoffs and system notices no longer wake the coordinator one by one; read-only task snapshots follow their states. Structured member failures still reach judgment, and feedback on existing plugin work stays on its original path. Only the current user's message can authorize a new work source; member speech cannot admit new work. Unapplied non-user starts retained from an older version are also refused with an audit record. Outcomes without task records need source review when the user asks; a finished model response is not sufficient evidence of completion.
+
 Superagent adds a resident assistant at the top of the Clowder AI conversation list. Enable the plugin, save the work it may handle, choose an Assistant Agent, choose Execution Agents and source conversations in their separate sections, then explicitly start following work.
 
 Choose one Assistant Agent to understand requests, follow progress and delegate work. Choose one or more Execution Agents to perform tasks. One member may fill both roles. Member choices save immediately. Open the native source picker to choose conversations using the sidebar's groups, pins and ordering. Checking a conversation does not move it. Save commits the scope; Cancel leaves it unchanged, and search-hidden selections are retained. Selecting sources alone does not start monitoring or delegation.

@@ -254,6 +254,9 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         await context.assertCurrent();
         const event = await read(host, `inbox:${plan.eventId}`, inboxSchema);
         if (!event) throw new Error('Unknown source event');
+        if (plan.decisions.some((decision) => decision.kind === 'start') &&
+          (event.delivery.envelope.actor.kind !== 'user' || event.delivery.envelope.actor.id !== context.userId))
+          throw new Error('新的工作必须来自当前用户的明确委托；成员汇报只能跟进原任务。');
         const before = await read(host, `plan:${plan.eventId}`, planSchema);
         if (before) {
           if (JSON.stringify(before.decisions) !== JSON.stringify(plan.decisions))
