@@ -256,7 +256,7 @@
     {
       "pluginId": "official.feedback",
       "version": "0.1.0-alpha.2",
-      "integrity": "sha512-DqzYyJIrEedvMAHLNxiho5cRvn7JTkp07n98Y9c3V7covKkBJLNxePI2IsrHPiewEBJHW7tEIiesdxZZz0tUAA==",
+      "integrity": "sha512-15EvOduOi6AK9Hen57Pu9u8zRO/5JYzNXyMkuCdlS7xrBhZV5YNXSIuLjB7y10o1kSDHx+OAjJOStK7mQvZUSQ==",
       "disposition": "activate",
       "owner": "codex",
       "reviewBy": "2026-11-13T14:00:00Z",
