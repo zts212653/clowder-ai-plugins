@@ -75,7 +75,17 @@ jobs:
               const entries = Array.isArray(body) ? body : (body?.configs || body?.trustedPublishers || body?.items || []);
               results.push({ package: packageName, trustListStatus: response.status, configurationCount: Array.isArray(entries) ? entries.length : null });
             }
-            const receipt = { method: 'GET only', credentialPersisted: false, sourceRun: process.env.GITHUB_RUN_ID, results };
+            const identityResponse = await fetch('https://registry.npmjs.org/-/whoami', {
+              method: 'GET', redirect: 'error', signal: AbortSignal.timeout(15000),
+              headers: { authorization: 'Bearer ' + credential, accept: 'application/json' },
+            });
+            const scopeResponse = await fetch('https://registry.npmjs.org/-/org/clowder-ai/package', {
+              method: 'GET', redirect: 'error', signal: AbortSignal.timeout(15000),
+              headers: { authorization: 'Bearer ' + credential, accept: 'application/json' },
+            });
+            const scopeBody = scopeResponse.ok ? await scopeResponse.json() : null;
+            const scope = { status: scopeResponse.status, feedbackListed: scopeBody ? Object.hasOwn(scopeBody, '@clowder-ai/feedback') : null, xiangqiListed: scopeBody ? Object.hasOwn(scopeBody, '@clowder-ai/xiangqi') : null };
+            const receipt = { method: 'GET only', credentialPersisted: false, sourceRun: process.env.GITHUB_RUN_ID, identityStatus: identityResponse.status, scope, results };
             fs.writeFileSync(process.env.RUNNER_TEMP + '/feedback-trust-read.json', JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 });
             console.log(JSON.stringify(receipt));
           })().catch(() => { console.error('Read-only registry probe failed'); process.exitCode = 1; });
