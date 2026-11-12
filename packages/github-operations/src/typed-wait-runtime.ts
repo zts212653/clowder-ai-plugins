@@ -255,7 +255,9 @@ export class TypedWaitRuntime {
         if (!thread) { await this.store.recovery.finishNotice(candidate.task.id, notice, 'owner_unavailable'); continue; }
         await this.options.context.messaging.send(notice.threadId, { identity: 'github-wait',
           payload: { provenance: { epistemicStatus: 'observation' }, elements: [{ elementId: notice.key, kind: 'text',
-            payload: { text: `${candidate.task.subjectKey} 的自动检查已暂停（连续 5 次失败；${candidate.recovery.reasonCode ?? 'unknown'}）。原等待与通知进度仍保留；请查看 github_list_tracking 的恢复诊断后重试。` } }] },
+            payload: { text: candidate.recovery.retryable
+              ? `${candidate.task.subjectKey} 暂时无法完成 GitHub 检查；自动重试仍在继续，退避最长 15 分钟。原等待与通知进度保留，无需重新登记。`
+              : `${candidate.task.subjectKey} 的自动检查已暂停（连续 5 次失败；${candidate.recovery.reasonCode ?? 'unknown'}）。原等待与通知进度仍保留；请查看 github_list_tracking 的恢复诊断后重试。` } }] },
           idempotencyKey: notice.key, meta: { phase: 'status', taskId: notice.taskId } });
         await this.store.recovery.finishNotice(candidate.task.id, notice, 'delivered');
       } catch {
