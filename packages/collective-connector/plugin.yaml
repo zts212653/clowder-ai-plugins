@@ -381,12 +381,11 @@ pdl:
       node:
         title: t:collective.plugin.entries.home
         icon: globe
-        # from the rail it covers the shell (sidebar and body) and stacks (exit: esc): its back returns to what was there
+        # from the rail it covers the shell (sidebar and body) over the conversation, which declares keep: its back returns to the conversation
         open:
           node: collective.home
           anchor: shell
           as: cover
-          exit: esc
           backLabel: true
     - id: collectiveDesk
       anchor: panel.tools
