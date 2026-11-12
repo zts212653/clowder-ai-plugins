@@ -44,14 +44,26 @@ export async function findWork(host: SuperagentHost, workId: string) {
 export async function publish(
   host: SuperagentHost,
   mainThreadId: string,
-  work: Pick<WorkLink, 'sourceThreadId' | 'taskId'>,
+  work: Pick<WorkLink, 'sourceThreadId' | 'taskId'> & { threadId?: string },
   key: string,
   content: string,
   question = false,
 ) {
-  const original = await send(host, work.sourceThreadId, `${key}:source`, content);
+  let detailsThreadId = work.sourceThreadId;
+  if (content.length > 600 && work.sourceThreadId === mainThreadId && work.threadId && work.threadId !== mainThreadId) {
+    await send(host, work.threadId, `${key}:details`, content);
+    detailsThreadId = work.threadId;
+  }
+  const source = detailsThreadId !== mainThreadId ? await host.threads.get(detailsThreadId) : undefined;
+  const paragraph = content.split(/\n\s*\n/, 1)[0]!;
+  const summary = content.length > 600
+    ? `原文节选：${paragraph.slice(0, 400)}${paragraph.length > 400 ? '…' : ''}`
+    : content;
+  const mainContent = `${summary}\n${source ? `[查看完整结果](${source.deepLinkUrl})` : `原会话：${detailsThreadId}`}`;
+  const original = await send(host, work.sourceThreadId, `${key}:source`,
+    work.sourceThreadId === mainThreadId && detailsThreadId !== mainThreadId ? mainContent : content);
   if (mainThreadId !== work.sourceThreadId)
-    await send(host, mainThreadId, `${key}:main`, `${content}\n原会话：${work.sourceThreadId}`);
+    await send(host, mainThreadId, `${key}:main`, mainContent);
   if (question) {
     await host.storage.compareAndSet(`question:${key}`, null, {
       id: key,
