@@ -11,6 +11,12 @@ export function transientObservationError(error: DiagnosticError | undefined, de
   if (!error || depth > 3) return false;
   if (networkCodes.has(String(error.code)) || error.name === 'TimeoutError') return true;
   const text = [error.message, error.stderr].filter(Boolean).join('\n');
+  // gh is a Go child process: DNS/socket errno is printed in stderr while its
+  // exit status is normally 1. Require the GitHub transport context so an HTTP
+  // permission response or an unrelated local file error is not retried.
+  const ghTransport = /\b(?:Get|Head|Post) "https:\/\/api\.github\.com\/[^"\r\n]*":/.test(error.stderr ?? '')
+    || /\berror connecting to api\.github\.com\b/i.test(error.stderr ?? '');
+  if (ghTransport && /\b(?:no such host|Temporary failure in name resolution|nodename nor servname provided|server misbehaving|no route to host|network is down|can't assign requested address|connection refused|broken pipe|Client\.Timeout exceeded|error connecting to api\.github\.com)\b/i.test(error.stderr ?? '')) return true;
   // CI readers deliberately return null for unavailable/partial snapshots. Do
   // not turn that loss of transport detail into a lifetime failure budget.
   if (error.message === 'GitHub CI snapshot unavailable' || error.message === 'GitHub HEAD changed during snapshot; retry without advancing cursors') return true;
@@ -37,6 +43,7 @@ export function observationAttempt<T extends ObservationRecovery>(previous: T, o
     next.retryable = transientObservationError(error);
     if (error) { next.lastError = error; next.lastFailureAt = now; }
     if (next.retryable) { delete next.disposition; next.reasonCode = 'github_network_backoff'; }
+    else if (next.reasonCode === 'github_network_backoff') delete next.reasonCode;
   }
   return next;
 }

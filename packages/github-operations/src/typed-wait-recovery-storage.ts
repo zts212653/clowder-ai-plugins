@@ -111,9 +111,12 @@ export class GitHubWaitRecoveryStorage {
       if (facts.failures >= 5 && outcome === 'failed') {
         if (!facts.retryable) { facts.disposition = 'needs_attention'; facts.reasonCode = 'github_observation_failed'; }
         const key = `github-wait-recovery:${facts.scope}:${facts.revision}`;
-        if ((facts.retryable ? previous.failures < 5 : previous.disposition !== 'needs_attention') && record.task.userId && record.task.threadId && facts.lastNoticeKey !== key)
+        if ((facts.retryable ? previous.failures < 5 : previous.disposition !== 'needs_attention') && record.task.userId && record.task.threadId && facts.lastNoticeKey !== key) {
+          for (const notice of Object.values(facts.notices))
+            if (notice.scope === facts.scope && notice.state === 'pending') notice.state = 'cancelled';
           facts.notices[key] ??= { key, scope: facts.scope, userId: record.task.userId, threadId: record.task.threadId,
             taskId: record.task.id, failures: 0, nextAt: this.now(), state: 'pending' };
+        }
       }
       if (outcome === 'succeeded') for (const notice of Object.values(facts.notices))
         if (notice.scope === facts.scope && notice.state === 'pending') notice.state = 'cancelled';
@@ -128,7 +131,7 @@ export class GitHubWaitRecoveryStorage {
         facts.disposition !== 'needs_attention' || facts.reasonCode !== 'github_observation_failed') return false;
       record.recoveryRetries = [...(record.recoveryRetries ?? []), { scope, revision, at: this.now(), failures: facts.failures }];
       facts.revision++; facts.failures = 0; facts.nextPollAt = this.now();
-      delete facts.disposition; delete facts.reasonCode;
+      delete facts.disposition; delete facts.reasonCode; delete facts.retryable;
       for (const notice of Object.values(facts.notices))
         if (notice.scope === scope && notice.state === 'pending') notice.state = 'cancelled';
       return true;

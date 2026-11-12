@@ -47,7 +47,10 @@ export function collectionIndexOwner(storage: PluginStorageHost) {
           || old.retryable !== undefined && typeof old.retryable !== 'boolean'))
           throw new Error('Invalid collection recovery facts');
         const recovery = resumeLegacyNetworkFailure(old?.scope === scope ? old : { v: 1 as const, scope, revision: 0, failures: 0, nextAt: 0 });
-        const intent = recoveryOwnerNotice('collection', scope, record.task.threadId, record.task.subjectKey!);
+        // Keep already delivered legacy identities; newly classified fault
+        // episodes need a revision so cancelled history cannot suppress them.
+        const intent = recoveryOwnerNotice('collection', scope, record.task.threadId, record.task.subjectKey!,
+          recovery.retryable === undefined ? undefined : recovery.revision);
         const notice = recovery !== old && old?.disposition && recovery.retryable && record.notice?.state === 'pending'
           ? { ...record.notice, state: 'cancelled' as const }
           : record.notice ?? (recovery.disposition && intent?.key !== recovery.lastNoticeKey ? intent : undefined);

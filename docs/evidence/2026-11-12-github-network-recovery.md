@@ -29,8 +29,8 @@ Claim guard: the production runtime regression fails at five provider reads inst
 ## Validation
 
 - Observed RED on the original implementation for PR, Issue, community collection and migrated issue: five reads instead of eight. The corrected legacy fixture separately reproduced no matched outcome after an already-ready old census. A GraphQL EOF and an unavailable CI snapshot independently reproduced the same lifetime exit before their recovery classifications were added.
-- Package build and typecheck pass. Package tests: **936 passed, zero failed/skipped**. New coverage includes persisted capped deadlines, one notice per outage, cancellation and real local expiry during backoff, original offline changes, cold recreation and legacy projection migration. Existing authority, quota, queue, batch-isolation, corruption, outbox and routing checks remain included.
-- Self-contained alpha.43 passed **3/3** new native Host/owned portless Redis scenarios: prolonged PR outage, prolonged Issue outage and legacy null-score upgrade. All **9** existing complete-action/recovery-boundary/fault scenarios also passed on this artifact. The first combined native run rejected a PR fixture missing its explicit comment author filter; correcting that test input produced the final 3/3 result without changing shipped bytes.
+- Package build and typecheck pass. Package tests: **958 passed, zero failed/skipped**. New coverage includes persisted capped deadlines, one notice per outage, cancellation and real local expiry during backoff, original offline changes, cold recreation and legacy projection migration. Existing authority, quota, queue, batch-isolation, corruption, outbox and routing checks remain included.
+- The final self-contained alpha.43 passed **12/12** native Host/owned portless Redis checks, including three new scenarios: prolonged PR outage, prolonged Issue outage and legacy null-score upgrade. The nine existing complete-action/recovery-boundary/fault scenarios passed in that same final run. The first combined native run rejected a PR fixture missing its explicit comment author filter; correcting that test input produced the final 3/3 result without changing shipped bytes.
 - All **796** built dist files match the extracted self-contained artifact byte for byte. No production runtime, instance, configuration or subscription was changed by these isolated checks.
 
 Commands:
@@ -49,8 +49,16 @@ Raw logs: `/tmp/github-network-1532-package-tests.log`, `/tmp/github-network-153
 
 Toolchain: Node 24.18.0 / npm 11.16.0, using the repository's canonical pack scripts.
 
-- Canonical npm alpha.43: SHA1 `7a92a490d59a1ff4ae7897e00b1156a4ad25469e`; integrity `sha512-JZRwEF8bklOTnVkeU073zFMTUvq+OgJoV8jX0lefjdgxfH2RWRF9aF8IRfRcFAtaV195H86ZvOZDt5nUO4voBg==`.
-- Self-contained alpha.43: SHA256 `55ca932742c2a74bcc11a776c4fbdab721b8bcf51b062981b8030fddbb4b4344`; 5,643 members, zero symlinks, 136 installed packages. Relocated factory/runtime entrypoints load.
-- Exact archive: `/tmp/github-network-1532-artifacts/f202-w1-tarballs/self-contained/clowder-ai-github-operations-0.1.0-alpha.43-darwin-arm64-55ca932742c2.tgz`.
+- Canonical npm alpha.43: SHA1 `2d5e088d19c546c6ee8c080329ec7b4483188056`; integrity `sha512-78ASBhCtOJ1XVh/+2E/N0rqW+8T5mUPc/II6igKKRfnsr40uzgq6HNtSg6FEFrLwGOWQz3ae3fb7dUZiE8Ikiw==`.
+- Self-contained alpha.43: SHA256 `00c90810ce3b6acde1c19d57aa639b85b76f517ad36c7d05520e57d40077f8fb`; 5,643 members, zero symlinks, 136 installed packages. Relocated factory/runtime entrypoints load.
+- Exact archive: `/tmp/github-network-1532-final-artifacts/f202-w1-tarballs/self-contained/clowder-ai-github-operations-0.1.0-alpha.43-darwin-arm64-00c90810ce3b.tgz`.
 
 Independent review, required remote CI, registry publication and an authorized original-instance update remain separate delivery evidence. Public catalog discovery is not activated by this repair. Production still running alpha.41 is not evidence that alpha.43 has been adopted.
+
+## Independent review repair
+
+R1 at `648bf146f29158d09c411e60901f8021101584f3` found one P1 and two P2s (source `0001794494520602-001622-9fe12430`). All were reproduced before repair. The Go child exits with code 1, so GitHub-scoped DNS, route, address, pipe and client-timeout diagnostics are now recognized from stderr. Permission/404 errors, unrelated EOF and other-host DNS errors remain attention failures. A transition to a hard failure clears the old network reason; explicit retry clears classification; a newer attention notice cancels the pending superseded network notice.
+
+Cancelled collection/migrated notices remain archived. Future fault episodes use their recovery revision in a distinct idempotency/archive key, preserving durable history while preventing suppression and archive collisions. Already acknowledged legacy hard faults keep their original key, avoiding an upgrade-only duplicate alert. Production runtime tests cover both archive histories and a subsequent actual delivery.
+
+Final validation: build/typecheck, 958 package tests and 12 native Host cases pass with zero skips. All 796 dist files match the final extracted archive. Final logs: `/tmp/github-network-1532-review-package-tests-final.log`, `/tmp/github-network-1532-final-native.log`; original R1 REDs: `/tmp/github-network-1532-review-red.log`, `/tmp/github-network-1532-review-notices-red.log`. The previous CI pass belongs to the R1 head and is not reused as CI approval of this repair.

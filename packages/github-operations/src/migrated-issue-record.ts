@@ -34,7 +34,10 @@ export function materializeMigratedIssue(value: unknown, key?: string): unknown 
       || previous.failures < 0 || !Number.isFinite(previous.nextAt) || previous.scope !== scope
       || previous.retryable !== undefined && typeof previous.retryable !== 'boolean')) throw new Error('Invalid migrated issue recovery facts');
     const recovery = resumeLegacyNetworkFailure(previous ?? { v: 1 as const, scope, revision: 0, failures: 0, nextAt: 0 });
-    const intent = recoveryOwnerNotice('migrated-issue', scope, row.task.threadId, row.task.subjectKey ?? row.task.id);
+    // Historical acknowledgements keep their identity; future fault episodes
+    // use a revision instead of colliding with a cancelled legacy archive.
+    const intent = recoveryOwnerNotice('migrated-issue', scope, row.task.threadId, row.task.subjectKey ?? row.task.id,
+      recovery.retryable === undefined ? undefined : recovery.revision);
     const notice = recovery !== previous && previous?.disposition && recovery.retryable && row.notice?.state === 'pending'
       ? { ...row.notice, state: 'cancelled' as const }
       : row.notice ?? (recovery.disposition && intent?.key !== recovery.lastNoticeKey ? intent : undefined);

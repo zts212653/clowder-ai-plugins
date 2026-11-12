@@ -10,12 +10,13 @@ const eof = () => Object.assign(new Error('GitHub command failed'), {
   code: 1, stderr: 'Get "https://api.github.com/user": EOF\n',
 });
 function fixture() {
-  let now = 1000, failure: Error | undefined, reads = 0;
+  let now = 1000, failure: Error | undefined, reads = 0, deliveryFailed = false;
   let snapshot: GitHubSnapshot = { state: 'open', headSha: 'a'.repeat(40), ci: 'pending', comments: [],
     reviews: [], commentsComplete: true, trackingIdentity: { selfLogin: 'owner', subjectAuthorLogin: 'owner' } };
   const storage = memoryStorage(), sent: unknown[] = [];
   const context = { storage, config: { get: async () => undefined }, secrets: { get: async () => undefined },
     threads: { get: async () => ({ id: 'home' }) }, messaging: { send: async (_thread: string, draft: unknown) => {
+      if (deliveryFailed) throw new Error('temporary message unavailability');
       sent.push(draft); return { messageId: `notice-${sent.length}`, threadId: 'home' };
     } }, log() {} } as unknown as FeatureContext;
   const caller: PluginActionContext = { userId: 'owner', catId: 'codex61-sol', threadId: 'home',
@@ -25,7 +26,7 @@ function fixture() {
   } };
   return { storage, caller, sent, runtime: () => new TypedWaitRuntime({ context, provider, coverage: async () => ({ covered: true }), now: () => now }),
     now: () => now, at: (value: number) => { now = value; }, reads: () => reads,
-    fail: (value?: Error) => { failure = value; }, change: () => { snapshot = { ...snapshot, headSha: 'b'.repeat(40),
+    fail: (value?: Error) => { failure = value; }, failDelivery: () => { deliveryFailed = true; }, change: () => { snapshot = { ...snapshot, headSha: 'b'.repeat(40),
       comments: [{ id: 2, author: 'contributor', body: 'Changed while offline', commentType: 'conversation' }] }; } };
 }
 
@@ -145,5 +146,60 @@ test('cancelling a backed-off wait survives the recovery census and cannot resta
     await runtime.store.recovery.initialize(true); f.at(f.now() + 24 * 60 * 60_000); await runtime.poll('pr');
     assert.equal(f.reads(), before);
     assert.equal((await runtime.store.get(task.id))!.automationState!.waitOutcome!.reason, 'user_cancel');
+  } finally { await runtime.stop(); }
+});
+
+for (const detail of ['dial tcp: lookup api.github.com: no such host', 'dial tcp: lookup api.github.com: Temporary failure in name resolution',
+  'dial tcp: lookup api.github.com: nodename nor servname provided, or not known', 'dial tcp: lookup api.github.com: server misbehaving',
+  'dial tcp: connect: no route to host', 'dial tcp: connect: network is down', "dial tcp: connect: can't assign requested address",
+  'dial tcp: connect: connection refused', 'write tcp: broken pipe', 'net/http: request canceled (Client.Timeout exceeded while awaiting headers)',
+  'error connecting to api.github.com'])
+  test(`gh exit 1 remains recoverable: ${detail}`, async () => {
+    const f = fixture(), runtime = f.runtime();
+    try {
+      const task = await runtime.registerPr({ registrationId: 'go-network', repoFullName: 'owner/repo', prNumber: 1 }, f.caller);
+      const before = f.reads(); f.fail(Object.assign(new Error('GitHub command failed'), { code: 1,
+        stderr: detail.startsWith('error connecting') ? detail : `Get "https://api.github.com/user": ${detail}` }));
+      for (let n = 0; n < 6; n++) { f.at((await runtime.store.recovery.facts(task.id))!.nextPollAt + 1); await runtime.poll('pr'); }
+      assert.equal(f.reads() - before, 6);
+    } finally { await runtime.stop(); }
+  });
+
+for (const stderr of ['gh: Bad credentials (HTTP 401)', 'gh: Resource not accessible by integration (HTTP 403)',
+  'gh: Not Found (HTTP 404)', 'archive: unexpected EOF', 'local schema: no such host field exists',
+  'Get "https://elsewhere.invalid/file": dial tcp: lookup elsewhere.invalid: no such host'])
+  test(`non-transport failure retains attention: ${stderr}`, async () => {
+    const f = fixture(), runtime = f.runtime();
+    try {
+      const task = await runtime.registerPr({ registrationId: 'hard-error', repoFullName: 'owner/repo', prNumber: 1 }, f.caller);
+      const before = f.reads(); f.fail(Object.assign(new Error('GitHub command failed'), { code: 1, stderr }));
+      for (let n = 0; n < 6; n++) { f.at((await runtime.store.recovery.facts(task.id))!.nextPollAt + 1); await runtime.poll('pr'); }
+      assert.equal(f.reads() - before, 5); assert.equal((await runtime.store.recovery.facts(task.id))!.disposition, 'needs_attention');
+    } finally { await runtime.stop(); }
+  });
+
+test('a hard failure clears the network reason before reaching attention', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    const task = await runtime.registerPr({ registrationId: 'transition', repoFullName: 'owner/repo', prNumber: 1 }, f.caller);
+    f.fail(eof()); await runtime.poll('pr'); f.fail(new Error('HTTP 401: authentication required'));
+    f.at((await runtime.store.recovery.facts(task.id))!.nextPollAt + 1); await runtime.poll('pr');
+    const facts = (await runtime.store.recovery.facts(task.id))!;
+    assert.equal(facts.retryable, false); assert.equal(facts.reasonCode, undefined);
+  } finally { await runtime.stop(); }
+});
+
+test('entering attention cancels a pending network notice; explicit retry clears its error classification', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    const task = await runtime.registerPr({ registrationId: 'notice-transition', repoFullName: 'owner/repo', prNumber: 1 }, f.caller);
+    f.fail(eof()); f.failDelivery();
+    for (let n = 0; n < 5; n++) { f.at((await runtime.store.recovery.facts(task.id))!.nextPollAt + 1); await runtime.poll('pr'); }
+    f.fail(new Error('HTTP 403: forbidden'));
+    f.at((await runtime.store.recovery.facts(task.id))!.nextPollAt + 1); await runtime.poll('pr');
+    const facts = (await runtime.store.recovery.facts(task.id))!;
+    assert.equal(Object.values(facts.notices).filter(n => n.state === 'pending').length, 1);
+    await runtime.retry({ taskId: task.id, expectedScope: facts.scope, expectedRecoveryRevision: facts.revision }, f.caller);
+    assert.equal((await runtime.store.recovery.facts(task.id))!.retryable, undefined);
   } finally { await runtime.stop(); }
 });

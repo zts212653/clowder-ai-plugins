@@ -8,9 +8,9 @@ export interface RecoveryOwnerNotice {
   messageId?: string; archiveAttempts?: number;
 }
 export type RecoveryNoticeSender = (notice: RecoveryOwnerNotice) => Promise<{ messageId: string }>;
-export function recoveryOwnerNotice(owner: string, scope: string, threadId: string | undefined, subject: string): RecoveryOwnerNotice | undefined {
+export function recoveryOwnerNotice(owner: string, scope: string, threadId: string | undefined, subject: string, revision?: number): RecoveryOwnerNotice | undefined {
   if (!threadId) return undefined;
-  return { key: `github-recovery:${owner}:${scope}`, scope, threadId, subject,
+  return { key: `github-recovery:${owner}:${scope}${revision === undefined ? '' : `:${revision}`}`, scope, threadId, subject,
     state: 'pending', failures: 0, nextAt: 0 };
 }
 export function recoveryNoticeScore(notice: RecoveryOwnerNotice | undefined): number | null {
