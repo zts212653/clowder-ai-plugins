@@ -88,6 +88,7 @@ export async function applyPlan(
 ) {
   const inbox = await read(host, `inbox:${plan.eventId}`, inboxSchema);
   if (!inbox) throw new Error('Source event unavailable');
+  const retainedWorks = await records(host, 'work:', workSchema);
   const answeredQuestions: z.infer<typeof questionSchema>[] = [];
   for (const [index, decision] of plan.decisions.entries()) {
     const key = createHash('sha256')
@@ -164,6 +165,17 @@ export async function applyPlan(
         method: 'superagent.observe',
       });
       await send(host, work.threadId, `${key}:execute`, workerInstructions(work), work.workerId);
+      continue;
+    }
+    const retained = retainedWorks.find((work) => work.taskId === decision.workId || work.key === decision.workId);
+    const source = retained ? await host.messaging.get(retained.sourceMessageId) : null;
+    if (retained && source?.catId) {
+      await host.storage.set(`refused-decision:${key}`, { eventId: plan.eventId, workId: decision.workId, reason: 'non-user-admission' });
+      for (const question of (await records(host, 'question:', questionSchema)).filter((question) =>
+        question.workId !== undefined && (question.workId === retained.taskId || question.workId === retained.key))) {
+        await host.storage.set(`question:${question.id}`, { ...question, resolved: true });
+        await editQueue(host, 'questions', question.id, false);
+      }
       continue;
     }
     const { work, task } = await findWork(host, decision.workId!);

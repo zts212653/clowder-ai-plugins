@@ -27,13 +27,21 @@ test('a queued report from a legacy non-user admission cannot overwrite a stoppe
   f.tasks.set(task.id, task);
   await f.host.storage.set(`work:${key}`, { key, taskId: task.id, threadId: task.threadId, sourceThreadId: 'source-a', sourceMessageId: 'handoff', workerId: 'worker', title: task.title, outcome: '误派' });
   await f.host.storage.set('report:legacy:result', { workId: task.id, reportId: 'result', kind: 'result', content: '请验收重复交付。'.repeat(200), applied: false, invocationId: 'legacy' });
-  await f.host.storage.set('queue', { works: [key], reports: ['legacy:result'] });
+  const legacy = event('legacy-follow-up');
+  legacy.envelope.actor = { kind: 'cat', id: 'existing-owner' };
+  await f.host.storage.set('inbox:legacy-follow-up', { delivery: legacy, phase: 'routed', receivedAt: 1 });
+  await f.host.storage.set('plan:legacy-follow-up', { eventId: 'legacy-follow-up', decisions: [{ kind: 'follow_up', workId: key, content: '继续旧误派工作' }], applied: false });
+  await f.host.storage.set('question:legacy-question', { id: 'legacy-question', workId: task.id, sourceThreadId: 'source-a', content: '请验收旧误派', resolved: false });
+  await f.host.storage.set('queue', { works: [key], reports: ['legacy:result'], plans: ['legacy-follow-up'], inbox: ['legacy-follow-up'], questions: ['legacy-question'] });
   f.messages.set('handoff', { id: 'handoff', threadId: 'source-a', userId: 'owner', catId: 'existing-owner', content: '旧的审查交接', mentions: [], timestamp: 1, sourceRevision: '1' });
   f.host.tasks.get = async () => null; // A stopped/revoked legacy Task may no longer have a package read projection.
   const runtime = await startSuperagent(f.host);
   await runtime.actions['superagent.tick']({});
   assert.deepEqual(f.tasks.get(task.id), task, 'a queued old result must retain the stop instruction');
   assert.equal(f.rows.has('refused-report:legacy:result'), true);
+  assert.equal([...f.rows.keys()].some((key) => key.startsWith('refused-decision:')), true);
+  assert.deepEqual((f.rows.get('queue')!.value as { plans: string[] }).plans, []);
+  assert.deepEqual((f.rows.get('queue')!.value as { questions: string[] }).questions, []);
   assert.equal([...f.sent.values()].some((row) => JSON.stringify(row.payload).includes('重复交付')), false);
   await runtime.actions['superagent.tick']({});
   assert.deepEqual(f.tasks.get(task.id), task);

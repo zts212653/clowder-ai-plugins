@@ -269,11 +269,16 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         if (before) {
           if (JSON.stringify(before.decisions) !== JSON.stringify(plan.decisions))
             throw new Error('Superagent decision conflict');
-        } else
+        } else {
+          const works = await records(host, 'work:', workSchema);
+          if (plan.decisions.some((decision) => 'workId' in decision && decision.workId &&
+            !works.some((work) => work.taskId === decision.workId)))
+            throw new Error('workId 必须使用 inspect.works[].taskId 的 canonical Task 编号，不能使用内部 key');
           await saveOnce(host, `plan:${plan.eventId}`, {
             ...plan,
             applied: false,
           });
+        }
         if (!before?.applied) await editQueue(host, 'plans', plan.eventId, true);
         return { accepted: true, eventId: plan.eventId };
       },

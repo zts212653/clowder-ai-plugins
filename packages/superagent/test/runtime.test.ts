@@ -69,6 +69,15 @@ test('one observed request can create two canonical Work items; cross-thread fee
   const count = f.sent.size;
   await call['superagent.tick']({});
   assert.equal(f.sent.size, count, 'idle ticks do not call a model or repeat deliveries');
+  await call['superagent.observe'](event('wrong-reference', 'source-b', '继续原任务'));
+  const stored = [...f.rows.entries()].find(([key, row]) => key.startsWith('work:') && (row.value as { taskId?: string }).taskId === original.id)!;
+  await assert.rejects(
+    async () => call['superagent.route']({ eventId: 'wrong-reference', decisions: [{ kind: 'follow_up', workId: stored[0].slice(5), content: '使用错误编号' }] }, f.caller(main)),
+    /canonical Task/,
+  );
+  assert.equal(f.rows.has('plan:wrong-reference'), false, 'an internal work key cannot poison the durable plan queue');
+  await call['superagent.route']({ eventId: 'wrong-reference', decisions: [{ kind: 'follow_up', workId: original.id, content: '使用正式任务编号' }] }, f.caller(main));
+  await call['superagent.tick']({});
   await runtime.stop({ reason: 'test' });
 });
 
