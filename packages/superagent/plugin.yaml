@@ -1,5 +1,5 @@
 pluginId: official.superagent
-version: 0.1.0-alpha.3
+version: 0.1.0-alpha.4
 contractVersion: 0.4.0
 name: Superagent
 description:
@@ -71,31 +71,21 @@ configuration:
           method: superagent.choose
         resultRender: rows
         next: list
-  - key: scope
-    label: 监听会话
-    description: 只读取并跟进这里选中的个人会话。选好后，到「持续跟进」确认开始。
-    kind: operation
+  - key: coordinatorId
+    label: 助手 Agent ID
+    description: 从成员中选一位担任助手：理解你的委托、跟进进展，并把任务交给执行 Agent。
+    kind: string
     required: false
-    actions:
-      - id: list
-        label: 刷新名单
-        render: button
-        action:
-          method: superagent.settings
-        resultRender: rows
-      - id: choose
-        label: 选择
-        render: row
-        action:
-          method: superagent.choose
-        resultRender: rows
-        next: list
-      - id: page
-        label: 翻页
-        render: row
-        action:
-          method: superagent.page
-        next: list
+  - key: workerIds
+    label: 执行 Agent ID 列表
+    description: 允许助手调用的 Agent ID，以逗号分隔。至少选一位，也可以选择上面的助手 Agent。
+    kind: string
+    required: false
+  - key: threadIds
+    label: 监听会话 ID 列表
+    description: 以逗号分隔。只读取并跟进这里选中的个人会话。选好后，到「持续跟进」确认开始。
+    kind: string
+    required: false
   - key: activity
     label: 持续跟进
     kind: operation
@@ -145,6 +135,8 @@ features:
         id: route
       - type: tool
         id: report
+      - type: webhook
+        id: view-route
 contributions:
   - type: identity
     id: superagent
@@ -349,6 +341,13 @@ contributions:
       additionalProperties: false
     action:
       method: superagent.report
+  - type: webhook
+    id: view-route
+    path: superagent/view
+    methods:
+      - GET
+    action:
+      method: superagent.view
 pdl:
   ns: superagent
   inserts:
