@@ -30,6 +30,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
   let stopped = false;
   let tail = Promise.resolve();
   let reconciliation = Promise.resolve();
+  let introducedMainThreadId: string | undefined;
   const subscribed = new Set<string>();
   const current = () => {
     if (stopped) throw new Error('Superagent stopped');
@@ -73,6 +74,22 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
           method: 'superagent.observe',
         });
         subscribed.add(id);
+      }
+      if (runtime.mainThreadId && introducedMainThreadId !== runtime.mainThreadId) {
+        const status = runtime.error
+          ? '上轮跟进未完成，原事件与工作已保留。请在插件设置的“恢复处理”中重试本次判断；不会自动重复调用模型。'
+          : pref.enabled
+            ? `已开始跟进你选定的 ${pref.threadIds.length} 个会话；所选会话的新消息会交给助手判断。`
+            : pref.started
+              ? '当前已暂停新接单与派发，已有工作与历史保留。可以在插件设置中恢复跟进。'
+              : '请在插件设置中选好助手、执行成员和会话，再确认开始跟进。';
+        await send(
+          host,
+          runtime.mainThreadId,
+          `introduction:${runtime.mainThreadId}`,
+          `「${pref.name}」助手会话已准备好。\n${status}\n你可以在这里交办事项、继续反馈或询问进展；待办由 Superagent 插件统一读取和登记。`,
+        );
+        introducedMainThreadId = runtime.mainThreadId;
       }
       return { pref, runtime, works };
     });

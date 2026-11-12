@@ -29,7 +29,7 @@ test('the native picker delegates titles, groups, pins and ordering to the Host 
   assert.deepEqual(response.data.selected, f.preferences.threadIds);
   const saved = runtimeSchema.parse((await f.host.storage.get('runtime'))?.value);
   assert.ok(response.data.excluded.includes(saved.mainThreadId!));
-  assert.equal(f.sent.size, 0);
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 0);
   await runtime.stop({ reason: 'test' });
 });
 
@@ -45,7 +45,7 @@ test('batch source selection is owner-only and preserves the other configuration
   assert.deepEqual(result.data.selected, ['source-b']);
   assert.deepEqual(after, { ...before, threadIds: ['source-b'] });
   assert.equal(f.subscriptions.has('source-b'), false, 'saving scope does not enable intake');
-  assert.equal(f.sent.size, 0);
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 0);
   await runtime.stop({ reason: 'test' });
 });
 
@@ -90,7 +90,7 @@ test('an upgrade retains older selections and the main conversation without usin
   assert.deepEqual(picker.parse(await next.actions['superagent.settings']({})), initial);
   assert.deepEqual((await f.host.storage.get('runtime'))?.value, originalMain);
   assert.deepEqual((await f.host.storage.get('directory-page'))?.value, oldPage);
-  assert.equal(f.sent.size, 0);
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 0);
   await next.stop({ reason: 'test' });
   await assert.rejects(async () => next.actions['superagent.settings']({}), /stopped/);
 });

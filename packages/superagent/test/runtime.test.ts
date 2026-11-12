@@ -10,7 +10,11 @@ test('one observed request can create two canonical Work items; cross-thread fee
   const call = runtime.actions;
   await call['superagent.observe'](event('outside', 'outside'));
   await call['superagent.tick']({});
-  assert.equal(f.sent.size, 0, 'unselected conversation cannot wake a member');
+  assert.equal(
+    [...f.sent.values()].filter((message) => message.wake).length,
+    0,
+    'unselected conversation cannot wake a member',
+  );
   await call['superagent.observe'](event('new-work'));
   await call['superagent.observe'](event('new-work'));
   await call['superagent.tick']({});
@@ -76,7 +80,7 @@ test('pause and a normal restart preserve the Bot conversation and pending input
   await first.configRefresh?.();
   await first.actions['superagent.observe'](event('during-pause'));
   await first.actions['superagent.tick']({});
-  assert.equal(f.sent.size, 0);
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 0);
   const count = f.threads.size;
   await first.stop({ reason: 'shutdown' });
   await f.host.storage.set('preferences', f.preferences);

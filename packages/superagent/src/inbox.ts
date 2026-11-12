@@ -1,5 +1,6 @@
 import type { PluginDeliveryInput } from '@clowder-ai/plugin-contract';
 import { z } from 'zod';
+import { coordinatorInstructions } from './instructions.js';
 import type { SuperagentHost } from './runtime.js';
 import {
   editQueue,
@@ -78,6 +79,12 @@ export async function advanceInbox(host: SuperagentHost, pref: Preferences, main
         message.response?.inputMessageIds.includes(routed.wakeMessageId ?? routed.delivery.envelope.messageId),
     );
     if (response?.response && response.response.status !== 'processing') {
+      await send(
+        host,
+        mainThreadId,
+        `coordination-failure:${routed.delivery.deliveryId}:${routed.attempt}`,
+        '助手本轮已结束，但还没有完成待办判断。原事件与工作已保留；请在插件设置的“恢复处理”中重试本次判断。不会自动重复调用模型。',
+      );
       await host.storage.set(`inbox:${routed.delivery.deliveryId}`, {
         ...routed,
         phase: 'failed',
@@ -107,7 +114,11 @@ export async function advanceInbox(host: SuperagentHost, pref: Preferences, main
       host,
       mainThreadId,
       `coordinate:${next.delivery.deliveryId}:${next.attempt}`,
-      '所选会话有新的动态。请作为 Superagent 协调成员查看待处理事件，判断如何跟进；已有事项沿原工作继续。',
+      `Superagent 收到待处理事件：${JSON.stringify({
+        eventId: next.delivery.deliveryId,
+        sourceThreadId: next.delivery.threadId,
+        sourceMessageId: next.delivery.envelope.messageId,
+      })}\n${coordinatorInstructions}`,
       pref.coordinatorId,
     );
     wakeMessageId = sent.messageId;

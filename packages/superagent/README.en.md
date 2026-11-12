@@ -2,6 +2,8 @@
 
 [Chinese guide](README.md)
 
+The assistant conversation shows a one-time connection status without invoking a model. Opening it does not rescan history or redispatch work. New watched events include their exact source and the plugin workflow. If a coordinator finishes without recording its judgment, the conversation reports the failure and retains the event for an explicit retry; it does not automatically spend another model turn.
+
 Superagent adds a resident assistant at the top of the Clowder AI conversation list. Enable the plugin, save the work it may handle, choose an Assistant Agent, choose Execution Agents and source conversations in their separate sections, then explicitly start following work.
 
 Choose one Assistant Agent to understand requests, follow progress and delegate work. Choose one or more Execution Agents to perform tasks. One member may fill both roles. Member choices save immediately. Open the native source picker to choose conversations using the sidebar's groups, pins and ordering. Checking a conversation does not move it. Save commits the scope; Cancel leaves it unchanged, and search-hidden selections are retained. Selecting sources alone does not start monitoring or delegation.

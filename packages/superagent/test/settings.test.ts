@@ -103,7 +103,11 @@ test('assistant, execution members and watched conversations are separate settin
   );
   assert.deepEqual(saved.threadIds, ['source-a']);
   assert.equal(f.subscriptions.has('source-a'), false, 'selection alone does not start watching the chosen source');
-  assert.equal(f.sent.size, 0, 'opening or changing selectors does not invoke members');
+  assert.equal(
+    [...f.sent.values()].filter((message) => message.wake).length,
+    0,
+    'opening or changing selectors does not invoke members',
+  );
   await runtime.stop({ reason: 'test' });
 });
 
