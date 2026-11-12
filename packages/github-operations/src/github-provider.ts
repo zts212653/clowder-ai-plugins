@@ -221,6 +221,7 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
       ...(metadata.merged_by?.login ? { mergedByLogin: metadata.merged_by.login } : {}),
       ...(metadata.head ? { headSha: metadata.head.sha } : {}),
       ...(ci ? { ci } : {}),
+      ...(ciStatus ? { ciRollup: ciStatus.checkRollup } : {}),
       ...(ciBlockerCount !== undefined ? { ciBlockerCount } : {}),
       ...(target.kind === 'pr' ? { mergeState: (metadata.mergeable_state ?? 'unknown').toUpperCase() } : {}),
       comments, reviews, commentsComplete: complete, ...(reviewThreads ? { reviewThreads } : {}),
