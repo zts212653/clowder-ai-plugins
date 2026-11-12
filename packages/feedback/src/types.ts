@@ -35,6 +35,7 @@ export interface Journal {
   phase?: 'uploading' | 'creating' | 'verifying';
   uploads?: { submissionId: string; sha256: string; markdown: string }[];
   uploadingHash?: string;
+  clientId?: string; projectRef?: string;
   createdAt?: number; updatedAt?: number; reviewReady?: boolean; handoffAt?: number; supersededBy?: string;
 }
 export type HydratedJournal = Omit<Journal, 'report'> & { report: Report };
