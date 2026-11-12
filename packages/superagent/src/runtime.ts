@@ -18,7 +18,7 @@ import {
   saveOnce,
   workSchema,
 } from './state.js';
-import { applyPlan, findWork, publish, send } from './work.js';
+import { applyPlan, briefResult, findWork, publish, send } from './work.js';
 
 export type SuperagentHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'config' | 'members' | 'log'> & {
   storage: Pick<ModulePluginHostShape['storage'], 'get' | 'set' | 'compareAndSet'>;
@@ -113,6 +113,13 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
           continue;
         }
         const { work, task } = await findWork(host, report.workId);
+        const source = await host.messaging.get(work.sourceMessageId);
+        if ((source?.from && source.from.kind !== 'user') || source?.catId) {
+          await host.storage.set(`refused-report:${key}`, { workId: work.taskId, reason: 'non-user-admission' });
+          await host.storage.set(`report:${key}`, { ...report, applied: true });
+          await editQueue(host, 'reports', key, false);
+          continue;
+        }
         if (task.entrustedWork?.closure.state !== 'open') {
           await host.storage.set(`report:${key}`, { ...report, applied: true });
           await editQueue(host, 'reports', key, false);
@@ -135,7 +142,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
             entrustedWork: {
               expectedRevision: task.entrustedWork.revision,
               progress: {
-                summary: report.content,
+                summary: briefResult(report.content),
                 nextStep:
                   report.kind === 'result'
                     ? '等待用户验收'

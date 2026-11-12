@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { publish } from '../src/work.js';
+import { startSuperagent } from '../src/runtime.js';
 import { fixture } from './fixture.js';
 
 test('a long result remains complete at its source while the assistant receives a labelled excerpt and a working source link', async () => {
@@ -16,6 +17,26 @@ test('a long result remains complete at its source while the assistant receives 
   assert.match(text, /导出修复已完成验证/);
   assert.match(text, /http:\/\/localhost\/\?threadId=source-a/);
   assert.equal(main.wake, undefined);
+});
+
+test('a queued report from a legacy non-user admission cannot overwrite a stopped duplicate Task', async () => {
+  const f = fixture();
+  await f.seed();
+  const key = 'a'.repeat(64);
+  const task = { id: 'duplicate-task', threadId: 'source-b', subjectKey: `superagent:${f.host.pluginInstanceId}:${key}`, title: '误派任务', kind: 'work' as const, ownerCatId: 'worker', status: 'blocked' as const, why: '重复误派，停止执行，沿原Task继续', createdBy: 'system', createdAt: 1, updatedAt: 2, userId: 'owner', entrustedWork: { revision: 2, closure: { state: 'open' }, admission: { sourceRefs: ['message:handoff'] } } };
+  f.tasks.set(task.id, task);
+  await f.host.storage.set(`work:${key}`, { key, taskId: task.id, threadId: task.threadId, sourceThreadId: 'source-a', sourceMessageId: 'handoff', workerId: 'worker', title: task.title, outcome: '误派' });
+  await f.host.storage.set('report:legacy:result', { workId: task.id, reportId: 'result', kind: 'result', content: '请验收重复交付。'.repeat(200), applied: false, invocationId: 'legacy' });
+  await f.host.storage.set('queue', { works: [key], reports: ['legacy:result'] });
+  f.messages.set('handoff', { id: 'handoff', threadId: 'source-a', userId: 'owner', catId: 'existing-owner', from: { kind: 'agent', catId: 'existing-owner' }, content: '旧的审查交接', mentions: [], timestamp: 1, sourceRevision: '1' });
+  const runtime = await startSuperagent(f.host);
+  await runtime.actions['superagent.tick']({});
+  assert.deepEqual(f.tasks.get(task.id), task, 'a queued old result must retain the stop instruction');
+  assert.equal(f.rows.has('refused-report:legacy:result'), true);
+  assert.equal([...f.sent.values()].some((row) => JSON.stringify(row.payload).includes('重复交付')), false);
+  await runtime.actions['superagent.tick']({});
+  assert.deepEqual(f.tasks.get(task.id), task);
+  await runtime.stop({ reason: 'test' });
 });
 
 test('work requested in the main conversation also keeps its full result in the work thread', async () => {

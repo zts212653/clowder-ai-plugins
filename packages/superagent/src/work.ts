@@ -41,6 +41,12 @@ export async function findWork(host: SuperagentHost, workId: string) {
   return { work, task };
 }
 
+export function briefResult(content: string) {
+  if (content.length <= 600) return content;
+  const paragraph = content.split(/\n\s*\n/, 1)[0]!;
+  return `原文节选：${paragraph.slice(0, 400)}${paragraph.length > 400 ? '…' : ''}`;
+}
+
 export async function publish(
   host: SuperagentHost,
   mainThreadId: string,
@@ -55,10 +61,7 @@ export async function publish(
     detailsThreadId = work.threadId;
   }
   const source = detailsThreadId !== mainThreadId ? await host.threads.get(detailsThreadId) : undefined;
-  const paragraph = content.split(/\n\s*\n/, 1)[0]!;
-  const summary = content.length > 600
-    ? `原文节选：${paragraph.slice(0, 400)}${paragraph.length > 400 ? '…' : ''}`
-    : content;
+  const summary = briefResult(content);
   const mainContent = `${summary}\n${source ? `[查看完整结果](${source.deepLinkUrl})` : `原会话：${detailsThreadId}`}`;
   const original = await send(host, work.sourceThreadId, `${key}:source`,
     work.sourceThreadId === mainThreadId && detailsThreadId !== mainThreadId ? mainContent : content);
@@ -193,7 +196,7 @@ export async function applyPlan(
         entrustedWork: {
           expectedRevision: task.entrustedWork!.revision,
           progress: {
-            summary: decision.content,
+            summary: briefResult(decision.content),
             nextStep: decision.kind === 'ask' ? '等待用户决定' : '等待用户验收',
             sourceRef: `message:${message.messageId}`,
           },
