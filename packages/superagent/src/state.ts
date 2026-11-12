@@ -150,9 +150,13 @@ export async function editQueue(host: SuperagentHost, kind: QueueKind, id: strin
 
 export async function queued<T>(host: SuperagentHost, kind: QueueKind, prefix: string, schema: z.ZodType<T>) {
   const queue = queueSchema.parse((await host.storage.get('queue'))?.value ?? {});
-  return (await Promise.all(queue[kind].map((id) => read(host, `${prefix}${id}`, schema)))).filter(
-    (entry) => entry !== undefined,
-  );
+  const entries: T[] = [];
+  // Storage crosses the execution RPC boundary; a retained backlog must not fan out into one request per record.
+  for (const id of queue[kind]) {
+    const entry = await read(host, `${prefix}${id}`, schema);
+    if (entry !== undefined) entries.push(entry);
+  }
+  return entries;
 }
 
 export async function read<T>(host: SuperagentHost, key: string, schema: z.ZodType<T>) {
