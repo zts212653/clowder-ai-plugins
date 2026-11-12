@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/superagent",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.5",
   "description": "Resident personal-conversation coordination for Clowder AI",
   "license": "MIT",
   "type": "module",

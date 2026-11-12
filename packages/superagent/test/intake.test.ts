@@ -9,10 +9,7 @@ test('direct Bot conversations use the configured coordinator, including a chang
   const runtime = await startSuperagent(f.host);
   const main = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!;
   assert.deepEqual(main.preferredCats, ['coordinator']);
-  await f.host.storage.set('preferences', {
-    ...f.preferences,
-    coordinatorId: 'other',
-  });
+  f.config.set('coordinatorId', 'other');
   await runtime.configRefresh?.();
   assert.deepEqual(f.threads.get(main.id)?.preferredCats, ['other']);
   await runtime.stop({ reason: 'test' });

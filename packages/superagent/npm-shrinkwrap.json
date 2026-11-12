@@ -1,22 +1,21 @@
 {
   "name": "@clowder-ai/superagent",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.5",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@clowder-ai/superagent",
-      "version": "0.1.0-alpha.2",
+      "version": "0.1.0-alpha.5",
       "dependencies": {
-        "@clowder-ai/plugin-contract": "0.3.3-candidate.1",
-        "@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.11",
+        "@clowder-ai/plugin-contract": "0.4.0-candidate.0",
+        "@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.13",
         "zod": "4.6.7"
       }
     },
     "node_modules/@clowder-ai/plugin-contract": {
-      "version": "0.3.3-candidate.1",
-      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-contract/-/plugin-contract-0.3.3-candidate.1.tgz",
-      "integrity": "sha512-0X+eZd2V0ASwPc1KUUHAWHs0G+7f5tAvLZIILaKzzQXlFppPJzXc9xDFQf5AS9ZKaBJxTATs3/z5u/5pI0UqWQ==",
+      "version": "0.4.0-candidate.0",
+      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-contract/-/plugin-contract-0.4.0-candidate.0.tgz",
       "license": "MIT",
       "dependencies": {
         "ajv": "^8.17.0",
@@ -27,25 +26,11 @@
       }
     },
     "node_modules/@clowder-ai/plugin-sdk": {
-      "version": "0.3.0-beta.2-candidate.11",
-      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-sdk/-/plugin-sdk-0.3.0-beta.2-candidate.11.tgz",
-      "integrity": "sha512-ANor213WhGZHYg5d0MzuIOauViRZidtsqMh2Ur70loXPJOf5w0prKQC7BbHSnxqGqspwkBFgVlAFtENcGFGKUQ==",
+      "version": "0.3.0-beta.2-candidate.13",
+      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-sdk/-/plugin-sdk-0.3.0-beta.2-candidate.13.tgz",
       "license": "MIT",
       "dependencies": {
-        "@clowder-ai/plugin-contract": "0.3.3-candidate.0"
-      },
-      "engines": {
-        "node": ">=20.0.0"
-      }
-    },
-    "node_modules/@clowder-ai/plugin-sdk/node_modules/@clowder-ai/plugin-contract": {
-      "version": "0.3.3-candidate.0",
-      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-contract/-/plugin-contract-0.3.3-candidate.0.tgz",
-      "integrity": "sha512-Nf5n2PxE/eGcvsmntVxtxeaJKAdB/Gr+xOxlzjUYrCQEILJAFPjpBqcQH6GiUpIZwaWwU47GgH2Ie592rMd/kA==",
-      "license": "MIT",
-      "dependencies": {
-        "ajv": "^8.17.0",
-        "ajv-formats": "^3.0.0"
+        "@clowder-ai/plugin-contract": "0.4.0-candidate.0"
       },
       "engines": {
         "node": ">=20.0.0"

@@ -7,10 +7,10 @@ import {
   editQueue,
   inboxSchema,
   planSchema,
-  preferencesSchema,
   questionSchema,
   queued,
   read,
+  readPreferences,
   records,
   reportSchema,
   runtimeSchema,
@@ -19,7 +19,7 @@ import {
 } from './state.js';
 import { applyPlan, findWork, publish, send } from './work.js';
 
-export type SuperagentHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'config' | 'members' | 'log'> & {
+export type SuperagentHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'config' | 'log'> & {
   storage: Pick<ModulePluginHostShape['storage'], 'get' | 'set' | 'compareAndSet'>;
   messaging: Pick<ModulePluginHostShape['messaging'], 'get' | 'send' | 'subscribe' | 'unsubscribe'>;
   threads: Pick<ModulePluginHostShape['threads'], 'get' | 'list' | 'create' | 'update' | 'readMessages'>;
@@ -34,7 +34,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
   const current = () => {
     if (stopped) throw new Error('Superagent stopped');
   };
-  const preferences = async () => preferencesSchema.parse((await host.storage.get('preferences'))?.value ?? {});
+  const preferences = () => readPreferences(host);
   const reconcile = () => {
     const run = reconciliation.then(async () => {
       current();
