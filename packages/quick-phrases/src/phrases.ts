@@ -20,6 +20,7 @@ export interface OwnerContext {
 }
 
 const pageSize = 5;
+const usageAttempts = 3;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -31,11 +32,27 @@ function isPhrase(value: unknown): value is Phrase {
       || (typeof value.useCount === 'number' && Number.isInteger(value.useCount) && value.useCount >= 0));
 }
 
+function parsePhrases(current: { revision: number; value: unknown } | undefined): Phrase[] | undefined {
+  const phrases = current?.value ?? [];
+  return Array.isArray(phrases) && phrases.every(isPhrase) ? phrases : undefined;
+}
+
 function json(status: number, payload: object) {
   return {
     status,
     headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
     body: JSON.stringify(payload),
+  };
+}
+
+/** The Host executes this plugin-owned action only after a phrase was inserted into the draft. */
+function insertionReceipt(phrase: Phrase) {
+  return {
+    ...phrase,
+    onInserted: {
+      request: { method: 'POST', path: 'phrases', body: { id: phrase.id } },
+      notifyFailure: false,
+    },
   };
 }
 
@@ -50,11 +67,9 @@ export function createQuickPhrases(storage: PhraseStorage) {
     await context.assertCurrent();
 
     const key = `quick-phrases:${Buffer.from(context.userId).toString('base64url')}`;
-    const current = await storage.get(key);
-    const phrases = current?.value ?? [];
-    if (!Array.isArray(phrases) || !phrases.every(isPhrase)) return json(500, { error: 'Invalid phrase data' });
-
     if (method === 'GET') {
+      const phrases = parsePhrases(await storage.get(key));
+      if (!phrases) return json(500, { error: 'Invalid phrase data' });
       const search = isRecord(query) ? query.q : undefined;
       const rawPage = isRecord(query) ? query.page : undefined;
       const requestedPage = typeof rawPage === 'string' && /^\d+$/.test(rawPage) ? Number(rawPage) : 1;
@@ -65,20 +80,42 @@ export function createQuickPhrases(storage: PhraseStorage) {
       const totalPages = Math.max(1, Math.ceil(matches.length / pageSize));
       const page = Math.min(Math.max(1, requestedPage), totalPages);
       const offset = (page - 1) * pageSize;
-      return json(200, { items: matches.slice(offset, offset + pageSize), page, totalPages });
+      return json(200, {
+        items: matches.slice(offset, offset + pageSize).map(insertionReceipt),
+        page,
+        totalPages,
+      });
     }
 
     if (!isRecord(body)) return json(400, { error: 'Invalid phrase' });
     if (method === 'POST' && 'id' in body && 'text' in body)
       return json(400, { error: 'Provide either a phrase id or text' });
-    let next: Phrase[];
+
     if (method === 'POST' && 'id' in body) {
       const { id } = body;
       if (typeof id !== 'string' || id.length !== 36) return json(400, { error: 'Invalid phrase id' });
-      if (!phrases.some((phrase) => phrase.id === id)) return json(404, { error: 'Phrase not found' });
-      next = phrases.map((phrase) =>
-        phrase.id === id ? { ...phrase, useCount: (phrase.useCount ?? 0) + 1 } : phrase);
-    } else if (method === 'POST') {
+      for (let attempt = 0; attempt < usageAttempts; attempt++) {
+        const current = await storage.get(key);
+        const phrases = parsePhrases(current);
+        if (!phrases) return json(500, { error: 'Invalid phrase data' });
+        if (!phrases.some((phrase) => phrase.id === id)) return json(404, { error: 'Phrase not found' });
+        const next = phrases.map((phrase) =>
+          phrase.id === id ? { ...phrase, useCount: (phrase.useCount ?? 0) + 1 } : phrase);
+        if (Buffer.byteLength(JSON.stringify(next), 'utf8') > 1024 * 1024)
+          return json(413, { error: 'Phrase storage is full' });
+        await context.assertCurrent();
+        const write = await storage.compareAndSet(key, current?.revision ?? null, next);
+        // Only an unapplied CAS is safe to retry; a fresh read makes the next attempt count once.
+        if (write.applied) return json(200, { ok: true });
+      }
+      return json(409, { error: 'Phrases changed, please retry' });
+    }
+
+    const current = await storage.get(key);
+    const phrases = parsePhrases(current);
+    if (!phrases) return json(500, { error: 'Invalid phrase data' });
+    let next: Phrase[];
+    if (method === 'POST') {
       const { text } = body;
       if (typeof text !== 'string' || !text.trim() || text.length > 100_000)
         return json(400, { error: 'Phrase must contain 1–100,000 characters' });
