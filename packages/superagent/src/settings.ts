@@ -84,10 +84,8 @@ export function createSettings(
                         action: 'page',
                         label: '继续选择',
                         input: {
-                          before: {
-                            lastActiveAt: last.lastActiveAt,
-                            id: last.id,
-                          },
+                          lastActiveAt: last.lastActiveAt,
+                          id: last.id,
                         },
                       },
                     ],
@@ -95,7 +93,7 @@ export function createSettings(
                 ]
               : []),
             ...(page.before
-              ? [{ key: 'recent', label: '最近的会话', actions: [{ action: 'page', label: '返回最近', input: {} }] }]
+              ? [{ key: 'recent', label: '最近的会话', actions: [{ action: 'page', label: '返回最近', input: { recent: true } }] }]
               : []),
           ],
         },
@@ -104,8 +102,16 @@ export function createSettings(
     async 'superagent.page'(input, _caller, context) {
       current();
       await owner(context);
-      const value = z.object({ input: directory }).passthrough().parse(input);
-      await host.storage.set('directory-page', value.input);
+      const { input: page } = z
+        .object({
+          input: z.union([
+            z.object({ lastActiveAt: z.number(), id: z.string() }).transform((before) => ({ before })),
+            z.object({ recent: z.literal(true) }).transform(() => ({})),
+          ]),
+        })
+        .passthrough()
+        .parse(input);
+      await host.storage.set('directory-page', page);
       return actions['superagent.settings']({});
     },
     async 'superagent.choose'(input, _caller, context) {
