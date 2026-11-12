@@ -246,6 +246,17 @@
     },
     {
       "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.44",
+      "integrity": "sha512-V8rF0EXYP6rjFoIKsUFXpw3KJIsr5zRv+5g8ZVqz5ubR7MoTp9ioCfk/vf2fQFTW7LuZJqjhAl7qNv8mF/4njQ==",
+      "disposition": "defer",
+      "owner": "kimi31-pro",
+      "reviewBy": "2026-11-15T09:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/217",
+      "reason": "The wake-coalescing candidate retains SDK candidate.11 and capable Host storage.scan requirements. Source and isolated packaged validation do not replace an installed-instance acceptance or authorize installation.",
+      "condition": "Verify this exact self-contained archive with the original instance, settings and retained subscriptions during an owner-authorized update; validate actual tool schema and bounded read results. Public catalog activation requires separate scoped review."
+    },
+    {
+      "pluginId": "official.github-operations",
       "version": "0.1.0-alpha.42",
       "integrity": "sha512-fhwS8nL5LuYPb1RfsrHLBmaSrdKnwOeevjuY9dc+jV+wyVGTt/zfp/vj4Q5uEUOj+sOP0pOnNIc34N+X+TY+bA==",
       "disposition": "defer",
