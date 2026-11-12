@@ -1,0 +1,28 @@
+name: Feedback npm owner read-only check
+on:
+  push:
+    branches: [diag/feedback-owner-read-20261112]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    if: github.repository == 'zts212653/clowder-ai-plugins' && github.ref == 'refs/heads/diag/feedback-owner-read-20261112' && github.actor == 'zts212653'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+      - name: Verify previously reviewed source and read-only tests
+        run: |
+          echo '6d4a829b0d76ffd27aa1dfee35030832ad2bbeb8c604f910015bfafe9e1438e3  scripts/npm-publisher-diagnostic.mjs' | sha256sum -c -
+          node --test scripts/npm-publisher-diagnostic.test.mjs scripts/feedback-owner-read.test.mjs
+      - name: Read only the existing credential username
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/feedback-owner-read.mjs
