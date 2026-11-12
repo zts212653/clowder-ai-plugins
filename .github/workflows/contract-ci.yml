@@ -331,12 +331,6 @@ jobs:
           package-directory: packages/feedback
           npm-token: ''
 
-      - name: Publish quick phrases prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/quick-phrases
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
       - name: Publish Collective prerelease
         uses: ./.github/actions/publish-prerelease
         with:
@@ -450,6 +444,12 @@ jobs:
         with:
           package-directory: packages/github-operations
           npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish quick phrases prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/quick-phrases
+          npm-token: ''
 
       # Publication and discovery are separate transitions. The PR already
       # declared an owner; the daily audit delivers durable follow-up reminders.
