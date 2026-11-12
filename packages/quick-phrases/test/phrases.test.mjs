@@ -108,7 +108,7 @@ test('legacy phrases start at zero and selection cannot write another owner or u
   assert.deepEqual((await list({}, 'owner-b')).items, []);
 });
 
-test('a selection retries one CAS conflict with a fresh read and increments once', async () => {
+test('a selection re-reads a competing revision and increments only once', async () => {
   const id = '00000000-0000-4000-8000-000000000001';
   const { storage, list } = fixture([{ id, text: 'Existing phrase', useCount: 3 }]);
   let writes = 0;
@@ -116,7 +116,12 @@ test('a selection retries one CAS conflict with a fresh read and increments once
     ...storage,
     async compareAndSet(key, revision, value) {
       writes++;
-      if (writes === 1) return { applied: false };
+      if (writes === 1) {
+        const competitor = value.map((phrase) =>
+          phrase.id === id ? { ...phrase, useCount: 10 } : phrase);
+        assert.equal((await storage.compareAndSet(key, revision, competitor)).applied, true);
+        return { applied: false };
+      }
       return storage.compareAndSet(key, revision, value);
     },
   });
@@ -125,7 +130,7 @@ test('a selection retries one CAS conflict with a fresh read and increments once
   });
   assert.equal(result.status, 200);
   assert.equal(writes, 2);
-  assert.equal((await list({})).items[0].useCount, 4);
+  assert.equal((await list({})).items[0].useCount, 11);
 });
 
 test('a selection reports 409 after three unapplied CAS attempts without losing data', async () => {

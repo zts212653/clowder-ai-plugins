@@ -11,7 +11,7 @@ Save instructions you use repeatedly and bring them back into the chat composer.
 
 The plugin needs no configuration or external account. Phrases stay in the plugin's private Host storage, scoped to the current user, and survive disabling the plugin. A phrase can be as long as one chat message. Each user has 1 MiB of storage for saved phrases.
 
-Selection counts are stored with each phrase. Existing phrases start at zero; browsing, searching, and saving a duplicate do not increase the count. Each GET item carries an optional `onInserted` receipt (not persisted): a Host that supports it executes the receipt only after the text was inserted, while the plugin retries only unapplied CAS writes after a fresh read, up to three times. Older Hosts can still save, search, and select phrases (their `POST {id}` is still accepted and counted); a newer Host paired with an older plugin that lacks `onInserted` can still save, search, and select, but does not update counts.
+Selection counts are stored with each phrase. Existing phrases start at zero; browsing, searching, and saving a duplicate do not increase the count. Each GET item carries an optional `onInserted` receipt (not persisted): a Host that supports it executes the receipt only after the text was inserted, while the plugin retries only unapplied CAS writes after a fresh read, up to three times. Compatibility has three cases: older Hosts that do not send a selection notification do not count; Hosts that still send the legacy `POST {id}` are accepted and counted; a newer Host paired with an older plugin that lacks `onInserted` can still save, search, and select, but does not update counts.
 
 ## Development and installation
 
