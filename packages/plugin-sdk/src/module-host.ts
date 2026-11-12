@@ -76,6 +76,8 @@ export interface PluginStorageHost {
 
 export interface PluginThreadSummary {
   readonly id: string;
+  /** Canonical creator when supplied by the Host; readability alone proves no ownership. */
+  readonly createdBy?: string;
   /** Canonical project selected by the Host; never a caller-provided cwd. */
   readonly projectRef?: string;
   /** Host-authored navigation after owner/visibility/deleted filtering. Never
