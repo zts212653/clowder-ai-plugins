@@ -130,6 +130,62 @@ test('empty directories explain how to configure members and do not read convers
   await runtime.stop({ reason: 'test' });
 });
 
+test('watched sources exclude assistant-owned conversations and retain raw paging cursors and paused state', async () => {
+  const f = fixture();
+  await f.host.storage.set('preferences', { ...f.preferences, enabled: false });
+  const runtime = await startSuperagent(f.host);
+  const main = z.object({ mainThreadId: z.string() }).parse((await f.host.storage.get('runtime'))?.value);
+  const source = f.threads.get('source-a')!;
+  f.threads.set('work-thread', { ...source, id: 'work-thread' });
+  await f.host.storage.set('work:internal', {
+    key: 'internal',
+    title: 'Existing work',
+    outcome: 'Result',
+    workerId: 'worker',
+    threadId: 'work-thread',
+    sourceThreadId: 'source-a',
+    sourceMessageId: 'request',
+  });
+  await f.host.storage.set('queue', { works: ['internal'] });
+  await f.host.storage.set('preferences', {
+    ...f.preferences,
+    enabled: false,
+    started: true,
+    threadIds: ['source-a', main.mainThreadId, 'work-thread'],
+  });
+  const page = [
+    source,
+    ...Array.from({ length: 47 }, (_, index) => ({ ...source, id: `source-${index}` })),
+    f.threads.get('work-thread')!,
+    f.threads.get(main.mainThreadId)!,
+  ];
+  f.host.threads.list = async () => page;
+  const result = z
+    .object({
+      data: z.object({
+        rows: z.array(
+          z.object({
+            key: z.string(),
+            detail: z.string().optional(),
+            actions: z.array(z.object({ input: z.record(z.string(), z.unknown()) })).optional(),
+          }),
+        ),
+      }),
+    })
+    .parse(await runtime.actions['superagent.settings']({})).data;
+  assert.ok(
+    !result.rows.some((row) => row.key === main.mainThreadId || row.key === 'work-thread'),
+    'automatically managed conversations are not selectable sources',
+  );
+  assert.equal(result.rows.find((row) => row.key === 'source-a')!.detail, '已选，暂停中');
+  assert.equal(
+    result.rows.find((row) => row.key === 'more')!.actions![0].input.id,
+    main.mainThreadId,
+    'pagination uses the original page even when its last row is filtered',
+  );
+  await runtime.stop({ reason: 'test' });
+});
+
 test('setup does not subscribe before confirmation; older selected conversations remain removable across directory pages', async () => {
   const f = fixture();
   await f.host.storage.set('preferences', { ...f.preferences, enabled: false });

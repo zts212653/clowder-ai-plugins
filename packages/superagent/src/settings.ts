@@ -1,7 +1,18 @@
 import type { PluginActionHandler, PluginHostActionContext } from '@clowder-ai/plugin-sdk';
 import { z } from 'zod';
 import type { SuperagentHost } from './runtime.js';
-import { editPreferences, editQueue, inboxSchema, type Preferences, preferencesSchema, queued, read } from './state.js';
+import {
+  editPreferences,
+  editQueue,
+  inboxSchema,
+  type Preferences,
+  preferencesSchema,
+  queued,
+  read,
+  records,
+  runtimeSchema,
+  workSchema,
+} from './state.js';
 
 const directory = z.object({ before: z.object({ lastActiveAt: z.number(), id: z.string() }).optional() }).strict();
 
@@ -76,14 +87,17 @@ export function createSettings(
       current();
       const pref = await preferences();
       const page = (await read(host, 'directory-page', directory)) ?? {};
-      const [threads, selected] = await Promise.all([
+      const [threads, selected, runtime, works] = await Promise.all([
         host.threads.list({ limit: 50, before: page.before }),
         Promise.all(pref.threadIds.map((id) => host.threads.get(id))),
+        read(host, 'runtime', runtimeSchema),
+        records(host, 'work:', workSchema),
       ]);
+      const ownThreads = new Set([runtime?.mainThreadId, ...works.map((work) => work.threadId)]);
       const visible = [
         ...selected.filter((thread) => thread !== null),
         ...threads.filter((thread) => !pref.threadIds.includes(thread.id)),
-      ];
+      ].filter((thread) => !ownThreads.has(thread.id));
       const last = threads.at(-1);
       return {
         render: 'rows',
@@ -94,7 +108,7 @@ export function createSettings(
               key: thread.id,
               label: thread.title ?? '未命名会话',
               ...(pref.threadIds.includes(thread.id)
-                ? { detail: pref.enabled ? '跟进中' : '已选，开始跟进后生效' }
+                ? { detail: pref.enabled ? '跟进中' : pref.started ? '已选，暂停中' : '已选，开始跟进后生效' }
                 : {}),
               actions: [
                 {
