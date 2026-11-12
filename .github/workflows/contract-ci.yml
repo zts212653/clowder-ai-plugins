@@ -57,4 +57,3 @@ jobs:
           name: quick-phrases-oidc-probe-${{ github.sha }}
           path: ${{ runner.temp }}/quick-phrases-oidc-probe.json
           if-no-files-found: warn
-
