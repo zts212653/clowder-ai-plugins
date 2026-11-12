@@ -25,7 +25,7 @@
 
 `alpha.37` 需要先更新支持有界待办索引的 Host；缺少能力时，登记和采集会明确返回不可用，无关只读功能仍可使用。更新保留原实例、历史和已有导入暂停；不会自动放开采集或重新登记旧等待。写入新格式后，请保留配套 Host 版本，不能直接降回不识别该格式的旧 Host。
 
-PR、Issue 的定时检查只处理到期的等待、社区采集和已接续的旧 Issue；首次更新会完成可续接的历史盘点，盘点未完成不会显示为“没有待办”。成功检查会清零连续失败次数；限流、本地排队延期和批次未轮到既不扣次数，也不清零。连续五次真实失败会暂停该记录的自动检查，保留原记录；有明确负责线程时留下带具体对象及原因的状态提醒，不自动叫醒猫。使用 `github_list_tracking` 查看独立的 `polling.state`、恢复状态及脱敏的最近错误。获准恢复时，用 `github_retry_tracking` 提交当前 typed 诊断的 `taskId`、`recovery.scope` 和 `recovery.revision`；只重试当前用户的原等待，不改变负责猫、线程、基线、generation 或通知进度。不要用重新登记代替恢复，以免漏掉暂停期间的变化。
+PR、Issue 的定时检查只处理到期的等待、社区采集和已接续的旧 Issue；首次更新会完成可续接的历史盘点，盘点未完成不会显示为“没有待办”。成功检查会清零连续失败次数；限流、本地排队延期和批次未轮到既不扣次数，也不清零。临时网络故障采用持久化退避并自动重试，最长间隔 15 分钟；`polling.state: backing_off` 与 `nextPollAt` 表示恢复计划，联网后仍从原基线捕获离线期间的变化。旧网络暂停记录会在一次可续接的升级盘点中恢复调度，取消和损坏记录不会复活。其他连续五次非临时失败仍会暂停该记录，保留原记录；有明确负责线程时留下带具体对象及原因的状态提醒，不自动叫醒猫。使用 `github_list_tracking` 查看独立的 `polling.state`、恢复状态及脱敏的最近错误。获准恢复时，用 `github_retry_tracking` 提交当前 typed 诊断的 `taskId`、`recovery.scope` 和 `recovery.revision`；只重试当前用户的原等待，不改变负责猫、线程、基线、generation 或通知进度。不要用重新登记代替恢复，以免漏掉暂停期间的变化。
 
 `github_list_tracking` 默认只读一页跟踪状态（20 条，上限 50 条／65536 字节），可用 `repo`、`catId`、`threadId` 缩小范围。例如 `{repo:"owner/repo",catId:"codex61-sol",limit:5}` 查自己的小页；`{view:"recovery",needsAttention:true,limit:5}` 查四类恢复 owner；`{view:"diagnostics",repo:"owner/repo"}` 查注册诊断。旧的 `tracking`、`diagnostics`、`recoveryOwners` 字段保留，但只含所选页，不是全安装快照。恢复日志计数、过大的等待数据和错误细节会明确汇总或标记 `omittedFields`／`detailOmitted`，恢复用的 scope/revision 与原路由不改写。
 

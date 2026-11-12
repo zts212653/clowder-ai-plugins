@@ -4,6 +4,7 @@ import type { TaskItem } from './business/model/index.js';
 import { OwnerIndexedStorage } from './owner-indexed-storage.js';
 import { recoveryOwnerNotice, recoveryNoticeScore, type RecoveryOwnerNotice } from './recovery-owner-notice.js';
 import type { RecoveryErrorFacts } from './recovery-attempt.js';
+import { resumeLegacyNetworkFailure } from './observation-recovery.js';
 
 export const collectionPrefix = 'community.collection.v1.';
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -33,7 +34,7 @@ export function decodeCollection(value: unknown, key?: string): CollectionRecord
 }
 export const collectionIndex = (kind: 'pr' | 'issue') => `github-collection-${kind}`;
 export function collectionIndexOwner(storage: PluginStorageHost) {
-  return new OwnerIndexedStorage(storage, { prefix: collectionPrefix, census: 'community.collection.census.v1',
+  return new OwnerIndexedStorage(storage, { prefix: collectionPrefix, census: 'community.collection.census.v2',
     indexes: [collectionIndex('pr'), collectionIndex('issue')],
     validate: (key, value) => { decodeCollection(value, key); },
     materialize(value, key, selectedIndex) {
@@ -42,11 +43,17 @@ export function collectionIndexOwner(storage: PluginStorageHost) {
         const record = decodeCollection(value, key);
         const scope = hash(JSON.stringify([record.task.id, record.route?.sourceEventId, record.task.threadId, record.task.ownerCatId]));
         const old = record.recovery;
-        if (old && (old.v !== 1 || !Number.isSafeInteger(old.revision) || !Number.isSafeInteger(old.failures) || old.failures < 0 || !Number.isFinite(old.nextAt)))
+        if (old && (old.v !== 1 || !Number.isSafeInteger(old.revision) || !Number.isSafeInteger(old.failures) || old.failures < 0 || !Number.isFinite(old.nextAt)
+          || old.retryable !== undefined && typeof old.retryable !== 'boolean'))
           throw new Error('Invalid collection recovery facts');
-        const recovery = old?.scope === scope ? old : { v: 1 as const, scope, revision: 0, failures: 0, nextAt: 0 };
-        const intent = recoveryOwnerNotice('collection', scope, record.task.threadId, record.task.subjectKey!);
-        const notice = record.notice ?? (recovery.disposition && intent?.key !== recovery.lastNoticeKey ? intent : undefined);
+        const recovery = resumeLegacyNetworkFailure(old?.scope === scope ? old : { v: 1 as const, scope, revision: 0, failures: 0, nextAt: 0 });
+        // Keep already delivered legacy identities; newly classified fault
+        // episodes need a revision so cancelled history cannot suppress them.
+        const intent = recoveryOwnerNotice('collection', scope, record.task.threadId, record.task.subjectKey!,
+          recovery.retryable === undefined ? undefined : recovery.revision);
+        const notice = recovery !== old && old?.disposition && recovery.retryable && record.notice?.state === 'pending'
+          ? { ...record.notice, state: 'cancelled' as const }
+          : record.notice ?? (recovery.disposition && intent?.key !== recovery.lastNoticeKey ? intent : undefined);
         return { ...record, recovery, notice };
       } catch {
         const original = value as Partial<CollectionRecord> | null;
