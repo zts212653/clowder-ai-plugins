@@ -54,9 +54,9 @@ def run_child(mode):
         if len(buffer) > 262144:
             del buffer[:-131072]
         if not encrypted.exists():
-            match = re.search(rb'https://www\.npmjs\.com/auth/cli/[^\s\x1b\x00-\x1f]+', buffer)
+            match = re.search(rb'(https://www\.npmjs\.com/auth/cli/[^\s\x1b\x00-\x1f]+)[\r\n]', buffer)
             if match:
-                url = match.group(0)
+                url = match.group(1)
                 if len(url) > 300:
                     os.kill(pid, signal.SIGTERM)
                     finish('invalid-challenge')

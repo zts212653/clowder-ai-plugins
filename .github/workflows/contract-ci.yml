@@ -1,24 +1,48 @@
-name: Feedback recovery channel test
+name: Feedback approved publication recovery
 on:
   push:
     branches: [diag/feedback-oidc-20261112]
 permissions:
   contents: read
+concurrency:
+  group: feedback-recovery-alpha2
+  cancel-in-progress: false
 jobs:
-  test:
+  publish:
     if: github.repository == 'zts212653/clowder-ai-plugins' && github.actor == 'zts212653'
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 16
     steps:
       - uses: actions/checkout@v4
-      - name: Start synthetic challenge process
-        run: python3 .github/feedback-recovery/challenge.py launch mock
-      - name: Upload encrypted synthetic challenge
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.18.0'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Verify exact approved tarball, signed source and registry state
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          test "$(npm --version)" = '11.16.0'
+          node .github/feedback-recovery/preflight.js
+      - name: Start the single approved publication attempt
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          npm_config_logs_max: '0'
+        run: python3 .github/feedback-recovery/challenge.py launch publish
+      - name: Upload encrypted authorization challenge if needed
         uses: actions/upload-artifact@v4
         with:
-          name: feedback-recovery-mock-${{ github.run_id }}
+          name: feedback-recovery-auth-${{ github.run_id }}
           path: ${{ runner.temp }}/feedback-recovery/challenge.enc
           retention-days: 1
-          if-no-files-found: error
-      - name: Wait for mock process
-        run: python3 .github/feedback-recovery/challenge.py wait mock
+          if-no-files-found: warn
+      - name: Await the result of the single publication attempt
+        run: python3 .github/feedback-recovery/challenge.py wait publish
+      - name: Upload credential-free result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: feedback-recovery-result-${{ github.run_id }}
+          path: ${{ runner.temp }}/feedback-recovery/result.json
+          retention-days: 5
+          if-no-files-found: warn
