@@ -1,6 +1,6 @@
 {
   "pluginId": "official.companion",
-  "version": "0.1.0-alpha.38",
+  "version": "0.1.0-alpha.39",
   "contractVersion": "0.1.0",
   "name": "猫猫球",
   "icon": {
@@ -17,6 +17,14 @@
     "transport": "builtin"
   },
   "configuration": [
+    {
+      "key": "enabled",
+      "label": "显示猫猫球",
+      "description": "关掉后桌面上不显示猫猫球；猫猫球上的「停用」也会关掉这一项。",
+      "kind": "boolean",
+      "required": false,
+      "default": true
+    },
     {
       "key": "dutyCatProfileId",
       "label": "回复的成员",
