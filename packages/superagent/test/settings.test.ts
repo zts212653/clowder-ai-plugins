@@ -52,10 +52,11 @@ test('assistant, execution members and watched conversations are separate settin
   assert.ok(assistants.some((row) => row.key === 'assistant-status' && !row.actions?.length));
   assert.ok(assistants.every((row) => row.key === 'assistant-status' || row.key.startsWith('coordinator:')));
   assert.ok((await list('workers')).every((row) => row.key.startsWith('worker:')));
-  assert.ok((await list('scope')).every((row) => !row.key.includes(':')));
+  const scope = fields.find((field) => field?.key === 'scope')!;
+  assert.equal(scope.actions![0].resultRender, 'thread-picker');
   const choose = async (field: string, selection: string, id: string) => {
     const response = await runtime.actions['superagent.choose'](
-      { input: { botName: 'My assistant', selection, id } },
+      { input: { botName: 'My assistant', selection, ...(selection === 'threads' ? { ids: [id] } : { id }) } },
       undefined,
       {
         kind: 'owner-operation',
@@ -68,6 +69,10 @@ test('assistant, execution members and watched conversations are separate settin
         assertCurrent: async () => {},
       },
     );
+    if (selection === 'threads') {
+      assert.deepEqual(z.object({ data: z.object({ selected: z.array(z.string()) }) }).parse(response).data.selected, [id]);
+      return [];
+    }
     const rows = responseSchema.parse(response).data.rows;
     const declared = operations.find((item) => item.key === field)!;
     assert.equal(
@@ -86,7 +91,7 @@ test('assistant, execution members and watched conversations are separate settin
   const workers = await choose('workers', 'worker', 'coordinator');
   assert.ok(workers.every((row) => row.key.startsWith('worker:')));
   await choose('workers', 'worker', 'worker');
-  await choose('scope', 'thread', 'source-a');
+  await choose('scope', 'threads', 'source-a');
   await choose('assistant', 'coordinator', 'worker');
   await choose('workers', 'worker', 'worker');
   const saved = preferencesSchema.parse((await f.host.storage.get('preferences'))?.value);
@@ -125,136 +130,9 @@ test('empty directories explain how to configure members and do not read convers
     assert.match(result.empty, /猫猫团队/);
   }
   assert.equal(directoryReads, 0);
-  const conversations = rowsSchema.parse(await runtime.actions['superagent.settings']({})).data;
-  assert.deepEqual(conversations.rows, []);
-  assert.equal(conversations.empty, '还没有可跟进的会话。');
-  await runtime.stop({ reason: 'test' });
-});
-
-test('watched sources exclude assistant-owned conversations and retain raw paging cursors and paused state', async () => {
-  const f = fixture();
-  await f.host.storage.set('preferences', { ...f.preferences, enabled: false });
-  const runtime = await startSuperagent(f.host);
-  const main = z.object({ mainThreadId: z.string() }).parse((await f.host.storage.get('runtime'))?.value);
-  const source = f.threads.get('source-a')!;
-  f.threads.set('work-thread', { ...source, id: 'work-thread' });
-  await f.host.storage.set('work:internal', {
-    key: 'internal',
-    title: 'Existing work',
-    outcome: 'Result',
-    workerId: 'worker',
-    threadId: 'work-thread',
-    sourceThreadId: 'source-a',
-    sourceMessageId: 'request',
-  });
-  await f.host.storage.set('queue', { works: ['internal'] });
-  await f.host.storage.set('preferences', {
-    ...f.preferences,
-    enabled: false,
-    started: true,
-    threadIds: ['source-a', main.mainThreadId, 'work-thread'],
-  });
-  const page = [
-    source,
-    ...Array.from({ length: 47 }, (_, index) => ({ ...source, id: `source-${index}` })),
-    f.threads.get('work-thread')!,
-    f.threads.get(main.mainThreadId)!,
-  ];
-  f.host.threads.list = async () => page;
-  const result = z
-    .object({
-      data: z.object({
-        rows: z.array(
-          z.object({
-            key: z.string(),
-            detail: z.string().optional(),
-            actions: z.array(z.object({ input: z.record(z.string(), z.unknown()) })).optional(),
-          }),
-        ),
-      }),
-    })
+  const conversations = z.object({ render: z.literal('thread-picker'), data: z.object({ selected: z.array(z.string()) }) })
     .parse(await runtime.actions['superagent.settings']({})).data;
-  assert.ok(
-    !result.rows.some((row) => row.key === main.mainThreadId || row.key === 'work-thread'),
-    'automatically managed conversations are not selectable sources',
-  );
-  assert.equal(result.rows.find((row) => row.key === 'source-a')!.detail, '已选，暂停中');
-  assert.equal(
-    result.rows.find((row) => row.key === 'more')!.actions![0].input.id,
-    main.mainThreadId,
-    'pagination uses the original page even when its last row is filtered',
-  );
+  assert.deepEqual(conversations.selected, []);
+  assert.equal(directoryReads, 0, 'the Host supplies its own native conversation picker');
   await runtime.stop({ reason: 'test' });
-});
-
-test('setup does not subscribe before confirmation; older selected conversations remain removable across directory pages', async () => {
-  const f = fixture();
-  await f.host.storage.set('preferences', { ...f.preferences, enabled: false });
-  const source = f.threads.get('source-a')!;
-  const page = Array.from({ length: 50 }, (_, index) => ({
-    ...source,
-    id: `recent-${index}`,
-    lastActiveAt: 100 - index,
-  }));
-  f.host.threads.list = async (input) => (input?.before ? [{ ...source, id: 'older' }] : page);
-  const runtime = await startSuperagent(f.host);
-  const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
-  const operation = manifest.configuration.find((field: { key: string }) => field.key === 'scope');
-  assert.equal(f.subscriptions.has('source-a'), false);
-  const rowsSchema = z.object({
-    data: z.object({
-      rows: z.array(
-        z.object({
-          key: z.string(),
-          actions: z.array(
-            z.object({
-              action: z.string(),
-              input: z.record(z.string(), z.unknown()),
-            }),
-          ),
-        }),
-      ),
-    }),
-  });
-  const firstResponse = await runtime.actions['superagent.settings']({});
-  const firstResult = z.object({ data: z.unknown() }).parse(firstResponse);
-  const firstValidation = validateOperationRowsResult(operation, firstResult.data);
-  assert.equal(firstValidation.valid, true, JSON.stringify(firstValidation));
-  const first = rowsSchema.parse(firstResponse).data.rows;
-  assert.ok(first.some((row) => row.key === 'source-a' && row.actions[0].action === 'choose'));
-  const more = first.find((row) => row.key === 'more')!;
-  const owner = {
-    kind: 'owner-operation' as const,
-    userId: 'owner',
-    pluginInstanceId: f.host.pluginInstanceId,
-    operationKey: 'scope',
-    actionId: 'page',
-    requestId: 'request-page',
-    signal: new AbortController().signal,
-    assertCurrent: async () => {},
-  };
-  await runtime.actions['superagent.page'](
-    { input: { botName: 'My assistant', responsibility: 'Selected work', ...more.actions[0].input } },
-    undefined,
-    owner,
-  );
-  const nextResponse = await runtime.actions['superagent.settings']({});
-  const nextResult = z.object({ data: z.unknown() }).parse(nextResponse);
-  const nextValidation = validateOperationRowsResult(operation, nextResult.data);
-  assert.equal(nextValidation.valid, true, JSON.stringify(nextValidation));
-  const next = rowsSchema.parse(nextResponse).data.rows;
-  assert.ok(next.some((row) => row.key === 'older'));
-  assert.ok(next.some((row) => row.key === 'source-a'));
-  const recent = next.find((row) => row.key === 'recent')!;
-  await runtime.actions['superagent.page'](
-    { input: { botName: 'My assistant', responsibility: 'Selected work', ...recent.actions[0].input } },
-    undefined,
-    owner,
-  );
-  const returnedResponse = await runtime.actions['superagent.settings']({});
-  const returned = z.object({ data: z.unknown() }).parse(returnedResponse);
-  assert.equal(validateOperationRowsResult(operation, returned.data).valid, true);
-  assert.ok(rowsSchema.parse(returnedResponse).data.rows.some((row) => row.key === 'more'));
-  await runtime.stop({ reason: 'test' });
-  await assert.rejects(async () => runtime.actions['superagent.settings']({}), /stopped/);
 });

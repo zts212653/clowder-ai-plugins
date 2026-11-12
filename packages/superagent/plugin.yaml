@@ -1,5 +1,5 @@
 pluginId: official.superagent
-version: 0.1.0-alpha.2
+version: 0.1.0-alpha.3
 contractVersion: 0.1.0
 name: Superagent
 description:
@@ -73,28 +73,22 @@ configuration:
         next: list
   - key: scope
     label: 监听会话
-    description: 只读取并跟进这里选中的个人会话。选好后，到「持续跟进」确认开始。
+    description: 按会话列表的分组、置顶和顺序选择。保存后，到「持续跟进」确认开始。
     kind: operation
     required: false
     actions:
       - id: list
-        label: 刷新名单
+        label: 选择监听会话
         render: button
         action:
           method: superagent.settings
-        resultRender: rows
+        resultRender: thread-picker
       - id: choose
         label: 选择
         render: row
         action:
           method: superagent.choose
-        resultRender: rows
-        next: list
-      - id: page
-        label: 翻页
-        render: row
-        action:
-          method: superagent.page
+        resultRender: thread-picker
         next: list
   - key: activity
     label: 持续跟进

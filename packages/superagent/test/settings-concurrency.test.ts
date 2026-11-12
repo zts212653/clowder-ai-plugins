@@ -21,7 +21,7 @@ test('the settings UI may select different rows concurrently without losing scop
     return create(input);
   };
   const choose = (selection: string, id: string) =>
-    runtime.actions['superagent.choose']({ input: { selection, id } }, undefined, {
+    runtime.actions['superagent.choose']({ input: { selection, ...(selection === 'threads' ? { ids: ['source-a', 'source-b'] } : { id }) } }, undefined, {
       kind: 'owner-operation',
       userId: 'owner',
       pluginInstanceId: f.host.pluginInstanceId,
@@ -34,8 +34,7 @@ test('the settings UI may select different rows concurrently without losing scop
   await Promise.all([
     choose('coordinator', 'coordinator'),
     choose('worker', 'worker'),
-    choose('thread', 'source-a'),
-    choose('thread', 'source-b'),
+    choose('threads', 'sources'),
   ]);
   const saved = preferencesSchema.parse((await f.host.storage.get('preferences'))?.value);
   assert.equal(saved.coordinatorId, 'coordinator');
