@@ -7,13 +7,23 @@
   "icon": { "type": "svg", "src": "assets/superagent.svg" },
   "runtime": { "transport": "builtin", "entrypoint": "dist/index.js", "dataDirectory": "superagent" },
   "data": [{ "name": "work-and-follow-up", "dataClass": "derived-user-visible", "strategy": "retained", "schemaVersion": "1" }],
-  "steps": [{ "text": "先打开插件的启用开关，填写并保存工作范围，再选择成员与会话。确认开始跟进前，不会监听所选会话或调用成员。" }],
+  "steps": [{ "text": "保存工作范围，分别选择助手 Agent、执行 Agent 和监听会话，再确认开始跟进。确认前不会监听会话或调用 Agent。" }],
   "configuration": [
-    { "key": "botName", "label": "助手名称", "kind": "string", "required": false, "default": "我的助手" },
+    { "key": "botName", "label": "助手名称", "description": "侧栏和对话中的显示名称；使用哪个 Agent，在下方单独选择。", "kind": "string", "required": false, "default": "我的助手" },
     { "key": "responsibility", "label": "允许处理的工作", "description": "说明希望它持续负责什么，以及哪些决定必须找你确认。保存后再确认启用。", "kind": "string", "required": false },
-    { "key": "scope", "label": "成员与监听会话", "kind": "operation", "required": false,
+    { "key": "assistant", "label": "助手 Agent（单选）", "description": "从成员中选一位担任助手：理解你的委托、跟进进展，并把任务交给执行 Agent。", "kind": "operation", "required": false,
       "actions": [
-        { "id": "list", "label": "选择成员和会话", "render": "button", "action": { "method": "superagent.settings" }, "resultRender": "rows" },
+        { "id": "list", "label": "刷新名单", "render": "button", "action": { "method": "superagent.assistant" }, "resultRender": "rows" },
+        { "id": "choose", "label": "设为助手", "render": "row", "action": { "method": "superagent.choose" }, "resultRender": "rows", "next": "list" }
+      ] },
+    { "key": "workers", "label": "执行 Agent（多选）", "description": "允许助手调用这些 Agent 完成具体任务。至少选一位，也可以选择上面的助手 Agent。", "kind": "operation", "required": false,
+      "actions": [
+        { "id": "list", "label": "刷新名单", "render": "button", "action": { "method": "superagent.workers" }, "resultRender": "rows" },
+        { "id": "choose", "label": "选择", "render": "row", "action": { "method": "superagent.choose" }, "resultRender": "rows", "next": "list" }
+      ] },
+    { "key": "scope", "label": "监听会话", "description": "只读取并跟进这里选中的个人会话。选好后，到「持续跟进」确认开始。", "kind": "operation", "required": false,
+      "actions": [
+        { "id": "list", "label": "刷新名单", "render": "button", "action": { "method": "superagent.settings" }, "resultRender": "rows" },
         { "id": "choose", "label": "选择", "render": "row", "action": { "method": "superagent.choose" }, "resultRender": "rows", "next": "list" },
         { "id": "page", "label": "翻页", "render": "row", "action": { "method": "superagent.page" }, "next": "list" }
       ] },
@@ -25,7 +35,7 @@
       "actions": [{ "id": "pause", "label": "暂停新接单与派发", "render": "button", "action": { "method": "superagent.pause" } }] },
     { "key": "recovery", "label": "恢复处理", "kind": "operation", "required": false,
       "actions": [
-        { "id": "retry", "label": "重试未完成的判断", "render": "button", "confirm": "仅重试已结束却未留下判断的调用，会使用所选协调成员的额度。", "action": { "method": "superagent.retry" } }
+        { "id": "retry", "label": "重试未完成的判断", "render": "button", "confirm": "仅重试已结束却未留下判断的调用，会使用助手 Agent 的额度。", "action": { "method": "superagent.retry" } }
       ] }
   ],
   "features": [{ "id": "superagent", "name": "个人会话持续跟进", "resources": [], "contributions": [
