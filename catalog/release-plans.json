@@ -236,7 +236,18 @@
     {
       "pluginId": "official.github-operations",
       "version": "0.1.0-alpha.41",
-      "integrity": "sha512-L1x0Mr4F1k+o9JZKuX2z3s6afmWcXcSNYVq73LY7+ihe9OSfF3uHFCwpbsQ24t5EjrX/eb7u+CsSTtJUSWTv0g==",
+      "integrity": "sha512-2RHxH0NGbrsFRVjTuMADMCyrJJRNv/TGw5MSSIr9D/p1nKK3b/Xz6FcZxJvepiIr1IFGZTUjN4YLnUS/1YdFvg==",
+      "disposition": "defer",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-15T09:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/208",
+      "reason": "The bounded status candidate retains SDK candidate.11 and capable Host storage.scan requirements. Source and isolated packaged validation do not replace an installed-instance acceptance or authorize installation.",
+      "condition": "Verify this exact self-contained archive with the original instance, settings and retained subscriptions during an owner-authorized update; validate actual tool schema and bounded read results. Public catalog activation requires separate scoped review."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.42",
+      "integrity": "sha512-QpntovDrWII1KWYY8KLuHI4+pI7h/7ikgrTsC0xw4u5oKX3z/vw6p5ZIq/K1iZ41sG+YCsRMN+5s9EYKN172Jw==",
       "disposition": "defer",
       "owner": "kimi31-pro",
       "reviewBy": "2026-11-15T09:00:00Z",

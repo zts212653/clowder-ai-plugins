@@ -364,7 +364,7 @@ for (const scenario of [
     try {
       f.update({ reviews: [{ id: 1, author: 'previous-reviewer', state: 'APPROVED', commitId: oldHead }] });
       await runtime.registerPr(input, f.caller);
-      f.update({ headSha: newHead, ci: scenario.name === 'no-ci' ? 'external_infrastructure' : 'pending', ...scenario.patch });
+      f.update({ headSha: newHead, ci: scenario.name === 'no-ci' ? 'external_infrastructure' : 'pending', ciRollup: 'present', ...scenario.patch });
       f.advance(); await runtime.poll('pr');
       assert.equal(f.sent.length, 1, `${scenario.name} must remain immediately visible`);
     } finally { await runtime.stop(); }
@@ -377,7 +377,7 @@ test('CI failure and subject terminal are never deferred behind a green result',
     try {
       f.update({ reviews: [{ id: 1, author: 'previous-reviewer', state: 'APPROVED', commitId: oldHead }] });
       await runtime.registerPr(input, f.caller);
-      f.update({ headSha: 'b'.repeat(40), ci: 'pending', ...terminal });
+      f.update({ headSha: 'b'.repeat(40), ci: 'pending', ciRollup: 'present', ...terminal });
       f.advance(); await runtime.poll('pr');
       assert.equal(f.sent.length, 1, JSON.stringify(terminal));
     } finally { await runtime.stop(); }
@@ -471,5 +471,16 @@ test('a persisted conversation self-comment is private, but another commenter st
     ] });
     f.advance(); await runtime.poll('pr');
     assert.equal(f.sent.length, 1);
+  } finally { await runtime.stop(); }
+});
+
+
+test('an unreviewed HEAD update is never coalesced even with a real pending rollup', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    await runtime.registerPr(input, f.caller);
+    f.update({ headSha: 'b'.repeat(40), ci: 'pending', ciRollup: 'present' });
+    f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 1, 'without a formal prior review there is no redundant review wake to merge');
   } finally { await runtime.stop(); }
 });

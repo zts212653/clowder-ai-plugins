@@ -203,6 +203,7 @@ test('real migrated gh transport pages comments using durable cursors and keeps 
   const f = fixture();
   const result = await f.provider.read(target, new AbortController().signal, { inline: 0, conversation: 99 });
   assert.equal(result.ci, 'pending');
+  assert.equal(result.ciRollup, 'empty');
   assert.equal(result.comments[0]?.id, 100);
   assert.equal(f.provider.selfLogin(), 'owner');
   assert.ok(f.calls.some(args => args[1]?.includes('since=2026-10-01T09%3A59%3A59.000Z')));
@@ -236,6 +237,7 @@ test('real provider derives notification identity from account, author and posit
     assert.deepEqual(result.trackingIdentity, { selfLogin: 'Reviewer', subjectAuthorLogin: 'author',
       ...(ground ? { reviewerGround: ground } : {}) });
     assert.equal(result.ciBlockerCount, 2);
+    assert.equal(result.ciRollup, 'present');
   }
 });
 
