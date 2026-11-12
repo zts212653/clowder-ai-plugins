@@ -11,7 +11,7 @@ Save instructions you use repeatedly and bring them back into the chat composer.
 
 The plugin needs no configuration or external account. Phrases stay in the plugin's private Host storage, scoped to the current user, and survive disabling the plugin. A phrase can be as long as one chat message. Each user has 1 MiB of storage for saved phrases.
 
-Selection counts are stored with each phrase. Existing phrases start at zero; browsing, searching, and saving a duplicate do not increase the count. Counting requires a Host that sends selection notifications. Older Hosts can still save, search, and select phrases without updating counts.
+Selection counts are stored with each phrase. Existing phrases start at zero; browsing, searching, and saving a duplicate do not increase the count. Each GET item carries an optional `onInserted` receipt (not persisted): a Host that supports it executes the receipt only after the text was inserted, while the plugin retries only unapplied CAS writes after a fresh read, up to three times. Older Hosts can still save, search, and select phrases (their `POST {id}` is still accepted and counted); a newer Host paired with an older plugin that lacks `onInserted` can still save, search, and select, but does not update counts.
 
 ## Development and installation
 
@@ -25,4 +25,4 @@ pnpm --filter @clowder-ai/quick-phrases build
 
 Build the package, then install this directory through the Host plugin manager. The Host must support the `composer.quick-phrases` entry. The plugin uses the existing plugin resource dispatcher for listing, saving, and deleting phrases.
 
-The same `phrases` resource accepts `POST { "text": "…" }` to save and `POST { "id": "<phrase-id>" }` to record one selection. These fields are mutually exclusive; providing both returns `400`. Counts are scoped to the current user, and results are ranked before filtering pages. Conflicting writes retain the existing `409` retry response.
+The same `phrases` resource accepts `POST { "text": "…" }` to save and `POST { "id": "<phrase-id>" }` to record one selection. These fields are mutually exclusive; providing both returns `400`. Counts are scoped to the current user, and results are ranked before filtering pages. `POST {id}` performs at most three fresh-read + CAS attempts and retries only when the write is unapplied; persistent conflicts return `409`. Ordinary save and delete keep their single CAS attempt and existing `409` behavior. Each GET item also carries `onInserted: { request: { method: "POST", path: "phrases", body: { id } }, notifyFailure: false }`; the Host executes it only after the text was actually inserted. The field is never written back to storage.

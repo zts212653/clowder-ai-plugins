@@ -108,15 +108,76 @@ test('legacy phrases start at zero and selection cannot write another owner or u
   assert.deepEqual((await list({}, 'owner-b')).items, []);
 });
 
-test('a conflicting selection write reports the existing retry response without losing saved data', async () => {
+test('a selection retries one CAS conflict with a fresh read and increments once', async () => {
   const id = '00000000-0000-4000-8000-000000000001';
   const { storage, list } = fixture([{ id, text: 'Existing phrase', useCount: 3 }]);
-  const handle = createQuickPhrases({ ...storage, async compareAndSet() { return { applied: false }; } });
+  let writes = 0;
+  const handle = createQuickPhrases({
+    ...storage,
+    async compareAndSet(key, revision, value) {
+      writes++;
+      if (writes === 1) return { applied: false };
+      return storage.compareAndSet(key, revision, value);
+    },
+  });
+  const result = await handle({ request: { method: 'POST', body: { id } } }, {
+    kind: 'owner-http-request', userId: 'owner-a', operation: 'write', async assertCurrent() {},
+  });
+  assert.equal(result.status, 200);
+  assert.equal(writes, 2);
+  assert.equal((await list({})).items[0].useCount, 4);
+});
+
+test('a selection reports 409 after three unapplied CAS attempts without losing data', async () => {
+  const id = '00000000-0000-4000-8000-000000000001';
+  const { storage, list } = fixture([{ id, text: 'Existing phrase', useCount: 3 }]);
+  let writes = 0;
+  const handle = createQuickPhrases({
+    ...storage,
+    async compareAndSet() {
+      writes++;
+      return { applied: false };
+    },
+  });
   const result = await handle({ request: { method: 'POST', body: { id } } }, {
     kind: 'owner-http-request', userId: 'owner-a', operation: 'write', async assertCurrent() {},
   });
   assert.equal(result.status, 409);
+  assert.equal(writes, 3);
   assert.equal((await list({})).items[0].useCount, 3);
+});
+
+test('ordinary save keeps its single CAS attempt and reports 409 on conflict', async () => {
+  const { storage, list } = fixture();
+  let writes = 0;
+  const handle = createQuickPhrases({
+    ...storage,
+    async compareAndSet() {
+      writes++;
+      return { applied: false };
+    },
+  });
+  const result = await handle({ request: { method: 'POST', body: { text: 'New phrase' } } }, {
+    kind: 'owner-http-request', userId: 'owner-a', operation: 'write', async assertCurrent() {},
+  });
+  assert.equal(result.status, 409);
+  assert.equal(writes, 1);
+  assert.deepEqual((await list({})).items, []);
+});
+
+test('GET exposes an actionable insertion receipt without persisting it', async () => {
+  const { invoke, list, storage } = fixture();
+  await invoke('POST', { body: { text: 'Receipt phrase' } });
+  const [item] = (await list({})).items;
+  assert.deepEqual(item.onInserted, {
+    request: { method: 'POST', path: 'phrases', body: { id: item.id } },
+    notifyFailure: false,
+  });
+  const stored = await storage.get(`quick-phrases:${Buffer.from('owner-a').toString('base64url')}`);
+  assert.ok(stored);
+  assert.equal('onInserted' in stored.value[0], false);
+  assert.equal((await invoke('POST', { body: item.onInserted.request.body })).status, 200);
+  assert.equal((await list({})).items[0].useCount, 1);
 });
 
 test('invalid persisted counts are rejected at the storage boundary', async () => {
@@ -132,5 +193,13 @@ test('saving and recording usage are mutually exclusive POST operations', async 
   const { invoke, list } = fixture([existing]);
   assert.equal((await invoke('POST', { body: { id, text: 'A new phrase' } })).status, 400);
   assert.equal((await invoke('POST', { body: { id: null, text: 'A new phrase' } })).status, 400);
-  assert.deepEqual((await list({})).items, [existing]);
+  assert.deepEqual((await list({})).items, [
+    {
+      ...existing,
+      onInserted: {
+        request: { method: 'POST', path: 'phrases', body: { id } },
+        notifyFailure: false,
+      },
+    },
+  ]);
 });
