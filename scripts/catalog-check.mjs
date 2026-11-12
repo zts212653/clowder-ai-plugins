@@ -47,7 +47,6 @@ assert.deepEqual(
     'official.feedback',
     'official.feishu-meeting-intake',
     'official.github-operations',
-    'official.superagent',
     'official.wechat-visible-reader',
     'official.weixin-mp',
   ],

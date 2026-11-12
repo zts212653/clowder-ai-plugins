@@ -300,9 +300,6 @@ jobs:
       - name: Build WeChat visible reader package
         run: pnpm --filter @clowder-ai/wechat-visible-reader build
 
-      - name: Build Superagent package
-        run: pnpm --filter @clowder-ai/superagent build
-
       - name: Build GitHub operations package
         run: pnpm --filter @clowder-ai/github-operations build
 
@@ -436,12 +433,6 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/xiangqi
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish Superagent prerelease
-        uses: ./.github/actions/publish-prerelease
-        with:
-          package-directory: packages/superagent
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish GitHub operations prerelease

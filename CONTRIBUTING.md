@@ -29,7 +29,7 @@ node scripts/assert-pr-head.mjs <owner/repo> <pr-number> <新HEAD-sha>
 
 仓内新增目录不会自动获得 npm 发布或官方目录条目。需要官方 npm 分发时，同步核对发布 workflow 的实际包清单与 catalog 制品坐标；这些变更继续遵循下面的风险审查约定。团队 Git 仓的目录发现不依赖本仓的 npm catalog。
 
-`test:package-inventory` 从源码反查公开 runtime 的规范声明和目录去向：公开 runtime 不能仅用 `manifest.json` 避开清点；没有候选条目的 source-only 插件须在该检查的显式例外名单中说明去向并随 PR 审查。私有夹具与无 runtime 的数据型 provider 不因此被强制上架。
+`test:package-inventory` 从源码反查公开 runtime 的规范声明和目录去向：公开 runtime 不能仅用 `manifest.json` 避开清点；没有候选条目的插件须在该检查的显式例外名单中说明 source-only 或待准入决定的去向，待准入项关联原 issue，并随 PR 审查。待准入不表示永久 source-only。私有夹具与无 runtime 的数据型 provider 不因此被强制上架。
 
 ## 路径责任与风险审查
 

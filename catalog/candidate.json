@@ -2844,48 +2844,6 @@
       ]
     },
     {
-      "pluginId": "official.superagent",
-      "name": "Superagent",
-      "description": {
-        "default": "在你选定的个人会话中接住工作、跨会话跟进，并把必要决定与结果带回原处。",
-        "translations": {
-          "en": "Follow work across your selected personal conversations and return decisions and results to their source."
-        }
-      },
-      "icon": {
-        "type": "svg",
-        "src": "assets/superagent.svg"
-      },
-      "publisher": {
-        "id": "clowder-ai",
-        "name": "Clowder AI"
-      },
-      "keywords": [
-        "assistant",
-        "superagent",
-        "tasks"
-      ],
-      "versions": [
-        {
-          "version": "0.1.0-alpha.2",
-          "contractVersion": "0.1.0",
-          "manifestPath": "plugin.yaml",
-          "artifact": {
-            "kind": "npm",
-            "packageName": "@clowder-ai/superagent",
-            "version": "0.1.0-alpha.2",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/superagent/-/superagent-0.1.0-alpha.2.tgz",
-            "integrity": "sha512-wxCqkyRKxeQavweQRhaMwFKYdMUgfv+ksmDivvg5Ip5keZi2M13hkLwj6rBkWijeQVHQI1wNxOiIuL+XQor7Ng==",
-            "shasum": "338fc3f3c7ce27a7712485a9205e8d74d10d86fd",
-            "provenance": {
-              "repository": "https://github.com/zts212653/clowder-ai-plugins",
-              "sourceDirectory": "packages/superagent"
-            }
-          }
-        }
-      ]
-    },
-    {
       "pluginId": "official.wechat-visible-reader",
       "name": "WeChat Visible Reader",
       "description": {
