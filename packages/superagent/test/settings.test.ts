@@ -3,13 +3,14 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { validateManifest, validateOperationRowsResult } from '@clowder-ai/plugin-contract';
 import { z } from 'zod';
+import { parse } from 'yaml';
 import { startSuperagent } from '../src/runtime.js';
 import { preferencesSchema } from '../src/state.js';
 import { fixture } from './fixture.js';
 
 test('assistant, execution members and watched conversations are separate settings that preserve each other', async () => {
   const declaration = validateManifest(
-    JSON.parse(await readFile(new URL('../manifest.json', import.meta.url), 'utf8')),
+    parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8')),
   );
   assert.ok(declaration.valid, JSON.stringify(declaration.errors));
   assert.ok(declaration.manifest.configuration);
@@ -197,7 +198,7 @@ test('setup does not subscribe before confirmation; older selected conversations
   }));
   f.host.threads.list = async (input) => (input?.before ? [{ ...source, id: 'older' }] : page);
   const runtime = await startSuperagent(f.host);
-  const manifest = JSON.parse(await readFile(new URL('../manifest.json', import.meta.url), 'utf8'));
+  const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
   const operation = manifest.configuration.find((field: { key: string }) => field.key === 'scope');
   assert.equal(f.subscriptions.has('source-a'), false);
   const rowsSchema = z.object({

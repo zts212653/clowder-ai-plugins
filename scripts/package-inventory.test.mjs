@@ -31,6 +31,30 @@ function packagePath(plugin, relativePath) {
   return target;
 }
 
+test('public runtime plugins cannot disappear behind a noncanonical manifest filename', async () => {
+  for (const directory of await readdir(new URL('packages/', root))) {
+    const files = await readdir(new URL(`packages/${directory}/`, root));
+    if (!files.includes('manifest.json') || files.includes('plugin.yaml')) continue;
+    const packageRoot = new URL(`packages/${directory}/`, root);
+    const pkg = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'));
+    const manifest = JSON.parse(await readFile(new URL('manifest.json', packageRoot), 'utf8'));
+    // Private fixtures and data-only provider packages are not catalog runtimes.
+    if (pkg.private === true || !manifest.runtime) continue;
+    assert.fail(`${directory}: public runtime plugin must use plugin.yaml, not manifest.json`);
+  }
+});
+
+test('public runtime sources declare a catalog destination or an explicit source-only exception', () => {
+  // These existing plugins are installed from source rather than the npm catalog.
+  // Keep this list explicit: deriving it from missing catalog rows hides omissions.
+  const sourceOnly = new Set(['official.feedback', 'official.quick-phrases', 'official.tripo-studio']);
+  for (const plugin of plugins.filter(p => p.pkg.private !== true && p.manifest.runtime)) {
+    assert.ok(catalog.plugins.some(entry => entry.pluginId === plugin.manifest.pluginId) ||
+      sourceOnly.has(plugin.manifest.pluginId),
+    `${plugin.directory}: public runtime needs a candidate and release plan or reviewed source-only disposition`);
+  }
+});
+
 test('current manifests have unique identities, matching package versions and valid declarations', () => {
   assert.ok(plugins.length > 0);
   assert.equal(validatePluginCatalog(catalog).valid, true);
