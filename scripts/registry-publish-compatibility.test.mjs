@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -374,6 +375,90 @@ test('current replay refuses a next tag that does not identify the current relea
   assert.equal(result.failure?.step, 'Inspect published registry state');
   assert.match(result.failure.stderr, /registry next tag mismatch/);
   assert.deepEqual(result.state.mutations, []);
+});
+
+test('feedback publication cannot fall back to the repository npm token', async () => {
+  const workflow = parse(await readFile(new URL('../.github/workflows/contract-ci.yml', import.meta.url), 'utf8'));
+  const action = parse(await readFile(new URL('../.github/actions/publish-prerelease/action.yml', import.meta.url), 'utf8'));
+  const steps = workflow.jobs.publish.steps.filter(step => step.uses === './.github/actions/publish-prerelease');
+  const feedback = steps.filter(step => step.with?.['package-directory'] === 'packages/feedback');
+  assert.equal(feedback.length, 1);
+  assert.equal(feedback[0].with['npm-token'], '', 'feedback must explicitly pass no fallback token');
+  assert.equal(action.inputs['npm-token'].required, false);
+  assert.equal(action.inputs['npm-token'].default, '');
+  for (const step of steps.filter(step => step !== feedback[0])) {
+    assert.equal(step.with['npm-token'], '${{ secrets.NPM_TOKEN }}', 'other packages retain their existing inputs');
+  }
+});
+
+test('npm publishes with an OIDC credential but does not publish when exchange is rejected', async t => {
+  async function exerciseOidc(exchangeAccepted) {
+    const root = await mkdtemp(join(tmpdir(), 'feedback-oidc-local-'));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    const packageRoot = join(root, 'package');
+    await mkdir(packageRoot);
+    await writeFile(join(packageRoot, 'package.json'), JSON.stringify({
+      name: '@clowder-ai/feedback-fixture', version: '0.1.0-alpha.2',
+    }));
+    const requests = [];
+    const server = createServer((request, response) => {
+      const path = new URL(request.url, 'http://127.0.0.1').pathname;
+      requests.push({ method: request.method, path, authorization: request.headers.authorization });
+      request.resume();
+      response.setHeader('Content-Type', 'application/json');
+      if (path === '/identity') return response.end(JSON.stringify({ value: 'fixture-id-token' }));
+      if (path.startsWith('/-/npm/v1/oidc/token/exchange/package/')) {
+        response.statusCode = exchangeAccepted ? 201 : 404;
+        return response.end(JSON.stringify(exchangeAccepted ? { token: 'fixture-oidc-token' } : { error: 'no trust' }));
+      }
+      if (request.method === 'PUT') {
+        response.statusCode = 201;
+        return response.end(JSON.stringify({ ok: true }));
+      }
+      response.statusCode = 404;
+      return response.end(JSON.stringify({ error: 'not found' }));
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    t.after(() => new Promise(resolve => server.close(resolve)));
+    const port = server.address().port;
+    const registry = `http://127.0.0.1:${port}/`;
+    const npmrc = join(root, 'user.npmrc');
+    const globalNpmrc = join(root, 'global.npmrc');
+    await writeFile(npmrc, `//127.0.0.1:${port}/:_authToken=\${NODE_AUTH_TOKEN}\n`);
+    await writeFile(globalNpmrc, '');
+    const env = Object.fromEntries(Object.entries(process.env).filter(([name]) =>
+      !(/token|^npm_config/i.test(name))));
+    Object.assign(env, {
+      CI: 'true', GITHUB_ACTIONS: 'true', NODE_AUTH_TOKEN: '',
+      ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'fixture-github-token',
+      ACTIONS_ID_TOKEN_REQUEST_URL: `${registry}identity`,
+      NPM_CONFIG_USERCONFIG: npmrc, NPM_CONFIG_GLOBALCONFIG: globalNpmrc,
+      NPM_CONFIG_CACHE: join(root, 'cache'), NPM_CONFIG_LOGS_MAX: '0',
+      NPM_CONFIG_UPDATE_NOTIFIER: 'false', NPM_CONFIG_FETCH_RETRIES: '0',
+    });
+    const result = await new Promise((resolve, reject) => {
+      const child = spawn('npm', ['publish', packageRoot, '--registry', registry,
+        '--access', 'public', '--tag', 'next', '--ignore-scripts', '--provenance=false',
+        '--loglevel=error'], { cwd: packageRoot, env, stdio: ['ignore', 'pipe', 'pipe'] });
+      let output = '';
+      child.stdout.on('data', chunk => { output += chunk; });
+      child.stderr.on('data', chunk => { output += chunk; });
+      child.on('error', reject);
+      child.on('close', code => resolve({ code, output }));
+    });
+    return { ...result, requests };
+  }
+
+  const rejected = await exerciseOidc(false);
+  assert.notEqual(rejected.code, 0);
+  assert.match(rejected.output, /ENEEDAUTH/);
+  assert.equal(rejected.requests.some(request => request.method === 'PUT'), false);
+
+  const accepted = await exerciseOidc(true);
+  assert.equal(accepted.code, 0, accepted.output);
+  const uploads = accepted.requests.filter(request => request.method === 'PUT');
+  assert.equal(uploads.length, 1);
+  assert.equal(uploads[0].authorization, 'Bearer fixture-oidc-token');
 });
 
 test('publication uses only current workspace packages in dependency order', async () => {

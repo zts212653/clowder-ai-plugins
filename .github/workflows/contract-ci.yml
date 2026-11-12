@@ -325,7 +325,7 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/feedback
-          npm-token: ${{ secrets.NPM_TOKEN }}
+          npm-token: ''
 
       - name: Publish Collective prerelease
         uses: ./.github/actions/publish-prerelease
