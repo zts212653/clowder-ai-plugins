@@ -446,6 +446,7 @@ test('main publishes the public dependency chain through one hardened action', (
     'packages/plugin-contract',
     'packages/plugin-sdk',
     'packages/feedback',
+    'packages/quick-phrases',
     'packages/collective-connector',
     'packages/enterprise-workflow',
     'packages/personal-chrome-companion',
