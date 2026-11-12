@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { publish } from '../src/work.js';
 import { startSuperagent } from '../src/runtime.js';
-import { fixture } from './fixture.js';
+import { event, fixture } from './fixture.js';
 
 test('a long result remains complete at its source while the assistant receives a labelled excerpt and a working source link', async () => {
   const f = fixture();
@@ -37,6 +37,11 @@ test('a queued report from a legacy non-user admission cannot overwrite a stoppe
   assert.equal([...f.sent.values()].some((row) => JSON.stringify(row.payload).includes('重复交付')), false);
   await runtime.actions['superagent.tick']({});
   assert.deepEqual(f.tasks.get(task.id), task);
+  const stop = event('retained-stop', 'source-b', '重复工作已经停止。');
+  stop.envelope.actor = { kind: 'cat', id: 'existing-owner' };
+  await runtime.actions['superagent.observe'](stop);
+  await runtime.actions['superagent.tick']({});
+  assert.equal([...f.sent.values()].filter((row) => row.wake).length, 0, 'a proven invalid legacy Work must not turn its stop receipts into another paid turn');
   await runtime.stop({ reason: 'test' });
 });
 
