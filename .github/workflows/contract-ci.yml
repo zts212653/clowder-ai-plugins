@@ -108,7 +108,7 @@ jobs:
         run: pnpm gate:ci
 
       - name: Companion browser layout contract
-        run: pnpm --filter @clowder-ai/companion exec playwright install --with-deps chromium && pnpm --filter @clowder-ai/companion test:browser
+        run: pnpm --filter @clowder-ai/companion exec playwright install chromium && pnpm --filter @clowder-ai/companion test:browser
 
       # Pure package checks also run in gate:ci. Keep the browser journey
       # explicit alongside this workflow's package checks, mirroring main.
@@ -252,6 +252,9 @@ jobs:
       - name: Build SDK package
         run: pnpm --filter @clowder-ai/plugin-sdk build
 
+      - name: Build feedback package
+        run: pnpm --filter @clowder-ai/feedback build
+
       - name: Build connector packages
         run: |
           set -euo pipefail
@@ -316,6 +319,12 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/plugin-sdk
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish feedback prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/feedback
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish Collective prerelease

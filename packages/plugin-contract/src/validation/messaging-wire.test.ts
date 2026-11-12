@@ -57,6 +57,7 @@ test('all nine messaging request shapes have one executable contract validator',
     [
       'host.messaging.deliver',
       {kind:'message' as const,
+        reason: 'addressed' as const,
         deliveryId: 'delivery-1',
         threadId: (envelope).threadId,
         envelope,
@@ -201,6 +202,7 @@ test('envelope timestamps accept canonical Date output and reject invalid histor
   ]) {
     assert.equal(
       validateMessagingRowInput('host.messaging.deliver', {kind:'message' as const,
+        reason: 'addressed' as const,
         deliveryId: 'delivery-1',
         threadId: ({ ...envelope, occurredAt }).threadId,
         envelope: { ...envelope, occurredAt },
@@ -216,6 +218,7 @@ test('envelope timestamps accept canonical Date output and reject invalid histor
   ]) {
     assert.equal(
       validateMessagingRowInput('host.messaging.deliver', {kind:'message' as const,
+        reason: 'addressed' as const,
         deliveryId: 'delivery-1',
         threadId: ({ ...envelope, occurredAt }).threadId,
         envelope: { ...envelope, occurredAt },

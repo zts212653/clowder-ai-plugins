@@ -1,11 +1,11 @@
 pluginId: official.feedback
-version: 0.1.0-alpha.1
+version: 0.1.0-alpha.2
 contractVersion: 0.3.0
 name: 问题反馈
 description:
-  default: 通过已配置的本地 Agent Client 生成脱敏分析报告，检查后自动提交 Issue；同时保留直接反馈与手动创建兜底。
+  default: 通过已配置的本地 Agent Client 生成脱敏报告并提交 Issue，支持草稿恢复、粘贴截图及本地选图。需要支持声明式 HTTP 面板及关闭前保存的配套 next 宿主。
   translations:
-    en: Sanitized feedback reports with configured local Agent diagnosis, automatic Issue submission and manual fallback.
+    en: Sanitized feedback reports with draft recovery, pasted screenshots and local images. Requires a paired next Host with declared HTTP panels and save-before-close support.
 icon: { type: svg, src: assets/icon.svg }
 steps:
   - text: 启用后，从左侧栏底部打开“问题反馈”。建议先分析，检查完整报告和截图后再确认提交。
@@ -31,6 +31,8 @@ contributions:
   - { type: message-subscription, id: feedback.results, binding: feedback.identity, action: { method: feedback.delivery }, presentation: v2 }
   - { type: ui, id: feedback.open, kind: command, label: 问题反馈, action: { method: feedback.panel } }
   - { type: ui, id: feedback.rail, kind: slot-item, label: 问题反馈, command: feedback.open, group: activity-bar.bottom, order: 90 }
+  - { type: webhook, id: feedback.http, path: feedback, methods: [POST], requestBodyLimitBytes: 15728640, action: { method: feedback.http } }
+  - { type: webhook, id: feedback.page, path: panel, methods: [GET], action: { method: feedback.panel } }
 features:
   - id: feedback
     name: 问题反馈
@@ -40,6 +42,8 @@ features:
       - { type: message-subscription, id: feedback.results }
       - { type: ui, id: feedback.open }
       - { type: ui, id: feedback.rail }
+      - { type: webhook, id: feedback.http }
+      - { type: webhook, id: feedback.page }
 data:
   - { name: feedback-journal, dataClass: user-authored, strategy: retained }
 runtime:

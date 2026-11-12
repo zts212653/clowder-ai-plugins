@@ -1,0 +1,28 @@
+pluginId: official.quick-phrases
+version: 0.1.0-alpha.2
+contractVersion: 0.3.0
+name: 快捷用语
+description:
+  default: 在聊天输入框保存、搜索和复用常用的任务派发用语。
+  translations:
+    en: Save, search, and reuse common instructions from the chat composer.
+steps:
+  - text: 启用后，在聊天输入框点击「快捷用语」。输入框有文字时可保存，无文字时可搜索、选用和删除。
+contributions:
+  - { type: ui, id: quick-phrases.open, kind: command, label: 快捷用语, action: { method: quick-phrases.entries } }
+  - { type: ui, id: quick-phrases.composer, kind: slot-item, label: 快捷用语, command: quick-phrases.open, group: composer.quick-phrases }
+  - { type: webhook, id: quick-phrases.entries, path: phrases, methods: [GET, POST, DELETE], action: { method: quick-phrases.entries } }
+features:
+  - id: quick-phrases
+    name: 快捷用语
+    resources: []
+    contributions:
+      - { type: ui, id: quick-phrases.open }
+      - { type: ui, id: quick-phrases.composer }
+      - { type: webhook, id: quick-phrases.entries }
+data:
+  - { name: quick-phrases, dataClass: user-authored, strategy: retained }
+runtime:
+  transport: builtin
+  entrypoint: dist/index.js
+  dataDirectory: quick-phrases

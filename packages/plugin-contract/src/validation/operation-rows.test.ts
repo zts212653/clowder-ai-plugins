@@ -39,6 +39,28 @@ test('admits a structurally valid rows result referencing a declared row action'
   if (result.valid) assert.equal(result.value, validRows);
 });
 
+test('admits bounded absolute validity and observation deadlines', () => {
+  const result = validateOperationRowsResult(operation, {
+    ...validRows,
+    validUntil: 1_799_999_999_999,
+    pollUntil: 1_800_000_299_999,
+  });
+  assert.equal(result.valid, true);
+});
+
+test('rejects unsafe, fractional, negative, and unknown rows metadata', () => {
+  for (const value of [
+    { ...validRows, validUntil: -1 },
+    { ...validRows, validUntil: 1.5 },
+    { ...validRows, validUntil: Number.MAX_SAFE_INTEGER + 1 },
+    { ...validRows, pollUntil: Number.POSITIVE_INFINITY },
+    { ...validRows, pollUntil: 'soon' },
+    { ...validRows, pollInterval: 2500 },
+  ]) {
+    assert.equal(validateOperationRowsResult(operation, value).valid, false);
+  }
+});
+
 test('rejects rows with duplicate keys', () => {
   const duplicate = {
     rows: [

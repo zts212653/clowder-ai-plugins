@@ -245,12 +245,21 @@
       "condition": "Verify this exact self-contained archive with the original instance, settings and retained subscriptions during an owner-authorized update; validate actual tool schema and bounded read results. Public catalog activation requires separate scoped review."
     },
     {
+      "pluginId": "official.feedback",
+      "version": "0.1.0-alpha.2",
+      "integrity": "sha512-P1jybx+cXxJUsq+C2k0rAGXNoNppihbfxxSdKwpVC7lY8QjVQ/PlXWojxZGVTikOXHPZXhOj7UyBgLTwGh09ew==",
+      "disposition": "activate",
+      "owner": "codex",
+      "reviewBy": "2026-11-13T14:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/179"
+    },
+    {
       "pluginId": "official.collective-connector",
       "version": "0.1.0-alpha.26",
       "integrity": "sha512-93D2nb2E9OOECnhVd4f/MBr09tXsnMKh3kx7Nmwu8MUAXYEVcbftPabHzr71BJwbPEcmiEyiE/dtrE7wyeN6Bw==",
       "disposition": "defer",
       "owner": "codex61-sol",
-      "reviewBy": "2026-11-11T12:00:00Z",
+      "reviewBy": "2026-11-19T12:00:00Z",
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/210",
       "reason": "Await the paired Host save-path fix, final independent review, approval and canonical Linux artifact verification before live discovery changes.",
       "condition": "Verify the exact published alpha.26 archive after both PRs pass CI and review, then change this plan to activate in the separately reviewed single-plugin catalog PR."

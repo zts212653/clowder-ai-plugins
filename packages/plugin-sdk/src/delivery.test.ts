@@ -13,3 +13,11 @@ test('one delivery handler acknowledges message and execution updates without cl
  await assert.rejects(delivery({...events[2],kind:'other'}),/invalid plugin delivery/);
  await assert.rejects(defineDeliveryAction(()=>({deliveryId:'wrong'}))(events[2]),/receipt/);
 });
+
+test('fixed plugin deliver function validates subscribed events without a package method name',async()=>{
+ const seen:string[]=[];const deliver=defineDeliveryAction(input=>{seen.push(input.deliveryId);return {deliveryId:input.deliveryId};});
+ const input={kind:'execution_status',executionId:'run',threadId:'thread',deliveryId:'subscribed',state:'resumed'} as const;
+ assert.deepEqual(await deliver(input),{deliveryId:'subscribed'});
+ assert.deepEqual(seen,['subscribed']);
+ await assert.rejects(deliver({...input,kind:'private-method'} as never),/invalid plugin delivery/);
+});

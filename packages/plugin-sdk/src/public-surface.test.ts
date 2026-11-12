@@ -96,7 +96,14 @@ test('uninstall hooks can run with an installed disabled context and never requi
 
 import {readFile} from 'node:fs/promises';
 import type {PluginModuleDefinition} from './module-plugin.js';
-import type {PluginModuleActivationShape, PluginTaskHost} from './module-host.js';
+import type {PluginModuleActivationShape, PluginTaskHost, PluginThreadSummary} from './module-host.js';
+// Public identity facts remain optional for older Hosts. Consumers needing
+// identity or ownership must require the canonical facts explicitly.
+type OptionalCreator = undefined extends PluginThreadSummary['createdBy'] ? true : never;
+type OptionalSender = undefined extends import('./message-read.js').PluginMessage['from'] ? true : never;
+const optionalCreator: OptionalCreator = true;
+const optionalSender: OptionalSender = true;
+void [optionalCreator, optionalSender];
 const authorPorts=['pluginInstanceId','featureId','members','runtimeInfo','config','secrets','storage','tasks','threads','messaging','streams','dataPath','log'] as const satisfies readonly (keyof FeatureContext)[];
 type RequiredMessageRead = undefined extends FeatureContext['messaging']['get'] ? never : true;
 const requiredMessageRead: RequiredMessageRead = true;
@@ -107,7 +114,7 @@ const lifecycle=['settings','preStart','start','preUninstall','uninstall'] as co
 const taskPorts=['get','list','create','update','bindDataController','revokeDataController'] as const satisfies readonly (keyof PluginTaskHost)[];
 const noUndocumentedTask:Record<Exclude<keyof PluginTaskHost,typeof taskPorts[number]>,never>={};
 void noUndocumentedTask;
-const activationPorts=['streams','configRefresh','preStop','actions','stop'] as const satisfies readonly (keyof PluginModuleActivationShape)[];
+const activationPorts=['streams','deliver','handle','webhook','configRefresh','preStop','actions','stop'] as const satisfies readonly (keyof PluginModuleActivationShape)[];
 // Adding a real author port requires a corresponding baseline entry in this same review.
 const noUndocumentedContext:Record<Exclude<keyof FeatureContext,typeof authorPorts[number]>,never>={};
 const noUndocumentedDefinition:Record<Exclude<keyof PluginModuleDefinition,typeof lifecycle[number]>,never>={};

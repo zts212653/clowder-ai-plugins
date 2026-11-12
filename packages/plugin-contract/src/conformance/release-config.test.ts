@@ -391,7 +391,7 @@ function replaceNamedActionStepOnce(
 }
 
 test('package releases preserve the broker protocol version', () => {
-  assert.equal(contractPackage.version, '0.3.3-candidate.0');
+  assert.equal(contractPackage.version, '0.3.3-candidate.1');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });
@@ -445,6 +445,7 @@ test('main publishes the public dependency chain through one hardened action', (
   const orderedPackages = [
     'packages/plugin-contract',
     'packages/plugin-sdk',
+    'packages/feedback',
     'packages/collective-connector',
     'packages/enterprise-workflow',
     'packages/personal-chrome-companion',

@@ -44,6 +44,7 @@ assert.deepEqual(
     'official.connector.weixin',
     'official.connector.xiaoyi',
     'official.enterprise-workflow',
+    'official.feedback',
     'official.feishu-meeting-intake',
     'official.github-operations',
     'official.wechat-visible-reader',

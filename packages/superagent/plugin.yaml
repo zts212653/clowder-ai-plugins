@@ -1,0 +1,368 @@
+pluginId: official.superagent
+version: 0.1.0-alpha.2
+contractVersion: 0.1.0
+name: Superagent
+description:
+  default: 在你选定的个人会话中接住工作、跨会话跟进，并把必要决定与结果带回原处。
+  translations:
+    en: Follow work across your selected personal conversations and return decisions and results to
+      their source.
+icon:
+  type: svg
+  src: assets/superagent.svg
+runtime:
+  transport: builtin
+  entrypoint: dist/index.js
+  dataDirectory: superagent
+data:
+  - name: work-and-follow-up
+    dataClass: derived-user-visible
+    strategy: retained
+    schemaVersion: "1"
+steps:
+  - text: 保存工作范围，分别选择助手 Agent、执行 Agent 和监听会话，再确认开始跟进。确认前不会监听会话或调用 Agent。
+configuration:
+  - key: botName
+    label: 助手名称
+    description: 侧栏和对话中的显示名称；使用哪个 Agent，在下方单独选择。
+    kind: string
+    required: false
+    default: 我的助手
+  - key: responsibility
+    label: 允许处理的工作
+    description: 说明希望它持续负责什么，以及哪些决定必须找你确认。保存后再确认启用。
+    kind: string
+    required: false
+  - key: assistant
+    label: 助手 Agent（单选）
+    description: 从成员中选一位担任助手：理解你的委托、跟进进展，并把任务交给执行 Agent。
+    kind: operation
+    required: false
+    actions:
+      - id: list
+        label: 刷新名单
+        render: button
+        action:
+          method: superagent.assistant
+        resultRender: rows
+      - id: choose
+        label: 设为助手
+        render: row
+        action:
+          method: superagent.choose
+        resultRender: rows
+        next: list
+  - key: workers
+    label: 执行 Agent（多选）
+    description: 允许助手调用这些 Agent 完成具体任务。至少选一位，也可以选择上面的助手 Agent。
+    kind: operation
+    required: false
+    actions:
+      - id: list
+        label: 刷新名单
+        render: button
+        action:
+          method: superagent.workers
+        resultRender: rows
+      - id: choose
+        label: 选择
+        render: row
+        action:
+          method: superagent.choose
+        resultRender: rows
+        next: list
+  - key: scope
+    label: 监听会话
+    description: 只读取并跟进这里选中的个人会话。选好后，到「持续跟进」确认开始。
+    kind: operation
+    required: false
+    actions:
+      - id: list
+        label: 刷新名单
+        render: button
+        action:
+          method: superagent.settings
+        resultRender: rows
+      - id: choose
+        label: 选择
+        render: row
+        action:
+          method: superagent.choose
+        resultRender: rows
+        next: list
+      - id: page
+        label: 翻页
+        render: row
+        action:
+          method: superagent.page
+        next: list
+  - key: activity
+    label: 持续跟进
+    kind: operation
+    required: false
+    actions:
+      - id: enable
+        label: 确认并开始跟进
+        render: button
+        confirm: 允许 Superagent 监听已选会话，并使用所选成员处理上述工作范围内的事项；必要决定会回来找你。
+        action:
+          method: superagent.enable
+  - key: pause
+    label: 暂停跟进
+    kind: operation
+    required: false
+    actions:
+      - id: pause
+        label: 暂停新接单与派发
+        render: button
+        action:
+          method: superagent.pause
+  - key: recovery
+    label: 恢复处理
+    kind: operation
+    required: false
+    actions:
+      - id: retry
+        label: 重试未完成的判断
+        render: button
+        confirm: 仅重试已结束却未留下判断的调用，会使用助手 Agent 的额度。
+        action:
+          method: superagent.retry
+features:
+  - id: superagent
+    name: 个人会话持续跟进
+    resources: []
+    contributions:
+      - type: identity
+        id: superagent
+      - type: message-subscription
+        id: observe
+      - type: schedule
+        id: reconcile
+      - type: tool
+        id: inspect
+      - type: tool
+        id: route
+      - type: tool
+        id: report
+      - type: ui
+        id: conversation
+      - type: ui
+        id: top-entry
+contributions:
+  - type: identity
+    id: superagent
+    displayName: Superagent
+    icon: message
+  - type: message-subscription
+    id: observe
+    binding: superagent
+    action:
+      method: superagent.observe
+  - type: schedule
+    id: reconcile
+    schedule:
+      kind: interval
+      everyMs: 3000
+    action:
+      method: superagent.tick
+    policy:
+      overlap: skip
+      timeoutMs: 30000
+  - type: tool
+    id: inspect
+    name: superagent_inspect
+    description: 在 Superagent 主对话或它委托的工作线程内，先读取持续责任、待判断事件和当前 canonical Work。主对话的自然回复也必须先查待处理事件，再使用 route
+      记录判断。其他线程不可用。
+    inputSchema:
+      type: object
+      properties: {}
+      additionalProperties: false
+    action:
+      method: superagent.inspect
+  - type: tool
+    id: route
+    name: superagent_route
+    description: 仅配置的协调成员在 Bot 主对话中使用。每个事件必须提交语义判断：明确新委托 start；旧反馈 follow_up 原 workId；未定想法 ignore；必要决定
+      ask；交付 deliver；只有人明确接受才 accept。一次事件可以有多个判断。判断会持久记录后由后台应用。
+    inputSchema:
+      type: object
+      properties:
+        eventId:
+          type: string
+          minLength: 1
+          maxLength: 500
+        decisions:
+          minItems: 1
+          maxItems: 10
+          type: array
+          items:
+            oneOf:
+              - type: object
+                properties:
+                  kind:
+                    type: string
+                    const: start
+                  title:
+                    type: string
+                    minLength: 1
+                    maxLength: 180
+                  outcome:
+                    type: string
+                    minLength: 1
+                    maxLength: 4000
+                  workerId:
+                    type: string
+                    minLength: 1
+                    maxLength: 500
+                  questionId:
+                    type: string
+                    minLength: 1
+                    maxLength: 500
+                required:
+                  - kind
+                  - title
+                  - outcome
+                  - workerId
+                additionalProperties: false
+              - type: object
+                properties:
+                  kind:
+                    type: string
+                    const: follow_up
+                  workId:
+                    type: string
+                    minLength: 1
+                    maxLength: 500
+                  content:
+                    type: string
+                    minLength: 1
+                    maxLength: 16000
+                  questionId:
+                    type: string
+                    minLength: 1
+                    maxLength: 500
+                required:
+                  - kind
+                  - workId
+                  - content
+                additionalProperties: false
+              - type: object
+                properties:
+                  kind:
+                    type: string
+                    const: ask
+                  workId:
+                    type: string
+                    minLength: 1
+                    maxLength: 500
+                  content:
+                    type: string
+                    minLength: 1
+                    maxLength: 4000
+                required:
+                  - kind
+                  - content
+                additionalProperties: false
+              - type: object
+                properties:
+                  kind:
+                    type: string
+                    const: deliver
+                  workId:
+                    type: string
+                    minLength: 1
+                    maxLength: 500
+                  content:
+                    type: string
+                    minLength: 1
+                    maxLength: 16000
+                required:
+                  - kind
+                  - workId
+                  - content
+                additionalProperties: false
+              - type: object
+                properties:
+                  kind:
+                    type: string
+                    const: accept
+                  workId:
+                    type: string
+                    minLength: 1
+                    maxLength: 500
+                required:
+                  - kind
+                  - workId
+                additionalProperties: false
+              - type: object
+                properties:
+                  kind:
+                    type: string
+                    const: ignore
+                  reason:
+                    type: string
+                    minLength: 1
+                    maxLength: 1000
+                  questionId:
+                    type: string
+                    minLength: 1
+                    maxLength: 500
+                required:
+                  - kind
+                  - reason
+                additionalProperties: false
+      required:
+        - eventId
+        - decisions
+      additionalProperties: false
+    action:
+      method: superagent.route
+  - type: tool
+    id: report
+    name: superagent_report
+    description: 仅 Work 的实际执行成员在其工作线程内报告。progress 保留内部进度；question 请求必要决定；result
+      将真实结果、验证和产物回原处等待用户接受；error 报告具体失败。reportId 在同一 invocation 内唯一，重试保留原 ID。
+    inputSchema:
+      type: object
+      properties:
+        workId:
+          type: string
+          minLength: 1
+          maxLength: 500
+        reportId:
+          type: string
+          minLength: 1
+          maxLength: 500
+        kind:
+          type: string
+          enum:
+            - progress
+            - question
+            - result
+            - error
+        content:
+          type: string
+          minLength: 1
+          maxLength: 16000
+      required:
+        - workId
+        - reportId
+        - kind
+        - content
+      additionalProperties: false
+    action:
+      method: superagent.report
+  - type: ui
+    id: conversation
+    kind: command
+    label: 我的助手
+    action:
+      method: superagent.view
+  - type: ui
+    id: top-entry
+    kind: slot-item
+    label: 我的助手
+    command: conversation
+    group: thread-sidebar.top
+    order: 0

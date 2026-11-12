@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { z } from 'zod';
+import { parse } from 'yaml';
 import { planSchema, reportSchema } from '../src/state.js';
 
 test('published tool schemas describe exactly what the runtime accepts', async () => {
-  const manifest = JSON.parse(await readFile(new URL('../manifest.json', import.meta.url), 'utf8'));
+  const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
   for (const [id, schema] of Object.entries({
     inspect: z.object({}).strict(),
     route: planSchema.omit({ applied: true }),

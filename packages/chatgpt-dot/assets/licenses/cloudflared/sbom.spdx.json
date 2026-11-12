@@ -1,0 +1,104 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "spdxVersion": "SPDX-2.3",
+  "name": "SBOM-SPDX-cloudflared-2026.10.6",
+  "creationInfo": {
+    "created": "2026-10-30T07:04:34Z",
+    "creators": [
+      "Tool: https://github.com/Homebrew/brew@7.0.11"
+    ]
+  },
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://formulae.brew.sh/spdx/cloudflared-2026.10.6.json",
+  "documentDescribes": [
+    "SPDXRef-Archive-cloudflared-src",
+    "SPDXRef-Compiler",
+    "SPDXRef-Bottle-cloudflared"
+  ],
+  "files": [
+    {
+      "SPDXID": "SPDXRef-File-cloudflared",
+      "fileName": "2026.10.6.tar.gz",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "eb4d6b02b017cd3e49676934f14fe3025cebb07f9f272cd60dd790a2d812b90b"
+        }
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Archive-cloudflared-src",
+      "name": "cloudflared",
+      "versionInfo": "2026.10.6",
+      "filesAnalyzed": false,
+      "licenseDeclared": "NOASSERTION",
+      "builtDate": "2026-10-29T11:55:07Z",
+      "licenseConcluded": "Apache-2.0",
+      "downloadLocation": "https://github.com/cloudflare/cloudflared/archive/refs/tags/2026.10.6.tar.gz",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:brew/homebrew/core/cloudflared@2026.10.6",
+          "referenceType": "purl"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "eb4d6b02b017cd3e49676934f14fe3025cebb07f9f272cd60dd790a2d812b90b"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Compiler",
+      "name": "clang",
+      "versionInfo": "27.0",
+      "filesAnalyzed": false,
+      "licenseDeclared": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "checksums": [],
+      "externalRefs": []
+    },
+    {
+      "SPDXID": "SPDXRef-Bottle-cloudflared",
+      "name": "cloudflared",
+      "versionInfo": "2026.10.6",
+      "filesAnalyzed": false,
+      "licenseDeclared": "NOASSERTION",
+      "builtDate": "2026-10-29T14:04:41Z",
+      "licenseConcluded": "Apache-2.0",
+      "downloadLocation": "https://ghcr.io/v2/homebrew/core/cloudflared/blobs/sha256:29c099ccc5ef100d8e34a582d015f516e676afd4225b9b57f77da5a7a249143b",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:brew/cloudflared@2026.10.6",
+          "referenceType": "purl"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "29c099ccc5ef100d8e34a582d015f516e676afd4225b9b57f77da5a7a249143b"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-File-cloudflared",
+      "relationshipType": "PACKAGE_OF",
+      "relatedSpdxElement": "SPDXRef-Archive-cloudflared-src"
+    },
+    {
+      "spdxElementId": "SPDXRef-Compiler",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-Archive-cloudflared-src"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+# Keep feedback publish inputs identical in Windows and CI checkouts.
+packages/feedback/** text=auto eol=lf

@@ -62,6 +62,10 @@ function host(
   } as const;
   return {
     pluginInstanceId: 'installed-module-fixture',
+    external: {
+      endpoint: 'https://host.example/api/plugins/external',
+      token: 'fixture-external-token',
+    },
     config: { get: async (key: string) => key === 'mode' ? 'safe' : undefined },
     secrets: { get: async (key: string) => key === 'token' ? 'secret' : undefined },
     storage: {
@@ -206,6 +210,8 @@ function moduleWithJourney(received: unknown[]) {
         await context.messaging.subscribe('thread-1', { contributionId: 'outbound', includeOwnMessages: true });
         assert.deepEqual(await context.messaging.send('thread-1', {
           idempotencyKey: 'message-1',
+          replyTo: 'source-1',
+          response: {deliveryId:'delivery-1',status:'completed'},
           payload: {
             provenance: { epistemicStatus: 'observation' },
             elements: [{ elementId: 'text-1', kind: 'text', payload: { text: 'hello' } }],
@@ -256,6 +262,8 @@ test('module entrypoint mirrors the Host lifecycle and thin host surfaces', asyn
   assert.deepEqual(calls.find((call) => call.operation === 'messaging.send')?.value, {
     threadId: 'thread-1',
     idempotencyKey: 'message-1',
+    replyTo: 'source-1',
+    response: {deliveryId:'delivery-1',status:'completed'},
     payload: {
       provenance: { epistemicStatus: 'observation' },
       elements: [{ elementId: 'text-1', kind: 'text', payload: { text: 'hello' } }],
