@@ -111,6 +111,7 @@ const _closedSnapshotResult: SnapshotResult = {
   snapshotAckToken: 'snapshot-ack-1',
 };
 const _closedDeliver: DeliverInput = {kind:'message' as const,
+  reason: 'addressed',
   deliveryId: 'delivery-1',
   threadId: (_envelope).threadId,
   envelope: _envelope,

@@ -1,3 +1,4 @@
+import { withIndexedMemoryStorage } from '../test/indexed-memory-storage.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { preparePrWait, prepareIssueWait, installPreparedWait, registerPrWait } from './typed-wait-registration.js';
@@ -83,7 +84,7 @@ test('registration preserves a pending delivery across a new generation and refu
       rows.set(k, { revision: ++revision, value: structuredClone(value) }); return { applied: true, revision };
     },
   } as PluginStorageHost;
-  const store = new GitHubWaitStorage(storage, () => 1000);
+  const store = new GitHubWaitStorage(withIndexedMemoryStorage(storage), () => 1000);
   const plan = await preparePrWait({ registrationId: 'request-1', repoFullName: 'owner/repo', prNumber: 7 }, dependencies());
   const task: TaskItem = { id: 'task', kind: 'pr_tracking', subjectKey: plan.subjectKey, ownerCatId: 'astra',
     userId: 'owner', threadId: 'thread', createdAt: 1, updatedAt: 1, title: 'PR', why: '', status: 'doing', createdBy: 'astra' };
@@ -122,7 +123,7 @@ function replayFixture() {
   } as PluginStorageHost;
   const task: TaskItem = { id: 'task', kind: 'pr_tracking', subjectKey: 'pr:owner/repo#7', ownerCatId: 'astra',
     userId: 'owner', threadId: 'thread', createdAt: 1, updatedAt: 1, title: 'PR', why: '', status: 'doing', createdBy: 'astra' };
-  return { storage, task, store: new GitHubWaitStorage(storage, () => 1000) };
+  return { storage, task, store: new GitHubWaitStorage(withIndexedMemoryStorage(storage), () => 1000) };
 }
 
 test('response-unknown replay returns the original result after restart without replacing the baseline', async () => {

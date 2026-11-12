@@ -43,7 +43,7 @@
       "integrity": "sha512-xfxNnyl0Zg8qxCXInQdN5UJBn+uaKZF0exdDItNBCAputlke1Btfvk8GqdTCiYo0/2g/tmqAYegzOJhyZrRq/g==",
       "disposition": "defer",
       "owner": "opus55",
-      "reviewBy": "2026-11-06T08:00:00Z",
+      "reviewBy": "2026-11-13T08:00:00Z",
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/188",
       "reason": "The desk-delivery package requires its paired Host admission and complete F335 acceptance before discovery changes.",
       "condition": "The paired Host supports bridge 1.7 and owner opus55 completes the combined desk-delivery acceptance; then deliver the scoped catalog PR."
@@ -159,6 +159,90 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/192",
       "reason": "This release inherits SDK candidate10 bounded private reads; source publication precedes paired Host compatibility acceptance and the separately authorized catalog/runtime upgrade.",
       "condition": "Verify the paired Host storage.scan port and SDK10 packaged consumer, then obtain the scoped activation and installed-runtime authorization before enabling this version."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.36",
+      "integrity": "sha512-BoxKCKICCcpvSIVAVO6/W0KR02trWOUrQDGfHEihcZBDslwrUyQB9LYphI8JE42uufRraMPuBCsMhRf6m2WcIQ==",
+      "disposition": "defer",
+      "owner": "codex-astra",
+      "reviewBy": "2026-11-06T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/196",
+      "reason": "alpha.36 requires Host storage.scan through SDK candidate.10. The shared public catalog reaches Hosts without that port, so home-only compatibility evidence does not justify global activation. The published artifact remains available for an explicitly owner-authorized local-archive update of the verified home instance.",
+      "condition": "Before public catalog activation, verify a compatible delivery path for supported public Hosts that fetch this catalog, including Host storage.scan and the SDK10 consumer; a newer home Host alone is insufficient. Local instance replacement remains separately owner-authorized and must preserve its data."
+    },
+    {
+      "pluginId": "official.feishu-meeting-intake",
+      "version": "0.1.0-alpha.13",
+      "integrity": "sha512-XVCurVPLdGVENEpqrkzNGmHQA+8pM3DrU5HfVKpxAWyXxIu1shPY5XckNO9JdYXOLTI0b8b5HEcWqNGvpGpMYg==",
+      "disposition": "activate",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-07T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/198"
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.37",
+      "integrity": "sha512-FhGPnpnY+FGGbxVsSVKxsyCFBGWxjKa6cg+9VCczGLA1te+VARunldqu/2vnKJKg0psqTqdFKHJajmeO8qcuoA==",
+      "disposition": "defer",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-07T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/199",
+      "reason": "This recovery release requires atomic indexed private storage through SDK candidate.11. A verified home Host does not establish compatibility of every public catalog consumer; source publication and the held local instance upgrade precede any separate public activation.",
+      "condition": "Verify the capable Host indexed CAS/readDue/rebuild chain and SDK11 package consumer for the intended delivery population; obtain scoped catalog activation review separately. The local instance update must preserve import-only and collection-held barriers, original IDs and history, with no old wait registration."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.38",
+      "integrity": "sha512-x+MbzoVitSA9BmzNpysGBMa76gzDlPLZV4mynrZwUBbNfZLzfOOFDoxiwVz7uhB27W6Gb3yl7ZVmDFW5J3FvsQ==",
+      "disposition": "defer",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-13T10:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/201",
+      "reason": "The terminal-facts release uses SDK candidate.11 atomic indexed private storage. Verified home Host acceptance supports its owner-authorized archive upgrade; compatibility of all public catalog consumers remains unverified, so global discovery stays on the existing version.",
+      "condition": "Verify the paired public Host indexed-storage/native-action compatibility and complete a separate scoped activation review before changing global discovery."
+    },
+    {
+      "pluginId": "official.companion.personal-chrome",
+      "version": "0.1.0-alpha.10",
+      "integrity": "sha512-N6mohK+qmgNW08yRGa2g1N4Ja6hMbpfLOGg6IPqHB/HgzlUvqwm9/6AQqt56umDqeoe19OtgqlegMz2p0eeVMA==",
+      "disposition": "activate",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-08T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/203"
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.39",
+      "integrity": "sha512-SUPfM3ZJ1efoccmSIOemFo7AjQjEdRiOq30tuuexwfFeVnDHvSCueuorzX5vHKnxos+Ul8HZphM0v9U69BUw6w==",
+      "disposition": "defer",
+      "owner": "whutzefengxie-ops",
+      "reviewBy": "2026-11-13T16:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/205",
+      "reason": "The local-title candidate requires paired Host/plugin acceptance and scoped publication authorization. Source submission does not establish compatibility of all public catalog consumers or authorize an installed-instance update.",
+      "condition": "Complete exact-version local-title, owner-isolation and old-plugin fallback acceptance; obtain scoped package publication and a separate catalog activation review before changing global discovery. Installation remains an owner-authorized action."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.40",
+      "integrity": "sha512-UANORyFzAETnKgQNbCalt+noFUcqIvQ+D803619LXFX6HPQBPg6vlXW/E/3tY+387Bf34//eN2r2wkwfZ67qOg==",
+      "disposition": "defer",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-14T09:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/207",
+      "reason": "The recovery repair retains SDK candidate.11 indexed-storage requirements. A reviewed source release and isolated acceptance do not establish compatibility of all public catalog consumers or authorize replacing an installed instance.",
+      "condition": "Verify the paired capable Host and exact self-contained archive; preserve original instance, settings, baselines and history during an owner-authorized update. Public discovery activation requires separate scoped review."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.41",
+      "integrity": "sha512-2RHxH0NGbrsFRVjTuMADMCyrJJRNv/TGw5MSSIr9D/p1nKK3b/Xz6FcZxJvepiIr1IFGZTUjN4YLnUS/1YdFvg==",
+      "disposition": "defer",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-15T09:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/208",
+      "reason": "The bounded status candidate retains SDK candidate.11 and capable Host storage.scan requirements. Source and isolated packaged validation do not replace an installed-instance acceptance or authorize installation.",
+      "condition": "Verify this exact self-contained archive with the original instance, settings and retained subscriptions during an owner-authorized update; validate actual tool schema and bounded read results. Public catalog activation requires separate scoped review."
     }
   ]
 }

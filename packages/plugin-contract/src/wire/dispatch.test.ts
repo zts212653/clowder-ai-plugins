@@ -1309,11 +1309,13 @@ test('M0-C valid requests reach T-M and malformed requests reach T-G', () => {
     [
       'host.messaging.deliver',
       {kind:'message' as const,
+        reason: 'addressed' as const,
         deliveryId: 'delivery-1',
         threadId: (M0C_ENVELOPE).threadId,
         envelope: M0C_ENVELOPE,
       },
       {kind:'message' as const,
+        reason: 'addressed' as const,
         deliveryId: 'delivery-1',
         threadId: ({ ...M0C_ENVELOPE, occurredAt: '2026-08-18T03:00:00Z' }).threadId,
         envelope: { ...M0C_ENVELOPE, occurredAt: '2026-08-18T03:00:00Z' },

@@ -13,6 +13,7 @@ import type { ExternalCloudObservation } from './business/domains/community/exte
 import { copyLegacyIssueProgress, readLegacyIssueProgress } from './legacy-issue-progress.js';
 import { legacyIssueOperationInput } from './legacy-issue-observations.js';
 import { storagePages } from './storage-pages.js';
+import { POST_MERGE_FOLLOWUP } from './business/domains/github-signals/post-merge-followup.js';
 import { pollTrackingPages, type TrackingChannel as Channel } from './tracking-polling.js';
 
 export interface GitHubTarget {
@@ -45,6 +46,11 @@ export interface GitHubReview {
   readonly authorAssociation?: string;
 }
 export interface GitHubSnapshot {
+  readonly observedAt?: number;
+  readonly providerUpdatedAt?: string;
+  readonly terminalFacts?: import('./business/model/types/provider-terminal.js').PrTerminalFacts;
+  readonly title?: string;
+  readonly draft?: boolean;
   readonly trackingIdentity?: import('./business/model/index.js').GitHubTrackingIdentityV1;
   readonly state: 'open' | 'closed' | 'merged';
   readonly authorLogin?: string;
@@ -373,6 +379,7 @@ export class GitHubTrackingRuntime {
         `🔔 **GitHub update** — ${renderGitHubSubjectLink(subject(record.target))}`,
         '',
         ...changes,
+        ...(record.target.kind === 'pr' && snapshot.state === 'merged' ? ['', POST_MERGE_FOLLOWUP] : []),
       ].join('\n');
       const pollSequence = record.pollSequence + 1;
       if (!Number.isSafeInteger(pollSequence)) throw new Error('GitHub tracking poll sequence exhausted');

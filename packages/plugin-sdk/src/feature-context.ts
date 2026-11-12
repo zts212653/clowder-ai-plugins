@@ -228,7 +228,13 @@ export function createFeatureContextSession(
   };
 
   const scanStorage = adapter.storage?.scan?.bind(adapter.storage);
+  const writeIndexed = adapter.storage?.compareAndSetIndexed?.bind(adapter.storage);
+  const readDue = adapter.storage?.readDue?.bind(adapter.storage);
+  const rebuildIndex = adapter.storage?.rebuildIndex?.bind(adapter.storage);
   const storage: PluginStorageHost = {
+    ...(writeIndexed ? { compareAndSetIndexed: (...args: Parameters<typeof writeIndexed>) => runWhileActive(() => adapter.storage.compareAndSetIndexed!(...args)) } : {}),
+    ...(readDue ? { readDue: (input: Parameters<typeof readDue>[0]) => runWhileActive(() => adapter.storage.readDue!(input)) } : {}),
+    ...(rebuildIndex ? { rebuildIndex: (index: string) => runWhileActive(() => adapter.storage.rebuildIndex!(index)) } : {}),
     get: (key) => runWhileActive(() => adapter.storage.get(key)),
     list: () => runWhileActive(() => adapter.storage.list()),
     ...(scanStorage ? { scan: (input: Parameters<typeof scanStorage>[0]) => runWhileActive(() => scanStorage(input)) } : {}),
@@ -380,11 +386,17 @@ interface PluginDefinitionHooks {
 export interface PluginDefinitionInput extends PluginDefinitionHooks {
   readonly manifest: unknown;
   readonly activate?: Readonly<Record<string, FeatureActivator>>;
+  readonly deliver?: import('./delivery.js').PluginDeliverHandler;
+  readonly handle?: (request: Readonly<Record<string, unknown>>) => unknown | Promise<unknown>;
+  readonly webhook?: import('./webhook.js').PluginWebhookHandler;
 }
 
 export interface DefinedPlugin extends PluginDefinitionHooks {
   readonly manifest: PluginManifest;
   readonly activate: Readonly<Record<string, FeatureActivator>>;
+  readonly deliver?: import('./delivery.js').PluginDeliverHandler;
+  readonly handle?: (request: Readonly<Record<string, unknown>>) => unknown | Promise<unknown>;
+  readonly webhook?: import('./webhook.js').PluginWebhookHandler;
 }
 
 export interface ActivePluginFeature {
@@ -399,8 +411,9 @@ function actionMethods(contribution: StaticContribution): readonly string[] {
   switch (contribution.type) {
     case 'schedule':
     case 'tool':
-    case 'webhook':
       return [contribution.action.method];
+    case 'webhook':
+      return contribution.action === undefined ? [] : [contribution.action.method];
     case 'message-subscription':
       return [contribution.action.method];
     case 'media-source':
@@ -470,7 +483,7 @@ export async function activateDefinedFeature(
             !['read', 'write'].includes(hostContext.operation))
             throw new FeaturePermissionError('owner HTTP caller is invalid');
           const request = hostContext.requestIdentity;
-          if (!ownerWebhooks.some(webhook => webhook.action.method === method &&
+          if (!ownerWebhooks.some(webhook => webhook.action?.method === method &&
             (request === undefined || webhook.id === request.contributionId && webhook.path === request.declaredPath &&
               webhook.methods.some(verb => verb === request.method))))
             throw new FeaturePermissionError('owner HTTP call does not match its declared webhook');
@@ -525,6 +538,9 @@ export function definePlugin(input: PluginDefinitionInput): DefinedPlugin {
   }
   const manifest = deepFreeze(structuredClone(validation.manifest));
   return Object.freeze({ manifest, activate: Object.freeze({ ...activate }),
+    ...(input.deliver ? {deliver: input.deliver} : {}),
+    ...(input.handle ? {handle: input.handle} : {}),
+    ...(input.webhook ? {webhook: input.webhook} : {}),
     ...(input.preStart ? {preStart: input.preStart} : {}),
     ...(input.preUninstall ? {preUninstall: input.preUninstall} : {}),
     ...(input.uninstall ? {uninstall: input.uninstall} : {}),

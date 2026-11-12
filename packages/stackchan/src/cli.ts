@@ -2,6 +2,7 @@
 
 import { createStackChanAdapterApp } from './adapter-app.js';
 import { resolveStackChanConfigPath } from './cli-options.js';
+import { requestStackChanPlay } from './play-command.js';
 import { loadStackChanAdapterConfig } from './runtime-config.js';
 
 function describeError(error: unknown): string {
@@ -12,6 +13,13 @@ export async function runStackChanAdapter(
   argv: readonly string[] = process.argv.slice(2),
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<void> {
+  if (argv[0] === 'play') {
+    const path = resolveStackChanConfigPath(argv.slice(2), env);
+    const config = await loadStackChanAdapterConfig(path);
+    const result = await requestStackChanPlay(config, argv[1]);
+    process.stdout.write(`${JSON.stringify(result)}\n`);
+    return;
+  }
   const configPath = resolveStackChanConfigPath(argv, env);
   const config = await loadStackChanAdapterConfig(configPath);
   const app = await createStackChanAdapterApp(config, {
@@ -54,7 +62,7 @@ export async function runStackChanAdapter(
 if (import.meta.url === `file://${process.argv[1]}`) {
   runStackChanAdapter().catch((error: unknown) => {
     process.stderr.write(
-      `StackChan adapter failed to start: ${describeError(error)}\n`,
+      `StackChan command failed: ${describeError(error)}\n`,
     );
     process.exitCode = 1;
   });

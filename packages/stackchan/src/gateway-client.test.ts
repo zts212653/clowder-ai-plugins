@@ -126,3 +126,14 @@ test('restores the configured safe pose through the bounded gateway tool', async
     },
   ]);
 });
+
+test('nuzzles with bounded motion and a warm face, without recording audio', async () => {
+  const calls: Array<{name: string; input: Readonly<Record<string, unknown>>}> = [];
+  const client = createStackChanGatewayClient({
+    async callTool(name, input) { calls.push({ name, input }); return { content: [{type: 'text', text: '{"ok":true}'}] }; },
+  }, {yawDeg: 0, pitchDeg: 35, timeoutMs: 2000});
+  await client.nuzzle();
+  assert.ok(calls.some(c => c.name === 'set_avatar' && c.input.face === 'happy'));
+  assert.ok(calls.filter(c => c.name === 'move_head').length >= 2);
+  assert.ok(calls.every(c => c.name !== 'listen'));
+});

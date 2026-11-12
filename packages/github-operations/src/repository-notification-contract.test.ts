@@ -5,6 +5,7 @@ import { validateMessagingRowInput } from '@clowder-ai/plugin-contract';
 import type { FeatureContext, PluginMessagingDraft, PluginStorageEntry, PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { CommunityRuntime, type RepoSubject } from './community-runtime.js';
 import { scanMemory } from '../test/memory-storage.js';
+import { withIndexedMemoryStorage } from '../test/indexed-memory-storage.js';
 
 // Exercise the real scan/webhook adapters against the shared messaging schema.
 // Only Host presentation fields are removed; unknown transport fields must fail.
@@ -26,6 +27,7 @@ function fixture() {
     },
     delete: async key => ({ deleted: rows.delete(key) }),
   };
+  withIndexedMemoryStorage(storage);
   const sent: Array<{ threadId: string; draft: PluginMessagingDraft }> = [];
   let subjects: RepoSubject[] = [];
   const context = {

@@ -1,3 +1,4 @@
+import { withIndexedMemoryStorage } from './indexed-memory-storage.js';
 import type { PluginStorageHost, PluginStorageEntry, PluginStorageScanInput } from '@clowder-ai/plugin-sdk';
 import { scanMemory } from './memory-storage.js';
 
@@ -5,6 +6,7 @@ import { scanMemory } from './memory-storage.js';
 export class IsolatedStorage implements PluginStorageHost {
   private readonly rows = new Map<string, PluginStorageEntry>();
   private revision = 0;
+  constructor() { withIndexedMemoryStorage(this); }
   async get(k: string) { return structuredClone(this.rows.get(k)); }
   async list() { return structuredClone(Object.fromEntries(this.rows)); }
   async scan(input: PluginStorageScanInput) { return scanMemory(this.rows, input); }

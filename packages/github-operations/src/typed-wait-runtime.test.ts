@@ -1,3 +1,4 @@
+import { withIndexedMemoryStorage } from '../test/indexed-memory-storage.js';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
@@ -34,9 +35,10 @@ function fixture() {
       if (sendFailure || !threadAvailable) throw new Error('delivery unavailable'); sent.push(draft); return { messageId: 'message', threadId: 'thread' };
     } }, config: { get: async (key: string) => config.get(key) }, log: () => {},
   } as unknown as FeatureContext;
+  withIndexedMemoryStorage(context.storage);
   const caller: PluginActionContext = { catId: 'astra', userId: 'owner', threadId: 'thread', invocationId: 'turn',
     assertCurrent: async () => { if (!current) throw new Error('stale invocation'); } };
-  const options = { context, provider: { read: async () => { reads++; return read ? read() : structuredClone(snapshot); } },
+  const options = { context, pollIntervalMs: 0, provider: { read: async () => { reads++; return read ? read() : structuredClone(snapshot); } },
     coverage: async () => ({ covered: true }), now: () => 1000 };
   return { context, caller, options, config, rows, sent, reads: () => reads, hostTaskCalls: () => hostTaskCalls,
     setSnapshot: (value: GitHubSnapshot) => { snapshot = value; },
@@ -301,14 +303,15 @@ test('the last subscription cut short by the poll budget gets a full slot next t
   runtime = new TypedWaitRuntime({ ...f.options, now: () => now, pollBudgetMs: 10_000,
     provider: { read: async target => {
       visited.push(target.number);
-      if (target.number === 2 && !truncated) {
+      if (visited.length === 2 && !truncated) {
         truncated = true; now += 4000; throw new DOMException('Tick budget exhausted', 'TimeoutError');
       }
-      now += target.number === 1 ? 6000 : 1000;
+      now += !truncated ? 6000 : 1000;
       return f.snapshot();
     } } });
-  await runtime.poll('issue'); assert.deepEqual(visited, [1, 2]);
-  await runtime.poll('issue'); assert.equal(visited[2], 2, 'advancing past a truncated tail can starve that same position every cycle');
+  await runtime.poll('issue'); assert.equal(visited.length, 2);
+  const clipped = visited[1];
+  await runtime.poll('issue'); assert.equal(visited[2], clipped, 'advancing past a truncated tail can starve that same position every cycle');
   assert.equal(f.sent.length, 0); assert.equal(f.hostTaskCalls(), 0);
   await runtime.stop();
 });
@@ -323,7 +326,7 @@ test('a budget-clipped timer retains its target even before the clock reaches th
   runtime = new TypedWaitRuntime({ ...f.options, now: () => now, pollBudgetMs: 5000, objectTimeoutMs: 1000,
     provider: { read: async (target, signal) => {
       visited.push(target.number);
-      if (!truncated && target.number === 1) now = 4499;
+      if (!truncated && visited.length === 1) now = 4499;
       else if (!truncated) {
         truncated = true;
         await new Promise<void>((_resolve, reject) => {
@@ -333,10 +336,11 @@ test('a budget-clipped timer retains its target even before the clock reaches th
       }
       return f.snapshot();
     } } });
-  await runtime.poll('issue'); assert.deepEqual(visited, [1, 2]);
+  await runtime.poll('issue'); assert.equal(visited.length, 2);
+  const clipped = visited[1];
   assert.equal(now, 4499, 'the timer can fire one millisecond before the observed soft deadline');
   await runtime.poll('issue');
-  assert.equal(visited[2], 2, 'a clipped timeout must not advance the durable cursor past its target');
+  assert.equal(visited[2], clipped, 'a clipped timeout must not advance the durable cursor past its target');
   assert.equal(f.sent.length, 0); assert.equal(f.hostTaskCalls(), 0);
   await runtime.stop();
 });
@@ -364,7 +368,7 @@ test('a full object timeout still rotates after cleanup crosses the poll deadlin
     } } });
   await runtime.poll('issue');
   await runtime.poll('issue');
-  assert.equal(visited[1], 2, 'cleanup cannot turn a complete failed slot into perpetual tail deferral');
+  assert.notEqual(visited[1], visited[0], 'cleanup cannot turn a complete failed slot into perpetual tail deferral');
   assert.equal(f.sent.length, 0); assert.equal(f.hostTaskCalls(), 0);
   await runtime.stop();
 });
@@ -897,16 +901,16 @@ test('pending delivery recovers after restart with an ordinary message and no Ho
 
 test('unknown private registration result replays its durable receipt without a new baseline', async () => {
   const f = fixture(); const runtime = new TypedWaitRuntime(f.options);
-  const cas = f.context.storage.compareAndSet;
+  const cas = f.context.storage.compareAndSetIndexed!;
   let lost = false;
-  f.context.storage.compareAndSet = async (...args) => {
+  f.context.storage.compareAndSetIndexed = async (...args) => {
     const result = await cas(...args);
     if (args[0].startsWith('github.typed-wait.v1.') && result.applied && !lost) { lost = true; throw new Error('response lost'); }
     return result;
   };
   await assert.rejects(runtime.registerPr(input, f.caller), /response lost/);
   assert.equal([...f.rows.keys()].filter(key => key.startsWith('github.typed-wait.v1.')).length, 1); assert.equal(f.reads(), 1);
-  f.context.storage.compareAndSet = cas;
+  f.context.storage.compareAndSetIndexed = cas;
   f.defer(async () => { throw new Error('provider offline'); });
   const replay = await runtime.registerPr(input, f.caller);
   assert.equal(replay.automationState?.await?.generation, 1);
@@ -998,8 +1002,8 @@ test('stop aborts and joins outstanding provider work; late result never changes
   let release!: (value: GitHubSnapshot) => void;
   let entered!: () => void; const started = new Promise<void>(resolve => { entered = resolve; });
   f.defer(() => { entered(); return new Promise(resolve => { release = resolve; }); });
-  const before = structuredClone([...f.rows]);
   const poll = runtime.poll('pr'); await started;
+  const before = structuredClone([...f.rows]);
   let stopped = false; const stop = runtime.stop().then(() => { stopped = true; });
   await Promise.resolve(); assert.equal(stopped, false);
   release({ ...f.snapshot(), ci: 'pass' }); await Promise.all([poll, stop]);
@@ -1100,7 +1104,7 @@ test('real CI transport isolates detail/truncation deadlines and resolves the co
         throw new Error('unreachable');
       }
       if (path === 'user') return { stdout: 'self' };
-      if (/\/pulls\/(1|2)$/.test(path)) return { stdout: JSON.stringify({ state: 'open', head: { sha: head }, user: { login: 'self' } }) };
+      if (/\/pulls\/(1|2)$/.test(path)) return { stdout: JSON.stringify({ number: Number(path.split('/').at(-1)), html_url: 'https://github.com/owner/repo/pull/' + path.split('/').at(-1), state: 'open', head: { sha: head }, user: { login: 'self' } }) };
       if (path.includes('/comments?') || path.includes('/reviews?')) return { stdout: '' };
       throw new Error('Unexpected CI request ' + args.join(' '));
     } });
@@ -1182,19 +1186,23 @@ test('terminal CI observation with lost private writes is not delivered and retr
   const f = fixture(); const runtime = new TypedWaitRuntime(f.options);
   try {
     const task = await runtime.registerPr({ ...input, when: [{ kind: 'pr_ci_terminal' }] }, f.caller);
+    await runtime.store.recovery.initialize();
     const before = structuredClone(Object.fromEntries(f.rows));
     f.setSnapshot({ ...f.snapshot(), state: 'merged' });
-    const cas = f.context.storage.compareAndSet;
-    f.context.storage.compareAndSet = async () => ({ applied: false });
+  const cas = f.context.storage.compareAndSetIndexed!;
+    f.context.storage.compareAndSetIndexed = async () => ({ applied: false });
     await runtime.poll('pr');
     assert.deepEqual(Object.fromEntries(f.rows), before);
     assert.equal(f.sent.length, 0);
     assert.equal((await runtime.store.get(task.id))?.automationState?.waitOutcome, undefined);
     assert.ok((await runtime.store.get(task.id))?.automationState?.await, 'private subscription remains active for retry');
-    f.context.storage.compareAndSet = cas;
+    f.context.storage.compareAndSetIndexed = cas;
     await runtime.poll('pr');
     assert.equal(f.sent.length, 1);
     assert.equal((await runtime.store.get(task.id))?.automationState?.waitOutcome?.reason, 'subject_terminal');
+    assert.match(JSON.stringify(f.sent[0]), /Post-merge: intake \/ delivery remains/);
+    assert.match(JSON.stringify(f.sent[0]), /original maintainer/);
+    assert.equal(f.hostTaskCalls(), 0, 'an intake reminder does not complete or reassign Host work');
     await runtime.poll('pr');
     assert.equal(f.sent.length, 1, 'no duplicate terminal delivery after the committed retry');
   } finally { await runtime.stop(); }

@@ -1,4 +1,4 @@
-import { createStackChanActionExecutor } from './action-executor.js';
+import { createStackChanActionExecutor, type StackChanActionExecutor } from './action-executor.js';
 import { createStackChanAdapterRuntime } from './adapter-runtime.js';
 import {
   createCatCafeLimbClient,
@@ -18,6 +18,7 @@ import { createFileStackChanObservationOutbox } from './observation-outbox.js';
 import type { StackChanAdapterConfig } from './runtime-config.js';
 import { readSecretFile, writeSecretFile } from './secret-file.js';
 import { createStackChanTouchReplyController } from './touch-reply-controller.js';
+import { createStackChanPlayController, readStackChanDeviceHealth } from './play-controller.js';
 
 export interface StackChanAdapterApp {
   start(): Promise<void>;
@@ -73,7 +74,25 @@ export async function createStackChanAdapterApp(
     language: config.listen.language,
     lookUpPitch: config.listen.lookUpPitch,
     debounceMs: config.listen.debounceMs,
+    beforeInteraction: interruptPlay,
   });
+  let activeActions = 0;
+  let shuttingDown = false;
+  const play = createStackChanPlayController({
+    caller,
+    safePose: config.safePose,
+    voiceProfiles: config.voiceProfiles,
+    canPlay: () => !shuttingDown && !controller.isBusy() && activeActions === 0,
+  });
+  async function interruptPlay(): Promise<void> {
+    try {
+      await play.stop();
+    } catch (error) {
+      // Report the old scene's cleanup failure and let the new action attempt
+      // recovery. Its own gateway result decides whether it can proceed.
+      overrides.onError?.(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
   const eventSource = createStackChanJsonlEventSource({
     path: config.eventJsonlPath,
     cursorStore: createFileStackChanCursorStore(config.cursorPath),
@@ -93,13 +112,24 @@ export async function createStackChanAdapterApp(
         });
     },
   });
-  const executor = createStackChanActionExecutor({
+  const actionExecutor = createStackChanActionExecutor({
     nodeId: config.nodeId,
     caller,
     safePose: config.safePose,
     expressionFaces: config.expressionFaces,
     voiceProfiles: config.voiceProfiles,
   });
+  const executor: StackChanActionExecutor = {
+    async execute(instruction) {
+      activeActions += 1;
+      try {
+        await interruptPlay();
+        return await actionExecutor.execute(instruction);
+      } finally {
+        activeActions -= 1;
+      }
+    },
+  };
   const runtime = createStackChanAdapterRuntime({
     client,
     eventSource,
@@ -114,7 +144,8 @@ export async function createStackChanAdapterApp(
         executor,
         host: config.limbHost,
         port: config.limbPort,
-        health: async () => caller.status(),
+        health: async () => caller.status() === 'offline' ? 'offline' : readStackChanDeviceHealth(caller),
+        play: (scene) => play.run(scene),
       });
     },
   });
@@ -147,12 +178,18 @@ export async function createStackChanAdapterApp(
     async stop(): Promise<void> {
       if (stopPromise) return stopPromise;
       stopPromise = (async () => {
+        shuttingDown = true;
         await startPromise?.catch(() => undefined);
-        if (started) {
-          await runtime.stop();
-          started = false;
+        try {
+          await play.stop();
+        } finally {
+          try {
+            if (started) await runtime.stop();
+          } finally {
+            started = false;
+            await caller.close();
+          }
         }
-        await caller.close();
       })().finally(() => {
         stopPromise = undefined;
       });

@@ -26,6 +26,12 @@ package's native-host socket client and the helper's v2 protocol:
 - `personal-chrome-host.assistant-returns.ack` acknowledges that reply; listing
   alone never removes it.
 
+Submission receipts and model answers are observed separately. If submission
+occurs without a reliable user-message ID, delivery remains unconfirmed and is
+never automatically resent. Browser fallback answer observation lasts up to one
+hour: long model thinking and observation expiry never change the original
+delivery receipt.
+
 The `personalChromeAuthorizations` operation lists the authorized
 conversations as Host-rendered rows with **Check conversation page** and **Revoke** actions, revokes one
 authorization by `conversationId`, and reports authorization status. The

@@ -108,7 +108,7 @@ jobs:
         run: pnpm gate:ci
 
       - name: Companion browser layout contract
-        run: pnpm --filter @clowder-ai/companion exec playwright install --with-deps chromium && pnpm --filter @clowder-ai/companion test:browser
+        run: pnpm --filter @clowder-ai/companion exec playwright install chromium && pnpm --filter @clowder-ai/companion test:browser
 
       # Pure package checks also run in gate:ci. Keep the browser journey
       # explicit alongside this workflow's package checks, mirroring main.

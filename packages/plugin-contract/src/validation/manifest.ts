@@ -110,6 +110,19 @@ function requiredWhenScalarType(
   }
 }
 
+function supportsConfigurationVariants(contractVersion: string): boolean {
+  const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/u.exec(contractVersion);
+  if (!match) return false;
+  const [, majorText, minorText, patchText, prerelease] = match;
+  const major = Number(majorText);
+  const minor = Number(minorText);
+  const patch = Number(patchText);
+  if (major !== 0) return major > 0;
+  if (minor !== 2) return minor > 2;
+  if (patch !== 0) return patch > 0;
+  return prerelease === undefined;
+}
+
 /**
  * Validates an untrusted plugin manifest against the contract-owned schema.
  *
@@ -260,8 +273,7 @@ export function validateManifest(value: unknown): ManifestValidationResult {
 
     const variants = manifest.configurationVariants;
     if (variants !== undefined) {
-      const [major = 0, minor = 0] = manifest.contractVersion.split(/[.-]/).slice(0, 2).map(Number);
-      if (!(major > 0 || minor >= 2)) {
+      if (!supportsConfigurationVariants(manifest.contractVersion)) {
         return semanticError(
           '/configurationVariants',
           '#/$defs/ConfigurationVariants/contractVersion',
@@ -409,18 +421,15 @@ export function validateManifest(value: unknown): ManifestValidationResult {
         }
       }
 
-      const branchValidators = variants.branches.map((branch) => ajv.compile({
-        type: 'object',
-        properties: structuredClone(
-          branch.when['properties'] as Record<string, unknown>,
-        ),
-        required: [variants.discriminator],
-      }));
+      // The grammar above accepts only string const/enum constraints. Evaluate
+      // their coverage directly; compiling fresh schemas retains them in Ajv.
+      const branchOptions = variants.branches.map((branch) => {
+        const properties = branch.when['properties'] as Record<string, Record<string, unknown>>;
+        const constraint = properties[variants.discriminator]!;
+        return new Set('const' in constraint ? [constraint['const']] : constraint['enum'] as string[]);
+      });
       for (const optionValue of optionValues) {
-        let matched = 0;
-        for (const trial of branchValidators) {
-          if (trial({ [variants.discriminator]: optionValue })) matched += 1;
-        }
+        const matched = branchOptions.filter((values) => values.has(optionValue)).length;
         if (matched !== 1) {
           return semanticError(
             '/configurationVariants/branches',
@@ -566,6 +575,7 @@ export function validateManifest(value: unknown): ManifestValidationResult {
       const runtimeContributionIndex = contributions.findIndex(
         (contribution) =>
           'action' in contribution ||
+          contribution.type === 'external-request' ||
           contribution.type === 'media-source' ||
           contribution.type === 'limb' ||
           contribution.type === 'connector' ||

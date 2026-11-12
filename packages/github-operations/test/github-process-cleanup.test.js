@@ -60,7 +60,7 @@ const ready = setInterval(() => {
   const endpoint = process.argv[3] || '';
   const output = endpoint.includes('/issues/comments/42/reactions') ? ''
     : endpoint.includes('/issues/comments/42') ? JSON.stringify({id:42, body:'@codex review', issue_url:'https://api.github.com/repos/owner/repo/issues/1', created_at:'2026-10-01T00:00:00Z'})
-    : JSON.stringify({state:'open', closed_at:null, merged_at:null});
+    : JSON.stringify({number:1, html_url:'https://github.com/owner/repo/pull/1', state:'open', head:{sha:'a'.repeat(40)}, closed_at:null, merged_at:null});
   process.stdout.write(output, () => process.exit(0));
 }, 10);
 if (${wait}) setInterval(() => {}, 1000);
@@ -122,7 +122,10 @@ test('default request budget deadline joins gh and helper cleanup', { skip: posi
 test('actual GitHubProvider default transport closes inherited helper stdio', { skip: posix }, async () => {
   await fixture(async () => {
     const provider = new GitHubProvider({ token: async () => 'isolated-fixture', log: { warn() {} } });
-    assert.deepEqual(await provider.state('owner/repo', 'pr', 1, new AbortController().signal), { state: 'open', closedAt: null, mergedAt: null });
+    const snapshot = await provider.state('owner/repo', 'pr', 1, new AbortController().signal);
+    assert.equal(snapshot.state, 'open'); assert.equal(snapshot.headSha, 'a'.repeat(40));
+    assert.equal(snapshot.closedAt, null); assert.equal(snapshot.mergedAt, null);
+    assert.equal(typeof snapshot.observedAt, 'number');
   }, { inheritedStdio: true });
 });
 

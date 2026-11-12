@@ -6,8 +6,8 @@ type PersonalChromeAssistantReturnCursorFields = ReturnType<typeof parseAssistan
 import type { PersonalChromeHealthStatus } from '../native-host/health-result.mjs';
 
 export const PERSONAL_CHROME_PROTOCOL_VERSION = 2 as const;
-export const PERSONAL_CHROME_EXTENSION_REVISION = '0.2.12' as const;
-export const PERSONAL_CHROME_PAGE_ADAPTER_REVISION = '2026-10-26.1' as const;
+export const PERSONAL_CHROME_EXTENSION_REVISION = '0.2.13' as const;
+export const PERSONAL_CHROME_PAGE_ADAPTER_REVISION = '2026-11-06.1' as const;
 export const PERSONAL_CHROME_MAX_TEXT_BYTES = 128 * 1024;
 export const PERSONAL_CHROME_MAX_LOCAL_FRAME_BYTES = 256 * 1024;
 

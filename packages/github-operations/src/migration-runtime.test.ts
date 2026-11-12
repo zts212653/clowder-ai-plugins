@@ -44,8 +44,8 @@ export function migrationFixture() {
     messaging: { send: async value => { sent.push(value); return { threadId: value.threadId, messageId: 'message' }; } } as ModulePluginHostShape['messaging'],
     log: (_level, message) => { logs.push(message); },
   };
-  const module = createGitHubPluginModule({ now: () => 1000, createProvider: () => ({ selfLogin: () => 'self',
-    read: async target => { reads++; return { state: 'open', headSha: 'new', ci: 'pass', comments: target.kind === 'issue'
+  const module = createGitHubPluginModule({ pollIntervalMs: 0, now: () => 1000, createProvider: () => ({ selfLogin: () => 'self',
+    read: async target => { reads++; return { state: 'open', headSha: 'b'.repeat(40), ci: 'pass', comments: target.kind === 'issue'
       ? [{ id: 24, author: 'external', body: 'New external update', commentType: 'conversation', createdAt: '2026-10-21T00:00:00Z' }] : [], reviews: [], commentsComplete: true }; } }) });
   const owner = (read = false): PluginHostActionContext => ({ kind: 'owner-http-request', userId: 'owner', pluginInstanceId: 'instance',
     operation: read ? 'read' : 'write', signal, assertCurrent: async () => {} });
@@ -148,7 +148,7 @@ test('fresh private subscriptions coexist with a retained Host wait without acqu
   let hostReads = 0, freshHead = 'a'.repeat(40);
   const get = f.host.tasks.get;
   f.host.tasks.get = async query => { assert.equal(query.id, 'old-pr'); hostReads++; return get(query); };
-  const module = createGitHubPluginModule({ now: () => 1000, createProvider: () => ({ selfLogin: () => 'self',
+  const module = createGitHubPluginModule({ pollIntervalMs: 0, now: () => 1000, createProvider: () => ({ selfLogin: () => 'self',
     read: async target => ({ state: 'open', headSha: target.number === 12 ? 'b'.repeat(40) : freshHead,
       ci: 'pass', comments: [], reviews: [], commentsComplete: true }) }) });
   const active = await module.create(manifest).start(f.host); t.after(() => active.stop({ reason: 'test' }));
@@ -390,9 +390,10 @@ test('stage and active-copy interruptions recover the same source prefix without
   await assert.rejects(ownerCall(f,active,'stage',{snapshot:source,expectedDigest:sourceDigest(source)}),/response lost/);
   await active.stop({reason:'restart'});active=await f.module.create(manifest).start(f.host);
   const staged=await ownerCall(f,active,'stage',{snapshot:source,expectedDigest:sourceDigest(source)}),digest=staged.body.data.planDigest;
-  let lost=false;f.host.storage.compareAndSet=async(key,revision,value)=>{
-    if(!lost && key.startsWith('github.typed-wait.')){lost=true;await cas(key,revision,value);throw new Error('active copy response lost');}
-    return cas(key,revision,value);
+  const indexed=f.host.storage.compareAndSetIndexed!.bind(f.host.storage);
+  let lost=false;f.host.storage.compareAndSetIndexed=async(key,revision,value,projection)=>{
+    if(!lost && key.startsWith('github.typed-wait.')){lost=true;await indexed(key,revision,value,projection);throw new Error('active copy response lost');}
+    return indexed(key,revision,value,projection);
   };
   await assert.rejects(ownerCall(f,active,'commit',{expectedDigest:digest}),/active copy response lost/);
   await active.stop({reason:'restart'});active=await f.module.create(manifest).start(f.host);
@@ -420,7 +421,7 @@ test('repository import preserves separate notification and guard routes, old de
     progress:{'f141:baseline:example/project':'1','f141:notified:example/project#pr-12':'1','community:repo-comment:cursor:example/project':'2026-10-21T00:00:00.000Z'},
     commentOverlapEventIds:['comment:example/project#42:23']}]};
   f.host.secrets.get=async key=>key==='webhookSecret'?'isolated-webhook-secret':undefined;
-  const module=createGitHubPluginModule({now:()=>1000,createCommunityProvider:()=>({
+  const module=createGitHubPluginModule({ pollIntervalMs: 0,now:()=>1000,createCommunityProvider:()=>({
     listOpen:async()=>[{kind:'pr',number:13,title:'New fact',url:'https://github.com/example/project/pull/13',author:'external',authorAssociation:'CONTRIBUTOR',draft:false}],
     repoComments:async()=>[],state:async()=>null,selfLogin:()=>undefined,
   })});

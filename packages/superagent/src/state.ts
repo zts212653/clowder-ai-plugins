@@ -32,7 +32,14 @@ export async function editPreferences(
 export const runtimeSchema = z.object({ mainThreadId: id.optional(), error: z.string().optional() }).strict();
 export const inboxSchema = z
   .object({
-    delivery: z.custom<PluginMessageDelivery>((v) => isPluginDeliveryInput(v) && v.kind === 'message'),
+    // Only persisted pre-reason inboxes are normalized; live observe() stays strict.
+    delivery: z.preprocess(
+      (v) =>
+        v !== null && typeof v === 'object' && 'kind' in v && v.kind === 'message' && !Object.hasOwn(v, 'reason')
+          ? { ...v, reason: 'subscription' }
+          : v,
+      z.custom<PluginMessageDelivery>((v) => isPluginDeliveryInput(v) && v.kind === 'message'),
+    ),
     phase: z.enum(['pending', 'routed', 'failed', 'done']),
     attempt: z.number().int().nonnegative().default(0),
     wakeMessageId: id.optional(),

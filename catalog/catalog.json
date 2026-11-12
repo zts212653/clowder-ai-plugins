@@ -1099,6 +1099,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.10",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/personal-chrome-companion",
+            "version": "0.1.0-alpha.10",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/personal-chrome-companion/-/personal-chrome-companion-0.1.0-alpha.10.tgz",
+            "integrity": "sha512-N6mohK+qmgNW08yRGa2g1N4Ja6hMbpfLOGg6IPqHB/HgzlUvqwm9/6AQqt56umDqeoe19OtgqlegMz2p0eeVMA==",
+            "shasum": "556b1334acafa6eee137c65af7f6ec029ad8f992",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/personal-chrome-companion"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.9",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
@@ -2395,6 +2412,23 @@
         "plugin"
       ],
       "versions": [
+        {
+          "version": "0.1.0-alpha.13",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/feishu-meeting-intake",
+            "version": "0.1.0-alpha.13",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/feishu-meeting-intake/-/feishu-meeting-intake-0.1.0-alpha.13.tgz",
+            "integrity": "sha512-XVCurVPLdGVENEpqrkzNGmHQA+8pM3DrU5HfVKpxAWyXxIu1shPY5XckNO9JdYXOLTI0b8b5HEcWqNGvpGpMYg==",
+            "shasum": "538cfb385bfca19e4c87777e01ac1d13971594cf",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/feishu-meeting-intake"
+            }
+          }
+        },
         {
           "version": "0.1.0-alpha.12",
           "contractVersion": "0.1.0",
