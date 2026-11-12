@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/quick-phrases",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Save and reuse common instructions in the Clowder AI chat composer",
   "license": "MIT",
   "type": "module",
