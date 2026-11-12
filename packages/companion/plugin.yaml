@@ -1,6 +1,6 @@
 {
   "pluginId": "official.companion",
-  "version": "0.1.0-alpha.37",
+  "version": "0.1.0-alpha.38",
   "contractVersion": "0.1.0",
   "name": "猫猫球",
   "icon": {
@@ -16,6 +16,91 @@
   "runtime": {
     "transport": "builtin"
   },
+  "configuration": [
+    {
+      "key": "dutyCatProfileId",
+      "label": "回复的成员",
+      "description": "猫猫球的对话由这位成员回复；头像随这项选择改变，单独换皮肤不会换成员。",
+      "kind": "member",
+      "required": false
+    },
+    {
+      "key": "displayName",
+      "label": "名称",
+      "kind": "string",
+      "required": false,
+      "default": "猫猫球"
+    },
+    {
+      "key": "personaTone",
+      "label": "人设基调",
+      "description": "一句话描述人设风格，会注入回复成员的 prompt。最多 200 字。",
+      "kind": "string",
+      "required": false,
+      "default": "温暖、简短、不啰嗦"
+    },
+    {
+      "key": "proactivePolicy",
+      "label": "主动性策略",
+      "kind": "select",
+      "required": false,
+      "default": "quiet-badge",
+      "options": [
+        {
+          "value": "ambient",
+          "label": "仅环境感知",
+          "hint": "完全安静，零主动文本弹出。"
+        },
+        {
+          "value": "quiet-badge",
+          "label": "安静徽章",
+          "hint": "低优先级事件显示小圆点，hover 才出文字。"
+        }
+      ]
+    },
+    {
+      "key": "behaviorEnabled",
+      "label": "猫猫自主活动",
+      "description": "允许猫猫在空闲时跳跃、招手和溜达。",
+      "kind": "boolean",
+      "required": false,
+      "default": true
+    },
+    {
+      "key": "skin",
+      "label": "皮肤",
+      "description": "只改变动画外观；回复的成员和头像保持不变。",
+      "kind": "select",
+      "required": false,
+      "default": "xianxian-codex",
+      "options": [
+        {
+          "value": "xianxian-codex",
+          "label": "宪宪 v1"
+        },
+        {
+          "value": "yanyan-codex",
+          "label": "砚砚 v1"
+        },
+        {
+          "value": "ragdoll-v1",
+          "label": "布偶猫"
+        },
+        {
+          "value": "yarn-ball",
+          "label": "毛线球"
+        }
+      ]
+    },
+    {
+      "key": "ballSize",
+      "label": "大小",
+      "description": "范围 43–192px，默认 72px。",
+      "kind": "number",
+      "required": false,
+      "default": 72
+    }
+  ],
   "features": [
     {
       "id": "companion",
