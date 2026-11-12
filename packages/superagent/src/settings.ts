@@ -1,7 +1,18 @@
 import type { PluginActionHandler, PluginHostActionContext } from '@clowder-ai/plugin-sdk';
 import { z } from 'zod';
 import type { SuperagentHost } from './runtime.js';
-import { editPreferences, editQueue, inboxSchema, type Preferences, preferencesSchema, queued, read } from './state.js';
+import {
+  editPreferences,
+  editQueue,
+  inboxSchema,
+  type Preferences,
+  preferencesSchema,
+  queued,
+  read,
+  records,
+  runtimeSchema,
+  workSchema,
+} from './state.js';
 
 const directory = z.object({ before: z.object({ lastActiveAt: z.number(), id: z.string() }).optional() }).strict();
 
@@ -17,59 +28,92 @@ export function createSettings(
   refresh: () => Promise<unknown>,
   current: () => void,
 ) {
+  async function members(selection: 'coordinator' | 'worker') {
+    current();
+    const pref = await preferences();
+    if (!host.members) throw new Error('Host member directory unavailable');
+    const available = (await host.members.list()).filter(
+      (member) =>
+        member.available ||
+        (selection === 'coordinator' ? pref.coordinatorId === member.catId : pref.workerIds.includes(member.catId)),
+    );
+    return {
+      render: 'rows',
+      data: {
+        empty: '暂无可用的 Agent，请先在猫猫团队中启用成员。',
+        rows: [
+          ...(selection === 'coordinator' && !pref.coordinatorId && available.length
+            ? [{ key: 'assistant-status', label: '尚未选择助手', detail: '从下面选择一位 Agent。' }]
+            : []),
+          ...available.map((member) => {
+            const selected =
+              selection === 'coordinator' ? pref.coordinatorId === member.catId : pref.workerIds.includes(member.catId);
+            return {
+              key: `${selection}:${member.catId}`,
+              label: member.displayName,
+              ...(selected
+                ? {
+                    detail:
+                      selection === 'coordinator'
+                        ? pref.workerIds.includes(member.catId)
+                          ? '当前助手 · 同时执行'
+                          : '当前助手'
+                        : pref.coordinatorId === member.catId
+                          ? '已选执行 · 同时担任助手'
+                          : '已选执行',
+                  }
+                : {}),
+              ...(selection === 'coordinator' && selected
+                ? {}
+                : {
+                    actions: [
+                      {
+                        action: 'choose',
+                        label: selection === 'coordinator' ? '设为助手' : selected ? '移出名单' : '加入执行',
+                        input: { selection, id: member.catId },
+                      },
+                    ],
+                  }),
+            };
+          }),
+        ],
+      },
+    };
+  }
   const actions: Record<string, PluginActionHandler> = {
+    'superagent.assistant': () => members('coordinator'),
+    'superagent.workers': () => members('worker'),
     async 'superagent.settings'() {
       current();
       const pref = await preferences();
-      if (!host.members) throw new Error('Host member directory unavailable');
       const page = (await read(host, 'directory-page', directory)) ?? {};
-      const [members, threads, selected] = await Promise.all([
-        host.members.list(),
+      const [threads, selected, runtime, works] = await Promise.all([
         host.threads.list({ limit: 50, before: page.before }),
         Promise.all(pref.threadIds.map((id) => host.threads.get(id))),
+        read(host, 'runtime', runtimeSchema),
+        records(host, 'work:', workSchema),
       ]);
+      const ownThreads = new Set([runtime?.mainThreadId, ...works.map((work) => work.threadId)]);
       const visible = [
         ...selected.filter((thread) => thread !== null),
         ...threads.filter((thread) => !pref.threadIds.includes(thread.id)),
-      ];
+      ].filter((thread) => !ownThreads.has(thread.id));
       const last = threads.at(-1);
       return {
         render: 'rows',
         data: {
+          empty: '还没有可跟进的会话。',
           rows: [
-            ...members
-              .filter((member) => member.available)
-              .map((member) => ({
-                key: `coordinator:${member.catId}`,
-                label: `${pref.coordinatorId === member.catId ? '已选协调成员：' : '协调成员：'}${member.displayName}`,
-                actions: [
-                  {
-                    action: 'choose',
-                    label: '选用',
-                    input: { selection: 'coordinator', id: member.catId },
-                  },
-                ],
-              })),
-            ...members
-              .filter((member) => member.available || pref.workerIds.includes(member.catId))
-              .map((member) => ({
-                key: `worker:${member.catId}`,
-                label: `${pref.workerIds.includes(member.catId) ? '已选执行成员：' : '执行成员：'}${member.displayName}`,
-                actions: [
-                  {
-                    action: 'choose',
-                    label: pref.workerIds.includes(member.catId) ? '取消' : '选用',
-                    input: { selection: 'worker', id: member.catId },
-                  },
-                ],
-              })),
             ...visible.map((thread) => ({
               key: thread.id,
-              label: `${pref.threadIds.includes(thread.id) ? '已监听：' : ''}${thread.title ?? '未命名会话'}`,
+              label: thread.title ?? '未命名会话',
+              ...(pref.threadIds.includes(thread.id)
+                ? { detail: pref.enabled ? '跟进中' : pref.started ? '已选，暂停中' : '已选，开始跟进后生效' }
+                : {}),
               actions: [
                 {
                   action: 'choose',
-                  label: pref.threadIds.includes(thread.id) ? '移除' : '监听',
+                  label: pref.threadIds.includes(thread.id) ? '移除' : '选择',
                   input: { selection: 'thread', id: thread.id },
                 },
               ],
@@ -84,10 +128,8 @@ export function createSettings(
                         action: 'page',
                         label: '继续选择',
                         input: {
-                          before: {
-                            lastActiveAt: last.lastActiveAt,
-                            id: last.id,
-                          },
+                          lastActiveAt: last.lastActiveAt,
+                          id: last.id,
                         },
                       },
                     ],
@@ -95,7 +137,13 @@ export function createSettings(
                 ]
               : []),
             ...(page.before
-              ? [{ key: 'recent', label: '最近的会话', actions: [{ action: 'page', label: '返回最近', input: {} }] }]
+              ? [
+                  {
+                    key: 'recent',
+                    label: '最近的会话',
+                    actions: [{ action: 'page', label: '返回最近', input: { recent: true } }],
+                  },
+                ]
               : []),
           ],
         },
@@ -104,8 +152,16 @@ export function createSettings(
     async 'superagent.page'(input, _caller, context) {
       current();
       await owner(context);
-      const value = z.object({ input: directory }).passthrough().parse(input);
-      await host.storage.set('directory-page', value.input);
+      const { input: page } = z
+        .object({
+          input: z.union([
+            z.object({ lastActiveAt: z.number(), id: z.string() }).transform((before) => ({ before })),
+            z.object({ recent: z.literal(true) }).transform(() => ({})),
+          ]),
+        })
+        .passthrough()
+        .parse(input);
+      await host.storage.set('directory-page', page);
       return actions['superagent.settings']({});
     },
     async 'superagent.choose'(input, _caller, context) {
@@ -145,7 +201,7 @@ export function createSettings(
         () => owner(context),
       );
       await refresh();
-      return actions['superagent.settings']({});
+      return selection.selection === 'thread' ? actions['superagent.settings']({}) : members(selection.selection);
     },
     async 'superagent.enable'(_input, _caller, context) {
       current();
@@ -163,7 +219,7 @@ export function createSettings(
             started: true,
           });
           if (!next.coordinatorId || !next.workerIds.length || !next.threadIds.length || !next.responsibility.trim())
-            throw new Error('请先选择协调成员、执行成员、监听会话，并保存允许处理的工作范围。');
+            throw new Error('请先选择助手 Agent、执行 Agent 和监听会话，并保存允许处理的工作范围。');
           return next;
         },
         () => owner(context, true),
