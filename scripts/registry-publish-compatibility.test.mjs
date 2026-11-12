@@ -377,16 +377,19 @@ test('current replay refuses a next tag that does not identify the current relea
   assert.deepEqual(result.state.mutations, []);
 });
 
-test('feedback publication cannot fall back to the repository npm token', async () => {
+test('feedback and quick-phrases publication cannot fall back to the repository npm token', async () => {
   const workflow = parse(await readFile(new URL('../.github/workflows/contract-ci.yml', import.meta.url), 'utf8'));
   const action = parse(await readFile(new URL('../.github/actions/publish-prerelease/action.yml', import.meta.url), 'utf8'));
   const steps = workflow.jobs.publish.steps.filter(step => step.uses === './.github/actions/publish-prerelease');
-  const feedback = steps.filter(step => step.with?.['package-directory'] === 'packages/feedback');
-  assert.equal(feedback.length, 1);
-  assert.equal(feedback[0].with['npm-token'], '', 'feedback must explicitly pass no fallback token');
+  const oidcOnly = steps.filter(step => ['packages/feedback', 'packages/quick-phrases']
+    .includes(step.with?.['package-directory']));
+  assert.equal(oidcOnly.length, 2);
+  for (const step of oidcOnly) {
+    assert.equal(step.with['npm-token'], '', `${step.with['package-directory']} must explicitly pass no fallback token`);
+  }
   assert.equal(action.inputs['npm-token'].required, false);
   assert.equal(action.inputs['npm-token'].default, '');
-  for (const step of steps.filter(step => step !== feedback[0])) {
+  for (const step of steps.filter(step => !oidcOnly.includes(step))) {
     assert.equal(step.with['npm-token'], '${{ secrets.NPM_TOKEN }}', 'other packages retain their existing inputs');
   }
 });
