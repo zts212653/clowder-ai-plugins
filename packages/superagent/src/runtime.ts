@@ -1,5 +1,6 @@
 import { isPluginDeliveryInput } from '@clowder-ai/plugin-contract';
 import type { ModulePluginHostShape, PluginModuleActivationShape } from '@clowder-ai/plugin-sdk';
+import { followUp, watchedSources } from './follow-up.js';
 import { advanceInbox, clearRecoveredError, observe } from './inbox.js';
 import { coordinatorInstructions } from './instructions.js';
 import { createSettings } from './settings.js';
@@ -156,6 +157,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
       }
       current();
       await advanceInbox(host, pref, runtime.mainThreadId);
+      await followUp(host, pref, runtime.mainThreadId);
     });
     const completed = run.then(() => clearRecoveredError(host));
     tail = completed.then(
@@ -231,6 +233,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
             ? {
                 inbox,
                 sources,
+                watchedSources: await watchedSources(host, pref),
                 questions: (await records(host, 'question:', questionSchema)).filter((q) => !q.resolved),
               }
             : {}),

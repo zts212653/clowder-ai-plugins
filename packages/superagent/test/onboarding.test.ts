@@ -29,6 +29,7 @@ test('the first coordinator wake supplies the plugin tool entry and exact event 
   await runtime.actions['superagent.tick']({});
   const wake = [...f.sent.values()].find((message) => message.wake)!;
   const text = JSON.stringify(wake.payload);
+  assert.ok(text.length < 600, 'visible wake must bootstrap tools without pasting the full coordinator manual');
   for (const required of [
     'official.superagent',
     'plugin_list_tools',

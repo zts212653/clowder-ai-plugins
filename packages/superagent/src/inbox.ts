@@ -1,6 +1,5 @@
 import type { PluginDeliveryInput } from '@clowder-ai/plugin-contract';
 import { z } from 'zod';
-import { coordinatorInstructions } from './instructions.js';
 import type { SuperagentHost } from './runtime.js';
 import {
   editQueue,
@@ -70,7 +69,6 @@ export async function observe(
 
 export async function advanceInbox(host: SuperagentHost, pref: Preferences, mainThreadId: string) {
   const inbox = await queued(host, 'inbox', 'inbox:', inboxSchema);
-  if (inbox.some((entry) => entry.phase === 'failed')) return;
   const routed = inbox.find((entry) => entry.phase === 'routed');
   if (routed) {
     const response = (await host.threads.readMessages(mainThreadId, { limit: 100 })).find(
@@ -118,7 +116,7 @@ export async function advanceInbox(host: SuperagentHost, pref: Preferences, main
         eventId: next.delivery.deliveryId,
         sourceThreadId: next.delivery.threadId,
         sourceMessageId: next.delivery.envelope.messageId,
-      })}\n${coordinatorInstructions}`,
+      })}\n先用 plugin_list_tools 读取 official.superagent 的工具定义，再通过 plugin_call 调用 superagent_inspect；按返回指引用 superagent_route 登记判断。只汇报成果、阻塞与必要决定，不复述工具过程。`,
       pref.coordinatorId,
     );
     wakeMessageId = sent.messageId;

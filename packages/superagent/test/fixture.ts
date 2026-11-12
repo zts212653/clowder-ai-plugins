@@ -85,7 +85,8 @@ export function fixture(): Fixture {
     },
     threads: {
       get: async (id) => threads.get(id) ?? null,
-      list: async () => [...threads.values()],
+      list: async (options) => [...threads.values()].filter((thread) =>
+        !options?.threadIds || options.threadIds.includes(thread.id)),
       readMessages: async (id) => history.get(id) ?? [],
       create: async (input) => {
         const id = `thread-${threads.size}`;
@@ -134,7 +135,8 @@ export function fixture(): Fixture {
         'id' in selector
           ? (tasks.get(selector.id!) ?? null)
           : ([...tasks.values()].find((task) => task.subjectKey === selector.subjectKey) ?? null),
-      list: async () => [...tasks.values()],
+      list: async (filter) => [...tasks.values()].filter((task) =>
+        (!filter.threadId || task.threadId === filter.threadId) && (!filter.kind || task.kind === filter.kind)),
       create: async (input) => {
         const previous = [...tasks.values()].find((task) => task.subjectKey === input.subjectKey);
         if (previous) return previous;
