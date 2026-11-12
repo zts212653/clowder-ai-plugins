@@ -11,6 +11,11 @@ export interface PluginMessage {
   readonly mentions: readonly string[];
   readonly timestamp: number;
   readonly sourceRevision: string;
+  /** Canonical Host sender facts, absent on older Hosts. Presentation is not a substitute. */
+  readonly from?:
+    | { readonly kind: "user"; readonly userId: string }
+    | { readonly kind: "agent"; readonly catId: string }
+    | { readonly kind: "external" | "plugin" | "system" };
   readonly contentBlocks?: readonly PluginMessageContent[];
   readonly source?: {
     readonly connector: string;
@@ -75,6 +80,24 @@ function object(
 }
 function text(value: unknown, allowEmpty = false): boolean {
   return typeof value === "string" && (allowEmpty || value.length > 0);
+}
+function senderFact(value: unknown): NonNullable<PluginMessage["from"]> {
+  const row = object(value, ["kind"], ["userId", "catId"]);
+  if (row.kind === "user") {
+    object(row, ["kind", "userId"]);
+    if (typeof row.userId !== "string" || !text(row.userId)) invalid();
+    return { kind: "user", userId: row.userId };
+  }
+  if (row.kind === "agent") {
+    object(row, ["kind", "catId"]);
+    if (typeof row.catId !== "string" || !text(row.catId)) invalid();
+    return { kind: "agent", catId: row.catId };
+  }
+  if (row.kind === "external" || row.kind === "plugin" || row.kind === "system") {
+    object(row, ["kind"]);
+    return { kind: row.kind };
+  }
+  return invalid();
 }
 type FieldCheck = (value: unknown) => boolean;
 const string: FieldCheck = (value) => typeof value === "string";
@@ -167,7 +190,7 @@ function fact(value: unknown, id: string): PluginMessage | null {
   const row = object(
     value,
     ["id", "threadId", "userId", "catId", "content", "mentions", "timestamp", "sourceRevision"],
-    ["contentBlocks", "source", "origin", "replyTo", "deliveryStatus", "extra"],
+    ["contentBlocks", "source", "origin", "replyTo", "deliveryStatus", "extra", "from"],
   );
   if (
     row.id !== id ||
@@ -192,6 +215,7 @@ function fact(value: unknown, id: string): PluginMessage | null {
     "sourceRevision",
   ])
     projected[key] = row[key];
+  if (row.from !== undefined) projected.from = senderFact(row.from);
   if (row.contentBlocks !== undefined) {
     if (!Array.isArray(row.contentBlocks)) invalid();
     projected.contentBlocks = row.contentBlocks.map(block);
