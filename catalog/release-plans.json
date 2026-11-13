@@ -294,6 +294,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/210",
       "reason": "Await the paired Host save-path fix, final independent review, approval and canonical Linux artifact verification before live discovery changes.",
       "condition": "Verify the exact published alpha.26 archive after both PRs pass CI and review, then change this plan to activate in the separately reviewed single-plugin catalog PR."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.45",
+      "integrity": "sha512-0fONWTvK5d2A1bBDvuqDfkHw4Ex1kq6+2dVL9dsPNUij8yxJIkoY4u2dmRc/XtpaEDIyFmXu8NuWPOiqjgE7fA==",
+      "disposition": "defer",
+      "owner": "codex61-sol",
+      "reviewBy": "2026-11-14T04:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/228",
+      "reason": "Exact read-only lookup is packaged for the verified home instance; public catalog activation remains separate from local adoption.",
+      "condition": "Keep the same home instance and original subscriptions under existing upgrade authority. Before public discovery, verify supported public Host compatibility and canonical registry bytes."
     }
   ]
 }
