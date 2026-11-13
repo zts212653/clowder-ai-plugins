@@ -29,7 +29,7 @@ export async function editPreferences(
   }
   throw new Error('设置正在更新，请重试本次选择');
 }
-export const runtimeSchema = z.object({ mainThreadId: id.optional(), error: z.string().optional() }).strict();
+export const runtimeSchema = z.object({ mainThreadId: id.optional(), coordinationThreadId: id.optional(), error: z.string().optional() }).strict();
 export const inboxSchema = z
   .object({
     // Only persisted pre-reason inboxes are normalized; live observe() stays strict.
@@ -43,6 +43,7 @@ export const inboxSchema = z
     phase: z.enum(['pending', 'routed', 'failed', 'done']),
     attempt: z.number().int().nonnegative().default(0),
     wakeMessageId: id.optional(),
+    coordinationThreadId: id.optional(),
     receivedAt: z.number(),
   })
   .strict();

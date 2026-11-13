@@ -51,13 +51,22 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         await host.storage.set('runtime', runtime);
       }
       if (runtime.mainThreadId && pref.coordinatorId) {
-        const main = await host.threads.get(runtime.mainThreadId);
+        if (!runtime.coordinationThreadId) {
+          const coordination = await host.threads.create({ title: `${pref.name} · 内部协调`, parentThreadId: runtime.mainThreadId, participants: [pref.coordinatorId] });
+          runtime = { ...runtime, coordinationThreadId: coordination.id };
+          await host.storage.set('runtime', runtime);
+        }
+        const main = await host.threads.get(runtime.mainThreadId!);
         if (!main) throw new Error('Bot conversation unavailable');
         if (main.title !== pref.name || JSON.stringify(main.preferredCats) !== JSON.stringify([pref.coordinatorId]))
           await host.threads.update(main.id, {
             title: pref.name,
             preferredCats: [pref.coordinatorId],
           });
+        const coordination = await host.threads.get(runtime.coordinationThreadId!);
+        if (!coordination) throw new Error('Coordination conversation unavailable');
+        if (coordination.title !== `${pref.name} · 内部协调` || JSON.stringify(coordination.preferredCats) !== JSON.stringify([pref.coordinatorId]))
+          await host.threads.update(coordination.id, { title: `${pref.name} · 内部协调`, preferredCats: [pref.coordinatorId] });
       }
       const works = await records(host, 'work:', workSchema);
       const wanted = new Set([
@@ -134,8 +143,8 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
                 runtime.mainThreadId,
                 work,
                 key,
-                `${work.title}：${report.content}`,
-                report.kind === 'question' || report.kind === 'result',
+                report.content,
+                report.kind,
               );
         if (task.entrustedWork?.closure.state === 'open')
           await host.tasks.update(task.id, {
@@ -164,7 +173,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         await editQueue(host, 'plans', plan.eventId, false);
       }
       current();
-      await advanceInbox(host, pref, runtime.mainThreadId);
+      await advanceInbox(host, pref, runtime.mainThreadId, runtime.coordinationThreadId!);
       await followUp(host, pref, runtime.mainThreadId);
     });
     const completed = run.then(() => clearRecoveredError(host));
@@ -202,6 +211,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         current();
         if (!isPluginDeliveryInput(input)) throw new Error('Invalid Superagent delivery');
         const { pref, runtime } = await reconcile();
+        if (input.threadId === runtime.coordinationThreadId) return { deliveryId: input.deliveryId };
         await observe(host, input, pref, runtime.mainThreadId);
         return { deliveryId: input.deliveryId };
       },
@@ -212,7 +222,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
           throw new Error('Superagent requires an ordinary member invocation');
         await context.assertCurrent();
         const { pref, runtime, works } = await reconcile();
-        const coordinator = context.catId === pref.coordinatorId && context.threadId === runtime.mainThreadId;
+        const coordinator = context.catId === pref.coordinatorId && (context.threadId === runtime.mainThreadId || context.threadId === runtime.coordinationThreadId);
         const selected = coordinator
           ? works
           : works.filter((work) => work.workerId === context.catId && work.threadId === context.threadId);
@@ -227,6 +237,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
           ? await Promise.all(
               [...new Set(inbox.map((entry) => entry.delivery.threadId))].map(async (threadId) => ({
                 threadId,
+                source: await host.threads.get(threadId),
                 recent: await host.threads.readMessages(threadId, { limit: 20 }),
                 existingWork: await host.tasks.list({ threadId, kind: 'work' }),
               })),
@@ -255,7 +266,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         if (
           !context ||
           context.toolExecutionPolicy ||
-          context.threadId !== runtime?.mainThreadId ||
+          (context.threadId !== runtime?.mainThreadId && context.threadId !== runtime?.coordinationThreadId) ||
           context.catId !== pref.coordinatorId
         )
           throw new Error('Only the configured coordinator can route work');

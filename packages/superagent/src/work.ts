@@ -47,13 +47,25 @@ export function briefResult(content: string) {
   return `原文节选：${paragraph.slice(0, 400)}${paragraph.length > 400 ? '…' : ''}`;
 }
 
+export async function notification(host: SuperagentHost, sourceThreadId: string, title: string, content: string, nextStep: string, background?: string) {
+  const source = await host.threads.get(sourceThreadId);
+  const label = (source?.title ?? '原会话暂不可用').replace(/[\[\]\\]/g, '\\$&');
+  return [
+    `【${title}】`,
+    `来自：${source ? `[${label}](${source.deepLinkUrl})` : label}`,
+    ...(background ? [`背景：${background.slice(0, 180)}`] : []),
+    briefResult(content),
+    `下一步：${nextStep}`,
+  ].join('\n');
+}
+
 export async function publish(
   host: SuperagentHost,
   mainThreadId: string,
-  work: Pick<WorkLink, 'sourceThreadId' | 'taskId'> & { threadId?: string },
+  work: Pick<WorkLink, 'sourceThreadId' | 'taskId'> & Partial<Pick<WorkLink, 'threadId' | 'title' | 'outcome'>>,
   key: string,
   content: string,
-  question = false,
+  kind: 'question' | 'result' | 'error' = 'result',
 ) {
   let detailsThreadId = work.sourceThreadId;
   if (content.length > 600 && work.sourceThreadId === mainThreadId && work.threadId && work.threadId !== mainThreadId) {
@@ -62,12 +74,13 @@ export async function publish(
   }
   const source = detailsThreadId !== mainThreadId ? await host.threads.get(detailsThreadId) : undefined;
   const summary = briefResult(content);
-  const mainContent = `${summary}\n${source ? `[查看完整结果](${source.deepLinkUrl})` : `原会话：${detailsThreadId}`}`;
+  const mainContent = `${await notification(host, work.sourceThreadId, `${kind === 'question' ? '需要你确认' : kind === 'error' ? '处理受阻' : '待验收'}${work.title ? ` · ${work.title}` : ''}`, summary,
+    kind === 'question' ? '请在原会话回复这个问题。' : kind === 'error' ? '请在原会话核对错误，确认后再决定是否重试。' : '请在原会话验收结果，或说明需要调整的地方。', work.outcome)}${source ? `\n[查看完整结果](${source.deepLinkUrl})` : ''}`;
   const original = await send(host, work.sourceThreadId, `${key}:source`,
-    work.sourceThreadId === mainThreadId && detailsThreadId !== mainThreadId ? mainContent : content);
+    work.sourceThreadId === mainThreadId ? mainContent : content);
   if (mainThreadId !== work.sourceThreadId)
     await send(host, mainThreadId, `${key}:main`, mainContent);
-  if (question) {
+  if (kind === 'question' || kind === 'result') {
     await host.storage.compareAndSet(`question:${key}`, null, {
       id: key,
       workId: work.taskId,
@@ -108,7 +121,7 @@ export async function applyPlan(
     }
     if (decision.kind === 'ignore') continue;
     if (decision.kind === 'ask' && !decision.workId) {
-      await publish(host, mainThreadId, { sourceThreadId: inbox.delivery.threadId }, key, decision.content, true);
+      await publish(host, mainThreadId, { sourceThreadId: inbox.delivery.threadId }, key, decision.content, 'question');
       continue;
     }
     if (decision.kind === 'start') {
@@ -202,7 +215,7 @@ export async function applyPlan(
         await editQueue(host, 'questions', question!.id, false);
       }
     } else if (decision.kind === 'ask' || decision.kind === 'deliver') {
-      const message = await publish(host, mainThreadId, work, key, `${work.title}：${decision.content}`, true);
+      const message = await publish(host, mainThreadId, work, key, decision.content, decision.kind === 'ask' ? 'question' : 'result');
       await host.tasks.update(task.id, {
         status: 'blocked',
         entrustedWork: {

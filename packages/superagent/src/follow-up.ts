@@ -45,10 +45,13 @@ export async function followUp(host: SuperagentHost, preferences: Preferences, m
     ]))).digest('hex');
     await send(host, mainThreadId, `follow-up:${key}`, [
       `进展更新：已完成 ${completed} 项，受阻 ${blocked} 项。`,
-      ...changes.slice(0, 3).map((row) =>
-        `- ${row.result}：[${row.task.title.replace(/[\[\]\\]/g, '\\$&')}](${row.source.deepLinkUrl})`),
+      ...changes.slice(0, 3).map((row) => [
+        `- 【${row.result}】${row.task.title}`,
+        `  来自：[${(row.source.title ?? row.task.title).replace(/[\[\]\\]/g, '\\$&')}](${row.source.deepLinkUrl})`,
+        ...(row.task.why ? [`  背景：${row.task.why.slice(0, 180)}`] : []),
+        row.result === '已完成' ? '  后续：完成记录已确认，结果留在原会话。' : '  待跟进：受阻原因与处理方案尚待原负责人明确。',
+      ].join('\n')),
       ...(changes.length > 3 ? [`另有 ${changes.length - 3} 项变化，可问“展开进展”查看。`] : []),
-      ...(blocked ? ['受阻项的原因和下一步见原会话。'] : []),
     ].join('\n'));
   }
   await host.storage.set('follow-up', {

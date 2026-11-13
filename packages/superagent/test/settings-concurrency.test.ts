@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { startSuperagent } from '../src/runtime.js';
-import { preferencesSchema } from '../src/state.js';
+import { preferencesSchema, runtimeSchema } from '../src/state.js';
 import { fixture } from './fixture.js';
 
 test('the settings UI may select different rows concurrently without losing scope or creating two Bot conversations', async () => {
@@ -40,6 +40,9 @@ test('the settings UI may select different rows concurrently without losing scop
   assert.equal(saved.coordinatorId, 'coordinator');
   assert.deepEqual(saved.workerIds, ['worker']);
   assert.deepEqual(saved.threadIds.sort(), ['source-a', 'source-b']);
-  assert.equal(f.threads.size, before + 1, 'concurrent refreshes share the one main conversation');
+  const state = runtimeSchema.parse(f.rows.get('runtime')?.value);
+  assert.equal(f.threads.size, before + 2, 'concurrent refreshes share one main and one coordination conversation');
+  assert.equal([...f.threads.values()].filter((thread) => thread.id === state.mainThreadId).length, 1);
+  assert.equal([...f.threads.values()].filter((thread) => thread.id === state.coordinationThreadId).length, 1);
   await runtime.stop({ reason: 'test' });
 });

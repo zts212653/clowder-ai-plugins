@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { startSuperagent } from '../src/runtime.js';
-import { inboxSchema } from '../src/state.js';
+import { inboxSchema, runtimeSchema } from '../src/state.js';
 import { event, fixture } from './fixture.js';
 
 test('a configured main conversation contains one introduction across idle ticks and restarts, without waking a model', async () => {
@@ -96,7 +96,8 @@ test('a completed coordinator without a judgment reports the failure in its main
     (message) => !message.wake && JSON.stringify(message.payload).includes('重试'),
   );
   assert.equal(notices.length, 1, 'the owner must see why automatic follow-up stopped');
-  assert.equal(notices[0].threadId, wake.threadId);
+  assert.equal(notices[0].threadId, runtimeSchema.parse(f.rows.get('runtime')?.value).mainThreadId);
+  assert.notEqual(notices[0].threadId, wake.threadId, 'actionable failure belongs in the inbox, not the internal coordination thread');
   await runtime.actions['superagent.tick']({});
   assert.equal([...f.sent.values()].filter((message) => message.wake).length, 1, 'no automatic paid retry');
   assert.equal(inboxSchema.parse(f.rows.get('inbox:unhandled')?.value).phase, 'failed');

@@ -86,7 +86,7 @@ export function createSettings(
     ]);
     return {
       selected: pref.threadIds,
-      excluded: [runtime?.mainThreadId, ...works.map((work) => work.threadId)]
+      excluded: [runtime?.mainThreadId, runtime?.coordinationThreadId, ...works.map((work) => work.threadId)]
         .filter((id): id is string => id !== undefined),
     };
   }
