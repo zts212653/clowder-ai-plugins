@@ -170,7 +170,6 @@ test('generated contract exposes every Train B static contribution type', async 
     'message-subscription',
     'service',
     'connector',
-    'ui',
     'content-editor-provider',
     'external-request',
   ]) {
@@ -244,7 +243,7 @@ test('keeps legacy resources distinct from feature-owned contributions', () => {
   assert.equal(validateManifest(duplicateReference).valid, false);
 });
 
-test('validates closed UI, connector, and webhook reference shapes', () => {
+test('validates closed connector and webhook reference shapes', () => {
   const value = videoManifest();
   const contributions = value.contributions as unknown as Array<{
     id: string;
@@ -274,45 +273,16 @@ test('validates closed UI, connector, and webhook reference shapes', () => {
       action: { method: 'webhook.receive' },
       verificationSecretRef: 'webhookSecret',
     },
-    {
-      type: 'ui',
-      id: 'video.open',
-      kind: 'command',
-      label: 'Open video analysis',
-      action: { method: 'ui.open' },
-    },
-    {
-      type: 'ui',
-      id: 'video.open.menu',
-      kind: 'slot-item',
-      label: 'Analyze video',
-      command: 'video.open',
-      group: 'composer.actions',
-      anchor: { position: 'after', target: 'attach' },
-      when: { featureEnabled: true },
-    },
-    {
-      type: 'ui',
-      id: 'video.result',
-      kind: 'message-element',
-      label: 'Video analysis result',
-      elementKind: 'video-analysis-result',
-      renderer: 'host.structured-result',
-    },
   );
   value.features[0].contributions.push(
     { type: 'identity', id: 'video-bot' },
     { type: 'connector', id: 'video-connector' },
     { type: 'webhook', id: 'video-webhook' },
-    { type: 'ui', id: 'video.open' },
-    { type: 'ui', id: 'video.open.menu' },
-    { type: 'ui', id: 'video.result' },
   );
   assert.equal(validateManifest(value).valid, true);
 
   for (const dependency of [
     { referringType: 'connector', referringId: 'video-connector', targetType: 'identity', targetId: 'video-bot' },
-    { referringType: 'ui', referringId: 'video.open.menu', targetType: 'ui', targetId: 'video.open' },
   ] as const) {
     const crossFeature = structuredClone(value);
     const features = crossFeature.features as unknown as Array<{
@@ -348,16 +318,6 @@ test('validates closed UI, connector, and webhook reference shapes', () => {
   assert.ok(webhook);
   webhook.verificationSecretRef = 'provider';
   assert.equal(validateManifest(forgedSecret).valid, false);
-
-  const openWhenExpression = structuredClone(value);
-  const slot = (openWhenExpression.contributions as unknown as typeof contributions).find(
-    (entry) => entry.id === 'video.open.menu',
-  );
-  assert.ok(slot);
-  assert.equal(slot.type, 'ui');
-  assert.equal(slot.kind, 'slot-item');
-  slot.when = 'feature.enabled && arbitrary.expression' as never;
-  assert.equal(validateManifest(openWhenExpression).valid, false);
 
   const absoluteWebhook = structuredClone(value);
   const absoluteWebhookContribution = (

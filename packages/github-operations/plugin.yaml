@@ -30,6 +30,7 @@ configuration:
         action:
           method: github.sourceMaterial
   - key: recoveryMode
+    hidden: true
     label: 接续旧跟踪（可选）
     description: 新安装留空。接续旧记录时，在启用替代实例前填写 import-only；
       核验旧进度并明确释放前，采集和登记保持暂停。
@@ -65,6 +66,7 @@ configuration:
     kind: string
     required: false
   - key: webhookSecret
+    hidden: true
     label: 仓库 Webhook 签名密钥（可选）
     description: 仅接收 GitHub 仓库推送事件时填写，并使用 Host 提供的回调地址。定时跟踪不需要此项。
     kind: secret
@@ -598,6 +600,90 @@ contributions:
     path: github/pr-title
     methods: [ GET ]
     action: { method: github.pr-title.http }
+  - type: webhook
+    id: console
+    path: github/community-console
+    methods:
+      - GET
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-sync
+    path: github/community-console/sync
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-status
+    path: github/community-console/status
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-route
+    path: github/community-console/route
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-report
+    path: github/community-console/report
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-waive
+    path: github/community-console/waive
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-read
+    path: github/community-console/draft/read
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-edit
+    path: github/community-console/draft/edit
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-create
+    path: github/community-console/draft/create
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-publish
+    path: github/community-console/draft/publish
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-cancel
+    path: github/community-console/draft/cancel
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-retry
+    path: github/community-console/draft/retry
+    methods:
+      - POST
+    action:
+      method: github.community.http
 features:
   - id: github-collaboration
     name: GitHub collaboration operations
@@ -665,6 +751,18 @@ features:
       - { type: schedule, id: issue-tracking }
       - { type: schedule, id: repo-comment-poll }
       - { type: schedule, id: community-reconciler }
+      - { type: webhook, id: console }
+      - { type: webhook, id: console-sync }
+      - { type: webhook, id: console-status }
+      - { type: webhook, id: console-route }
+      - { type: webhook, id: console-report }
+      - { type: webhook, id: console-waive }
+      - { type: webhook, id: console-draft-read }
+      - { type: webhook, id: console-draft-edit }
+      - { type: webhook, id: console-draft-create }
+      - { type: webhook, id: console-draft-publish }
+      - { type: webhook, id: console-draft-cancel }
+      - { type: webhook, id: console-draft-retry }
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

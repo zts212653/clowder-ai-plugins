@@ -211,8 +211,33 @@ test('worker questions and results return in place; a result stays open until it
   );
   await runtime.actions['superagent.tick']({});
   assert.equal(f.tasks.get(task.id)?.entrustedWork?.closure.state, 'satisfied');
-  const view = await runtime.actions['superagent.view']({});
+  const view = JSON.parse(((await runtime.actions['superagent.view']({})) as { body: string }).body);
   assert.ok(view && typeof view === 'object' && 'badgeCount' in view);
   assert.equal(view.badgeCount, 0);
+  await runtime.stop({ reason: 'test' });
+});
+
+test('enable reads the coordinator, workers and conversations from the plugin configuration', async () => {
+  const f = fixture();
+  await f.host.storage.set('preferences', { ...f.preferences, enabled: false });
+  f.config.set('responsibility', f.preferences.responsibility);
+  f.config.delete('threadIds');
+  const runtime = await startSuperagent(f.host);
+  const owner = {
+    kind: 'owner-operation' as const,
+    userId: 'owner',
+    pluginInstanceId: f.host.pluginInstanceId,
+    operationKey: 'activity',
+    actionId: 'enable',
+    requestId: 'request-enable',
+    confirmed: true,
+    signal: new AbortController().signal,
+    assertCurrent: async () => {},
+  };
+  await assert.rejects(async () => runtime.actions['superagent.enable']({}, undefined, owner), /监听会话/);
+  f.config.set('threadIds', '["source-a"]');
+  await runtime.actions['superagent.enable']({}, undefined, owner);
+  assert.equal(f.subscriptions.has('source-a'), true);
+  assert.equal(f.subscriptions.has('source-b'), false);
   await runtime.stop({ reason: 'test' });
 });

@@ -1,0 +1,27 @@
+ns: superagent
+inserts:
+  - id: superagent
+    anchor: nav.cafe
+    at: inside
+    node:
+      title: t:superagent.plugin.entry
+      icon: robot
+      badge: $.view.badgeCount
+      open:
+        action:
+          of: $.view.kind
+          map:
+            thread: thread
+            go: go
+            _: go
+        args:
+          of: $.view.kind
+          map:
+            thread: $.view.target
+            _:
+              page: extItem-official.superagent
+      sources:
+        view: view
+requests:
+  view:
+    path: superagent/view

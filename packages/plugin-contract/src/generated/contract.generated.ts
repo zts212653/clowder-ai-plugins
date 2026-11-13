@@ -67,7 +67,7 @@ export type ResourceReference = {
   readonly id: string;
 };
 export type ContributionReference = {
-  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'external-request' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'desktop-window';
+  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'external-request' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'content-editor-provider' | 'desktop-window';
   readonly id: string;
 };
 export type PackageRelativePath = string;
@@ -95,6 +95,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'string';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -107,6 +108,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'secret';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -119,6 +121,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'select';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -131,6 +134,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'boolean';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -143,6 +147,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'number';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -155,6 +160,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'url';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: boolean;
   readonly requiredWhen?: RequiredWhen;
@@ -167,6 +173,7 @@ export type ConfigurationField = {
   readonly label: string;
   readonly description?: string;
   readonly kind: 'operation';
+  readonly multiple?: never;
   readonly required: boolean;
   readonly hidden?: never;
   readonly requiredWhen?: never;
@@ -174,6 +181,32 @@ export type ConfigurationField = {
   readonly options?: never;
   readonly target?: readonly string[];
   readonly actions: readonly ActionDef[];
+} | {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'member';
+  readonly multiple?: boolean;
+  readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
+  readonly default?: string;
+  readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
+} | {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'thread';
+  readonly multiple?: boolean;
+  readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
+  readonly default?: string;
+  readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
 };
 export type EnvironmentBinding = {
   readonly source: 'config';
@@ -423,42 +456,6 @@ export type CloudConversationAckFailedResult = {
   readonly diagnostic?: CloudBridgeFailureDiagnosticV1;
 };
 export type CloudConversationAckResult = CloudConversationAcknowledgedResult | CloudConversationAckFailedResult;
-export type UiWhenClause = {
-  readonly featureEnabled?: boolean;
-};
-export type UiAnchor = {
-  readonly position: 'before' | 'after';
-  readonly target: string;
-};
-export type UiCommandContribution = {
-  readonly type: 'ui';
-  readonly id: string;
-  readonly kind: 'command';
-  readonly label: string;
-  readonly action: CallbackAction;
-  readonly when?: UiWhenClause;
-};
-export type UiSlotItemContribution = {
-  readonly type: 'ui';
-  readonly id: string;
-  readonly kind: 'slot-item';
-  readonly label: string;
-  readonly command: string;
-  readonly group: string;
-  readonly anchor?: UiAnchor;
-  readonly order?: number;
-  readonly when?: UiWhenClause;
-};
-export type UiMessageElementContribution = {
-  readonly type: 'ui';
-  readonly id: string;
-  readonly kind: 'message-element';
-  readonly label: string;
-  readonly elementKind: string;
-  readonly renderer: string;
-  readonly when?: UiWhenClause;
-};
-export type UiContribution = UiCommandContribution | UiSlotItemContribution | UiMessageElementContribution;
 export type SemanticMaterializerDeclaration = {
   readonly executionClass: 'dedicated-browser-worker';
   readonly entrypoint: PackageRelativePath & `${string}.js`;
@@ -497,7 +494,7 @@ export type ContentEditorProviderContribution = {
   readonly semanticMaterializer?: SemanticMaterializerDeclaration;
   readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];
 };
-export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | ExternalRequestContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
+export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | ExternalRequestContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | ContentEditorProviderContribution | DesktopWindowContribution;
 export type PluginFeature = {
   readonly id: string;
   readonly name: string;

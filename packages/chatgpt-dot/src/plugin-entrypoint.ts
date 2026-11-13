@@ -367,8 +367,6 @@ export function createDotPlugin(
 					await running.verification.retry();
 					return statusRows(context);
 				},
-				"dot.check-roundtrip": async (_input, _native, context) =>
-					statusRows(context),
 				"dot.disconnect": async (_input, _native, context) => {
 					endpointEpoch++;
 					await temporaryEndpoints?.stop("owner_stop");

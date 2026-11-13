@@ -20,7 +20,8 @@
     "README.en.md",
     "assets",
     "skills",
-    "npm-shrinkwrap.json"
+    "npm-shrinkwrap.json",
+    "console"
   ],
   "engines": {
     "node": ">=20.0.0"
@@ -52,8 +53,8 @@
     "directory": "packages/github-operations"
   },
   "dependencies": {
-    "@clowder-ai/plugin-contract": "0.3.3-candidate.0",
-    "@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.11",
+    "@clowder-ai/plugin-contract": "0.4.0-candidate.0",
+    "@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.14",
     "zod": "3.25.76",
     "@modelcontextprotocol/sdk": "1.26.0",
     "fastify": "4.29.1"

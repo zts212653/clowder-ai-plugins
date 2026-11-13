@@ -24,6 +24,7 @@ configuration:
         label: Connect to remote
         hint: The Service runs elsewhere. This computer connects through SSH.
   - key: servicePort
+    hidden: true
     label: Local Service port
     kind: string
     required: false
@@ -168,6 +169,8 @@ features:
     resources: []
     contributions:
       - type: webhook
+        id: collective-console-client
+      - type: webhook
         id: collective-owner-10
       - type: webhook
         id: collective-owner-11
@@ -229,6 +232,11 @@ runtime:
   entrypoint: dist/plugin-entrypoint.js
   dataDirectory: collective
 contributions:
+  - type: webhook
+    id: collective-console-client
+    path: console/client
+    methods: [ GET ]
+    action: { method: collective.control.http }
   - type: skill
     id: collective-participation
     path: skills/collective-participation

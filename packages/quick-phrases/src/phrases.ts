@@ -45,17 +45,6 @@ function json(status: number, payload: object) {
   };
 }
 
-/** The Host executes this plugin-owned action only after a phrase was inserted into the draft. */
-function insertionReceipt(phrase: Phrase) {
-  return {
-    ...phrase,
-    onInserted: {
-      request: { method: 'POST', path: 'phrases', body: { id: phrase.id } },
-      notifyFailure: false,
-    },
-  };
-}
-
 export function createQuickPhrases(storage: PhraseStorage) {
   return async (input: unknown, context: OwnerContext | undefined) => {
     if (context?.kind !== 'owner-http-request') return json(403, { error: 'Owner request required' });
@@ -81,9 +70,14 @@ export function createQuickPhrases(storage: PhraseStorage) {
       const page = Math.min(Math.max(1, requestedPage), totalPages);
       const offset = (page - 1) * pageSize;
       return json(200, {
-        items: matches.slice(offset, offset + pageSize).map(insertionReceipt),
+        items: matches.slice(offset, offset + pageSize),
         page,
         totalPages,
+        paged: totalPages > 1,
+        first: page <= 1,
+        last: page >= totalPages,
+        prevPage: Math.max(1, page - 1),
+        nextPage: Math.min(totalPages, page + 1),
       });
     }
 
@@ -106,7 +100,7 @@ export function createQuickPhrases(storage: PhraseStorage) {
         await context.assertCurrent();
         const write = await storage.compareAndSet(key, current?.revision ?? null, next);
         // Only an unapplied CAS is safe to retry; a fresh read makes the next attempt count once.
-        if (write.applied) return json(200, { ok: true });
+        if (write.applied) return json(200, { ok: true, act: 'insert', args: { into: 'chat-input', text: next.find(phrase => phrase.id === id)!.text } });
       }
       return json(409, { error: 'Phrases changed, please retry' });
     }
@@ -119,7 +113,7 @@ export function createQuickPhrases(storage: PhraseStorage) {
       const { text } = body;
       if (typeof text !== 'string' || !text.trim() || text.length > 100_000)
         return json(400, { error: 'Phrase must contain 1–100,000 characters' });
-      if (phrases.some((phrase) => phrase.text === text)) return json(200, { ok: true });
+      if (phrases.some((phrase) => phrase.text === text)) return json(200, { ok: true, act: 'plugSet', args: { plugin: 'official.quick-phrases', k: 'page', v: 1 } });
       next = [{ id: randomUUID(), text, useCount: 0 }, ...phrases];
     } else {
       const { id } = body;
@@ -131,6 +125,6 @@ export function createQuickPhrases(storage: PhraseStorage) {
       return json(413, { error: 'Phrase storage is full' });
     await context.assertCurrent();
     const write = await storage.compareAndSet(key, current?.revision ?? null, next);
-    return write.applied ? json(200, { ok: true }) : json(409, { error: 'Phrases changed, please retry' });
+    return write.applied ? json(200, { ok: true, ...(method === 'POST' ? { act: 'plugSet', args: { plugin: 'official.quick-phrases', k: 'page', v: 1 } } : {}) }) : json(409, { error: 'Phrases changed, please retry' });
   };
 }

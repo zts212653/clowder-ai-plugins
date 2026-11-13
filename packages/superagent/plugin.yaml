@@ -1,6 +1,6 @@
 pluginId: official.superagent
-version: 0.1.0-alpha.2
-contractVersion: 0.1.0
+version: 0.1.0-alpha.5
+contractVersion: 0.4.0-candidate.0
 name: Superagent
 description:
   default: 在你选定的个人会话中接住工作、跨会话跟进，并把必要决定与结果带回原处。
@@ -33,69 +33,23 @@ configuration:
     description: 说明希望它持续负责什么，以及哪些决定必须找你确认。保存后再确认启用。
     kind: string
     required: false
-  - key: assistant
+  - key: coordinatorId
     label: 助手 Agent（单选）
     description: 从成员中选一位担任助手：理解你的委托、跟进进展，并把任务交给执行 Agent。
-    kind: operation
+    kind: member
     required: false
-    actions:
-      - id: list
-        label: 刷新名单
-        render: button
-        action:
-          method: superagent.assistant
-        resultRender: rows
-      - id: choose
-        label: 设为助手
-        render: row
-        action:
-          method: superagent.choose
-        resultRender: rows
-        next: list
-  - key: workers
+  - key: workerIds
     label: 执行 Agent（多选）
     description: 允许助手调用这些 Agent 完成具体任务。至少选一位，也可以选择上面的助手 Agent。
-    kind: operation
+    kind: member
+    multiple: true
     required: false
-    actions:
-      - id: list
-        label: 刷新名单
-        render: button
-        action:
-          method: superagent.workers
-        resultRender: rows
-      - id: choose
-        label: 选择
-        render: row
-        action:
-          method: superagent.choose
-        resultRender: rows
-        next: list
-  - key: scope
+  - key: threadIds
     label: 监听会话
     description: 只读取并跟进这里选中的个人会话。选好后，到「持续跟进」确认开始。
-    kind: operation
+    kind: thread
+    multiple: true
     required: false
-    actions:
-      - id: list
-        label: 刷新名单
-        render: button
-        action:
-          method: superagent.settings
-        resultRender: rows
-      - id: choose
-        label: 选择
-        render: row
-        action:
-          method: superagent.choose
-        resultRender: rows
-        next: list
-      - id: page
-        label: 翻页
-        render: row
-        action:
-          method: superagent.page
-        next: list
   - key: activity
     label: 持续跟进
     kind: operation
@@ -145,10 +99,8 @@ features:
         id: route
       - type: tool
         id: report
-      - type: ui
-        id: conversation
-      - type: ui
-        id: top-entry
+      - type: webhook
+        id: view-route
 contributions:
   - type: identity
     id: superagent
@@ -353,16 +305,10 @@ contributions:
       additionalProperties: false
     action:
       method: superagent.report
-  - type: ui
-    id: conversation
-    kind: command
-    label: 我的助手
+  - type: webhook
+    id: view-route
+    path: superagent/view
+    methods:
+      - GET
     action:
       method: superagent.view
-  - type: ui
-    id: top-entry
-    kind: slot-item
-    label: 我的助手
-    command: conversation
-    group: thread-sidebar.top
-    order: 0

@@ -669,26 +669,6 @@ export function validateManifest(value: unknown): ManifestValidationResult {
           );
         }
       }
-      if (contribution.type === 'ui' && contribution.kind === 'slot-item') {
-        const commandKey = `ui\0${contribution.command}`;
-        const command = contributionByKey.get(commandKey);
-        if (command?.type !== 'ui' || command.kind !== 'command') {
-          return semanticError(
-            `/contributions/${index}/command`,
-            '#/$defs/UiSlotItemContribution/declaredCommandReference',
-            'declaredCommandReference',
-            'UI slot command must reference a declared UI command contribution',
-          );
-        }
-        if (referenceOwners.get(commandKey) !== owner) {
-          return semanticError(
-            `/contributions/${index}/command`,
-            '#/$defs/UiSlotItemContribution/sameFeatureOwner',
-            'sameFeatureOwner',
-            'UI slot command must reference a command owned by the same feature',
-          );
-        }
-      }
     }
     return {
       valid: true,

@@ -1,0 +1,130 @@
+ns: quickPhrases
+inserts:
+  - id: quick-phrases
+    anchor: chat.composer.tools
+    at: inside
+    node:
+      title: t:quickPhrases.title
+      icon: bolt
+      scope: page
+      open:
+        node: quickPhrases.pop
+        as: float
+popups:
+  quickPhrases:
+    at: trigger
+    exit:
+      - outside
+      - esc
+views:
+  quickPhrases.pop:
+    bare: true
+    popup: quickPhrases
+    loading: t:quickPhrases.loading
+    error: t:quickPhrases.error
+    blocks:
+      - type: pop
+        label: t:quickPhrases.title
+        pos:
+          up: true
+          span: 4
+        blocks:
+          - type: search
+            id: qp-q
+            placeholder: t:quickPhrases.search
+            value: $.state.q
+            input: plugSet
+            args:
+              k: q
+          - type: list
+            from: $.phrases.items
+            empty: t:quickPhrases.empty
+            row:
+              title: "@text"
+              act:
+                of: $.pending
+                map:
+                  "true": ""
+                  "false": plugin
+              args:
+                request: pick
+                id: "@id"
+                plugin: official.quick-phrases
+              cols:
+                - w: ctl
+                  control:
+                    type: button
+                    iconOnly: true
+                    icon: delete
+                    label: t:quickPhrases.remove
+                    act: plugin
+                    args:
+                      request: remove
+                      id: "@id"
+                    disabled: $.pending
+          - type: toolbar
+            when: $.phrases.paged
+            items:
+              - type: button
+                iconOnly: true
+                icon: prev
+                label: t:quickPhrases.prev
+                act: plugSet
+                args:
+                  k: page
+                  v: $.phrases.prevPage
+                disabled: $.phrases.first
+              - type: text
+                text:
+                  t: quickPhrases.page
+                  args:
+                    - $.phrases.page
+                    - $.phrases.totalPages
+              - type: button
+                iconOnly: true
+                icon: next
+                label: t:quickPhrases.next
+                act: plugSet
+                args:
+                  k: page
+                  v: $.phrases.nextPage
+                disabled: $.phrases.last
+          - type: button
+            label: t:quickPhrases.add
+            act: dialog
+            args:
+              kind: quickPhrases.add
+            disabled: $.pending
+    sources:
+      phrases: list
+  dlg.quickPhrases.add:
+    title: t:quickPhrases.add
+    fields:
+      - id: qp-add
+        arg: text
+        label: t:quickPhrases.add
+        req: true
+    okAct: plugin
+    okArgs:
+      request: add
+requests:
+  list:
+    path: phrases
+    query:
+      q: state.q
+      page: state.page
+  add:
+    path: phrases
+    method: POST
+    body:
+      text: "@text"
+  pick:
+    path: phrases
+    method: POST
+    body:
+      id: "@id"
+  remove:
+    path: phrases
+    method: DELETE
+    body:
+      id: "@id"

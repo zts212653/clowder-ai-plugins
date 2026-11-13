@@ -6,7 +6,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "exports": { ".": "./dist/index.js", "./manifest": "./plugin.yaml" },
-  "files": ["dist", "plugin.yaml", "README.md", "README.en.md", "npm-shrinkwrap.json", "assets"],
+  "files": ["dist", "plugin.yaml", "README.md", "README.en.md", "npm-shrinkwrap.json", "assets", "console"],
   "engines": { "node": ">=22.18.0" },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -15,6 +15,13 @@
     "test": "node --test test/*.test.mjs",
     "prepack": "pnpm build"
   },
-  "devDependencies": { "@types/node": "^20.17.0", "typescript": "^5.7.0" },
-  "repository": { "type": "git", "url": "https://github.com/zts212653/clowder-ai-plugins.git", "directory": "packages/quick-phrases" }
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "typescript": "^5.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/quick-phrases"
+  }
 }

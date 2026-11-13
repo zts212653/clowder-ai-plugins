@@ -29,12 +29,10 @@ test('ordinary settings omit internal policies and obsolete credentials without 
     visible.map((field: { key: string }) => field.key),
     [
       'sourceMaterial',
-      'recoveryMode',
       'migrationRecovery',
       'token',
       'notificationAllowlist',
       'notificationBlocklist',
-      'webhookSecret',
       'publishRepositories',
     ],
   );
@@ -43,7 +41,7 @@ test('ordinary settings omit internal policies and obsolete credentials without 
     ['sourceMaterial', 'migrationRecovery'],
     'external publishing stays in the thread preview; source sharing only describes the explicit Project entry',
   );
-  assert.equal(visible.filter((field: any) => field.kind === 'secret').length, 2);
+  assert.equal(visible.filter((field: any) => field.kind === 'secret').length, 1);
   assert.ok(visible.every((field: any) => field.required === false));
   assert.ok(visible.every((field: any) => /[\u4e00-\u9fff]/u.test(field.label)));
   assert.equal(manifest.test.action.method, 'github.connection.test');

@@ -9,10 +9,7 @@ test('direct Bot conversations use the configured coordinator, including a chang
   const runtime = await startSuperagent(f.host);
   const main = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!;
   assert.deepEqual(main.preferredCats, ['coordinator']);
-  await f.host.storage.set('preferences', {
-    ...f.preferences,
-    coordinatorId: 'other',
-  });
+  f.config.set('coordinatorId', 'other');
   await runtime.configRefresh?.();
   assert.deepEqual(f.threads.get(main.id)?.preferredCats, ['other']);
   await runtime.stop({ reason: 'test' });
@@ -75,7 +72,7 @@ test('an unclear request asks in place before creating Work; an answer resolves 
   );
   await actions['superagent.tick']({});
   assert.equal(f.tasks.size, 1);
-  const view = (await actions['superagent.view']({})) as { badgeCount: number };
+  const view = JSON.parse(((await actions['superagent.view']({})) as { body: string }).body) as { badgeCount: number };
   assert.equal(view.badgeCount, 0);
   await runtime.stop({ reason: 'test' });
 });
