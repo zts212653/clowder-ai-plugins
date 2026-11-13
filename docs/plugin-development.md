@@ -33,7 +33,7 @@ SDK 公开方法是接口边界，不再按插件 ID 或 feature 能力数组复
 
 ## 2. Plugin → Host
 
-本轮候选新增可选 `runtimeInfo.get()`：仅在当前安装的 owner HTTP 操作中返回当前 Host 版本/修订、系统、Node、默认项目和有效日志目录，不提供完整环境或配置；旧 Host / 不支持的载体可不提供。`threads.create({title, projectRef?, parentThreadId?, participants?})` 中项目目录引用由 Host 按普通项目策略校验，不能同时指定 parent 与 projectRef；省略两者沿用默认项目。线程投影的 `projectRef` 是 Host 解析后的真实项目。侧栏入口来自已启用安装包的 PDL console（manifest 的 `pdl` 段、`console/app.js`、`console/i18n`），图标来自插件元数据；页面从对应的已声明 GET webhook 获取标准 HTTP HTML，再交给 opaque iframe 隔离渲染，不另行调用 UI action 或使用 PluginUiPanel 信封。
+本轮候选新增可选 `runtimeInfo.get()`：仅在当前安装的 owner HTTP 操作中返回当前 Host 版本/修订、系统、Node、默认项目和有效日志目录，不提供完整环境或配置；旧 Host / 不支持的载体可不提供。`threads.create({title, projectRef?, parentThreadId?, participants?})` 中项目目录引用由 Host 按普通项目策略校验，不能同时指定 parent 与 projectRef；省略两者沿用默认项目。线程投影的 `projectRef` 是 Host 解析后的真实项目。侧栏入口来自已启用安装包的 PDL console（`console/pdl.json`、`console/components`、`console/i18n`），图标来自插件元数据；页面从对应的已声明 GET webhook 获取标准 HTTP HTML，再交给 opaque iframe 隔离渲染，不另行调用 UI action 或使用 PluginUiPanel 信封。
 
 参数与结果的完整类型以 [module-host.ts](../packages/plugin-sdk/src/module-host.ts)、[FeatureContext](../packages/plugin-sdk/src/feature-context.ts) 及相应类型入口为准。下表涵盖当前公开 surface；“实例”表示 Host 自动绑定的安装实例与 feature，不能由正文替换。
 
@@ -97,7 +97,7 @@ stateDiagram-v2
 | 停止／禁用 | 停止接新调用，preStop({reason,deadline}) 后 stop({reason})；保留 disabled 意图 | 中止未完成操作，停止自身定时器／连接，回收自建子进程 | 记录真实停止错误；晚到回调不能恢复活性 |
 | 卸载／销毁 | 运行时先 preStop／stop；随后 preUninstall(host)／uninstall(host)，移除安装并按数据策略处理；停用实例直接用 settings 同型 host 执行卸载，不调用 start | 停止阶段已释放运行资源；不自行删除用户保留数据 | 保留实际失败记录，不凭目录消失伪造成功 |
 
-停用状态仍可读取／编辑／保存正常配置及执行声明设置动作；保存不自动启用。已启用实例保存配置时保持启用意图，调用 configRefresh；没有 configRefresh hook 时不执行隐式 stop/start；缓存配置或持有连接的插件显式实现刷新，重读配置并替换自身资源。刷新失败由 Host 停止旧 generation。卸载上下文仅 pluginInstanceId/dataPath/config/secrets/storage/log，不授予运行能力。插件自建 helper 的 PID 与协议不属于 Host 管理接口；现存 external-runtime 则是 Host 运行插件载体的实现事实。插件界面见下文“控制台界面与富卡片”，manifest 的 `pdl` 段声明包内控制台。
+停用状态仍可读取／编辑／保存正常配置及执行声明设置动作；保存不自动启用。已启用实例保存配置时保持启用意图，调用 configRefresh；没有 configRefresh hook 时不执行隐式 stop/start；缓存配置或持有连接的插件显式实现刷新，重读配置并替换自身资源。刷新失败由 Host 停止旧 generation。卸载上下文仅 pluginInstanceId/dataPath/config/secrets/storage/log，不授予运行能力。插件自建 helper 的 PID 与协议不属于 Host 管理接口；现存 external-runtime 则是 Host 运行插件载体的实现事实。插件界面见下文“控制台界面与富卡片”，`console/pdl.json` 声明包内控制台。
 
 `test` 是任意命名的普通 action。所有 action 返回的图像、轮询 data 和 receipt 都只用于本次显示，不由 Host 持久化或恢复。Host 仅保存通用步骤位置和 manifest 声明的配置／凭据目标；业务 cursor／二维码 challenge 由插件 storage 或既有不透明业务引用持有。操作 receipt 不能恢复为 runtime 健康状态；配置改变、重新安装或新操作使旧结果失效，晚响应不得覆盖更新结果。普通配置与操作顺序按 manifest。runtimeState 的 healthy/degraded/crashed 是载体健康，不是微信登录或外服连通；healthy 与插件 idle 可以同时成立。操作回执不改变这份投影。
 
@@ -143,7 +143,11 @@ producer 和 lookup 返回同一个有界 `ProjectOutputResult`：`pending`、`g
 
 ## 控制台界面与富卡片
 
-控制台由 `plugin.yaml` 的 `pdl`、`console/i18n/<lang>.json` 和可选的 `console/components/*.js|css` 组成。没有 `pdl.app`，宿主不加载控制台应用脚本。业务接口由插件实现并在 `contributions` 中声明为 webhook，同时归入对应 feature。Host 只按声明转发 `/api/plugins/<pluginId>/<path>`。
+控制台由已安装包内的 `console/pdl.json`、`console/i18n/<lang>.json` 和可选的 `console/components/*.js|css` 组成。`console/pdl.json` 直接保存 PDL 对象（如 `ns`、`inserts`、`views`、`requests`、`replaces`），不包裹 `pdl` 键。
+
+Host 从该目录读取控制台；`plugin.yaml` 不声明 `pdl`，插件 runtime 使用已发布 SDK 的 manifest 契约独立校验。将 `console` 列入 `package.json` 的 `files`，使声明、翻译及组件一同发布。翻译文件按语言命名，供 `t:<键>` 引用；组件 JS/CSS 由 Host 从目录加载。宿主不加载控制台应用脚本。
+
+业务接口由插件实现并在 `contributions` 中声明为 webhook，同时归入对应 feature。Host 只按声明转发 `/api/plugins/<pluginId>/<path>`。
 
 按需要选择：
 
@@ -186,6 +190,8 @@ PDL_COMPONENTS['plugin:example.plugin/summary'] = function (b, sc, root) {
 
 以下为包内实际声明（省略身份与 runtime），搜索和分页只使用插件视图状态，列表及分页条件由后端提供：
 
+包内 `plugin.yaml`：
+
 ```yaml
 contributions:
   - type: webhook
@@ -204,142 +210,210 @@ features:
     contributions:
       - type: webhook
         id: quick-phrases.entries
-pdl:
-  ns: quickPhrases
-  inserts:
-    - id: quick-phrases
-      anchor: chat.composer.tools
-      at: inside
-      node:
-        title: t:quickPhrases.title
-        icon: bolt
-        scope: page
-        open:
-          node: quickPhrases.pop
-          as: float
-  popups:
-    quickPhrases:
-      at: trigger
-      exit:
-        - outside
-        - esc
-  views:
-    quickPhrases.pop:
-      bare: true
-      popup: quickPhrases
-      loading: t:quickPhrases.loading
-      error: t:quickPhrases.error
-      blocks:
-        - type: pop
-          label: t:quickPhrases.title
-          pos:
-            up: true
-            span: 4
-          blocks:
-            - type: search
-              id: qp-q
-              placeholder: t:quickPhrases.search
-              value: $.state.q
-              input: plugSet
-              args:
-                k: q
-            - type: list
-              from: $.phrases.items
-              empty: t:quickPhrases.empty
-              row:
-                title: "@text"
-                act:
-                  of: $.pending
-                  map:
-                    "true": ""
-                    "false": plugin
-                args:
-                  request: pick
-                  id: "@id"
-                  plugin: official.quick-phrases
-                cols:
-                  - w: ctl
-                    control:
-                      type: button
-                      iconOnly: true
-                      icon: delete
-                      label: t:quickPhrases.remove
-                      act: plugin
-                      args:
-                        request: remove
-                        id: "@id"
-                      disabled: $.pending
-            - type: toolbar
-              when: $.phrases.paged
-              items:
-                - type: button
-                  iconOnly: true
-                  icon: prev
-                  label: t:quickPhrases.prev
-                  act: plugSet
-                  args:
-                    k: page
-                    v: $.phrases.prevPage
-                  disabled: $.phrases.first
-                - type: text
-                  text:
-                    t: quickPhrases.page
-                    args:
-                      - $.phrases.page
-                      - $.phrases.totalPages
-                - type: button
-                  iconOnly: true
-                  icon: next
-                  label: t:quickPhrases.next
-                  act: plugSet
-                  args:
-                    k: page
-                    v: $.phrases.nextPage
-                  disabled: $.phrases.last
-            - type: button
-              label: t:quickPhrases.add
-              act: dialog
-              args:
-                kind: quickPhrases.add
-              disabled: $.pending
-      sources:
-        phrases: list
-    dlg.quickPhrases.add:
-      title: t:quickPhrases.add
-      fields:
-        - id: qp-add
-          arg: text
-          label: t:quickPhrases.add
-          req: true
-      okAct: plugin
-      okArgs:
-        request: add
-  requests:
-    list:
-      path: phrases
-      query:
-        q: state.q
-        page: state.page
-    add:
-      path: phrases
-      method: POST
-      body:
-        text: "@text"
-    pick:
-      path: phrases
-      method: POST
-      body:
-        id: "@id"
-    remove:
-      path: phrases
-      method: DELETE
-      body:
-        id: "@id"
+```
+
+包内 `console/pdl.json`：
+
+```json
+{
+  "ns": "quickPhrases",
+  "inserts": [
+    {
+      "id": "quick-phrases",
+      "anchor": "chat.composer.tools",
+      "at": "inside",
+      "node": {
+        "title": "t:quickPhrases.title",
+        "icon": "bolt",
+        "scope": "page",
+        "open": {
+          "node": "quickPhrases.pop",
+          "as": "float"
+        }
+      }
+    }
+  ],
+  "popups": {
+    "quickPhrases": {
+      "at": "trigger",
+      "exit": [
+        "outside",
+        "esc"
+      ]
+    }
+  },
+  "views": {
+    "quickPhrases.pop": {
+      "bare": true,
+      "popup": "quickPhrases",
+      "loading": "t:quickPhrases.loading",
+      "error": "t:quickPhrases.error",
+      "blocks": [
+        {
+          "type": "pop",
+          "label": "t:quickPhrases.title",
+          "pos": {
+            "up": true,
+            "span": 4
+          },
+          "blocks": [
+            {
+              "type": "search",
+              "id": "qp-q",
+              "placeholder": "t:quickPhrases.search",
+              "value": "$.state.q",
+              "input": "plugSet",
+              "args": {
+                "k": "q"
+              }
+            },
+            {
+              "type": "list",
+              "from": "$.phrases.items",
+              "empty": "t:quickPhrases.empty",
+              "row": {
+                "title": "@text",
+                "act": {
+                  "of": "$.pending",
+                  "map": {
+                    "true": "",
+                    "false": "plugin"
+                  }
+                },
+                "args": {
+                  "request": "pick",
+                  "id": "@id",
+                  "plugin": "official.quick-phrases"
+                },
+                "cols": [
+                  {
+                    "w": "ctl",
+                    "control": {
+                      "type": "button",
+                      "iconOnly": true,
+                      "icon": "delete",
+                      "label": "t:quickPhrases.remove",
+                      "act": "plugin",
+                      "args": {
+                        "request": "remove",
+                        "id": "@id"
+                      },
+                      "disabled": "$.pending"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "toolbar",
+              "when": "$.phrases.paged",
+              "items": [
+                {
+                  "type": "button",
+                  "iconOnly": true,
+                  "icon": "prev",
+                  "label": "t:quickPhrases.prev",
+                  "act": "plugSet",
+                  "args": {
+                    "k": "page",
+                    "v": "$.phrases.prevPage"
+                  },
+                  "disabled": "$.phrases.first"
+                },
+                {
+                  "type": "text",
+                  "text": {
+                    "t": "quickPhrases.page",
+                    "args": [
+                      "$.phrases.page",
+                      "$.phrases.totalPages"
+                    ]
+                  }
+                },
+                {
+                  "type": "button",
+                  "iconOnly": true,
+                  "icon": "next",
+                  "label": "t:quickPhrases.next",
+                  "act": "plugSet",
+                  "args": {
+                    "k": "page",
+                    "v": "$.phrases.nextPage"
+                  },
+                  "disabled": "$.phrases.last"
+                }
+              ]
+            },
+            {
+              "type": "button",
+              "label": "t:quickPhrases.add",
+              "act": "dialog",
+              "args": {
+                "kind": "quickPhrases.add"
+              },
+              "disabled": "$.pending"
+            }
+          ]
+        }
+      ],
+      "sources": {
+        "phrases": "list"
+      }
+    },
+    "dlg.quickPhrases.add": {
+      "title": "t:quickPhrases.add",
+      "fields": [
+        {
+          "id": "qp-add",
+          "arg": "text",
+          "label": "t:quickPhrases.add",
+          "req": true
+        }
+      ],
+      "okAct": "plugin",
+      "okArgs": {
+        "request": "add"
+      }
+    }
+  },
+  "requests": {
+    "list": {
+      "path": "phrases",
+      "query": {
+        "q": "state.q",
+        "page": "state.page"
+      }
+    },
+    "add": {
+      "path": "phrases",
+      "method": "POST",
+      "body": {
+        "text": "@text"
+      }
+    },
+    "pick": {
+      "path": "phrases",
+      "method": "POST",
+      "body": {
+        "id": "@id"
+      }
+    },
+    "remove": {
+      "path": "phrases",
+      "method": "DELETE",
+      "body": {
+        "id": "@id"
+      }
+    }
+  }
+}
 ```
 
 ### 例：Feedback 的 frame 与 HTTP 桥
 
 真实后端 `packages/feedback/src/index.ts` 的 `feedback.page` 处理 GET `panel`，以 `text/html` 返回现有完整页面；`feedback.http` 处理 POST `feedback`，内部业务读取 `input.request.body`。两者使用既有 status/headers/body 响应。下面的声明与包内面板一致，沿用可拖动、×／Esc 关闭的 float：
+
+包内 `plugin.yaml`：
 
 ```yaml
 contributions:
@@ -367,37 +441,56 @@ features:
         id: feedback.http
       - type: webhook
         id: feedback.page
-pdl:
-  ns: feedback
-  inserts:
-    - id: feedback
-      anchor: inbox
-      at: before
-      node:
-        title: t:feedback.plugin.entry
-        icon: msg
-        open:
-          node: feedback.panel
-          as: float
-  popups:
-    feedback:
-      at: trigger
-      exit:
-        - x
-        - esc
-      drag: true
-  views:
-    feedback.panel:
-      type: frame
-      html:
-        request: panel
-      popup: feedback
-      title: t:feedback.plugin.entry
-      loading: t:feedback.load.loading
-      error: t:feedback.load.error
-  requests:
-    panel:
-      path: panel
+```
+
+包内 `console/pdl.json`：
+
+```json
+{
+  "ns": "feedback",
+  "inserts": [
+    {
+      "id": "feedback",
+      "anchor": "inbox",
+      "at": "before",
+      "node": {
+        "title": "t:feedback.plugin.entry",
+        "icon": "msg",
+        "open": {
+          "node": "feedback.panel",
+          "as": "float"
+        }
+      }
+    }
+  ],
+  "popups": {
+    "feedback": {
+      "at": "trigger",
+      "exit": [
+        "x",
+        "esc"
+      ],
+      "drag": true
+    }
+  },
+  "views": {
+    "feedback.panel": {
+      "type": "frame",
+      "html": {
+        "request": "panel"
+      },
+      "popup": "feedback",
+      "title": "t:feedback.plugin.entry",
+      "loading": "t:feedback.load.loading",
+      "error": "t:feedback.load.error"
+    }
+  },
+  "requests": {
+    "panel": {
+      "path": "panel"
+    }
+  }
+}
 ```
 
 页面无需修改。宿主将 frame 的 `window.name` 设为 nonce；页面按现有 `ui/bridge.js` 协议发送请求：

@@ -1,0 +1,61 @@
+{
+  "ns": "collective",
+  "inserts": [
+    {
+      "id": "collective",
+      "anchor": "rail.top",
+      "at": "inside",
+      "node": {
+        "title": "t:collective.plugin.entries.home",
+        "icon": "globe",
+        "open": {
+          "node": "collective.home",
+          "anchor": "shell",
+          "as": "cover",
+          "backLabel": true
+        }
+      }
+    },
+    {
+      "id": "collectiveDesk",
+      "anchor": "panel.tools",
+      "at": "inside",
+      "node": {
+        "title": "t:collective.plugin.entries.desk",
+        "icon": "globe",
+        "group": "other",
+        "open": {
+          "node": "collective.desk"
+        }
+      }
+    }
+  ],
+  "views": {
+    "collective.desk": {
+      "type": "frame",
+      "src": {
+        "request": "client"
+      }
+    },
+    "collective.home": {
+      "type": "frame",
+      "route": "plug-collective",
+      "src": {
+        "request": "client"
+      },
+      "bridge": [
+        "theme",
+        "members.read",
+        "thread.share"
+      ]
+    }
+  },
+  "requests": {
+    "client": {
+      "path": "console/client",
+      "query": {
+        "hostOrigin": "host.origin"
+      }
+    }
+  }
+}

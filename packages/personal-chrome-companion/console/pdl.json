@@ -1,0 +1,182 @@
+{
+  "ns": "personalChrome",
+  "templates": [
+    {
+      "slot": "chat.rich",
+      "id": "cloudRecovery",
+      "keys": [
+        "cloudRecovery.chatgpt"
+      ],
+      "node": {
+        "blocks": [
+          {
+            "type": "box",
+            "load": "$.load",
+            "error": "t:personalChrome.readError",
+            "retry": {
+              "act": "plugin",
+              "args": {
+                "request": "refresh"
+              },
+              "disabled": "$.pending"
+            },
+            "blocks": [
+              {
+                "type": "kv",
+                "when": "$.card.only",
+                "from": [
+                  {
+                    "k": "t:chatCards.field.conversation",
+                    "v": {
+                      "t": "chat.cloudConversation",
+                      "args": [
+                        "$.card.only.displayTitle"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "select",
+                "id": "$.card.selectId",
+                "value": "$.card.value",
+                "options": [
+                  {
+                    "v": "",
+                    "label": "t:runtime.chooseConversation"
+                  },
+                  {
+                    "from": "$.card.candidates",
+                    "item": {
+                      "v": "@chatUrl",
+                      "label": {
+                        "t": "chat.cloudConversation",
+                        "args": [
+                          "@displayTitle"
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "label": "t:runtime.chooseConversation",
+                "change": "plugin",
+                "when": "$.card.canChoose",
+                "args": {
+                  "request": "pick",
+                  "key": "$.card.key"
+                },
+                "disabled": "$.pending"
+              },
+              {
+                "type": "notice",
+                "tone": "warn",
+                "text": {
+                  "t": "personalChrome.issue",
+                  "args": [
+                    "$.card.connectionIssue"
+                  ]
+                },
+                "when": "$.card.connectionIssue",
+                "action": {
+                  "type": "button",
+                  "label": "t:personalChrome.settings",
+                  "act": "open",
+                  "args": "$.card.settings"
+                }
+              },
+              {
+                "type": "notice",
+                "text": {
+                  "t": "personalChrome.issue",
+                  "args": [
+                    "$.card.titleSync.kind",
+                    "$.card.titleSync.n"
+                  ]
+                },
+                "when": "$.card.titleSync"
+              },
+              {
+                "type": "status",
+                "text": "t:common.status.connected",
+                "when": "$.card.bound"
+              },
+              {
+                "type": "toolbar",
+                "items": [
+                  {
+                    "type": "button",
+                    "primary": true,
+                    "label": "t:home.reconnect",
+                    "act": "bindRetry",
+                    "args": "$.card.submit",
+                    "when": [
+                      "$.card.canSubmit",
+                      "$.card.bindOnly"
+                    ],
+                    "disabled": "$.pending"
+                  },
+                  {
+                    "type": "button",
+                    "primary": true,
+                    "label": "t:runtime.bindRetry",
+                    "act": "bindRetry",
+                    "args": "$.card.submit",
+                    "when": [
+                      "$.card.canSubmit",
+                      "!$.card.bindOnly"
+                    ],
+                    "disabled": "$.pending"
+                  },
+                  {
+                    "type": "button",
+                    "label": "t:personalChrome.refreshTitles",
+                    "act": "plugin",
+                    "when": "!$.card.bound",
+                    "args": {
+                      "request": "refreshTitles"
+                    },
+                    "disabled": "$.pending"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "sources": {
+          "card": "recovery"
+        }
+      }
+    }
+  ],
+  "requests": {
+    "recovery": {
+      "path": "personal-chrome/recovery",
+      "method": "POST",
+      "body": {
+        "key": "@key",
+        "boundChatUrl": "@boundChatUrl",
+        "bindOnly": "@bindOnly",
+        "canSubmit": "@canSubmit",
+        "args": "@args"
+      }
+    },
+    "pick": {
+      "path": "personal-chrome/pick",
+      "method": "POST",
+      "body": {
+        "key": "@key",
+        "value": "@v"
+      }
+    },
+    "refreshTitles": {
+      "path": "personal-chrome/refresh-titles",
+      "method": "POST",
+      "body": {}
+    },
+    "refresh": {
+      "path": "personal-chrome/refresh",
+      "method": "POST",
+      "body": {}
+    }
+  }
+}

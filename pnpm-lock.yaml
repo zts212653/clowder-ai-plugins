@@ -54,7 +54,7 @@ importers:
         specifier: 0.4.0-candidate.0
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.2-candidate.13
+        specifier: 0.3.0-beta.2-candidate.14
         version: link:../plugin-sdk
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
@@ -313,7 +313,7 @@ importers:
     devDependencies:
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.2-candidate.13
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.2-candidate.13
       '@types/node':
         specifier: ^20.17.0
         version: 20.19.43
@@ -419,7 +419,7 @@ importers:
         specifier: 0.4.0-candidate.0
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.2-candidate.13
+        specifier: 0.3.0-beta.2-candidate.14
         version: link:../plugin-sdk
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
@@ -482,7 +482,7 @@ importers:
         specifier: 0.4.0-candidate.0
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.2-candidate.13
+        specifier: 0.3.0-beta.2-candidate.14
         version: link:../plugin-sdk
     devDependencies:
       '@types/node':
@@ -579,7 +579,7 @@ importers:
         specifier: 0.4.0-candidate.0
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.2-candidate.13
+        specifier: 0.3.0-beta.2-candidate.14
         version: link:../plugin-sdk
       zod:
         specifier: 4.6.7
@@ -771,6 +771,10 @@ packages:
 
   '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.12':
     resolution: {integrity: sha512-+DD4i1OXROLjfgN/99DymsMoyUMuMdIhZx5HnX/8eKVPSQ4Pt+2PyC3hkmigrzv9QhIbijd228Ol6kAyucsibQ==}
+    engines: {node: '>=20.0.0'}
+
+  '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.13':
+    resolution: {integrity: sha512-ycq6l3aOQh17EUcyWOW5id1Sq0tlKAkP/C9BvnNT58A4fA9tMG0Q8ls88Je3gsiWX2dZSXPSvQ1Wmz+ssS5W7A==}
     engines: {node: '>=20.0.0'}
 
   '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.9':
@@ -2759,6 +2763,10 @@ snapshots:
       '@clowder-ai/plugin-contract': 0.3.0
 
   '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.12':
+    dependencies:
+      '@clowder-ai/plugin-contract': 0.3.3-candidate.1
+
+  '@clowder-ai/plugin-sdk@0.3.0-beta.2-candidate.13':
     dependencies:
       '@clowder-ai/plugin-contract': 0.3.3-candidate.1
 

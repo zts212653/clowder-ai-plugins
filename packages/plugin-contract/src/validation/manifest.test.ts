@@ -83,7 +83,7 @@ test('returns the original caller-owned data only after full validation', () => 
   }
 });
 
-test('console fragments accept declarations and same-contract replacements, and reject executable app fields', () => {
+test('manifests reject host console declarations stored in console/pdl.json', () => {
   const manifest = {
     pluginId: 'example.console', version: '1.0.0', contractVersion: '0.1.0', name: 'Console',
     features: [{ id: 'console', name: 'Console', resources: [] }],
@@ -95,13 +95,13 @@ test('console fragments accept declarations and same-contract replacements, and 
     components: { js: ["PDL_COMPONENTS['plugin:example.console/list'] = function (b, sc, root) { return ''; };"], css: [] },
     replaces: { list: { use: 'plugin:example.console/list', props: ['from', 'row', 'empty'] } },
   };
-  assert.equal(validateManifest({ ...manifest, pdl }).valid, true);
-  for (const invalid of [
-    { ...pdl, app: 'executable console source' },
-    { ...pdl, replaces: [] },
-    { ...pdl, replaces: { list: 'plugin:example.console/list' } },
-    { ...pdl, components: { js: [42], css: [] } },
-    { ...pdl, requests: { list: 'list' } },
-    { ...pdl, unknown: {} },
-  ]) assert.equal(validateManifest({ ...manifest, pdl: invalid }).valid, false, JSON.stringify(invalid));
+  assert.equal(validateManifest(manifest).valid, true);
+  for (const consoleDeclaration of [pdl, {}]) {
+    const result = validateManifest({ ...manifest, pdl: consoleDeclaration });
+    assert.equal(result.valid, false);
+    if (!result.valid) {
+      assert.ok(result.errors.some(error =>
+        error.keyword === 'additionalProperties' && error.instancePath === ''));
+    }
+  }
 });
