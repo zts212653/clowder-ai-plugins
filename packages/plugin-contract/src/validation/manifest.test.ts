@@ -83,7 +83,7 @@ test('returns the original caller-owned data only after full validation', () => 
   }
 });
 
-test('manifests reject host console declarations stored in console/pdl.json', () => {
+test('manifests reject host console declarations stored in console/pdl.yaml', () => {
   const manifest = {
     pluginId: 'example.console', version: '1.0.0', contractVersion: '0.1.0', name: 'Console',
     features: [{ id: 'console', name: 'Console', resources: [] }],
