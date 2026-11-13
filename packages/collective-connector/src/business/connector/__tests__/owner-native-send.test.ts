@@ -20,6 +20,7 @@ async function setup() {
     { catId: 'other-cat', displayName: 'Other', defaultModel: 'fixture', available: true },
   ];
   const host: ModulePluginHostShape = {
+    external: { endpoint: 'https://host.invalid/api/plugins/external', token: 'fixture-external-token' },
     pluginInstanceId: 'installed-instance',
     dataPath: f.root,
     config: serviceHostConfig(),

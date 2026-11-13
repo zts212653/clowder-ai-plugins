@@ -17,6 +17,7 @@ test('actual module sends one named wake and handles native context before the s
   const owner: PluginOwnerOperationContext = { kind: 'owner-operation', userId: 'local-owner', pluginInstanceId: 'installed-instance',
     operationKey: 'participation', actionId: 'sync', requestId: 'owner-sync', signal: new AbortController().signal, assertCurrent: current };
   const host: ModulePluginHostShape = {
+    external: { endpoint: 'https://host.invalid/api/plugins/external', token: 'fixture-external-token' },
     pluginInstanceId: 'installed-instance',
     dataPath: f.root, config: serviceHostConfig(), secrets: { async get() { return undefined; } },
     storage: memoryStorage(), tasks: {list: async () => []} as never, streams: {} as never, log() {},

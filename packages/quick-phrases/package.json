@@ -5,21 +5,9 @@
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
-  "exports": {
-    ".": "./dist/index.js",
-    "./manifest": "./plugin.yaml"
-  },
-  "files": [
-    "dist",
-    "plugin.yaml",
-    "README.md",
-    "README.en.md",
-    "npm-shrinkwrap.json",
-    "console"
-  ],
-  "engines": {
-    "node": ">=22.18.0"
-  },
+  "exports": { ".": "./dist/index.js", "./manifest": "./plugin.yaml" },
+  "files": ["dist", "plugin.yaml", "README.md", "README.en.md", "npm-shrinkwrap.json", "assets", "console"],
+  "engines": { "node": ">=22.18.0" },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

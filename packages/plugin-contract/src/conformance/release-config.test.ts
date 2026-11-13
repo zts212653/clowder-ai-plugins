@@ -218,10 +218,15 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string, action = pre
     'publication must verify the toolchain before building package bytes',
   );
   assert.match(workflow, /^      id-token: write$/m);
+  assert.match(
+    namedWorkflowStep(workflow, 'Publish feedback prerelease'),
+    /^          npm-token: ''$/m,
+    'feedback must use OIDC without falling back to a personal npm token',
+  );
   assert.equal(
     workflow.match(/npm-token: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length,
-    publishedPackageDirectories(workflow).length,
-    'each public package action must receive the operator-authorized npm token',
+    publishedPackageDirectories(workflow).length - 2,
+    'public packages except feedback and quick-phrases retain their existing npm token inputs',
   );
   assert.equal(
     action.match(/NODE_AUTH_TOKEN: \$\{\{ inputs\.npm-token \}\}/g)?.length,
@@ -465,6 +470,7 @@ test('main publishes the public dependency chain through one hardened action', (
     'packages/genoffice-docx',
     'packages/xiangqi',
     'packages/github-operations',
+    'packages/quick-phrases',
   ];
   const publishedPackages = publishedPackageDirectories(releaseWorkflow);
   const catalogPackages = catalogPackageDirectories(pluginCatalog);
@@ -492,6 +498,12 @@ test('main publishes the public dependency chain through one hardened action', (
       `catalog artifact ${packageDirectory} is missing from the publication workflow`,
     );
   }
+  const quickPhrasesStep = releaseWorkflow.match(
+    /      - name: Publish quick phrases prerelease\n[\s\S]*?(?=      # Publication)/,
+  )?.[0];
+  assert.ok(quickPhrasesStep, 'quick-phrases must retain its publication step after existing packages');
+  assert.match(quickPhrasesStep, /npm-token: ''/, 'quick-phrases first publication must be OIDC-only');
+  assert.doesNotMatch(quickPhrasesStep, /secrets\.NPM_TOKEN/);
   assert.match(
     releaseWorkflow,
     /^      - '\.github\/actions\/publish-prerelease\/\*\*'$/m,

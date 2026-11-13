@@ -16,6 +16,7 @@ async function freePort() {
 function host(directory:string,port:number):ModulePluginHostShape {
   const data=new Map<string,{revision:number;value:unknown}>();let revision=0;
   return {pluginInstanceId:'installed-instance',dataPath:directory,config:{get:async key=>key==='servicePort'?String(port):undefined},
+    external:{endpoint:'https://host.invalid/api/plugins/external',token:'fixture-external-token'},
     secrets:{get:async()=>undefined}, storage:{
       get:async key=>data.get(key),list:async()=>Object.fromEntries(data),
       set:async(key,value)=>{const entry={revision:++revision,value};data.set(key,entry);return entry;},
