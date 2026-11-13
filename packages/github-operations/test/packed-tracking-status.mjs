@@ -17,10 +17,10 @@ const tool = manifest.contributions.find(item => item.type === 'tool' && item.na
 const requireContract = createRequire(join(root, 'node_modules/@clowder-ai/plugin-contract/package.json'));
 const Ajv = requireContract('ajv');
 const validate = new Ajv().compile(tool.inputSchema);
-assert.equal(manifest.version, '0.1.0-alpha.41');
+assert.equal(manifest.version, JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).version);
 assert.equal(validate({ repo: 'example/repo-1', catId: 'cat-1', limit: 5 }), true);
 assert.equal(validate({ limit: 51 }), false);
-assert.equal(validate({ subjectKey: 'pr:example/repo-1#1' }), false, 'observation reads keep their existing tool');
+assert.equal(validate({ subjectKey: 'pr:example/repo-1#1' }), true, 'known subscriptions have a direct read entry');
 const inspect = manifest.contributions.find(item => item.type === 'tool' && item.name === 'github_inspect_subject');
 assert.deepEqual(Object.keys(inspect.inputSchema.properties).sort(), ['fromSequence', 'limit', 'subjectKey']);
 const storage = memoryStorage(); let providerReads = 0;
@@ -65,6 +65,8 @@ try {
     cursor = result.data.page.nextCursor; assert.ok(++pages < 100);
   } while (cursor);
   assert.equal(seen.size, 25); assert.ok(maximumBytes <= 65_536);
+  const exact = await run({ subjectKey: 'pr:example/repo-1#2', taskId: 'packed-1' });
+  assert.equal(exact.data.tracking[0].id, 'packed-1'); assert.equal(exact.data.page.scanCalls, 0);
   assert.equal(JSON.stringify(await storage.list()), before); assert.equal(providerReads, 0);
   const selectedKey = waitKey('packed-1'), selected = (await storage.get(selectedKey)).value;
   const error = { name: 'Error', message: 'GitHub command failed', code: 1,

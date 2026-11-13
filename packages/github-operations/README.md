@@ -23,6 +23,10 @@
 
 ## 本地更新与验收
 
+已知 PR / Issue 时，从 `alpha.45` 起可直接调用 `github_list_tracking({subjectKey:"pr:owner/repo#123"})`：默认使用当前认证用户、猫和线程，不扫描存储，也不访问 GitHub。`catId`、`threadId` 可指定同一用户有权读取的原路由。`view:"recovery"` 同时读取这个对象可直接寻址的恢复 owner。查询保留原记录的基线、generation、取消／到期状态和 recovery scope/revision；响应仍受分页及字节预算约束。
+
+新订阅的稳定 ID 可由对象与身份计算；迁入的旧等待保留任意 Task ID，另传原 `taskId` 就能直读 typed／兼容 Issue 原件。注册诊断使用 `{view:"diagnostics",subjectKey:"pr:owner/repo#123",registrationId:"原登记意图ID"}`。`page.lookup.coverage` 标明本次读取的是 `native_subscription`、`task` 或 `registration`；`legacyTaskIdRequired:true` 表示尚未覆盖任意 ID 的旧等待，空结果不能证明它们不存在。没有这些原始 ID 时，原有列表和续页入口仍可使用。工具不会为查询补建索引、重登记或执行恢复。未记录用户归属的原件不会由 direct 查询返回，计入 `page.unattributed`；已知属于其他用户的记录继续隐藏，不计入该数。
+
 `alpha.37` 需要先更新支持有界待办索引的 Host；缺少能力时，登记和采集会明确返回不可用，无关只读功能仍可使用。更新保留原实例、历史和已有导入暂停；不会自动放开采集或重新登记旧等待。写入新格式后，请保留配套 Host 版本，不能直接降回不识别该格式的旧 Host。
 
 PR、Issue 的定时检查只处理到期的等待、社区采集和已接续的旧 Issue；首次更新会完成可续接的历史盘点，盘点未完成不会显示为“没有待办”。成功检查会清零连续失败次数；限流、本地排队延期和批次未轮到既不扣次数，也不清零。临时网络故障采用持久化退避并自动重试，最长间隔 15 分钟；`polling.state: backing_off` 与 `nextPollAt` 表示恢复计划，联网后仍从原基线捕获离线期间的变化。旧网络暂停记录会在一次可续接的升级盘点中恢复调度，取消和损坏记录不会复活。其他连续五次非临时失败仍会暂停该记录，保留原记录；有明确负责线程时留下带具体对象及原因的状态提醒，不自动叫醒猫。使用 `github_list_tracking` 查看独立的 `polling.state`、恢复状态及脱敏的最近错误。获准恢复时，用 `github_retry_tracking` 提交当前 typed 诊断的 `taskId`、`recovery.scope` 和 `recovery.revision`；只重试当前用户的原等待，不改变负责猫、线程、基线、generation 或通知进度。不要用重新登记代替恢复，以免漏掉暂停期间的变化。

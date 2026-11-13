@@ -1,5 +1,5 @@
 pluginId: official.github-operations
-version: 0.1.0-alpha.44
+version: 0.1.0-alpha.45
 contractVersion: 0.3.2-candidate.0
 name: GitHub Operations
 description:
@@ -289,11 +289,17 @@ contributions:
     description: >-
       Read a bounded page of this installation's tracking status.
       Use when checking a repository, a cat/thread's subscriptions, paused recovery owners, or registration failures.
+      Supply subjectKey to directly read a known PR/issue in the authenticated user's current cat/thread without scanning;
+      optional catId/threadId select an original route within the same user's visible records.
       NOT for subject observation events (use github_inspect_subject), registration, cancellation or retrying a wait.
       Output: read-only tracking and recovery summaries, or registration diagnostics; default 20 and maximum 50 records,
       at most 65536 response bytes, with page.nextCursor and unknown remaining count.
       GOTCHA: keep the same filters, view and limit when continuing; an empty page with a cursor is incomplete.
       History/large fields are explicitly summarized or marked omitted. Recovery scope/revision remain distinct from sourceRevision.
+      Direct lookup reads existing keys only: imported arbitrary IDs additionally require their original taskId;
+      diagnostics require their original registrationId. page.lookup declares coverage, so a missing native key never proves
+      that no imported wait exists. No census, registration, repair or GitHub request runs during lookup.
+      Rows without recorded user ownership are hidden in direct lookup and counted in page.unattributed.
     inputSchema:
       type: object
       additionalProperties: false
@@ -302,6 +308,9 @@ contributions:
         repo: { type: string, pattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$', maxLength: 200, description: Case-insensitive exact owner/repository. }
         catId: { type: string, minLength: 1, maxLength: 200, description: Exact responsible cat; use your own stable cat ID for your subscriptions. }
         threadId: { type: string, minLength: 1, maxLength: 200, description: Exact original responsible thread ID. }
+        subjectKey: { type: string, pattern: '^(pr|issue):[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[1-9][0-9]*$', maxLength: 230, description: Direct lookup for one known PR/issue. Defaults catId/threadId to the authenticated caller; reads existing keys without storage enumeration. Number must be a safe integer. }
+        taskId: { type: string, minLength: 1, maxLength: 500, description: Original imported Task ID. Requires subjectKey and tracking/recovery view; addresses both typed and compatible migrated issue records without scanning. }
+        registrationId: { type: string, minLength: 1, maxLength: 200, description: Original registration intent ID. Requires subjectKey and diagnostics view; reads the diagnostic keyed by the authenticated user and selected cat/thread. }
         needsAttention: { type: boolean, default: false, description: Only needs_attention recovery records or failed registration diagnostics. }
         limit: { type: integer, minimum: 1, maximum: 50, default: 20, description: Maximum logical records across the returned arrays; byte/scan budgets may stop earlier. }
         cursor: { type: string, minLength: 1, maxLength: 4096, description: Opaque page.nextCursor from an identical query; omit for the first page. }
