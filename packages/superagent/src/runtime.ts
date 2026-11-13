@@ -312,9 +312,6 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         };
         await saveOnce(host, `report:${context.invocationId}:${value.reportId}`, report);
         await editQueue(host, 'reports', `${context.invocationId}:${value.reportId}`, true);
-        await host.storage.set(`${value.kind === 'progress' ? 'progress-report' : 'terminal'}:${context.invocationId}`, {
-          workId: value.workId,
-        });
         return { accepted: true, workId: value.workId };
       },
       async 'superagent.view'() {

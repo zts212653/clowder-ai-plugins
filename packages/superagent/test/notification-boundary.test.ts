@@ -84,7 +84,7 @@ test('a short result requested directly in the inbox still explains the requeste
   assert.match(text, /下一步.*验收/);
 });
 
-test('a member used as both coordinator and worker does not wake itself for its progress or an unreported final response', async () => {
+test('a member used as both coordinator and worker stays quiet for ordinary receipts even when the model turn completed', async () => {
   const f = fixture();
   await f.host.storage.set('preferences', { ...f.preferences, workerIds: ['coordinator'] });
   const runtime = await startSuperagent(f.host);
@@ -102,11 +102,13 @@ test('a member used as both coordinator and worker does not wake itself for its 
   assert.equal([...f.sent.values()].filter((message) => message.wake).length, before, 'ordinary worker narration cannot create another coordinator invocation');
   const final = event('worker-final', task.threadId, '本轮结束。');
   final.envelope.actor = { kind: 'cat', id: 'coordinator' };
+  f.messages.set(final.envelope.messageId, { id: final.envelope.messageId, threadId: task.threadId, userId: 'owner', catId: 'coordinator', content: '本轮结束。', mentions: [], timestamp: 2, sourceRevision: '1', extra: { stream: { invocationId: 'unreported-invocation' } } });
   f.history.set(task.threadId, [{ id: final.envelope.messageId, timestamp: 2, content: '本轮结束。', sender: { kind: 'cat', catId: 'coordinator' }, response: { executionId: 'unreported-invocation', inputMessageIds: ['worker-input'], status: 'completed', startedAt: 1, completedAt: 2 } }]);
   await runtime.actions['superagent.observe'](final);
   await runtime.actions['superagent.tick']({});
   assert.equal([...f.sent.values()].filter((message) => message.wake).length, before);
-  assert.ok([...f.sent.values()].some((message) => JSON.stringify(message.payload).includes('未提交工作结果')), 'missing a terminal report is an explicit failure, not another paid semantic turn');
+  assert.equal([...f.sent.values()].some((message) => JSON.stringify(message.payload).includes('未提交工作结果')), false, 'a completed model turn does not prove that the work has failed or is missing its result');
+  assert.equal(f.tasks.get(task.id)?.entrustedWork?.closure.state, 'open');
   await runtime.stop({ reason: 'test' });
 });
 

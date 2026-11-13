@@ -1,5 +1,4 @@
 import type { PluginDeliveryInput, PluginMessageDelivery } from '@clowder-ai/plugin-contract';
-import { z } from 'zod';
 import type { SuperagentHost } from './runtime.js';
 import {
   editQueue,
@@ -62,25 +61,7 @@ export async function observe(
       await editQueue(host, 'reports', `${response.executionId}:host-failure`, true);
       return;
     }
-    const message = await host.messaging.get(input.envelope.messageId);
-    const invocationId = message?.extra?.stream?.invocationId;
-    if (invocationId) {
-      const terminal = await read(host, `terminal:${invocationId}`, z.object({ workId: z.string() }));
-      if (terminal?.workId === work.taskId) return;
-      const progress = await read(host, `progress-report:${invocationId}`, z.object({ workId: z.string() }));
-      if (progress?.workId === work.taskId) return;
-    }
-    if (work.taskId && response?.status === 'completed') {
-      await saveOnce(host, `report:${response.executionId}:missing-result`, {
-        workId: work.taskId,
-        reportId: 'missing-result',
-        kind: 'error',
-        content: '执行成员本轮已结束，但未提交工作结果。原工作与历史保留，可在原会话要求补交结果。',
-        applied: false,
-        invocationId: response.executionId,
-      });
-      await editQueue(host, 'reports', `${response.executionId}:missing-result`, true);
-    }
+    // Native reports own progress/results. A worker's ordinary reply is not a new coordination input.
     return;
   }
   if (!(await needsCoordination(host, input, work))) return;
