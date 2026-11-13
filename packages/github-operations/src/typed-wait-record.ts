@@ -4,6 +4,9 @@ import type { TaskItem, WaitTerminationEventV1 } from './business/model/index.js
 import { reconcileWaitRecovery, waitRecoveryScore, type GitHubWaitRecoveryFacts } from './typed-wait-recovery.js';
 export const WAIT_PREFIX = 'github.typed-wait.v1.';
 export const waitKey = (id: string) => WAIT_PREFIX + createHash('sha256').update(id).digest('hex');
+/** Native registration identity. Imported waits retain their original arbitrary Task IDs. */
+export const nativeSubscriptionId = (subject: string, owner: { userId: string; catId: string; threadId: string }) =>
+  'github-subscription-' + createHash('sha256').update(JSON.stringify([subject, owner.userId, owner.catId, owner.threadId])).digest('hex');
 export interface RegistrationRequest { readonly id: string; readonly fingerprint: string }
 export type WaitRecordV1 = {
   readonly schemaVersion: 1; readonly task: TaskItem;

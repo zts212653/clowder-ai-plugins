@@ -10,7 +10,7 @@ import { waitKey } from './typed-wait-record.js';
 import { collectionId, collectionKey } from './community-collection-record.js';
 import { migratedIssueKey } from './migrated-issue-record.js';
 import { SUBJECTS, JOURNAL_HEAD, eventKey } from './business/domains/community/journal-directory.js';
-import { diagnosticError } from './tracking-diagnostics.js';
+import { diagnosticError, writeRegistrationDiagnostic } from './tracking-diagnostics.js';
 
 const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
 const caller: PluginActionContext = { userId: 'owner', catId: 'cat-1', threadId: 'thread-1',
@@ -223,4 +223,151 @@ test('long task titles retain their omission marker when a large wait is summari
   assert.ok(task.omittedFields.includes('title'), 'summary omissions cannot replace an existing truncation marker');
   assert.ok(task.omittedFields.includes('automationState'));
   assert.equal((await f.storage.get(waitKey(row.task.id)) as any).value.task.title.length, 900);
+});
+
+const subscriptionId = (subject: string, actor = caller) => 'github-subscription-' +
+  hash(JSON.stringify([subject, actor.userId, actor.catId, actor.threadId]));
+
+function forbidEnumeration(storage: ReturnType<typeof memoryStorage>) {
+  const get = storage.get.bind(storage); let reads = 0;
+  storage.get = key => { reads++; return get(key); };
+  storage.scan = async () => { throw new Error('Exact lookup enumerated storage'); };
+  storage.list = async () => { throw new Error('Exact lookup enumerated storage'); };
+  return () => reads;
+}
+
+test('known subject reads the original native wait with constant work despite unrelated history', async t => {
+  const f = await fixture(t), row = record(1);
+  row.task.id = subscriptionId(row.task.subjectKey);
+  await f.storage.set(waitKey(row.task.id), row);
+  const before = await f.storage.get(waitKey(row.task.id));
+  const reads = forbidEnumeration(f.storage);
+  const query = { subjectKey: row.task.subjectKey };
+  const first = await f.call(query), small = reads();
+  for (let i = 100; i < 3100; i++) { const unrelated = record(i); await f.storage.set(waitKey(unrelated.task.id), unrelated); }
+  const second = await f.call(query), large = reads() - small;
+  for (const result of [first, second]) {
+    assert.deepEqual(result.data.tracking[0].automationState, row.task.automationState);
+    assert.equal(result.data.tracking[0].id, row.task.id);
+    const facts = result.data.recoveryOwners.typed[0];
+    assert.equal(facts.sourceRevision, before!.revision);
+    assert.equal(facts.recovery.revision, 9); assert.equal(facts.recovery.scope, row.recovery.scope);
+    assert.equal(result.data.page.scanCalls, 0); assert.equal(result.data.page.hasMore, false);
+    assert.equal(result.data.page.lookup.coverage, 'native_subscription');
+    assert.equal(result.data.page.lookup.legacyTaskIdRequired, true);
+  }
+  assert.equal(small, large); assert.ok(large <= 2);
+  assert.deepEqual(await f.storage.get(waitKey(row.task.id)), before);
+  assert.equal(f.providerReads(), 0);
+  t.diagnostic(JSON.stringify({ unrelated: 3000, smallReads: small, largeReads: large, scans: 0 }));
+});
+
+test('direct lookups check subject and identity and never turn an unaddressable legacy wait into a global absence claim', async t => {
+  const f = await fixture(t), row = record(1);
+  row.task.id = 'original-imported-id';
+  await f.storage.set(waitKey(row.task.id), row);
+  const before = await f.storage.get(waitKey(row.task.id));
+  forbidEnumeration(f.storage);
+  const missing = await f.call({ subjectKey: row.task.subjectKey });
+  assert.deepEqual(missing.data.tracking, []);
+  assert.equal(missing.data.page.lookup.legacyTaskIdRequired, true);
+  const query = { subjectKey: row.task.subjectKey, taskId: row.task.id };
+  const found = await f.call(query);
+  assert.equal(found.data.tracking[0].id, row.task.id);
+  assert.equal(found.data.page.lookup.coverage, 'task');
+  for (const actor of [{ ...caller, userId: 'other-user' }, { ...caller, catId: 'other-cat' }, { ...caller, threadId: 'other-thread' }]) {
+    const denied = await f.call(query, actor);
+    assert.deepEqual(denied.data.tracking, []); assert.deepEqual(denied.data.recoveryOwners.typed, []);
+  }
+  assert.deepEqual((await f.call({ ...query, subjectKey: 'pr:example/project-1#99' })).data.tracking, []);
+  assert.deepEqual(await f.storage.get(waitKey(row.task.id)), before);
+});
+
+test('direct recovery reads all existing owners with original revisions and continuable small limits', async t => {
+  const f = await fixture(t), row = record(1), subject = 'issue:example/project-1#2';
+  row.task.subjectKey = subject; row.task.kind = 'issue_tracking'; row.task.id = 'original-issue';
+  await f.storage.set(waitKey(row.task.id), row);
+  await f.storage.set(migratedIssueKey(row.task.id), { ...row, sourceUpdatedAt: 1,
+    task: { ...row.task, automationState: { issue: { lastDeliveredCursor: 24 } } } });
+  await f.storage.set(collectionKey(collectionId(subject)), { ...row,
+    task: { ...row.task, id: collectionId(subject), automationState: {} } });
+  await f.storage.set(SUBJECTS + hash(subject), { v: 1, subject, ownerThread: caller.threadId,
+    route: { sequence: 0, sourceEventId: 'exact-route' }, recovery: row.recovery });
+  await f.storage.set(eventKey('exact-route'), { sequence: 0, event: { sourceEventId: 'exact-route', subjectKey: subject,
+    payload: { userId: caller.userId, catId: caller.catId, ownerThreadId: caller.threadId } } });
+  await f.storage.set(JOURNAL_HEAD, { directory: { status: 'ready' } });
+  const before = JSON.stringify(await f.storage.list());
+  const reads = forbidEnumeration(f.storage);
+  const query = { view: 'recovery', subjectKey: subject, taskId: row.task.id, limit: 1 };
+  const seen: string[] = []; let cursor: string | undefined;
+  do {
+    const result = await f.call({ ...query, ...(cursor ? { cursor } : {}) });
+    assert.equal(result.data.page.returned, 1); assert.equal(result.data.page.scanCalls, 0);
+    for (const source of ['typed', 'collection', 'migratedIssues']) {
+      for (const facts of result.data.recoveryOwners[source]) { seen.push(source); assert.equal(facts.recovery.revision, 9); }
+    }
+    if (result.data.recoveryOwners.journal.entries.length) seen.push('journal');
+    cursor = result.data.page.nextCursor ?? undefined;
+    if (seen.length === 1) {
+      await assert.rejects(f.call({ ...query, subjectKey: 'issue:example/project-1#3', cursor }), /cursor|query/i);
+      await assert.rejects(f.call({ ...query, cursor }, { ...caller, catId: 'other-cat' }), /cursor|query/i);
+    }
+    assert.ok(seen.length <= 4);
+  } while (cursor);
+  assert.deepEqual(seen, ['typed', 'collection', 'migratedIssues', 'journal']);
+  assert.ok(reads() <= 18, 'four small pages and rejected cursors include the module authority/migration guard reads');
+  // Read-only lookup did not run census, repair, retry, or any business writer.
+  assert.equal(JSON.stringify(await memorySnapshot(f.storage, before)), before);
+});
+
+async function memorySnapshot(storage: ReturnType<typeof memoryStorage>, snapshot: string) {
+  const entries = JSON.parse(snapshot);
+  for (const key of Object.keys(entries)) entries[key] = await storage.get(key);
+  return entries;
+}
+
+test('registrationId addresses persisted diagnostics and redacts errors without scanning', async t => {
+  const f = await fixture(t), subjectKey = 'pr:example/project-1#2';
+  await writeRegistrationDiagnostic(f.storage, caller, 'original-intent', subjectKey,
+    { phase: 'load_subscription', status: 'started', code: 'started', at: 0 });
+  await writeRegistrationDiagnostic(f.storage, caller, 'original-intent', subjectKey,
+    { phase: 'read_github', status: 'failed', code: 'provider_read_failed', at: 1,
+      error: { name: 'Error', message: 'failed isolated-secret', stderr: 'Forbidden (HTTP 403) isolated-secret' } });
+  const reads = forbidEnumeration(f.storage);
+  const query = { view: 'diagnostics', subjectKey, registrationId: 'original-intent' };
+  const result = await f.call(query);
+  assert.equal(result.data.diagnostics.length, 1); assert.equal(result.data.diagnostics[0].phase, 'read_github');
+  assert.match(result.data.diagnostics[0].error.stderr, /Forbidden \(HTTP 403\)/);
+  assert.ok(!JSON.stringify(result).includes('isolated-secret'));
+  assert.equal(result.data.page.lookup.coverage, 'registration');
+  assert.deepEqual((await f.call(query, { ...caller, userId: 'other-user' })).data.diagnostics, []);
+  assert.deepEqual((await f.call({ ...query, registrationId: 'absent' })).data.diagnostics, []);
+  assert.equal(reads(), 6, 'three exact reads plus one module guard read per call');
+  await assert.rejects(f.call({ view: 'diagnostics', subjectKey }), /registrationId/);
+});
+
+test('direct input validation and authority fencing preserve precise query semantics', async t => {
+  const f = await fixture(t), row = record(1); row.task.id = subscriptionId(row.task.subjectKey);
+  await f.storage.set(waitKey(row.task.id), row);
+  for (const input of [{ taskId: row.task.id }, { registrationId: 'intent' },
+    { subjectKey: 'pr:example/project#0' }, { subjectKey: 'pr:example/project#9007199254740992' },
+    { subjectKey: row.task.subjectKey, view: 'tracking', registrationId: 'intent' }]) await assert.rejects(f.call(input));
+  forbidEnumeration(f.storage);
+  let checks = 0;
+  await assert.rejects(f.call({ subjectKey: row.task.subjectKey }, { ...caller, assertCurrent: async () => {
+    if (++checks > 1) throw new Error('authority revoked');
+  } }), /authority revoked/);
+  const absent = await f.call({ subjectKey: 'pr:example/project#999' });
+  assert.equal(absent.data.page.returned, 0); assert.equal(absent.data.page.hasMore, false);
+  await assert.rejects(f.call({ subjectKey: row.task.subjectKey }, { ...caller, userId: '' }), /Authenticated/);
+  for (const reason of ['cancelled', 'expired']) {
+    const retained = structuredClone(row);
+    retained.task.status = 'done';
+    Object.assign(retained.task.automationState, { waitOutcome: { generation: 7, reason, at: 1 } });
+    await f.storage.set(waitKey(row.task.id), retained);
+    const before = await f.storage.get(waitKey(row.task.id));
+    const result = await f.call({ subjectKey: row.task.subjectKey });
+    assert.equal(result.data.tracking[0].automationState.waitOutcome.reason, reason);
+    assert.deepEqual(await f.storage.get(waitKey(row.task.id)), before);
+  }
 });

@@ -15,6 +15,7 @@ export const hash = (value: string) => createHash('sha256').update(value).digest
 export const eventKey = (id: string) => JOURNAL_EVENTS + hash(id);
 export const globalRef = (sequence: number) => `community.journal.global-ref.v2.${sequence}`;
 const subjectKey = (subject: string) => SUBJECTS + hash(subject);
+export { subjectKey as journalSubjectKey };
 const subjectRef = (subject: string, sequence: number) => `community.journal.subject-ref.v2.${hash(subject)}.${sequence}`;
 export const journalIndex = (kind: 'pr' | 'issue') => `github-journal-${kind}`;
 export const subjectKind = (subject: string): 'pr' | 'issue' => {
