@@ -43,10 +43,10 @@
       "integrity": "sha512-xfxNnyl0Zg8qxCXInQdN5UJBn+uaKZF0exdDItNBCAputlke1Btfvk8GqdTCiYo0/2g/tmqAYegzOJhyZrRq/g==",
       "disposition": "defer",
       "owner": "opus55",
-      "reviewBy": "2026-11-13T08:00:00Z",
+      "reviewBy": "2026-11-20T08:00:00Z",
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/188",
       "reason": "The desk-delivery package requires its paired Host admission and complete F335 acceptance before discovery changes.",
-      "condition": "The paired Host supports bridge 1.7 and owner opus55 completes the combined desk-delivery acceptance; then deliver the scoped catalog PR."
+      "condition": "The paired Host supports bridge 1.7 (Cat Cafe since #6579; check the public Host before activation) and owner opus55 completes the combined desk-delivery acceptance on the daily runtime once the watcher makes real deliveries; then deliver the scoped catalog PR."
     },
     {
       "pluginId": "official.companion.personal-chrome",
