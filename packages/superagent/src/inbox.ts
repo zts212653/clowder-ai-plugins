@@ -68,6 +68,18 @@ export async function observe(
       const terminal = await read(host, `terminal:${invocationId}`, z.object({ workId: z.string() }));
       if (terminal?.workId === work.taskId) return;
     }
+    if (work.taskId && response?.status === 'completed') {
+      await saveOnce(host, `report:${response.executionId}:missing-result`, {
+        workId: work.taskId,
+        reportId: 'missing-result',
+        kind: 'error',
+        content: '执行成员本轮已结束，但未提交工作结果。原工作与历史保留，可在原会话要求补交结果。',
+        applied: false,
+        invocationId: response.executionId,
+      });
+      await editQueue(host, 'reports', `${response.executionId}:missing-result`, true);
+    }
+    return;
   }
   if (!(await needsCoordination(host, input, work))) return;
   const existing = await read(host, `inbox:${input.deliveryId}`, inboxSchema);

@@ -10,6 +10,8 @@ A failed judgment remains available for explicit retry while other conversations
 
 Routine member updates, review handoffs and system notices no longer wake the coordinator one by one; read-only task snapshots follow their states. Structured member failures still reach judgment, and feedback on existing plugin work stays on its original path. Only the current user's message can authorize a new work source; member speech cannot admit new work. Unapplied non-user starts retained from an older version are also refused with an audit record. Outcomes without task records need source review when the user asks; a finished model response is not sufficient evidence of completion.
 
+Ordinary worker narration in plugin work conversations does not wake the coordinator, including when one member fills both roles. Native result reports and real failure reports keep their original delivery paths. If a worker finishes without a result report, one source-linked failure notice records that gap without another model turn to interpret the ending.
+
 Result, question and failure notifications identify the issue, link the titled source conversation, include the existing work outcome as background, and state the specific next action. A result awaiting acceptance is distinct from a confirmed completion. Long results use a labelled first-paragraph excerpt with a link to the full source report. When work was requested in the main inbox, its full long report is retained in the work conversation instead.
 
 Superagent adds a resident assistant at the top of the Clowder AI conversation list. Enable the plugin, save the work it may handle, choose an Assistant Agent, choose Execution Agents and source conversations in their separate sections, then explicitly start following work.

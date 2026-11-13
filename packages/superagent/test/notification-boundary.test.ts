@@ -55,6 +55,32 @@ test('a short result requested directly in the inbox still explains the requeste
   assert.match(text, /下一步.*验收/);
 });
 
+test('a member used as both coordinator and worker does not wake itself for its progress or an unreported final response', async () => {
+  const f = fixture();
+  await f.host.storage.set('preferences', { ...f.preferences, workerIds: ['coordinator'] });
+  const runtime = await startSuperagent(f.host);
+  await runtime.actions['superagent.observe'](event('same-member'));
+  await runtime.actions['superagent.tick']({});
+  const control = [...f.sent.values()].find((message) => message.wake)!.threadId;
+  await runtime.actions['superagent.route']({ eventId: 'same-member', decisions: [{ kind: 'start', title: '气泡修复', outcome: '恢复本人气泡', workerId: 'coordinator' }] }, f.caller(control));
+  await runtime.actions['superagent.tick']({});
+  const task = [...f.tasks.values()][0];
+  const before = [...f.sent.values()].filter((message) => message.wake).length;
+  const progress = event('worker-progress', task.threadId, '我先看日志。');
+  progress.envelope.actor = { kind: 'cat', id: 'coordinator' };
+  await runtime.actions['superagent.observe'](progress);
+  await runtime.actions['superagent.tick']({});
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, before, 'ordinary worker narration cannot create another coordinator invocation');
+  const final = event('worker-final', task.threadId, '本轮结束。');
+  final.envelope.actor = { kind: 'cat', id: 'coordinator' };
+  f.history.set(task.threadId, [{ id: final.envelope.messageId, timestamp: 2, content: '本轮结束。', sender: { kind: 'cat', catId: 'coordinator' }, response: { executionId: 'unreported-invocation', inputMessageIds: ['worker-input'], status: 'completed', startedAt: 1, completedAt: 2 } }]);
+  await runtime.actions['superagent.observe'](final);
+  await runtime.actions['superagent.tick']({});
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, before);
+  assert.ok([...f.sent.values()].some((message) => JSON.stringify(message.payload).includes('未提交工作结果')), 'missing a terminal report is an explicit failure, not another paid semantic turn');
+  await runtime.stop({ reason: 'test' });
+});
+
 test('a result in the assistant identifies the issue, source, background and requested owner action', async () => {
   const f = fixture();
   await f.seed();
