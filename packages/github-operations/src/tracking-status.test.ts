@@ -326,6 +326,35 @@ async function memorySnapshot(storage: ReturnType<typeof memoryStorage>, snapsho
   return entries;
 }
 
+test('direct recovery hides unknown user ownership and counts it without exposing other users', async t => {
+  const f = await fixture(t), row = record(1), subject = row.task.subjectKey;
+  const { userId: _userId, ...unknownOwner } = row.task;
+  const name = collectionKey(collectionId(subject));
+  await f.storage.set(name, { ...row, task: { ...unknownOwner, id: collectionId(subject), automationState: {} } });
+  await f.storage.set(SUBJECTS + hash(subject), { v: 1, subject, ownerThread: caller.threadId,
+    route: { sequence: 0, sourceEventId: 'unknown-owner-route' }, recovery: row.recovery });
+  const routeKey = eventKey('unknown-owner-route');
+  const route = { sequence: 0, event: { sourceEventId: 'unknown-owner-route', subjectKey: subject,
+    payload: { catId: caller.catId, ownerThreadId: caller.threadId } } };
+  await f.storage.set(routeKey, route);
+  const before = JSON.stringify(await f.storage.list());
+  forbidEnumeration(f.storage);
+  const result = await f.call({ subjectKey: subject, view: 'recovery' });
+  assert.deepEqual(result.data.recoveryOwners.collection, []);
+  assert.deepEqual(result.data.recoveryOwners.journal.entries, []);
+  assert.equal(result.data.page.unattributed, 2, 'unknown ownership is disclosed, never silently reported as absence');
+  assert.equal(result.data.page.hasMore, false);
+  assert.equal(JSON.stringify(await memorySnapshot(f.storage, before)), before);
+  // A known foreign user remains filtered without disclosing their record count.
+  await f.storage.set(name, { ...row, task: { ...unknownOwner, userId: 'foreign', id: collectionId(subject), automationState: {} } });
+  await f.storage.set(routeKey, { ...route, event: { ...route.event, payload: { ...route.event.payload, userId: 'foreign' } } });
+  const foreign = await f.call({ subjectKey: subject, view: 'recovery' });
+  assert.deepEqual(foreign.data.recoveryOwners.collection, []);
+  assert.deepEqual(foreign.data.recoveryOwners.journal.entries, []);
+  assert.equal(foreign.data.page.unattributed, 0);
+  assert.equal(f.providerReads(), 0);
+});
+
 test('registrationId addresses persisted diagnostics and redacts errors without scanning', async t => {
   const f = await fixture(t), subjectKey = 'pr:example/project-1#2';
   await writeRegistrationDiagnostic(f.storage, caller, 'original-intent', subjectKey,

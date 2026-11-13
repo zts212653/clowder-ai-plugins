@@ -27,6 +27,8 @@ add their original `taskId`; registration diagnostics add `view:"diagnostics"`
 and the original `registrationId`. `page.lookup.coverage` declares the addressed
 history. `legacyTaskIdRequired:true` means a native miss cannot establish that
 no imported wait exists. Lookup never scans, re-registers, repairs or reads GitHub.
+Direct lookup hides records without stored user ownership and counts them in
+`page.unattributed`; known foreign-user records stay hidden and are not counted.
 
 For discovery, read status with `github_list_tracking`: default `view:"tracking"`, 20 records;
 use `repo`, your stable `catId`, `threadId` and a small `limit` (maximum 50) for the

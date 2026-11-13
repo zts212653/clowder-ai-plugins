@@ -103,7 +103,10 @@ export async function listTrackingStatus(storage: PluginStorageHost, secrets: Fe
       const entry = page.entries[key]!, meta = await statusMetadata(storage, source, entry.value);
       if (direct && source === 'journal' && typeof object(object(entry.value).route).sourceEventId === 'string') readCalls++;
       if (caller?.userId && typeof meta.userId === 'string' && meta.userId !== caller.userId) { position.after = key; continue; }
-      if (direct && source !== 'diagnostics' && meta.userId !== caller!.userId) { position.after = key; continue; }
+      if (direct && source !== 'diagnostics' && meta.userId !== caller!.userId) {
+        if (typeof meta.userId !== 'string') unattributed++;
+        position.after = key; continue;
+      }
       const missing = query.repo && typeof meta.subject !== 'string' || query.catId && typeof meta.catId !== 'string'
         || query.threadId && typeof meta.threadId !== 'string';
       if (missing) { unattributed++; position.after = key; continue; }

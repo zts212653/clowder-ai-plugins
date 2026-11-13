@@ -48,13 +48,16 @@ list/pagination remains available. Direct lookup is read-only and does not run
 GitHub requests, census, registration, retry or repair. Baseline, generation,
 recovery revision/scope, sourceRevision, owner, cancellation/expiry, redaction,
 byte limits and continuation rules remain with the existing records/projections.
+Direct lookup hides records without stored user ownership and counts them in
+`page.unattributed`; known foreign-user records are hidden without contributing
+to that count. Ordinary scan behavior is unchanged.
 Architecture ownership and state-owner map are unchanged.
 
 ## Verification
 
 Observed RED: the new known-subject action tests failed because the old strict
 schema rejected subjectKey. Baseline: 7 existing status tests passed. GREEN:
-12 status tests, build/typecheck and 982 package tests passed without skips.
+13 status tests, build/typecheck and 983 package tests passed without skips.
 Tests prohibit scan/list during direct queries and cover presence, absence,
 different user/cat/thread, imported typed IDs, compatible issues, registration
 diagnostics, all recovery owners, cursor fencing, cancellation/expiry and redaction.
@@ -89,11 +92,36 @@ CLOWDER_1843_HOST_ROOT=/absolute/host CLOWDER_1843_GITHUB_ARTIFACT_ROOT=/absolut
   /absolute/worktree/packages/github-operations/test/host-exact-tracking.mjs
 ```
 
-Local logs: `/tmp/github-tracking-exact-{red,green,package,typecheck,native,packed-consumer}.log`.
-The standard archive is recorded by `/tmp/github-tracking-exact-pack.json`;
+Original RED: `/tmp/github-tracking-exact-red.log`. Final logs:
+`/tmp/github-tracking-exact-r2-{green,package,typecheck,native,packed-consumer,catalog}.log`.
+The final standard archive is recorded by `/tmp/github-tracking-exact-r2-pack.json`;
 the self-contained archive SHA256 is
-`018c4fcaaeea2b42fbafe38355e71337b8f372c1202dabe59135e28a3d29fcf3`
+`34ccc1e2be59184785e4a8a6bd0055543be6e523aba07a8d84cb85a3fe0beab3`
 (5,643 members, 136 installed packages, zero symlinks, relocated entrypoints loaded).
+
+## Independent R1 and the unknown-owner correction
+
+Sonnet reviewed exact HEAD `902acf2e8174da464fa7719cd70f08a59c0afbfa` and
+confirmed the accepted outcome, stable addressing, legacy-ID constraint,
+ordinary cursor continuity, identity filters and read-only behavior. One P2
+blocked approval: a directly addressed row without stored user ownership was
+hidden without incrementing `unattributed`.
+
+The new regression reproduced RED (`0 !== 2`) for one unknown-owner collection
+and one journal route. GREEN keeps both records hidden, counts both unknowns,
+and still hides known foreign-user records without disclosing their count.
+README, tool description and packaged skill state that boundary. The updated
+package passed 13 status tests, 983 package tests and typecheck/build. The final
+archive reran the native MCP/retry/delivery probe with the same **9 HGETs for
+three queries at both history sizes**, zero scans and one original-generation
+delivery. Candidate integrity/shasum, release plan and exact catalog pack checks
+were refreshed for those final bytes.
+
+The pre-correction HEAD's full `pnpm gate:ci` passed all 41 steps in 976 seconds
+(`/tmp/github-tracking-exact-gate-ci.log`). That is a baseline receipt, not a
+claim that the correction ran that full gate. Final affected checks above and
+the required remote CI must cover the repaired HEAD; delta review remains with
+the same non-author Sonnet.
 
 ## Delivery boundary at author self-check
 

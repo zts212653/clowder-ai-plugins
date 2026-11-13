@@ -299,6 +299,7 @@ contributions:
       Direct lookup reads existing keys only: imported arbitrary IDs additionally require their original taskId;
       diagnostics require their original registrationId. page.lookup declares coverage, so a missing native key never proves
       that no imported wait exists. No census, registration, repair or GitHub request runs during lookup.
+      Rows without recorded user ownership are hidden in direct lookup and counted in page.unattributed.
     inputSchema:
       type: object
       additionalProperties: false

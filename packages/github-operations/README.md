@@ -25,7 +25,7 @@
 
 已知 PR / Issue 时，从 `alpha.45` 起可直接调用 `github_list_tracking({subjectKey:"pr:owner/repo#123"})`：默认使用当前认证用户、猫和线程，不扫描存储，也不访问 GitHub。`catId`、`threadId` 可指定同一用户有权读取的原路由。`view:"recovery"` 同时读取这个对象可直接寻址的恢复 owner。查询保留原记录的基线、generation、取消／到期状态和 recovery scope/revision；响应仍受分页及字节预算约束。
 
-新订阅的稳定 ID 可由对象与身份计算；迁入的旧等待保留任意 Task ID，另传原 `taskId` 就能直读 typed／兼容 Issue 原件。注册诊断使用 `{view:"diagnostics",subjectKey:"pr:owner/repo#123",registrationId:"原登记意图ID"}`。`page.lookup.coverage` 标明本次读取的是 `native_subscription`、`task` 或 `registration`；`legacyTaskIdRequired:true` 表示尚未覆盖任意 ID 的旧等待，空结果不能证明它们不存在。没有这些原始 ID 时，原有列表和续页入口仍可使用。工具不会为查询补建索引、重登记或执行恢复。
+新订阅的稳定 ID 可由对象与身份计算；迁入的旧等待保留任意 Task ID，另传原 `taskId` 就能直读 typed／兼容 Issue 原件。注册诊断使用 `{view:"diagnostics",subjectKey:"pr:owner/repo#123",registrationId:"原登记意图ID"}`。`page.lookup.coverage` 标明本次读取的是 `native_subscription`、`task` 或 `registration`；`legacyTaskIdRequired:true` 表示尚未覆盖任意 ID 的旧等待，空结果不能证明它们不存在。没有这些原始 ID 时，原有列表和续页入口仍可使用。工具不会为查询补建索引、重登记或执行恢复。未记录用户归属的原件不会由 direct 查询返回，计入 `page.unattributed`；已知属于其他用户的记录继续隐藏，不计入该数。
 
 `alpha.37` 需要先更新支持有界待办索引的 Host；缺少能力时，登记和采集会明确返回不可用，无关只读功能仍可使用。更新保留原实例、历史和已有导入暂停；不会自动放开采集或重新登记旧等待。写入新格式后，请保留配套 Host 版本，不能直接降回不识别该格式的旧 Host。
 
