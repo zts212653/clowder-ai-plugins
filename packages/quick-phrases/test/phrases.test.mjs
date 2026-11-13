@@ -170,19 +170,22 @@ test('ordinary save keeps its single CAS attempt and reports 409 on conflict', a
   assert.deepEqual((await list({})).items, []);
 });
 
-test('GET exposes an actionable insertion receipt without persisting it', async () => {
+test('a selection records use before returning one public insert action with the stored text', async () => {
   const { invoke, list, storage } = fixture();
   await invoke('POST', { body: { text: 'Receipt phrase' } });
   const [item] = (await list({})).items;
-  assert.deepEqual(item.onInserted, {
-    request: { method: 'POST', path: 'phrases', body: { id: item.id } },
-    notifyFailure: false,
+  assert.equal('onInserted' in item, false);
+  const result = await invoke('POST', { body: { id: item.id } });
+  assert.equal(result.status, 200);
+  assert.deepEqual(JSON.parse(result.body), {
+    ok: true, act: 'insert', args: { into: 'chat-input', text: 'Receipt phrase' },
   });
-  const stored = await storage.get(`quick-phrases:${Buffer.from('owner-a').toString('base64url')}`);
-  assert.ok(stored);
-  assert.equal('onInserted' in stored.value[0], false);
-  assert.equal((await invoke('POST', { body: item.onInserted.request.body })).status, 200);
   assert.equal((await list({})).items[0].useCount, 1);
+  const stored = await storage.get(`quick-phrases:${Buffer.from('owner-a').toString('base64url')}`);
+  assert.equal('act' in stored.value[0], false);
+  const failed = await invoke('POST', { body: { id: item.id }, userId: 'other-owner' });
+  assert.equal(failed.status, 404);
+  assert.equal('act' in JSON.parse(failed.body), false);
 });
 
 test('invalid persisted counts are rejected at the storage boundary', async () => {
@@ -198,13 +201,5 @@ test('saving and recording usage are mutually exclusive POST operations', async 
   const { invoke, list } = fixture([existing]);
   assert.equal((await invoke('POST', { body: { id, text: 'A new phrase' } })).status, 400);
   assert.equal((await invoke('POST', { body: { id: null, text: 'A new phrase' } })).status, 400);
-  assert.deepEqual((await list({})).items, [
-    {
-      ...existing,
-      onInserted: {
-        request: { method: 'POST', path: 'phrases', body: { id } },
-        notifyFailure: false,
-      },
-    },
-  ]);
+  assert.deepEqual((await list({})).items, [existing]);
 });

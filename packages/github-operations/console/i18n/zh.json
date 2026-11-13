@@ -118,9 +118,7 @@
   },
   "plugin": {
     "entries": {
-      "commit": "在 GitHub 打开",
-      "community": "社区",
-      "issue": "发到 GitHub issue"
+      "community": "社区"
     },
     "panel": {
       "desc": "社区事项与贡献记录"

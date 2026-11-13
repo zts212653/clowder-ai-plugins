@@ -61,28 +61,22 @@ pdl:
         open:
           node: feedback.panel
           as: float
-  # a float window like the inbox: beside its entry, dragged by its edge, closed with × or Esc
   popups:
-    feedback: {at: trigger, exit: [x, esc], drag: true}
+    feedback:
+      at: trigger
+      exit:
+        - x
+        - esc
+      drag: true
   views:
     feedback.panel:
-      vm: feedbackPanel
+      type: frame
+      html:
+        request: panel
       popup: feedback
-      bare: true
+      title: t:feedback.plugin.entry
       loading: t:feedback.load.loading
       error: t:feedback.load.error
-      blocks:
-        - type: component
-          use: floatHtml
-          props:
-            className: inbox
-            label: t:feedback.plugin.entry
-            close: feedback
-            blocks:
-              - type: frame
-                html: $.html
-                key: feedback
-                tall: true
-                title: t:feedback.plugin.entry
-                on:
-                  message: feedbackMessage
+  requests:
+    panel:
+      path: panel

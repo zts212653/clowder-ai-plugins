@@ -50,6 +50,26 @@ test:
   action:
     method: personal-chrome-host.test
 contributions:
+  - type: webhook
+    id: personal-chrome-console-recovery
+    path: personal-chrome/recovery
+    methods: [ POST ]
+    action: { method: personal-chrome-host.console.http }
+  - type: webhook
+    id: personal-chrome-console-pick
+    path: personal-chrome/pick
+    methods: [ POST ]
+    action: { method: personal-chrome-host.console.http }
+  - type: webhook
+    id: personal-chrome-console-refresh
+    path: personal-chrome/refresh
+    methods: [ POST ]
+    action: { method: personal-chrome-host.console.http }
+  - type: webhook
+    id: personal-chrome-console-refresh-titles
+    path: personal-chrome/refresh-titles
+    methods: [ POST ]
+    action: { method: personal-chrome-host.console.http }
   - type: cloud-conversation-host
     id: personal-chrome-chatgpt-host
     provider: chatgpt
@@ -65,6 +85,10 @@ features:
     name: Personal Chrome conversation host
     resources: []
     contributions:
+      - { type: webhook, id: personal-chrome-console-recovery }
+      - { type: webhook, id: personal-chrome-console-pick }
+      - { type: webhook, id: personal-chrome-console-refresh }
+      - { type: webhook, id: personal-chrome-console-refresh-titles }
       - type: cloud-conversation-host
         id: personal-chrome-chatgpt-host
 runtime:
@@ -79,29 +103,31 @@ pdl:
       keys:
         - cloudRecovery.chatgpt
       node:
-        vm: personalChromeRecovery
         blocks:
           - type: box
             load: $.load
             error: t:personalChrome.readError
             retry:
-              act: personalChromeRead
+              act: plugin
+              args:
+                request: refresh
+              disabled: $.pending
             blocks:
               - type: kv
-                when: $.only
+                when: $.card.only
                 from:
                   - k: t:chatCards.field.conversation
                     v:
                       t: chat.cloudConversation
                       args:
-                        - $.only.displayTitle
+                        - $.card.only.displayTitle
               - type: select
-                id: $.selectId
-                value: $.value
+                id: $.card.selectId
+                value: $.card.value
                 options:
                   - v: ""
                     label: t:runtime.chooseConversation
-                  - from: $.candidates
+                  - from: $.card.candidates
                     item:
                       v: "@chatUrl"
                       label:
@@ -109,49 +135,84 @@ pdl:
                         args:
                           - "@displayTitle"
                 label: t:runtime.chooseConversation
-                change: personalChromePick
-                when: $.canChoose
+                change: plugin
+                when: $.card.canChoose
+                args:
+                  request: pick
+                  key: $.card.key
+                disabled: $.pending
               - type: notice
                 tone: warn
                 text:
                   t: personalChrome.issue
                   args:
-                    - $.connectionIssue
-                when: $.connectionIssue
+                    - $.card.connectionIssue
+                when: $.card.connectionIssue
                 action:
                   type: button
                   label: t:personalChrome.settings
                   act: open
-                  args: $.settings
+                  args: $.card.settings
               - type: notice
                 text:
                   t: personalChrome.issue
                   args:
-                    - $.titleSync.kind
-                    - $.titleSync.n
-                when: $.titleSync
+                    - $.card.titleSync.kind
+                    - $.card.titleSync.n
+                when: $.card.titleSync
               - type: status
                 text: t:common.status.connected
-                when: $.bound
+                when: $.card.bound
               - type: toolbar
                 items:
                   - type: button
                     primary: true
                     label: t:home.reconnect
                     act: bindRetry
-                    args: $.submit
+                    args: $.card.submit
                     when:
-                      - $.canSubmit
-                      - $.bindOnly
+                      - $.card.canSubmit
+                      - $.card.bindOnly
+                    disabled: $.pending
                   - type: button
                     primary: true
                     label: t:runtime.bindRetry
                     act: bindRetry
-                    args: $.submit
+                    args: $.card.submit
                     when:
-                      - $.canSubmit
-                      - "!$.bindOnly"
+                      - $.card.canSubmit
+                      - "!$.card.bindOnly"
+                    disabled: $.pending
                   - type: button
                     label: t:personalChrome.refreshTitles
-                    act: personalChromeRefreshTitles
-                    when: "!$.bound"
+                    act: plugin
+                    when: "!$.card.bound"
+                    args:
+                      request: refreshTitles
+                    disabled: $.pending
+        sources:
+          card: recovery
+  requests:
+    recovery:
+      path: personal-chrome/recovery
+      method: POST
+      body:
+        key: "@key"
+        boundChatUrl: "@boundChatUrl"
+        bindOnly: "@bindOnly"
+        canSubmit: "@canSubmit"
+        args: "@args"
+    pick:
+      path: personal-chrome/pick
+      method: POST
+      body:
+        key: "@key"
+        value: "@v"
+    refreshTitles:
+      path: personal-chrome/refresh-titles
+      method: POST
+      body: {}
+    refresh:
+      path: personal-chrome/refresh
+      method: POST
+      body: {}

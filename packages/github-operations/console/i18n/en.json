@@ -1,9 +1,7 @@
 {
   "plugin": {
     "entries": {
-      "commit": "Open on GitHub",
-      "community": "Community",
-      "issue": "Send to a GitHub issue"
+      "community": "Community"
     },
     "panel": {
       "desc": "Community items and contribution records"

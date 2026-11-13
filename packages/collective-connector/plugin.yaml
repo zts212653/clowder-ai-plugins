@@ -169,6 +169,8 @@ features:
     resources: []
     contributions:
       - type: webhook
+        id: collective-console-client
+      - type: webhook
         id: collective-owner-10
       - type: webhook
         id: collective-owner-11
@@ -230,6 +232,11 @@ runtime:
   entrypoint: dist/plugin-entrypoint.js
   dataDirectory: collective
 contributions:
+  - type: webhook
+    id: collective-console-client
+    path: console/client
+    methods: [ GET ]
+    action: { method: collective.control.http }
   - type: skill
     id: collective-participation
     path: skills/collective-participation
@@ -382,7 +389,6 @@ pdl:
       node:
         title: t:collective.plugin.entries.home
         icon: globe
-        # from the rail it covers the shell (sidebar and body) over the conversation, which declares keep: its back returns to the conversation
         open:
           node: collective.home
           anchor: shell
@@ -400,12 +406,19 @@ pdl:
   views:
     collective.desk:
       type: frame
-      src: ""
+      src:
+        request: client
     collective.home:
       type: frame
       route: plug-collective
-      src: ""
+      src:
+        request: client
       bridge:
         - theme
         - members.read
         - thread.share
+  requests:
+    client:
+      path: console/client
+      query:
+        hostOrigin: host.origin

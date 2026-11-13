@@ -277,11 +277,15 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         const runtime = await read(host, 'runtime', runtimeSchema);
         const ready =
           pref.coordinatorId && pref.threadIds.length && pref.workerIds.length && pref.responsibility.trim();
-        // The console reads this through its webhook route: an HTTP response.
+        const threadId = runtime?.mainThreadId ?? null;
+        const canOpen = !!threadId && !!ready && !runtime?.error;
+        // The console reads component-shaped data through its declared webhook route.
         return {
           status: 200,
           headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
           body: JSON.stringify({
+            kind: canOpen ? 'thread' : 'go',
+            target: canOpen ? { id: threadId } : { page: 'extItem-official.superagent' },
             label: pref.name,
             threadId: runtime?.mainThreadId ?? null,
             status: runtime?.error ? 'error' : !ready ? 'setup' : pref.enabled ? 'listening' : 'paused',

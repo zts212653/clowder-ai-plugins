@@ -128,6 +128,8 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   const http = await createCommunityHttpRouter({
     storage: context.storage,
     threads: context.threads,
+    members: context.members,
+    messageThread: async mid => (await context.messaging.get(mid))?.threadId ?? null,
     projectionOperations: community.projectionOperations,
     provider: { token: () => context.secrets.get('token') },
     issues: { narrator },

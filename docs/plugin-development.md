@@ -127,7 +127,7 @@ Host 增加消息投影字段时，应先发布兼容的 SDK 并升级消费方�
 
 包内 PDL console 提供入口与面板，通过插件声明的 webhook 路由访问页面和业务。页面 HTML、资源和业务请求统一使用既有 `/api/plugins/:pluginId/*` 分发及 `{...action.params, request}` 参数语义；页面以 `text/html` 返回，不建立另一个 UI 请求协议。opaque iframe 通过受当前插件命名空间和挂载代次限制的 HTTP 桥访问这些声明，重定向被拒绝。独立服务的页面和请求仍由插件自己的服务负责，不由 Host 增设业务协议。
 
-例如反馈插件 alpha.2 的 `feedback.page` 声明处理 `GET panel`；`feedback.http` 处理 `POST feedback`，内部业务读取 `input.request.body`。两者均返回既有 status/headers/body 结构；控制台另使用 `feedback.panel-route`（`POST feedback/panel`）webhook 路由。超过普通响应预算的已保留截图通过通用流响应交付。Host 与插件桥接修订需要配套采用，这不代表候选公共 UI 方向已经获得维护者采纳或发布。
+例如反馈插件 的 `feedback.page` 声明处理 `GET panel`；`feedback.http` 处理 `POST feedback`，内部业务读取 `input.request.body`。两者均返回既有 status/headers/body 结构；控制台 frame 从 `GET panel` 获取 HTML，页面经通用 HTTP 桥调用 `POST feedback`；保留的 `feedback.panel-route`（`POST feedback/panel`）仍由插件处理。超过普通响应预算的已保留截图通过通用流响应交付。Host 与插件桥接修订需要配套采用，这不代表候选公共 UI 方向已经获得维护者采纳或发布。
 
 ### 项目产物交付候选（未发布）
 
@@ -143,9 +143,277 @@ producer 和 lookup 返回同一个有界 `ProjectOutputResult`：`pending`、`g
 
 ## 控制台界面与富卡片
 
-Contract `0.4.0` 不再提供 `ui` contribution。插件的控制台界面（入口、面板、行模板、文字）由插件包提供：manifest 的 `pdl` 段声明控制台，`console/app.js` 实现界面，`console/i18n` 提供文字。包里的界面读写只经插件自己声明的 webhook 路由，例如问题反馈控制台使用 `feedback.panel-route`（`POST feedback/panel`）。Host 不为某个插件写界面分支。
+控制台由 `plugin.yaml` 的 `pdl`、`console/i18n/<lang>.json` 和可选的 `console/components/*.js|css` 组成。没有 `pdl.app`，宿主不加载控制台应用脚本。业务接口由插件实现并在 `contributions` 中声明为 webhook，同时归入对应 feature。Host 只按声明转发 `/api/plugins/<pluginId>/<path>`。
 
-消息里的富卡片声明渲染类型：`kind` 与 `meta.kind` 写作 `card.<subtype>`；新的 subtype 以插件命名空间开头。带 subtype 的消息同时必须是带标题和正文的合法普通卡片，没有该插件模板的 Host 按普通卡片显示。
+按需要选择：
+
+1. **仅 PDL**：入口、列表、设置、表单、弹窗已有合适组件时，直接组合组件；接口直接返回组件所需的数据。
+2. **PDL + 自有组件**：已有组件不能表达画法时，在 `console/components` 提供纯绘制函数和 CSS；读取、写入、状态和动作仍写 PDL。
+3. **frame**：已有独立页面、复杂编辑器或完整应用需要自行管理内部交互时，用一个 frame 节点。内部不能被宿主插入节点；与宿主交互受 bridge 限制。
+
+### 容器、入口与组件契约
+
+运行中的 Host 在 `/pdl/plugin-catalog.json` 发布随版本生成的目录：容器与公开锚点、作用域、组件属性与变体、公开动作与数据源。以目标 Host 的目录为准，不复制私有 view model 或动作。
+
+`inserts: [{ id, anchor, at, node }]` 将节点放进同一棵树；`at` 是 `before | after | inside`，必要时用 `with`、`depth`、`fallback` 限定位置。插件内 id 必须唯一且跨版本稳定，宿主登记为 `plugin:<pluginId>/<id>`。行作用域节点只能进入行容器。入口上的 `open: { node, as, anchor, depth }` 决定打开位置：`cover` 覆盖、`beside` 并排、`float` 浮层；目标在 `views` 登记，浮层壳在 `popups` 声明。容器提供的作用域数据决定节点能读什么。
+
+组件按目录契约接收数据、动作和事件；`when` 决定显示，`disabled` 可绑定 `$.pending`。新增画法的注册形式是：
+
+```js
+PDL_COMPONENTS['plugin:example.plugin/summary'] = function (b, sc, root) {
+  // 只根据声明和传入的数据绘制，文本必须转义，样式只用主题 token。
+  return '<div class="plugin-summary"></div>';
+};
+```
+
+在 PDL 中用 `{ type: component, use: 'plugin:example.plugin/summary', props: ... }`。组件不能读数据、发请求、读写宿主状态或登记业务动作，也不能修改已有组件。
+
+全局替换宿主组件用 `replaces: { <宿主块类型>: { use: 'plugin:<pluginId>/<name>', props: [...] } }`；`props` 必须列全该类型在目录中的属性，输入形状、动作和事件语义也必须保持。一个宿主组件同时只能有一个启用中的替换者；冲突时安装可完成，但启用被拒绝并指出组件与占用插件。停用恢复宿主画法。有 `replaces` 时组件随索引加载，其余组件随首次投影的子树加载。
+
+### 读取、写入与宿主能力
+
+`requests` 给插件内的请求命名，每项是 `{ path, method?, query?, body? }`；默认 GET。参数值可以是字面量、`state.<键>`（插件视图状态）、`@字段`（当前输入数据，可带路径）或 `host.origin`。复杂输入可用 POST body 传递。不要把宿主的 `/api/plugins/...` 前缀写进 `path`。
+
+节点用 `sources: { list: listRequest }` 声明来源。投影时读取，结果放在 `$.list`，读取状态在 `$.load`（`loading | error | ''`）；同一来源不按组件重复读取。角标可直接写 `badge: $.list.count`。后端负责筛选、整形、可执行条件及打开目标，不能在组件里补一个 view model。
+
+`plugin { request, ...参数 }` 调用声明的请求；`body` 中的 `@字段` 从动作参数取值。输入字段用 `change: plugin` 保存，不按键发送。`plugSet { k, v }` 改插件视图状态，用于搜索和翻页；引用该状态的请求随之重读。写入期间 `$.pending` 为真；写后宿主重读已投影来源。结果的 `message` 用于提示，失败显示错误；成功结果可带一个公开宿主动作 `{ act, args }`，由宿主在写后执行。需要确认或多个输入时，使用 `dlg.<kind>` 视图的 `fields`，每个字段写 `arg`，确定动作由 `okAct` / `okArgs` 声明；表单每次打开都是新的，不存进插件状态。
+
+当前目录的公开动作是 `thread`、`go`、`insert`、`toast`、`copy`、`open`、`close`、`openUrl`、`dialog`、`plugin`、`plugSet`、`bindRetry`；公开数据是 `members`、`threads`、`currentThread`，写成 `sources: { members: 'host:members' }`。参数与返回形状应核对对应版本实现和目录；不要把公开名字理解为任意宿主能力。未公开的动作、`vm` 或数据源会在登记时被拒绝。
+
+### 例：Quick Phrases 的 PDL 读写与插入
+
+真实接口在 `packages/quick-phrases/src/phrases.ts`：GET `phrases` 接受 `q`、`page`，返回列表、分页位置及前后页；POST `{ text }` 保存，DELETE `{ id }` 删除。点击一条只发一次 POST `{ id }`：后端先记录使用次数，成功后返回 `{ ok: true, act: 'insert', args: { into: 'chat-input', text } }`，文字来自已保存用语。宿主随后执行这个公开动作，失败不插入。新增通过对话框填写；成功后返回公开的 `plugSet` 动作将页码重置为 1，表单随对话框关闭而清空。
+
+以下为包内实际声明（省略身份与 runtime），搜索和分页只使用插件视图状态，列表及分页条件由后端提供：
+
+```yaml
+contributions:
+  - type: webhook
+    id: quick-phrases.entries
+    path: phrases
+    methods:
+      - GET
+      - POST
+      - DELETE
+    action:
+      method: quick-phrases.entries
+features:
+  - id: quick-phrases
+    name: 快捷用语
+    resources: []
+    contributions:
+      - type: webhook
+        id: quick-phrases.entries
+pdl:
+  ns: quickPhrases
+  inserts:
+    - id: quick-phrases
+      anchor: chat.composer.tools
+      at: inside
+      node:
+        title: t:quickPhrases.title
+        icon: bolt
+        scope: page
+        open:
+          node: quickPhrases.pop
+          as: float
+  popups:
+    quickPhrases:
+      at: trigger
+      exit:
+        - outside
+        - esc
+  views:
+    quickPhrases.pop:
+      bare: true
+      popup: quickPhrases
+      loading: t:quickPhrases.loading
+      error: t:quickPhrases.error
+      blocks:
+        - type: pop
+          label: t:quickPhrases.title
+          pos:
+            up: true
+            span: 4
+          blocks:
+            - type: search
+              id: qp-q
+              placeholder: t:quickPhrases.search
+              value: $.state.q
+              input: plugSet
+              args:
+                k: q
+            - type: list
+              from: $.phrases.items
+              empty: t:quickPhrases.empty
+              row:
+                title: "@text"
+                act:
+                  of: $.pending
+                  map:
+                    "true": ""
+                    "false": plugin
+                args:
+                  request: pick
+                  id: "@id"
+                  plugin: official.quick-phrases
+                cols:
+                  - w: ctl
+                    control:
+                      type: button
+                      iconOnly: true
+                      icon: delete
+                      label: t:quickPhrases.remove
+                      act: plugin
+                      args:
+                        request: remove
+                        id: "@id"
+                      disabled: $.pending
+            - type: toolbar
+              when: $.phrases.paged
+              items:
+                - type: button
+                  iconOnly: true
+                  icon: prev
+                  label: t:quickPhrases.prev
+                  act: plugSet
+                  args:
+                    k: page
+                    v: $.phrases.prevPage
+                  disabled: $.phrases.first
+                - type: text
+                  text:
+                    t: quickPhrases.page
+                    args:
+                      - $.phrases.page
+                      - $.phrases.totalPages
+                - type: button
+                  iconOnly: true
+                  icon: next
+                  label: t:quickPhrases.next
+                  act: plugSet
+                  args:
+                    k: page
+                    v: $.phrases.nextPage
+                  disabled: $.phrases.last
+            - type: button
+              label: t:quickPhrases.add
+              act: dialog
+              args:
+                kind: quickPhrases.add
+              disabled: $.pending
+      sources:
+        phrases: list
+    dlg.quickPhrases.add:
+      title: t:quickPhrases.add
+      fields:
+        - id: qp-add
+          arg: text
+          label: t:quickPhrases.add
+          req: true
+      okAct: plugin
+      okArgs:
+        request: add
+  requests:
+    list:
+      path: phrases
+      query:
+        q: state.q
+        page: state.page
+    add:
+      path: phrases
+      method: POST
+      body:
+        text: "@text"
+    pick:
+      path: phrases
+      method: POST
+      body:
+        id: "@id"
+    remove:
+      path: phrases
+      method: DELETE
+      body:
+        id: "@id"
+```
+
+### 例：Feedback 的 frame 与 HTTP 桥
+
+真实后端 `packages/feedback/src/index.ts` 的 `feedback.page` 处理 GET `panel`，以 `text/html` 返回现有完整页面；`feedback.http` 处理 POST `feedback`，内部业务读取 `input.request.body`。两者使用既有 status/headers/body 响应。下面的声明与包内面板一致，沿用可拖动、×／Esc 关闭的 float：
+
+```yaml
+contributions:
+  - type: webhook
+    id: feedback.http
+    path: feedback
+    methods:
+      - POST
+    requestBodyLimitBytes: 15728640
+    action:
+      method: feedback.http
+  - type: webhook
+    id: feedback.page
+    path: panel
+    methods:
+      - GET
+    action:
+      method: feedback.panel
+features:
+  - id: feedback
+    name: 问题反馈
+    resources: []
+    contributions:
+      - type: webhook
+        id: feedback.http
+      - type: webhook
+        id: feedback.page
+pdl:
+  ns: feedback
+  inserts:
+    - id: feedback
+      anchor: inbox
+      at: before
+      node:
+        title: t:feedback.plugin.entry
+        icon: msg
+        open:
+          node: feedback.panel
+          as: float
+  popups:
+    feedback:
+      at: trigger
+      exit:
+        - x
+        - esc
+      drag: true
+  views:
+    feedback.panel:
+      type: frame
+      html:
+        request: panel
+      popup: feedback
+      title: t:feedback.plugin.entry
+      loading: t:feedback.load.loading
+      error: t:feedback.load.error
+  requests:
+    panel:
+      path: panel
+```
+
+页面无需修改。宿主将 frame 的 `window.name` 设为 nonce；页面按现有 `ui/bridge.js` 协议发送请求：
+
+```js
+parent.postMessage({
+  channel: 'clowder-plugin-ui/v1', nonce: window.name, requestId: 1,
+  type: 'http', request: { method: 'POST', path: 'feedback', body: { op: 'bootstrap', resume: true } }
+}, '*');
+```
+
+宿主将 `http { method, path, body }` 转发到此插件自己的路由，返回同一 nonce、requestId 的 `{ result: { status, body } }`；桥自身失败则回 `{ error }`。页面校验 source、channel 和 nonce，并处理超时。`clipboard.text { value }`、`clipboard.image { value }` 走平台剪贴板；`close` 关闭当前节点。页面用 `close.guard` 登记离开守卫；宿主在 ×、Esc、返回或替换前发送 `before-close`，页面保存草稿后回 `close`，保存失败回 `close.cancel` 留在原处。
+
+`html` 页面由 Host 加 CSP 并放入 `sandbox="allow-scripts"`：不能联网、提交表单、开子框，图片只允许 data/blob，不能直接访问宿主 DOM。独立地址页面使用 `src: { request: client }`，请求返回 `{ src }`；例如 Collective 的 `console/client?hostOrigin=<host.origin>`。`src` 页面当前使用 `allow-scripts allow-forms allow-same-origin`，必须按部署的 frame / bridge 契约交互；`bridge` 声明不能扩展通用消息处理器。
+
+消息富卡片使用 `kind` 与 `meta.kind` 声明 `card.<subtype>`，新的 subtype 以插件命名空间开头。通过 `templates` 为渲染类型登记节点，节点照样用 `sources` 和公开动作。带 subtype 的消息也必须有普通卡片的标题与正文，插件停用或缺失时才能逐级降级。
 
 ## 契约边界验证
 

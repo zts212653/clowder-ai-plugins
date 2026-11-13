@@ -321,6 +321,22 @@ pdl:
       node:
         title: t:superagent.plugin.entry
         icon: robot
-        badge: superagent
+        badge: $.view.badgeCount
         open:
-          action: superagentOpen
+          action:
+            of: $.view.kind
+            map:
+              thread: thread
+              go: go
+              _: go
+          args:
+            of: $.view.kind
+            map:
+              thread: $.view.target
+              _:
+                page: extItem-official.superagent
+        sources:
+          view: view
+  requests:
+    view:
+      path: superagent/view

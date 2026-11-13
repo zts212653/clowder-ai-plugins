@@ -82,3 +82,26 @@ test('returns the original caller-owned data only after full validation', () => 
     assert.equal(result.manifest, manifest);
   }
 });
+
+test('console fragments accept declarations and same-contract replacements, and reject executable app fields', () => {
+  const manifest = {
+    pluginId: 'example.console', version: '1.0.0', contractVersion: '0.1.0', name: 'Console',
+    features: [{ id: 'console', name: 'Console', resources: [] }],
+    runtime: { transport: 'builtin', entrypoint: 'dist/index.js' },
+  };
+  const pdl = {
+    ns: 'console', views: { page: { sources: { list: 'list' }, blocks: [] } },
+    requests: { list: { path: 'list' } },
+    components: { js: ["PDL_COMPONENTS['plugin:example.console/list'] = function (b, sc, root) { return ''; };"], css: [] },
+    replaces: { list: { use: 'plugin:example.console/list', props: ['from', 'row', 'empty'] } },
+  };
+  assert.equal(validateManifest({ ...manifest, pdl }).valid, true);
+  for (const invalid of [
+    { ...pdl, app: 'executable console source' },
+    { ...pdl, replaces: [] },
+    { ...pdl, replaces: { list: 'plugin:example.console/list' } },
+    { ...pdl, components: { js: [42], css: [] } },
+    { ...pdl, requests: { list: 'list' } },
+    { ...pdl, unknown: {} },
+  ]) assert.equal(validateManifest({ ...manifest, pdl: invalid }).valid, false, JSON.stringify(invalid));
+});

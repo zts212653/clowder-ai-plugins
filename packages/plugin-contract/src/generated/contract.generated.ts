@@ -566,7 +566,24 @@ export type PluginManifest = {
   readonly signals?: SignalContribution;
   readonly projectOutputs?: readonly ProjectOutputAction[];
   readonly call?: PluginCallDeclaration;
-  readonly pdl?: Readonly<Record<string, unknown>>;
+  readonly pdl?: {
+    readonly id?: string;
+    readonly icon?: string;
+    readonly ns?: string;
+    readonly views?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    readonly inserts?: readonly Readonly<Record<string, unknown>>[];
+    readonly templates?: readonly Readonly<Record<string, unknown>>[];
+    readonly popups?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    readonly icons?: Readonly<Record<string, string>>;
+    readonly i18n?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    readonly rows?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    readonly requests?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    readonly components?: {
+      readonly js: readonly string[];
+      readonly css: readonly string[];
+    };
+    readonly replaces?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  };
 };
 
 export type CatalogSemVer = string;

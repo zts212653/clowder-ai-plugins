@@ -1,3 +1,4 @@
+import { createPersonalChromeConsole } from './console-http.js';
 import {definePluginModule} from '@clowder-ai/plugin-sdk';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -269,6 +270,10 @@ export function createPersonalChromePluginModule(): PersonalChromeSettingsEntryp
           });
           return {
             actions: {
+              'personal-chrome-host.console.http': createPersonalChromeConsole({
+                pluginInstanceId: context.pluginInstanceId, list: operations.list, status: operations.status,
+                refreshTitles: conversationHost.refreshTitles,
+              }),
               [PERSONAL_CHROME_LIST_METHOD]: operations.list,
               [PERSONAL_CHROME_REVOKE_METHOD]: operations.revoke,
               [PERSONAL_CHROME_STATUS_METHOD]: operations.status,

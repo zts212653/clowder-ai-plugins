@@ -1,7 +1,8 @@
 import { communityNativeTargets as nativeTargets, communityNativeInput as nativeInput, type CommunityNativeMethod } from './community-native-actions.js';
 export type { CommunityNativeMethod } from './community-native-actions.js';
+import { registerConsoleRoutes } from './console-routes.js';
 import Fastify, { type InjectOptions, type LightMyRequestResponse } from 'fastify';
-import type { PluginActionContext, PluginStorageHost, PluginThreadHost } from '@clowder-ai/plugin-sdk';
+import type { PluginActionContext, PluginMemberHost, PluginStorageHost, PluginThreadHost } from '@clowder-ai/plugin-sdk';
 import { z } from 'zod';
 import { SdkCommunityCollectionStore } from './community-collection.js';
 import { CommunityRouteProvider, type CommunityRouteProviderOptions } from './community-route-provider.js';
@@ -20,6 +21,8 @@ import { CommunityReconciliationFindingStore } from './business/domains/communit
 type OwnedStores = 'threadStore' | 'requestContext' | 'communityIssueStore' | 'communityPrStore' | 'repoConfigStore' | 'eventLog' | 'objectStore' | 'projector' | 'findingStore';
 export interface CommunityHttpRouterOptions {
   readonly storage: PluginStorageHost;
+  readonly members?: PluginMemberHost;
+  readonly messageThread?: (mid: string) => Promise<string | null>;
   readonly threads: Pick<PluginThreadHost, 'get' | 'create'>;
   /** Share the active CommunityRuntime queue, never its unguarded stores. */
   readonly projectionOperations: CommunityProjectionOperations;
@@ -99,6 +102,7 @@ export async function createCommunityHttpRouter(options: CommunityHttpRouterOpti
       return result.data.issue ? { issue: result.data.issue } : {};
     } },
   });
+  registerConsoleRoutes(app, scope, { storage, members: options.members, messageThread: options.messageThread });
   await app.ready();
   return {
     async forwardOwner(value: unknown) {

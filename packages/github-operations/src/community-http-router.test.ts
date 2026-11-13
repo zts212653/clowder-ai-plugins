@@ -438,3 +438,92 @@ test('native thread publication survives an uncertain response and freezes edits
   assert.equal(creates, 1); assert.equal(finds, 1);
   assert.equal((await router.forwardOwner({ principal, method: 'GET', path: `github/community-issue-drafts/by-id/${'f'.repeat(64)}` })).status, 404);
 });
+
+const cardInput = (id = 'block') => ({ mid: 'message', title: 'Issue proposal', block: { id, meta: {
+  proposedTitle: 'Proposed title', proposedBody: 'Proposed public body', proposedRepo: 'org/repo', proposedLabels: ['bug'],
+} } });
+function consoleRequest(router: Awaited<ReturnType<typeof createCommunityHttpRouter>>, op: string, body: unknown) {
+  return router.forwardOwner({ principal, method: 'POST', path: 'github/community-console/draft/' + op, body });
+}
+
+test('console community routes shape identities, filters, direction detail and PR groups', async t => {
+  const deps: CommunityHttpRouterOptions = { ...options(), members: { get: async () => null, list: async () => [{ catId: 'cat', displayName: 'Cat', nickname: 'Kitty', defaultModel: 'model', available: true }] } };
+  const issues = new SdkCommunityWorkflowIssueStore(deps.storage);
+  const i = (await issues.create({ repo: 'org/repo', issueNumber: 1, issueType: 'bug', title: 'Needs a decision' }))!;
+  await issues.update(i.id, { state: 'pending-decision', assignedCatId: createCatId('cat'), assignedThreadId: 'thread', directionCard: { entries: [{
+    catId: 'cat', authoredByRole: 'narrator', verdict: 'WELCOME', questions: [{ id: 'Q1', result: 'PASS' }], timestamp: 1,
+    routeRecommendation: { kind: 'existing-thread', threadId: 'thread' }, evidenceRefs: ['evidence'], recommendedOwnerRole: 'case-owner',
+  }] } });
+  await new SdkCommunityPrStore(deps.storage).create({ repo: 'org/repo', prNumber: 2, title: 'PR', author: 'author', state: 'open', replyState: 'has-new-activity', headSha: 'a'.repeat(40), draft: false });
+  const router = await createCommunityHttpRouter(deps); t.after(() => router.stop());
+  const get = (query = {}) => router.forwardOwner({ principal, method: 'GET', path: 'github/community-console', query });
+  const list = await get({ cSt: 'pending_decision', cCat: 'cat' });
+  assert.equal(list.status, 200, JSON.stringify(list.body));
+  assert.equal(list.body.list.issueGroups.find((g: {state: string}) => g.state === 'pending_decision').items[0].catName, 'Kitty');
+  assert.equal(list.body.list.prGroups.find((g: {state: string}) => g.state === 'new').items[0].n, 2);
+  const detail = await get({ detail: '1' });
+  assert.equal(detail.body.detail.state, 'pending_decision'); assert.equal(detail.body.detail.dir.route, 'existing');
+  assert.deepEqual(detail.body.detail.dir.questions, [{ label: 'Q1', value: 'PASS' }]);
+  assert.equal(detail.body.detail.url, 'https://github.com/org/repo/issues/1');
+  assert.deepEqual((await get({ detail: '999' })).body, { detail: { gone: true } });
+});
+
+test('console community sync returns the selected repo through one public host action', async t => {
+  const deps = options(); deps.issues.fetchIssues = async () => []; deps.issues.fetchPrs = async () => [];
+  const router = await createCommunityHttpRouter(deps); t.after(() => router.stop());
+  const response = await router.forwardOwner({ principal, method: 'POST', path: 'github/community-console/sync', body: { repo: 'org/repo' } });
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body.args, { plugin: 'official.github-operations', k: 'repo', v: 'org/repo' });
+  assert.equal((await router.forwardOwner({ principal, method: 'GET', path: 'github/community-console' })).body.noRepo, true);
+});
+
+test('console draft edits and pre-create cancellation survive activation restart and remain owner scoped', async () => {
+  const deps = options(); let router = await createCommunityHttpRouter(deps);
+  assert.equal((await consoleRequest(router, 'read', cardInput())).body.canCreate, true);
+  await consoleRequest(router, 'edit', { mid: 'message', b: 'block', field: 'title', value: 'Edited title' });
+  await consoleRequest(router, 'cancel', { mid: 'message', b: 'block' });
+  await router.stop(); router = await createCommunityHttpRouter(deps);
+  try {
+    const restored = await consoleRequest(router, 'read', cardInput());
+    assert.equal(restored.body.titleValue, 'Edited title'); assert.equal(restored.body.state, 'cancelled');
+    assert.equal(restored.body.canCreate, false); assert.equal(restored.body.canEdit, false);
+    assert.equal((await consoleRequest(router, 'read', cardInput('other'))).body.canCreate, true);
+    const other = await router.forwardOwner({ principal: { kind: 'owner', id: 'other' }, method: 'POST', path: 'github/community-console/draft/read', body: cardInput() });
+    assert.equal(other.body.canCreate, true); assert.equal(other.body.titleValue, 'Proposed title');
+  } finally { await router.stop(); }
+});
+
+test('console draft publish failure and retry retain the durable draft and never repeat the GitHub POST', async t => {
+  const deps: CommunityHttpRouterOptions = { ...options(), messageThread: async mid => mid === 'message' ? 'thread' : null };
+  let creates = 0, found = false;
+  deps.drafts.publisher = { create: async () => { creates++; throw new Error('connection lost after POST'); },
+    find: async () => found ? { number: 9, url: 'https://github.com/org/repo/issues/9' } : null };
+  const router = await createCommunityHttpRouter(deps); t.after(() => router.stop()); const addr = { mid: 'message', b: 'block' };
+  await consoleRequest(router, 'read', cardInput());
+  assert.equal((await consoleRequest(router, 'create', addr)).status, 200);
+  const created = await consoleRequest(router, 'read', cardInput()); const id = created.body.draftId;
+  assert.match(id, /^[a-f0-9]{64}$/); assert.equal(created.body.canPublish, true);
+  await consoleRequest(router, 'edit', { ...addr, field: 'bodyMarkdown', value: 'Edited public body' });
+  await consoleRequest(router, 'publish', addr);
+  const uncertain = await consoleRequest(router, 'read', cardInput());
+  assert.equal(uncertain.status, 200); assert.match(uncertain.body.lastError, /uncertain/);
+  assert.equal('error' in uncertain.body, false); assert.equal(uncertain.body.state, 'publishing'); assert.equal(uncertain.body.canEdit, false);
+  assert.equal(creates, 1); found = true; await consoleRequest(router, 'retry', addr);
+  const published = await consoleRequest(router, 'read', cardInput());
+  assert.equal(published.body.draftId, id); assert.equal(published.body.state, 'published');
+  assert.equal(published.body.url, 'https://github.com/org/repo/issues/9'); assert.equal(published.body.lastError, ''); assert.equal(creates, 1);
+});
+
+test('console cards recover existing drafts and expose read failures as lastError', async t => {
+  const deps = options(); const router = await createCommunityHttpRouter(deps); t.after(() => router.stop());
+  const created = await router.forwardOwner({ principal, method: 'POST', path: 'github/community-issue-drafts', body: {
+    requestId: 'existing-card', repo: 'org/repo', title: 'Saved title', bodyMarkdown: 'Saved body',
+  } });
+  const input = cardInput(); Object.assign(input.block.meta, { draftId: created.body.draft.draftId });
+  const saved = await consoleRequest(router, 'read', input);
+  assert.equal(saved.body.titleValue, 'Saved title'); assert.equal(saved.body.bodyMarkdown, 'Saved body');
+  await consoleRequest(router, 'cancel', { mid: 'message', b: 'block' }); assert.equal((await consoleRequest(router, 'read', input)).body.state, 'cancelled');
+  const missing = cardInput('missing'); Object.assign(missing.block.meta, { draftId: 'f'.repeat(64) });
+  const unavailable = await consoleRequest(router, 'read', missing);
+  assert.equal(unavailable.status, 200); assert.match(unavailable.body.lastError, /not found/); assert.equal('error' in unavailable.body, false);
+});

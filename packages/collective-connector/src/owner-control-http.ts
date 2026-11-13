@@ -1,3 +1,4 @@
+import { collectiveClient } from './console-client.js';
 import { z } from 'zod';
 import { hostRouteBodySchema } from './owner-route-validation.js';
 import { individualParticipationInput } from './owner-participation-change.js';
@@ -142,6 +143,18 @@ export function createOwnerControlHttp(options: OwnerControlOptions) {
         if (error instanceof z.ZodError) return response(400, { code: 'INVALID_PARTICIPATION_REQUEST' });
         const code = error && typeof error === 'object' && 'code' in error ? error.code : 'PARTICIPATION_UNAVAILABLE';
         return response(code === 'CONNECTOR_OWNER_MISMATCH' ? 403 : 409, { code, error: error instanceof Error ? error.message : 'Participation unavailable' });
+      }
+    }
+    if (request.path === 'console/client' && request.method === 'GET') {
+      const hostOrigin = request.query?.hostOrigin;
+      if (typeof hostOrigin !== 'string') return finish(400, { error: 'Host origin required' });
+      try {
+        const connections = await connector.listConnections();
+        const remote = await options.remoteStatus?.();
+        return finish(200, collectiveClient(connections, hostOrigin, remote, options.status()));
+      } catch (error) {
+        await current();
+        return response(400, { error: error instanceof Error ? error.message : 'Collective client unavailable' });
       }
     }
     if (request.path === 'connections' && request.method === 'GET')

@@ -591,6 +591,90 @@ contributions:
     path: github/pr-title
     methods: [ GET ]
     action: { method: github.pr-title.http }
+  - type: webhook
+    id: console
+    path: github/community-console
+    methods:
+      - GET
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-sync
+    path: github/community-console/sync
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-status
+    path: github/community-console/status
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-route
+    path: github/community-console/route
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-report
+    path: github/community-console/report
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-waive
+    path: github/community-console/waive
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-read
+    path: github/community-console/draft/read
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-edit
+    path: github/community-console/draft/edit
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-create
+    path: github/community-console/draft/create
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-publish
+    path: github/community-console/draft/publish
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-cancel
+    path: github/community-console/draft/cancel
+    methods:
+      - POST
+    action:
+      method: github.community.http
+  - type: webhook
+    id: console-draft-retry
+    path: github/community-console/draft/retry
+    methods:
+      - POST
+    action:
+      method: github.community.http
 features:
   - id: github-collaboration
     name: GitHub collaboration operations
@@ -658,6 +742,18 @@ features:
       - { type: schedule, id: issue-tracking }
       - { type: schedule, id: repo-comment-poll }
       - { type: schedule, id: community-reconciler }
+      - { type: webhook, id: console }
+      - { type: webhook, id: console-sync }
+      - { type: webhook, id: console-status }
+      - { type: webhook, id: console-route }
+      - { type: webhook, id: console-report }
+      - { type: webhook, id: console-waive }
+      - { type: webhook, id: console-draft-read }
+      - { type: webhook, id: console-draft-edit }
+      - { type: webhook, id: console-draft-create }
+      - { type: webhook, id: console-draft-publish }
+      - { type: webhook, id: console-draft-cancel }
+      - { type: webhook, id: console-draft-retry }
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js
@@ -665,7 +761,9 @@ pdl:
   ns: github
   icon: mark
   icons:
-    mark: <path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/>
+    mark: <path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0
+      0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4
+      9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/>
   inserts:
     - id: github.community
       anchor: panel.tools
@@ -676,29 +774,6 @@ pdl:
         open:
           node: github.community
         tool: true
-    - id: github.commit
-      anchor: ws.git.commit
-      at: inside
-      node:
-        title: t:github.plugin.entries.commit
-        icon: mark
-        open:
-          action: ghOpenCommit
-        args:
-          k: short
-        scope: row
-        move: ws.git.commit
-    - id: github.issue
-      anchor: chat.thread.more
-      at: inside
-      priority: 10
-      node:
-        title: t:github.plugin.entries.issue
-        icon: mark
-        open:
-          action: ghIssue
-        scope: page
-        move: chat.thread.more
   templates:
     - slot: chat.tool.result
       id: prcard
@@ -735,122 +810,165 @@ pdl:
         - card.community_issue_draft
         - card.community_issue_preview
       node:
-        vm: githubIssueDraft
         blocks:
           - type: box
             variant: card
             blocks:
               - type: text
                 variant: title
-                text: $.title
+                text: $.card.title
               - type: settings
-                when: $.canEdit
+                when:
+                  - $.card.canEdit
+                  - "!$.pending"
                 rows:
                   - label: t:github.chatCards.field.repo
-                    when: "!$.draftId"
+                    when: "!$.card.draftId"
                     ctls:
                       - type: select
-                        id: $.repoId
-                        value: $.targetRepo
+                        id: $.card.repoId
+                        value: $.card.targetRepo
                         options:
-                          - from: $.repos
+                          - from: $.card.repos
                             item:
                               v: "@"
                               label: "@"
-                        change: cafeSel
                         label: t:github.chatCards.field.repo
+                        change: plugin
+                        args:
+                          request: edit
+                          mid: $.card.mid
+                          b: $.card.sourceId
+                          field: targetRepo
                   - label: t:github.issueDraft.title
                     ctls:
                       - type: input
-                        id: $.titleId
-                        value: $.titleValue
-                        input: cafeField
+                        id: $.card.titleId
+                        value: $.card.titleValue
                         label: t:github.issueDraft.title
+                        change: plugin
+                        args:
+                          request: edit
+                          mid: $.card.mid
+                          b: $.card.sourceId
+                          field: title
                   - label: t:github.issueDraft.body
                     ctls:
                       - type: input
-                        id: $.bodyId
-                        value: $.bodyMarkdown
+                        id: $.card.bodyId
+                        value: $.card.bodyMarkdown
                         rows: 8
-                        input: cafeField
                         label: t:github.issueDraft.body
+                        change: plugin
+                        args:
+                          request: edit
+                          mid: $.card.mid
+                          b: $.card.sourceId
+                          field: bodyMarkdown
               - type: kv
                 from:
                   - k: draftId
-                    v: $.draftId
+                    v: $.card.draftId
                   - k: t:github.chatCards.field.repo
-                    v: $.targetRepo
-                when: $.draftId
+                    v: $.card.targetRepo
+                when: $.card.draftId
               - type: status
                 text:
-                  of: $.state
+                  of: $.pending
                   map:
-                    loading: t:common.loading
-                    published: t:github.issueDraft.published
-                    cancelled: t:common.status.cancelled
-                    draft: t:common.status.draft
-                    _: ""
-                when: $.state
+                    "true": t:common.loading
+                    "false":
+                      of: $.card.state
+                      map:
+                        loading: t:common.loading
+                        published: t:github.issueDraft.published
+                        cancelled: t:common.status.cancelled
+                        draft: t:common.status.draft
+                        _: ""
+                when:
+                  of: $.pending
+                  map:
+                    "true": true
+                    "false": $.card.state
               - type: notice
                 tone: warn
-                text: $.error
-                when: $.error
+                text: $.card.lastError
+                when: $.card.lastError
                 action:
                   type: button
                   label: t:common.retry
-                  act: ghIssueDraftRetry
-                  args: $.args
+                  act: plugin
+                  args:
+                    request: retry
+                    mid: $.card.mid
+                    b: $.card.sourceId
+                  disabled: $.pending
               - type: toolbar
                 items:
                   - type: button
                     label: t:common.open
                     act: openUrl
                     args:
-                      url: $.url
-                    when: $.url
+                      url: $.card.url
+                    when: $.card.url
+                    disabled: $.pending
                   - type: grow
                   - type: button
                     label: t:common.cancel
-                    act: ghIssueDraftCancel
-                    args: $.args
-                    when: $.canCancel
+                    act: plugin
+                    args:
+                      request: cancel
+                      mid: $.card.mid
+                      b: $.card.sourceId
+                    when: $.card.canCancel
+                    disabled: $.pending
                   - type: button
                     primary: true
                     label: t:github.issueDraft.create
-                    act: ghIssueDraftCreate
-                    args: $.args
-                    when: $.canCreate
+                    act: plugin
+                    args:
+                      request: create
+                      mid: $.card.mid
+                      b: $.card.sourceId
+                    when: $.card.canCreate
+                    disabled: $.pending
                   - type: button
                     primary: true
                     label: t:github.issueDraft.publish
-                    act: ghIssueDraftPublish
-                    args: $.args
-                    when: $.canPublish
+                    act: plugin
+                    args:
+                      request: publish
+                      mid: $.card.mid
+                      b: $.card.sourceId
+                    when: $.card.canPublish
+                    disabled: $.pending
+            load: $.load
+        sources:
+          card: draft
   views:
     github.community:
       loading: t:github.wsCommunity.load.loading
       error: t:github.wsCommunity.load.error
       empty: t:github.wsCommunity.load.text
-      vm: githubCommunity
       blocks:
         - type: head
           variant: detail
-          when: $.detail.gone
+          when: $.community.detail.gone
           title: t:github.wsCommunity.detail.title
         - type: head
           variant: detail
-          when: $.detail.n
+          when: $.community.detail.n
           eyebrow:
             - parts:
                 - parts:
                     - "#"
-                    - $.detail.n
+                    - $.community.detail.n
                   sep: ""
               mono: true
             - parts:
                 - parts:
                     - " · "
-                    - of: $.detail.state
+                    - of: $.community.detail.state
                       map:
                         pending_decision: t:github.wsCommunity.pendingDecision
                         unreplied: t:github.wsCommunity.unreplied
@@ -858,15 +976,15 @@ pdl:
                         accepted: t:github.memoryOwners.stateNote.materialized
                         rejected: t:github.memoryOwners.stateNote.rejected
                         closed: t:github.wsCommunity.closed
-                        _: $.detail.state
+                        _: $.community.detail.state
                     - " · "
-                    - of: $.detail.ago
+                    - of: $.community.detail.ago
                       fmt: ago
                   sep: ""
-          title: $.detail.title
+          title: $.community.detail.title
           sub:
             parts:
-              - of: $.detail.hasCat
+              - of: $.community.detail.hasCat
                 map:
                   "true":
                     parts:
@@ -877,32 +995,34 @@ pdl:
                         item:
                           of: "@"
                           map:
-                            "0": $.detail.catName
+                            "0": $.community.detail.catName
                             "1": " "
-                            "2": $.detail.catHandle
+                            "2": $.community.detail.catHandle
                         sep: ""
                       - " → "
-                      - $.detail.threadTitle
+                      - $.community.detail.threadTitle
                     sep: ""
                   "false": —
-                  _: $.detail.hasCat
+                  _: $.community.detail.hasCat
           actions:
             - type: button
               label: t:github.wsCommunity.openThread
-              act: goThread
+              act: thread
               args:
-                id: $.detail.thread
-              when: $.detail.thread
+                id: $.community.detail.thread
+              when: $.community.detail.thread
             - type: button
               label: t:github.work.openGithub
               act: openUrl
+              args:
+                url: $.community.detail.url
         - type: section
-          when: $.detail.dir
+          when: $.community.detail.dir
           title: t:github.wsCommunity.directionCard
           help: t:github.wsCommunity.directionHelp
           blocks:
             - type: settings
-              from: $.detail.dir.questions
+              from: $.community.detail.dir.questions
               row:
                 label: "@label"
                 control:
@@ -913,7 +1033,7 @@ pdl:
                   control:
                     type: text
                     parts:
-                      - parts: $.detail.dir.evidence
+                      - parts: $.community.detail.dir.evidence
                         sep: 、
                         each:
                           text: "@"
@@ -921,117 +1041,118 @@ pdl:
                   control:
                     type: text
                     text:
-                      of: $.detail.dir.route
+                      of: $.community.detail.dir.route
                       map:
                         decline:
                           t: github.common.reject
                           args:
-                            - $.detail.threadTitle
+                            - $.community.detail.threadTitle
                         new:
                           t: github.workbench.route.new
                           args:
-                            - $.detail.threadTitle
+                            - $.community.detail.threadTitle
                         existing:
                           t: github.workbench.route.thread
                           args:
-                            - $.detail.threadTitle
+                            - $.community.detail.threadTitle
                         continue:
                           t: github.workbench.route.thread
                           args:
-                            - $.detail.threadTitle
+                            - $.community.detail.threadTitle
                         thread:
                           t: github.workbench.route.thread
                           args:
-                            - $.detail.threadTitle
-                        _: $.detail.dir.route
-                - kind: field
-                  label: t:github.wsCommunity.detail.role
-                  id: ws-role
+                            - $.community.detail.threadTitle
+                        _: $.community.detail.dir.route
+                - label: t:github.wsCommunity.detail.role
                   control:
-                    type: select
-                    id: ws-role
-                    options:
-                      - t:github.wsCommunity.detail.maintainer
-                      - t:github.wsCommunity.detail.reviewer
-                      - t:github.wsCommunity.detail.observer
-                    value: $.detail.dir.role
+                    type: text
+                    text: $.community.detail.dir.role
             - type: toolbar
               items:
                 - type: button
-                  primary: $.detail.dir.accept
+                  primary: $.community.detail.dir.accept
                   label: t:github.common.accept
-                  act: setStatus
+                  act: plugin
                   args:
+                    request: status
                     entity: issue
-                    id: $.detail.n
+                    id: $.community.detail.n
                     v: accepted
+                  disabled: $.pending
                 - type: button
-                  primary: $.detail.dir.reject
+                  primary: $.community.detail.dir.reject
                   label: t:github.common.reject
-                  act: setStatus
+                  act: plugin
                   args:
+                    request: status
                     entity: issue
-                    id: $.detail.n
+                    id: $.community.detail.n
                     v: rejected
+                  disabled: $.pending
         - type: section
-          when: $.detail.closure
+          when: $.community.detail.closure
           title: t:github.wsCommunity.preCloseCheck
           blocks:
             - type: list
-              from: $.detail.closure.rows
+              from: $.community.detail.closure.rows
               row: community.closure
             - type: toolbar
               items:
                 - type: button
                   label: t:github.wsCommunity.markReplied
-                  act: wsReport
+                  act: dialog
                   args:
-                    n: $.detail.n
-                  when: $.detail.closure.pending
+                    kind: github.report
+                  when: $.community.detail.closure.pending
                 - type: button
                   label: t:github.wsCommunity.exemptClose
-                  act: wsWaive
+                  act: dialog
                   args:
-                    n: $.detail.n
-                  when: $.detail.closure.pending
+                    kind: github.waive
+                  when: $.community.detail.closure.pending
                 - type: button
                   primary: true
                   label: t:github.wsCommunity.closeIssue
-                  act: setStatus
+                  act: plugin
                   args:
+                    request: status
                     entity: issue
-                    id: $.detail.n
+                    id: $.community.detail.n
                     v: closed
-                  disabled: $.detail.closure.locked
+                  disabled: $.pending
         - type: toolbar
-          when: $.repos
+          when: $.community.repos
           note: "1"
           items:
             - type: input
               id: ws-repo
               mono: true
               list: ws-repos
-              listFrom: $.repos
-              value: $.list.repo
+              listFrom: $.community.repos
+              value: $.community.list.repo
               placeholder: owner/repo
               label: t:github.chatCards.field.repo
-              go: wsRepoSync
+              go: plugin
               icon: refresh
               goLabel: t:github.wsCommunity.sync
+              args:
+                request: sync
+              disabled: $.pending
         - type: empty
-          when: $.noRepo
+          when: $.community.noRepo
           text: t:github.wsCommunity.syncHelp
         - type: text
           variant: meta
-          when: $.list
+          when: $.community.list
           text:
             t: github.workbench.communitySummary
             args:
-              - $.list.syncing
-              - $.list.issueCount
-              - $.list.prCount
+              - $.community.list.syncing
+              - $.community.list.issueCount
+              - $.community.list.prCount
         - type: toolbar
-          when: $.list
+          when: $.community.list
           items:
             - type: select
               id: ws-c-st
@@ -1050,15 +1171,17 @@ pdl:
                   label: t:github.memoryOwners.stateNote.rejected
                 - v: closed
                   label: t:github.wsCommunity.closed
-              value: $.list.fs
-              change: wsCSt
+              value: $.community.list.fs
+              change: plugSet
               label: t:github.common.state
+              args:
+                k: cSt
             - type: select
               id: ws-c-cat
               options:
                 - v: all
                   label: t:github.wsCommunity.list.cats
-                - from: $.list.cats
+                - from: $.community.list.cats
                   item:
                     v: "@v"
                     label:
@@ -1066,14 +1189,16 @@ pdl:
                       args:
                         - "@name"
                         - "@handle"
-              value: $.list.fc
-              change: wsCCat
+              value: $.community.list.fc
+              change: plugSet
               label: t:github.wsCommunity.ownerCat
-            - type: seg
-              value: $.list.ft
-              act: set
               args:
-                path: ws.cTime
+                k: cCat
+            - type: seg
+              value: $.community.list.ft
+              act: plugSet
+              args:
+                k: cTime
               options:
                 - v: all
                   label: t:github.memory.allTime
@@ -1084,13 +1209,13 @@ pdl:
                 - v: "90"
                   label: t:github.wsCommunity.within90d
         - type: section
-          when: $.list
+          when: $.community.list
           title: Issue
           note: "3"
           keep: true
           blocks:
             - type: list
-              groups: $.list.issueGroups
+              groups: $.community.list.issueGroups
               group:
                 title:
                   of: "@state"
@@ -1105,12 +1230,12 @@ pdl:
               row: community.issue
               empty: t:github.wsCommunity.list.empty
         - type: section
-          when: $.list
+          when: $.community.list
           title: PR
           keep: true
           blocks:
             - type: list
-              groups: $.list.prGroups
+              groups: $.community.list.prGroups
               group:
                 title:
                   of: "@state"
@@ -1127,7 +1252,7 @@ pdl:
           title: t:github.wsCommunity.reconcileFindings
           blocks:
             - type: list
-              from: $.list.findings
+              from: $.community.list.findings
               row: community.finding
               optional: true
       panel:
@@ -1141,6 +1266,14 @@ pdl:
         - members.read
         - thread.open
         - task.dispatch
+      sources:
+        community: community
+      drill:
+        - when: $.community.detail
+          act: plugSet
+          args:
+            k: detail
+            v: ""
     dlg.github.report:
       title: t:github.wsCommunity.markReplied
       fields:
@@ -1149,7 +1282,11 @@ pdl:
           mono: true
           placeholder: https://github.com/owner/repo/issues/N#issuecomment-…
           req: true
+          arg: reportURL
       ok: t:github.wsCommunity.submit
+      okAct: plugin
+      okArgs:
+        request: report
     dlg.github.waive:
       title: t:github.wsCommunity.exemptClose
       fields:
@@ -1157,11 +1294,16 @@ pdl:
           label: t:github.wsCommunity.reason
           placeholder: t:github.wsCommunity.reason
           req: true
+          arg: reason
         - id: dlg-e
           label: t:github.wsCommunity.evidence
           placeholder: t:github.wsCommunity.waiver.evidencePlaceholder
           req: true
+          arg: evidence
       ok: t:github.wsCommunity.submit
+      okAct: plugin
+      okArgs:
+        request: waive
   rows:
     community.issue:
       layout: two
@@ -1201,10 +1343,12 @@ pdl:
               - control:
                   type: button
                   label: t:github.wsCommunity.issue.menu.label
-                  act: wsSendSys
+                  act: plugin
                   args:
+                    request: route
                     n: "@n"
                   when: "@unreplied"
+                  disabled: $.pending
               - control:
                   type: status
                   text:
@@ -1230,18 +1374,14 @@ pdl:
           "true":
             of: "@drill"
             map:
-              "true": wsSub
-              "false": goThread
-              _: wsSub
+              "true": plugSet
+              "false": thread
           "false": ""
-          _: "@canOpen"
       args:
-        k: github.community
-        v:
-          t: github.workbench.issueSubKey
-          args:
-            - "@n"
+        k: detail
+        v: "@n"
         id: "@thread"
+        plugin: official.github-operations
       tone:
         of: "@canOpen"
         map:
@@ -1296,7 +1436,7 @@ pdl:
             sep: ""
             when: "@sent"
         sep: " · "
-      act: goThread
+      act: thread
       args:
         id: "@thread"
       cols:
@@ -1324,28 +1464,34 @@ pdl:
           control:
             - type: button
               label: t:github.common.confirm
-              act: setStatus
+              act: plugin
               args:
+                request: status
                 entity: finding
                 id: "@i"
                 v: confirmed
               when: "@pending"
+              disabled: $.pending
             - type: button
               label: t:github.wsCommunity.resolved
-              act: setStatus
+              act: plugin
               args:
+                request: status
                 entity: finding
                 id: "@i"
                 v: resolved
               when: "@pending"
+              disabled: $.pending
             - type: button
               label: t:github.wsCommunity.exempt
-              act: setStatus
+              act: plugin
               args:
+                request: status
                 entity: finding
                 id: "@i"
                 v: exempted
               when: "@pending"
+              disabled: $.pending
         - control: []
     community.closure:
       layout: two
@@ -1370,3 +1516,85 @@ pdl:
               text: t:github.wsCommunity.detail.ready
               when: "@ready"
         - control: []
+  requests:
+    draft:
+      path: github/community-console/draft/read
+      method: POST
+      body:
+        mid: "@mid"
+        block: "@block"
+        title: "@title"
+    edit:
+      path: github/community-console/draft/edit
+      method: POST
+      body:
+        mid: "@mid"
+        b: "@b"
+        field: "@field"
+        value: "@v"
+    create:
+      path: github/community-console/draft/create
+      method: POST
+      body:
+        mid: "@mid"
+        b: "@b"
+    publish:
+      path: github/community-console/draft/publish
+      method: POST
+      body:
+        mid: "@mid"
+        b: "@b"
+    cancel:
+      path: github/community-console/draft/cancel
+      method: POST
+      body:
+        mid: "@mid"
+        b: "@b"
+    retry:
+      path: github/community-console/draft/retry
+      method: POST
+      body:
+        mid: "@mid"
+        b: "@b"
+    community:
+      path: github/community-console
+      query:
+        detail: state.detail
+        repo: state.repo
+        cSt: state.cSt
+        cCat: state.cCat
+        cTime: state.cTime
+    status:
+      path: github/community-console/status
+      method: POST
+      body:
+        repo: state.repo
+        entity: "@entity"
+        id: "@id"
+        v: "@v"
+    route:
+      path: github/community-console/route
+      method: POST
+      body:
+        repo: state.repo
+        n: "@n"
+    report:
+      path: github/community-console/report
+      method: POST
+      body:
+        n: state.detail
+        reportURL: "@reportURL"
+        repo: state.repo
+    waive:
+      path: github/community-console/waive
+      method: POST
+      body:
+        n: state.detail
+        reason: "@reason"
+        evidence: "@evidence"
+        repo: state.repo
+    sync:
+      path: github/community-console/sync
+      method: POST
+      body:
+        repo: "@v"
