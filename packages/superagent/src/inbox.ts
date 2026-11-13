@@ -67,6 +67,8 @@ export async function observe(
     if (invocationId) {
       const terminal = await read(host, `terminal:${invocationId}`, z.object({ workId: z.string() }));
       if (terminal?.workId === work.taskId) return;
+      const progress = await read(host, `progress-report:${invocationId}`, z.object({ workId: z.string() }));
+      if (progress?.workId === work.taskId) return;
     }
     if (work.taskId && response?.status === 'completed') {
       await saveOnce(host, `report:${response.executionId}:missing-result`, {

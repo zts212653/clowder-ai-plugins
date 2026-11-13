@@ -23,6 +23,35 @@ test('cross-conversation judgment and its model reply stay outside the assistant
   await runtime.stop({ reason: 'test' });
 });
 
+test('a completed invocation with a native progress report stays quiet and can later return its result', async () => {
+  const f = fixture();
+  await f.seed();
+  const runtime = await startSuperagent(f.host);
+  await runtime.actions['superagent.observe'](event('progress-work'));
+  await runtime.actions['superagent.tick']({});
+  const control = [...f.sent.values()].find((message) => message.wake)!.threadId;
+  await runtime.actions['superagent.route']({ eventId: 'progress-work', decisions: [{ kind: 'start', title: '导出修复', outcome: '恢复导出', workerId: 'worker' }] }, f.caller(control));
+  await runtime.actions['superagent.tick']({});
+  const task = [...f.tasks.values()][0];
+  const caller = f.caller(task.threadId, 'worker');
+  await runtime.actions['superagent.report']({ workId: task.id, reportId: 'progress', kind: 'progress', content: '问题已复现，继续修复。' }, caller);
+  await runtime.actions['superagent.tick']({});
+  const final = event('progress-final', task.threadId, '问题已复现，继续修复。');
+  final.envelope.actor = { kind: 'cat', id: 'worker' };
+  f.messages.set(final.envelope.messageId, { id: final.envelope.messageId, threadId: task.threadId, userId: 'owner', catId: 'worker', content: '问题已复现，继续修复。', mentions: [], timestamp: 2, sourceRevision: '1', extra: { stream: { invocationId: caller.invocationId } } });
+  f.history.set(task.threadId, [{ id: final.envelope.messageId, timestamp: 2, content: '问题已复现，继续修复。', sender: { kind: 'cat', catId: 'worker' }, response: { executionId: caller.invocationId, inputMessageIds: ['work-input'], status: 'completed', startedAt: 1, completedAt: 2 } }]);
+  const before = [...f.sent.values()].filter((message) => message.wake).length;
+  await runtime.actions['superagent.observe'](final);
+  await runtime.actions['superagent.tick']({});
+  assert.equal([...f.sent.values()].some((message) => JSON.stringify(message.payload).includes('未提交工作结果')), false, 'a valid progress report must not be turned into a failure');
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, before);
+  await runtime.actions['superagent.report']({ workId: task.id, reportId: 'result', kind: 'result', content: '修复与验证已完成。' }, caller);
+  await runtime.actions['superagent.tick']({});
+  assert.equal([...f.sent.values()].filter((message) => message.threadId === 'source-a' && JSON.stringify(message.payload).includes('修复与验证已完成')).length, 1);
+  assert.equal(f.tasks.get(task.id)?.entrustedWork?.closure.state, 'open');
+  await runtime.stop({ reason: 'test' });
+});
+
 test('upgrade finishes an in-flight main-thread judgment once and keeps the old failure untouched', async () => {
   const f = fixture();
   await f.seed();
