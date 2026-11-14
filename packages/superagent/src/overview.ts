@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { SuperagentHost } from './runtime.js';
 import { type Preferences, questionSchema, read, records, workSchema } from './state.js';
@@ -73,7 +73,8 @@ export async function refreshOverview(host: SuperagentHost, pref: Preferences, c
   const before = await read(host, 'overview', overviewSchema);
   const now = Date.now();
   if (!refresh && (!pref.started || before && now < before.nextCheckAt)) return before;
-  const sameScope = JSON.stringify(pref.threadIds) === JSON.stringify(before?.sources.map((source) => source.threadId));
+  const previousSources = new Map(before?.sources.map((source) => [source.threadId, source]));
+  const sameScope = pref.threadIds.length === previousSources.size && pref.threadIds.every((id) => previousSources.has(id));
   const currentFormat = before?.formatVersion === 2;
   if (before?.phase === 'pending' && sameScope && currentFormat) {
     const response = (await host.threads.readMessages(coordinationThreadId, { limit: 100 })).find((message) =>
@@ -87,14 +88,12 @@ export async function refreshOverview(host: SuperagentHost, pref: Preferences, c
   }
   if (!refresh && before?.phase === 'failed' && sameScope && currentFormat) return before;
   const sources = await watchedSources(host, pref);
-  const fingerprint = createHash('sha256').update(JSON.stringify(sources)).digest('hex');
-  if (before?.phase === 'done' && currentFormat && fingerprint === createHash('sha256').update(JSON.stringify(before.sources)).digest('hex')) {
+  if (before?.phase === 'done' && currentFormat && sameScope && sources.every((source) => JSON.stringify(source) === JSON.stringify(previousSources.get(source.threadId)))) {
     const checked = { ...before, nextCheckAt: now + 60_000 };
     await host.storage.set('overview', checked);
     return checked;
   }
-  const scopeChanged = JSON.stringify(sources.map((source) => source.threadId)) !== JSON.stringify(before?.sources.map((source) => source.threadId));
-  if (!refresh && !scopeChanged && currentFormat && before && now < before.nextRequestAt) return before;
+  if (!refresh && sameScope && currentFormat && before && now < before.nextRequestAt) return before;
   const requestId = randomUUID();
   const request = { formatVersion: 2, requestId, phase: 'pending' as const, sources, capturedAt: now, nextCheckAt: now + 60_000, nextRequestAt: now + 10 * 60_000, rows: before?.rows };
   const wake = await send(host, coordinationThreadId, `overview:${requestId}`,
