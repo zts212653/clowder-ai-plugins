@@ -14,7 +14,9 @@ import {
 } from './state.js';
 import { notification, send } from './work.js';
 
-async function needsCoordination(host: SuperagentHost, input: PluginMessageDelivery, assignedWork: WorkLink | undefined) {
+async function needsCoordination(host: SuperagentHost, input: PluginMessageDelivery, assignedWork: WorkLink | undefined, mainThreadId?: string) {
+  if (input.envelope.actor.kind === 'user' && input.threadId !== mainThreadId &&
+    (await host.threads.readMessages(input.threadId, { limit: 30 })).some((message) => message.response?.inputMessageIds.includes(input.envelope.messageId))) return false;
   if (assignedWork && input.envelope.actor.kind !== 'user' &&
     (await host.messaging.get(assignedWork.sourceMessageId))?.catId) return false;
   if (assignedWork || input.envelope.actor.kind === 'user') return true;
@@ -44,9 +46,6 @@ export async function observe(
   )
     return;
   if (!pref.threadIds.includes(input.threadId) && input.threadId !== mainThreadId && !work) return;
-  // Existing conversations keep their original owner once a reply has already been admitted.
-  if (input.threadId !== mainThreadId && !work && !(works.some((entry) => entry.sourceThreadId === input.threadId)) &&
-    (await host.threads.readMessages(input.threadId, { limit: 30 })).some((message) => message.response?.inputMessageIds.includes(input.envelope.messageId))) return;
   if (work && input.envelope.actor.kind === 'cat' && input.envelope.actor.id === work.workerId) {
     const response = (await host.threads.readMessages(input.threadId, { limit: 100 })).find(
       (message) => message.id === input.envelope.messageId && message.sender.catId === work.workerId,
@@ -67,7 +66,7 @@ export async function observe(
     // Native reports own progress/results. A worker's ordinary reply is not a new coordination input.
     return;
   }
-  if (!(await needsCoordination(host, input, work))) return;
+  if (!(await needsCoordination(host, input, work, mainThreadId))) return;
   const existing = await read(host, `inbox:${input.deliveryId}`, inboxSchema);
   if (!existing)
     await host.storage.compareAndSet(`inbox:${input.deliveryId}`, null, {
@@ -117,7 +116,7 @@ export async function advanceInbox(host: SuperagentHost, pref: Preferences, main
     await editQueue(host, 'inbox', next.delivery.deliveryId, false);
     return;
   }
-  if (!(await needsCoordination(host, next.delivery, works.find((work) => work.threadId === next.delivery.threadId)))) {
+  if (!(await needsCoordination(host, next.delivery, works.find((work) => work.threadId === next.delivery.threadId), mainThreadId))) {
     await host.storage.set(`inbox:${next.delivery.deliveryId}`, { ...next, phase: 'done' });
     await editQueue(host, 'inbox', next.delivery.deliveryId, false);
     return;

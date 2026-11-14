@@ -1,6 +1,6 @@
 import { isPluginDeliveryInput } from '@clowder-ai/plugin-contract';
 import type { ModulePluginHostShape, PluginModuleActivationShape } from '@clowder-ai/plugin-sdk';
-import { overviewInputSchema, overviewSchema, publishOverview, refreshOverview, watchedSources } from './overview.js';
+import { overviewInputSchema, overviewSchema, publishOverview, refreshOverview } from './overview.js';
 import { advanceInbox, clearRecoveredError, observe } from './inbox.js';
 import { coordinatorInstructions } from './instructions.js';
 import { createSettings } from './settings.js';
@@ -236,7 +236,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
           : [];
         const sources = coordinator
           ? await Promise.all(
-              [...new Set(inbox.map((entry) => entry.delivery.threadId))].map(async (threadId) => ({
+              [...new Set(inbox.filter((entry) => entry.phase !== 'failed').map((entry) => entry.delivery.threadId))].map(async (threadId) => ({
                 threadId,
                 source: await host.threads.get(threadId),
                 recent: await host.threads.readMessages(threadId, { limit: 20 }),
@@ -254,7 +254,6 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
                 inbox,
                 sources,
                 overview: await read(host, 'overview', overviewSchema),
-                watchedSources: await watchedSources(host, pref),
                 questions: (await records(host, 'question:', questionSchema)).filter((q) => !q.resolved),
               }
             : {}),

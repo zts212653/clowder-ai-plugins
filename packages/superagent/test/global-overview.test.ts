@@ -90,3 +90,23 @@ test('removing and re-adding a source publishes a new current overview instead o
   assert.equal(notices.length, 3, 'the latest visible message must reflect the restored full scope');
   await runtime.stop({ reason: 'test' });
 });
+
+test('an already handled source message stays quiet even when that source has a plugin Work; fresh feedback still follows the same Work', async () => {
+  const f = fixture();
+  await f.seed();
+  const key = 'c'.repeat(64);
+  await f.host.storage.set(`work:${key}`, { key, taskId: 'legacy-task', title: '气泡设计', outcome: '设计', sourceThreadId: 'source-a', sourceMessageId: 'owner-original', threadId: 'outside', workerId: 'worker' });
+  await f.host.storage.set('queue', { works: [key] });
+  const runtime = await startSuperagent(f.host);
+  f.history.set('source-a', [{ id: 'original-reply', timestamp: 2, content: '原负责人已接。', sender: { kind: 'cat', catId: 'coordinator' }, response: { executionId: 'original-run', inputMessageIds: ['source-old-handled'], status: 'completed', startedAt: 1, completedAt: 2 } }]);
+  await runtime.actions['superagent.observe'](event('old-handled'));
+  await runtime.actions['superagent.tick']({});
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 0);
+  await runtime.actions['superagent.observe'](event('fresh-feedback', 'source-a', '原设计还有一个空状态，请沿原工作补上。'));
+  await runtime.actions['superagent.tick']({});
+  const wakes = [...f.sent.values()].filter((message) => message.wake);
+  assert.equal(wakes.length, 1);
+  assert.match(JSON.stringify(wakes[0].payload), /fresh-feedback/);
+  assert.equal(f.tasks.size, 0, 'feedback intake must not admit a duplicate Task');
+  await runtime.stop({ reason: 'test' });
+});
