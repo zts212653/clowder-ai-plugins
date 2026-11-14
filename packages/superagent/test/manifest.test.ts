@@ -17,7 +17,7 @@ test('published tool schemas describe exactly what the runtime accepts', async (
     const { $schema: _dialect, ...expected } = z.toJSONSchema(schema, { target: 'draft-7' });
     assert.deepEqual(
       manifest.contributions.find((row: { id: string }) => row.id === id).inputSchema,
-      expected,
+      id === 'overview' ? { type: 'object', ...expected } : expected,
       `${id} must not advertise unsupported parameters`,
     );
   }

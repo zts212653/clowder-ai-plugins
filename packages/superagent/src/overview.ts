@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { SuperagentHost } from './runtime.js';
 import { type Preferences, questionSchema, read, records, workSchema } from './state.js';
@@ -80,16 +80,17 @@ export async function refreshOverview(host: SuperagentHost, pref: Preferences, c
   }
   if (!refresh && before?.phase === 'failed' && sameScope) return before;
   const sources = await watchedSources(host, pref);
-  const requestId = createHash('sha256').update(JSON.stringify(sources)).digest('hex');
-  if (requestId === before?.requestId && before.phase === 'done') {
+  const fingerprint = createHash('sha256').update(JSON.stringify(sources)).digest('hex');
+  if (before?.phase === 'done' && fingerprint === createHash('sha256').update(JSON.stringify(before.sources)).digest('hex')) {
     const checked = { ...before, nextCheckAt: now + 60_000 };
     await host.storage.set('overview', checked);
     return checked;
   }
   const scopeChanged = JSON.stringify(sources.map((source) => source.threadId)) !== JSON.stringify(before?.sources.map((source) => source.threadId));
   if (!refresh && !scopeChanged && before && now < before.nextRequestAt) return before;
+  const requestId = randomUUID();
   const request = { requestId, phase: 'pending' as const, sources, capturedAt: now, nextCheckAt: now + 60_000, nextRequestAt: now + 10 * 60_000, rows: before?.rows };
-  const wake = await send(host, coordinationThreadId, `overview:${requestId}:${before?.phase === 'failed' ? now : 0}`,
+  const wake = await send(host, coordinationThreadId, `overview:${requestId}`,
     `请整理全部监听会话的全局总览。通过 plugin_list_tools 发现 official.superagent，调用 superagent_inspect 读取 overview.sources，再调用 superagent_overview(kind=publish, requestId, rows)。每个来源恰好一行，引用本批消息/Task 的 evidenceIds；没有证据标 unknown，不能漏掉无 Task 会话。先需要用户决定/验收，再具体阻塞、进行中、安静/完成。区分“本轮回复结束”“方案完成”和正式任务验收；没有证据不要推断已完成。根据最近人类委托与成员回复归纳当前焦点、具体卡点和下一步；不要复述工具过程或发明负责人/截止时间。超过48小时无实质更新可标 quiet，并注明最后观察时间。只提交总览，不 route/start、不创建 Task/工作线程、不跨发聊天回复到助手。`, pref.coordinatorId);
   const next = { ...request, wakeMessageId: wake.messageId };
   await host.storage.set('overview', next);

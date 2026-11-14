@@ -75,3 +75,18 @@ test('watching an existing issue does not admit a second Work or execution conve
   assert.equal(f.tasks.size, 0);
   await runtime.stop({ reason: 'test' });
 });
+
+test('removing and re-adding a source publishes a new current overview instead of reusing its historical message', async () => {
+  const f = fixture();
+  await f.host.storage.set('preferences', { ...f.preferences, started: true });
+  const runtime = await startSuperagent(f.host);
+  const main = runtimeSchema.parse(f.rows.get('runtime')?.value).mainThreadId!;
+  for (const ids of [['source-a', 'source-b'], ['source-b'], ['source-a', 'source-b']]) {
+    await f.host.storage.set('preferences', { ...f.preferences, started: true, threadIds: ids });
+    const request = await runtime.actions['superagent.overview']({ kind: 'refresh' }, f.caller(main)) as { requestId: string };
+    await runtime.actions['superagent.overview']({ kind: 'publish', requestId: request.requestId, rows: ids.map((threadId) => ({ threadId, status: 'unknown', progress: '尚无已确认进展', blocker: '', nextStep: '必要时回原会话核实', evidenceIds: [] })) }, f.caller(main));
+  }
+  const notices = [...f.sent.values()].filter((message) => message.threadId === main && JSON.stringify(message.payload).includes('监听会话总览'));
+  assert.equal(notices.length, 3, 'the latest visible message must reflect the restored full scope');
+  await runtime.stop({ reason: 'test' });
+});

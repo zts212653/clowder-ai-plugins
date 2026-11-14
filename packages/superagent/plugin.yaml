@@ -354,6 +354,7 @@ contributions:
     name: superagent_overview
     description: 仅配置的助手成员在主对话或内部协调会话使用。refresh 核实全部监听来源；publish 提交每个来源一行的进展、具体阻塞和用户下一步。只读汇总，不创建或接管工作。
     inputSchema:
+      type: object
       oneOf:
         - type: object
           properties:
