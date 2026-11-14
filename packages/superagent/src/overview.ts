@@ -91,7 +91,7 @@ export async function refreshOverview(host: SuperagentHost, pref: Preferences, c
   const requestId = randomUUID();
   const request = { requestId, phase: 'pending' as const, sources, capturedAt: now, nextCheckAt: now + 60_000, nextRequestAt: now + 10 * 60_000, rows: before?.rows };
   const wake = await send(host, coordinationThreadId, `overview:${requestId}`,
-    `请整理全部监听会话的全局总览。通过 plugin_list_tools 发现 official.superagent，调用 superagent_inspect 读取 overview.sources，再调用 superagent_overview(kind=publish, requestId, rows)。每个来源恰好一行，引用本批消息/Task 的 evidenceIds；没有证据标 unknown，不能漏掉无 Task 会话。先需要用户决定/验收，再具体阻塞、进行中、安静/完成。区分“本轮回复结束”“方案完成”和正式任务验收；没有证据不要推断已完成。根据最近人类委托与成员回复归纳当前焦点、具体卡点和下一步；不要复述工具过程或发明负责人/截止时间。超过48小时无实质更新可标 quiet，并注明最后观察时间。只提交总览，不 route/start、不创建 Task/工作线程、不跨发聊天回复到助手。`, pref.coordinatorId);
+    `请整理全部监听会话的全局总览。通过 plugin_list_tools 发现 official.superagent，调用 superagent_inspect 读取 overview.sources，再调用 superagent_overview(kind=publish, requestId, rows)。每个来源恰好一行，引用本批消息/Task 的 evidenceIds；没有证据标 unknown，不能漏掉无 Task 会话。先需要用户决定/验收，再具体阻塞、进行中、安静/完成。progress尽量45字内，blocker和nextStep各30字内：只说用户能理解的成果、卡点、谁继续、需要用户做什么；不要SHA、工位、CI计数、清理数量或内部方案代号，细节留来源。区分回复结束、方案完成和正式验收；不猜已完成或负责人/截止时间。超过48小时无实质更新可标quiet，注明最后观察。只提交总览，不route/start、不创建Task/工作线程、不跨发聊天回复到助手。`, pref.coordinatorId);
   const next = { ...request, wakeMessageId: wake.messageId };
   await host.storage.set('overview', next);
   return next;

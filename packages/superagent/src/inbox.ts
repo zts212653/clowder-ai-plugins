@@ -15,6 +15,10 @@ import {
 import { notification, send } from './work.js';
 
 async function needsCoordination(host: SuperagentHost, input: PluginMessageDelivery, assignedWork: WorkLink | undefined, mainThreadId?: string) {
+  if (input.envelope.actor.kind === 'user') {
+    const source = await host.messaging.get(input.envelope.messageId);
+    if (source && (source.catId || source.userId !== input.envelope.actor.id)) return false;
+  }
   if (input.envelope.actor.kind === 'user' && input.threadId !== mainThreadId &&
     (await host.threads.readMessages(input.threadId, { limit: 30 })).some((message) => message.response?.inputMessageIds.includes(input.envelope.messageId))) return false;
   if (assignedWork && input.envelope.actor.kind !== 'user' &&

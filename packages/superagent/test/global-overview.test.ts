@@ -110,3 +110,17 @@ test('an already handled source message stays quiet even when that source has a 
   assert.equal(f.tasks.size, 0, 'feedback intake must not admit a duplicate Task');
   await runtime.stop({ reason: 'test' });
 });
+
+test('a multi-member result projected as a user envelope is not a new human commission', async () => {
+  const f = fixture();
+  await f.seed();
+  const input = event('multi-result');
+  input.envelope.actor = { kind: 'user', id: 'multi-mention-result' };
+  f.messages.set(input.envelope.messageId, { id: input.envelope.messageId, userId: 'owner', threadId: 'source-a', catId: null, content: 'Multi-Mention 结果汇总：原成员已经共同分析。', mentions: [], timestamp: 1, sourceRevision: '1' });
+  const runtime = await startSuperagent(f.host);
+  await runtime.actions['superagent.observe'](input);
+  await runtime.actions['superagent.tick']({});
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 0);
+  assert.equal(f.rows.has('inbox:multi-result'), false);
+  await runtime.stop({ reason: 'test' });
+});
