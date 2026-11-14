@@ -19,7 +19,7 @@ export const overviewInputSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('publish'), requestId: z.string().min(1).max(100), rows: z.array(rowSchema).max(5000) }).strict(),
 ]);
 const sourceSchema = z.object({
-  threadId: z.string(), title: z.string(), deepLinkUrl: z.string().optional(), available: z.boolean(), lastActiveAt: z.number(),
+  threadId: z.string(), title: z.string(), deepLinkUrl: z.string().optional(), projectRef: z.string().optional(), available: z.boolean(), lastActiveAt: z.number(),
   recent: z.array(z.object({ id: z.string(), timestamp: z.number(), content: z.string(), sender: z.string(), catId: z.string().optional(), responseStatus: z.string().optional(), sourceThreadId: z.string().optional() })),
   existingWork: z.array(z.object({ id: z.string(), title: z.string(), status: z.string(), ownerCatId: z.string().nullable(), why: z.string(), updatedAt: z.number(), closure: z.string().optional(), sourceRefs: z.array(z.string()).default([]), artifactRefs: z.array(z.string()).default([]) })),
   questions: z.array(z.object({ id: z.string(), content: z.string() })),
@@ -60,7 +60,7 @@ export async function watchedSources(host: SuperagentHost, preferences: Preferen
     const recent = [...new Map([...relevant.slice(0, 2), ...relevant.slice(-3), ...(lastOwner ? [lastOwner] : [])].map((message) => [message.id, message])).values()]
       .sort((a, b) => a.timestamp - b.timestamp);
     sources.push({
-      threadId, title: thread?.title ?? threadId, deepLinkUrl: thread?.deepLinkUrl, available: !!thread && messageRead.status === 'fulfilled' && taskRead.status === 'fulfilled', lastActiveAt: thread?.lastActiveAt ?? 0,
+      threadId, title: thread?.title ?? threadId, deepLinkUrl: thread?.deepLinkUrl, projectRef: thread?.projectRef, available: !!thread && messageRead.status === 'fulfilled' && taskRead.status === 'fulfilled', lastActiveAt: thread?.lastActiveAt ?? 0,
       recent: [...recent.map((message) => ({ ...message, sourceThreadId: threadId })), ...workMessages].map((message) => ({ id: message.id, timestamp: message.timestamp, content: message.content.slice(0, 1400), sender: message.sender.kind, catId: message.sender.catId, responseStatus: message.response?.status, sourceThreadId: message.sourceThreadId })),
       existingWork: tasks.map((task) => ({ id: task.id, title: task.title, status: task.status, ownerCatId: task.ownerCatId, why: task.why.slice(0, 600), updatedAt: task.updatedAt, closure: task.entrustedWork?.closure.state, sourceRefs: [...(task.entrustedWork?.admission.sourceRefs ?? [])], artifactRefs: [...(task.entrustedWork?.artifactRefs ?? [])] })),
       questions: [...new Map([...relatedQuestions, ...questions.filter((question) => !question.workId && question.sourceThreadId === threadId)].map((question) => [question.id, { id: question.id, content: question.content.slice(0, 1400) }])).values()],

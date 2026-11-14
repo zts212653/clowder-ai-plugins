@@ -54,6 +54,7 @@ test('a legacy work result is grouped under its original watched source; failed 
   const sources = await watchedSources(f.host, { ...f.preferences, v: 1, started: true });
   assert.deepEqual(sources.map((source) => source.threadId), ['source-a', 'source-b']);
   assert.equal(sources[0].existingWork[0].id, 'design');
+  assert.equal(sources[0].projectRef, '/isolated/sample', 'the Host project identity is retained when pinned scope crosses projects');
   assert.match(sources[0].questions[0].content, /等待用户验收/);
   assert.equal(sources[1].available, false);
   assert.equal(sources.length, 2, 'work conversations are not additional watched sources');
