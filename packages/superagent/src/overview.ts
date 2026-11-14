@@ -98,7 +98,7 @@ export async function refreshOverview(host: SuperagentHost, pref: Preferences, c
   const requestId = randomUUID();
   const request = { formatVersion: 2, requestId, phase: 'pending' as const, sources, capturedAt: now, nextCheckAt: now + 60_000, nextRequestAt: now + 10 * 60_000, rows: before?.rows };
   const wake = await send(host, coordinationThreadId, `overview:${requestId}`,
-    `请给未看过过程的用户整理全部监听会话总览。通过 plugin_list_tools 发现 official.superagent，调用 superagent_inspect 读取 overview.sources，再调用 superagent_overview(kind=publish, requestId, rows)。每个来源恰好一项，引用本批消息/Task 的 evidenceIds。必须填写tracking（明确Host/插件等仓库、Issue和PR编号；只有证据能证明未建PR才写尚未创建，否则写未核实）和background（问题现象、用户受什么影响，不复述状态）。结合来源标题、Task.why和原消息说明progress：已经解决了什么、还没解决什么；blocker写具体卡点，nextStep写谁继续、用户是否需要做什么。保留Issue/PR编号、关键故障与解决内容；不要为了短而只写PR已完成/等批准。每项背景和进展各用一两句，排除SHA、工位路径、测试数量和内部工具过程。无证据明确待核实，不能猜关联、已完成、负责人或截止时间；不能漏无Task会话。先用户决定/验收，再阻塞、进行中、安静/完成。区分回复结束、方案完成和正式验收。只提交总览，不route/start、不创建Task/工作线程、不跨发聊天回复到助手。`, pref.coordinatorId);
+    `请给未看过过程的用户整理全部监听会话总览。通过 plugin_list_tools 发现 official.superagent，调用 superagent_inspect 读取 overview.sources，再调用 superagent_overview(kind=publish, requestId, rows)。每个来源恰好一项，引用本批消息/Task 的 evidenceIds。必须填写tracking（明确Host/插件等仓库、Issue和PR编号；只有证据能证明未建PR才写尚未创建，否则写未核实）和background（问题现象、用户受什么影响，不复述状态）。结合来源标题、Task.why和原消息说明progress：已经解决了什么、还没解决什么；blocker写具体卡点，nextStep写谁继续、用户是否需要做什么。消息不足时，可按existingWork[].id调用cat_cafe_list_tasks(taskId)只读核对该Task的progress.summary、blockerReason和nextStep，仍引用该Task id；仅核已选来源，不扩大检索或执行范围。保留Issue/PR编号、关键故障与解决内容；不要为了短而只写PR已完成/等批准。每项背景和进展各用一两句，排除SHA、工位路径、测试数量和内部工具过程。无证据明确待核实，不能猜关联、已完成、负责人或截止时间；不能漏无Task会话。先用户决定/验收，再阻塞、进行中、安静/完成。区分回复结束、方案完成和正式验收。只提交总览，不route/start、不创建Task/工作线程、不跨发聊天回复到助手。`, pref.coordinatorId);
   const next = { ...request, wakeMessageId: wake.messageId };
   await host.storage.set('overview', next);
   return next;
@@ -142,7 +142,7 @@ export async function publishOverview(host: SuperagentHost, pref: Preferences, m
         `进展：${row.progress}`,
         ...(row.blocker ? [`卡点：${row.blocker}`] : []),
         `下一步：${row.nextStep}`,
-        ...(source.deepLinkUrl ? [`[查看原会话](${source.deepLinkUrl})`] : []),
+        ...(source.deepLinkUrl ? [`原会话：[打开](${source.deepLinkUrl})`] : []),
       ].join('  \n');
     }),
   ].join('\n\n'));
