@@ -20,7 +20,7 @@ function inWindow(policy, at) {
 function stopInState(state, ids) {
   for (const policyId of ids) { const policy = state.policies[policyId]; if (policy.mode !== 'revoked') { policy.mode = 'owner'; policy.ownerReason = 'manual'; policy.epoch++; } }
   for (const run of Object.values(state.runs)) if (ids.includes(run.policyId)) {
-    if (['generating', 'prepared'].includes(run.phase)) run.phase = 'cancelled';
+    if (['waiting', 'generating', 'prepared'].includes(run.phase)) run.phase = 'cancelled';
     if (run.submitted && pending.has(run.phase)) run.cancelRequested = true;
   }
   return ids;
@@ -46,7 +46,7 @@ export class DelegationService {
         policy.epoch++;
       }
       for (const run of Object.values(state.runs)) {
-        if (['generating', 'prepared'].includes(run.phase)) run.phase = 'cancelled';
+        if (['waiting', 'generating', 'prepared'].includes(run.phase)) run.phase = 'cancelled';
         if (['submitting', 'queued'].includes(run.phase)) { run.phase = 'needs_review'; run.cancelRequested = true; }
       }
       const written = await service.storage.compareAndSet(KEY, row?.revision ?? null, state);
@@ -107,12 +107,13 @@ export class DelegationService {
       if (Object.values(state.runs).some(run => run.policyId === policyId && run.submitted && ['submitting', 'queued', 'needs_review'].includes(run.phase)))
         throw Error('请先核对该会话尚未确定的发送结果');
       for (const run of Object.values(state.runs)) if (run.policyId === policyId) {
-        if (['generating', 'prepared'].includes(run.phase)) run.phase = 'cancelled';
+        if (['waiting', 'generating', 'prepared'].includes(run.phase)) run.phase = 'cancelled';
         if (run.submitted && pending.has(run.phase)) run.cancelRequested = true;
       }
       state.policies[policyId] = { ...structuredClone(input), ...schedule, id: policyId, epoch: (old?.epoch ?? 0) + 1,
         mode: 'active', activatedAt: this.now(), nextAt: this.now() + input.intervalMinutes * 60000,
-        turns: 0, unanswered: old?.unanswered ?? 0, proactiveDay: old?.proactiveDay ?? '', proactiveCount: old?.proactiveCount ?? 0,
+        turns: 0, unanswered: old?.unanswered ?? 0, awaitingReplyRunId: old?.awaitingReplyRunId ?? null,
+        proactiveDay: old?.proactiveDay ?? '', proactiveCount: old?.proactiveCount ?? 0,
         cursor: input.session.consumedCursor ?? 0, expiresAt: input.expiresAt ?? null };
       state.globalPause = false;
       return state.policies[policyId];
@@ -133,11 +134,54 @@ export class DelegationService {
   }
   async initiate(policyId, operationId) { return this.run(policyId, 'proactive', id(operationId), null); }
   async incoming(accountId, message) {
-    const snapshot = await this.snapshot();
-    const policy = snapshot.policies.find(p => p.accountId === accountId && p.conversationId === message.threadId && p.mode === 'active' && p.replies);
-    if (!policy || message.direction !== 'incoming' || !Number.isFinite(message.createdAt) || message.createdAt < policy.activatedAt ||
+    const received = await this.enqueueIncoming(accountId, message);
+    if (!received) return;
+    await this.processIncoming(received.policyId);
+    return (await this.snapshot()).runs.find(run => run.id === received.runId);
+  }
+  async beginIncomingRead(policy, read) {
+    return this.serial(async () => {
+      const {value:state} = await this.load();
+      const current = state.policies[policy.id];
+      if (current?.mode !== 'active' || current.epoch !== policy.epoch || current.expiresAt !== null && current.expiresAt <= this.now()) return null;
+      // Order the actual request start against takeover, without holding the
+      // durable serial boundary while the remote response is in flight.
+      return {promise:read()};
+    });
+  }
+  async enqueueIncoming(accountId, message, admittedPolicy) {
+    if (message.direction !== 'incoming' || !Number.isFinite(message.createdAt) ||
         typeof message.body !== 'string' || !message.body || message.body.length > 10000) return;
-    return this.run(policy.id, 'reply', id(message.id), message.body);
+    id(message.id);
+    const received = await this.serial(() => this.change(state => {
+      const policy = Object.values(state.policies).find(p => p.accountId === accountId && p.conversationId === message.threadId && p.mode === 'active');
+      if (!policy || message.createdAt < policy.activatedAt) return null;
+      if (admittedPolicy && (policy.id !== admittedPolicy.id || policy.epoch !== admittedPolicy.epoch)) return null;
+      if (policy.expiresAt !== null && policy.expiresAt <= this.now()) { policy.mode = 'expired'; policy.epoch++; return null; }
+      const trigger = policy.replies ? 'reply' : 'inbound';
+      const runId = hash([policy.id, trigger, message.id]);
+      if (state.runs[runId]) return {policyId:policy.id,runId};
+      const awaiting = state.runs[policy.awaitingReplyRunId];
+      if (!awaiting || message.createdAt >= awaiting.handoffAt) { policy.unanswered = 0; policy.awaitingReplyRunId = null; }
+      const boundary = sensitive(message.body);
+      state.runs[runId] = {id:runId,policyId:policy.id,epoch:policy.epoch,catId:policy.catId,
+        accountId:policy.accountId,accountIdentity:policy.accountIdentity,serverId:policy.serverId,conversationId:policy.conversationId,
+        trigger,operationId:message.id,incomingText:message.body,incomingAt:message.createdAt,createdAt:this.now(),submitted:false,
+        phase:boundary?'needs_owner':policy.replies?'waiting':'observed'};
+      if (boundary) { stopInState(state,[policy.id]); policy.ownerReason='boundary'; }
+      return {policyId:policy.id,runId,boundary};
+    }));
+    if (received?.boundary) for (const entry of this.controllers.values()) if (entry.policyId === received.policyId) entry.controller.abort();
+    return received;
+  }
+  async processIncoming(policyId) {
+    for (;;) {
+      const next = (await this.snapshot()).runs.find(run => run.policyId === policyId && run.phase === 'waiting');
+      if (!next) return;
+      const admitted = await this.admit(policyId, 'reply', next.operationId, next.incomingText);
+      if (admitted.skip) return;
+      await this.execute(admitted);
+    }
   }
   async run(policyId, trigger, operationId, incomingText) {
     return this.execute(await this.admit(policyId, trigger, operationId, incomingText));
@@ -147,19 +191,28 @@ export class DelegationService {
     const runId = hash([policyId, trigger, operationId]);
     return this.serial(() => this.change(state => {
       const existing = state.runs[runId];
-      if (existing) return { existing: true, run: existing };
-      const policy = state.policies[policyId]; this.active(policy);
+      if (existing && existing.phase !== 'waiting') return { existing: true, run: existing };
+      const policy = state.policies[policyId];
+      if (trigger === 'reply' && (!policy || policy.mode !== 'active' || policy.expiresAt !== null && policy.expiresAt <= this.now() || existing && existing.epoch !== policy.epoch)) {
+        if (existing) existing.phase = 'cancelled';
+        return {skip:true};
+      }
+      this.active(policy);
       if (trigger !== 'reply' && !policy.proactive || trigger === 'reply' && !policy.replies) throw Error('behavior not authorized');
-      if (Object.values(state.runs).some(r => r.policyId === policyId && pending.has(r.phase))) throw Error('previous conversation turn unresolved');
-      if (policy.turns >= policy.maxTurns) { policy.mode = 'paused'; return { skip: true }; }
+      if (Object.values(state.runs).some(r => r.policyId === policyId && pending.has(r.phase))) {
+        if (trigger === 'reply') return {skip:true};
+        throw Error('previous conversation turn unresolved');
+      }
+      if (policy.turns >= policy.maxTurns) { policy.mode = 'paused'; if(existing) existing.phase='cancelled'; return { skip: true }; }
       if (trigger !== 'reply') {
         const { day } = clock(this.now(), policy.timeZone);
         if (policy.proactiveDay !== day) { policy.proactiveDay = day; policy.proactiveCount = 0; }
         if (policy.unanswered >= 1 || policy.proactiveCount >= policy.maxProactivePerDay || trigger === 'scheduled' && !inWindow(policy, this.now())) return { skip: true };
-        policy.proactiveCount++; policy.unanswered++;
-      } else { policy.unanswered = 0; }
+        if (Object.values(state.runs).some(r=>r.policyId===policyId && r.phase==='waiting')) return {skip:true};
+        policy.proactiveCount++;
+      }
       policy.turns++; policy.cursor++; policy.nextAt = this.now() + policy.intervalMinutes * 60000;
-      const run = { id: runId, policyId, epoch: policy.epoch, catId: policy.catId,
+      const run = { ...existing, id: runId, policyId, epoch: policy.epoch, catId: policy.catId,
         accountId: policy.accountId, accountIdentity: policy.accountIdentity, serverId: policy.serverId,
         conversationId: policy.conversationId, trigger, operationId, incomingText,
         semanticCursor: policy.cursor, createdAt: this.now(), phase: incomingText && sensitive(incomingText) ? 'needs_owner' : 'generating', submitted: false };
@@ -202,7 +255,9 @@ export class DelegationService {
         const run = await this.change(state => {
           const row = state.runs[runId];
           if (!this.current(state, row) || row.phase !== 'prepared') { row.phase = 'cancelled'; return null; }
-          row.phase = 'submitting'; row.submitted = true; return row;
+          row.phase = 'submitting'; row.submitted = true; row.handoffAt = this.now();
+          if (row.trigger !== 'reply') { state.policies[policyId].unanswered = 1; state.policies[policyId].awaitingReplyRunId = row.id; }
+          return row;
         });
         if (!run) return null;
         // submit() starts its HTTP call before its first await. Release this
@@ -230,6 +285,8 @@ export class DelegationService {
       if (['cancelled', 'sent', 'owner_confirmed_sent'].includes(run.phase)) return null;
       run.sendId = receipt.sendId;
       run.phase = receipt.verified === true ? 'sent' : ['queued', 'submitting', 'accepted', 'cancelled', 'failed'].includes(receipt.state) ? receipt.state : 'needs_review';
+      const policy = state.policies[run.policyId];
+      if (run.phase === 'cancelled' && policy.awaitingReplyRunId === run.id) { policy.unanswered = 0; policy.awaitingReplyRunId = null; }
       if (receipt.messageId) run.messageId = receipt.messageId;
       if (['needs_review', 'failed'].includes(run.phase) && this.current(state, run)) { state.policies[run.policyId].mode = 'paused'; state.policies[run.policyId].epoch++; }
       if (!this.current(state, run)) run.cancelRequested = true;
@@ -276,6 +333,10 @@ export class DelegationService {
   }
   async markNotified(runId) {
     return this.serial(() => this.change(state => { state.runs[runId].notified = true; }));
+  }
+  interruptLocal() {
+    for (const entry of this.controllers.values()) entry.controller.abort();
+    this.controllers.clear();
   }
   async revoke(policyId) {
     await this.takeover(policyId);

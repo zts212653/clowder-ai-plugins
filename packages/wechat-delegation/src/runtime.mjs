@@ -13,7 +13,7 @@ const fields = new Set(['action', 'acceptThirdParty', 'target', 'catId', 'person
 export class DelegationRuntime {
   static async open(host, { supervisor = new NativeSupervisor({ dataPath: host.dataPath }), model = new MemberRunner(host), startTimer = true } = {}) {
     const runtime = new DelegationRuntime();
-    Object.assign(runtime, { host, supervisor, model, jobs: new Set(), running: true, lastError: null });
+    Object.assign(runtime, { host, supervisor, model, jobs: new Set(), incomingJobs: new Map(), running: true, lastError: null });
     const channel = Object.fromEntries(['prepare', 'submit', 'inspect', 'cancel'].map(method => [method, (...args) => runtime.client()[method](...args)]));
     runtime.service = await DelegationService.open({ storage: host.storage, channel, model });
     supervisor.onExit = () => {
@@ -169,20 +169,24 @@ export class DelegationRuntime {
       if (input.notificationThreadId && !notificationThread) throw Error('提醒目标对话不可用');
       await context.assertCurrent();
       const session = await this.model.prepare(input.catId, `wechat:${policyId}:${input.catId}`);
-      if (session.runtime && (session.runtime.clientId !== preview.runtime?.clientId || session.runtime.model !== preview.runtime?.model ||
-          preview.defaultAccountRef && session.runtime.account.accountRef !== preview.defaultAccountRef)) {
-        await this.host.memberSessions.revoke(session.sessionId);
-        throw Error('实际授权的模型服务与预览不符，请重新核验');
+      try {
+        if (session.runtime && (session.runtime.clientId !== preview.runtime?.clientId || session.runtime.model !== preview.runtime?.model ||
+            preview.defaultAccountRef && session.runtime.account.accountRef !== preview.defaultAccountRef)) {
+          throw Error('实际授权的模型服务与预览不符，请重新核验');
+        }
+        await context.assertCurrent();
+        if (notificationThread) await this.host.messaging.subscribe({ threadId: notificationThread.id, method: 'wechat.ownerDelivery' });
+        await this.service.activate({ serverId: identity.serverId, accountIdentity: identity.accountIdentity, accountId: ACCOUNT, conversationId: target.id, kind: target.kind,
+          displayName: chosen.displayName ?? target.id, catId: input.catId, catDisplayName: members.find(member => member.catId === input.catId).displayName, ownerUserId: context.userId,
+          persona: input.persona, goal: input.goal, proactive: input.proactive, replies: input.replies,
+          scheduleEnabled: input.scheduleEnabled === true, intervalMinutes: input.intervalMinutes, maxTurns: input.maxTurns,
+          timeZone: input.timeZone, windowStart: input.windowStart, windowEnd: input.windowEnd, maxProactivePerDay: input.maxProactivePerDay,
+          expiresAt: input.expiresAt ?? null, notificationThreadId: input.notificationThreadId ?? null, notificationThreadTitle: notificationThread?.title ?? null, session },
+        { policyEpoch: previous?.epoch ?? 0, globalControlEpoch: activationBaseline.globalControlEpoch });
+      } catch (error) {
+        try { await this.host.memberSessions?.revoke(session.sessionId); } catch { /* No policy was committed; a revoked owner context cannot grant cleanup authority. */ }
+        throw error;
       }
-      await context.assertCurrent();
-      if (notificationThread) await this.host.messaging.subscribe({ threadId: notificationThread.id, method: 'wechat.ownerDelivery' });
-      await this.service.activate({ serverId: identity.serverId, accountIdentity: identity.accountIdentity, accountId: ACCOUNT, conversationId: target.id, kind: target.kind,
-        displayName: chosen.displayName ?? target.id, catId: input.catId, catDisplayName: members.find(member => member.catId === input.catId).displayName, ownerUserId: context.userId,
-        persona: input.persona, goal: input.goal, proactive: input.proactive, replies: input.replies,
-        scheduleEnabled: input.scheduleEnabled === true, intervalMinutes: input.intervalMinutes, maxTurns: input.maxTurns,
-        timeZone: input.timeZone, windowStart: input.windowStart, windowEnd: input.windowEnd, maxProactivePerDay: input.maxProactivePerDay,
-        expiresAt: input.expiresAt ?? null, notificationThreadId: input.notificationThreadId ?? null, notificationThreadTitle: notificationThread?.title ?? null, session },
-      { policyEpoch: previous?.epoch ?? 0, globalControlEpoch: activationBaseline.globalControlEpoch });
       if (previous && previous.session.sessionId !== session.sessionId) {
         try { await this.host.memberSessions?.revoke(previous.session.sessionId); } catch { /* Old local epoch is already revoked. */ }
       }
@@ -213,7 +217,7 @@ export class DelegationRuntime {
     await this.service.reconcile();
     await this.notify();
     const snapshot = await this.service.snapshot();
-    const active = snapshot.policies.filter(p => p.mode === 'active');
+    const active = snapshot.policies.filter(p => p.mode === 'active' && (p.expiresAt === null || p.expiresAt > Date.now()));
     if (!active.length) return;
     try { for (const policy of active) await client.prepare(policy); }
     catch { for (const policy of active) await this.service.takeover(policy.id); this.lastError = '账号状态或身份已变化，代聊已停止；请重新核验。'; return; }
@@ -223,11 +227,21 @@ export class DelegationRuntime {
       if (!event || typeof event.cursor !== 'string' || !/^\d+$/.test(event.cursor)) throw Error('事件游标不可用');
       const policy = active.find(p => p.conversationId === event.data?.threadId);
       if (policy && event.kind === 'message.committed' && Date.parse(event.createdAt) >= policy.activatedAt) {
-        const message = await client.message(ACCOUNT, event.data.messageId);
-        if (message.accountId !== ACCOUNT || message.threadId !== policy.conversationId || message.id !== event.data.messageId) throw Error('入站会话身份不符');
-        await this.service.incoming(ACCOUNT, { ...message, createdAt: Date.parse(message.createdAt) });
+        const reading = await this.service.beginIncomingRead(policy, () => client.message(ACCOUNT, event.data.messageId));
+        if (reading) {
+          const message = await reading.promise;
+          if (message.accountId !== ACCOUNT || message.threadId !== policy.conversationId || message.id !== event.data.messageId) throw Error('入站会话身份不符');
+          // Persist before advancing the account cursor. One slow/busy target
+          // cannot block another target, and admitted messages are not discarded.
+          await this.service.enqueueIncoming(ACCOUNT, { ...message, createdAt: Date.parse(message.createdAt) }, policy);
+        }
       }
       await this.service.cursor(ACCOUNT, event.cursor);
+    }
+    for (const policy of active) if (!this.incomingJobs.has(policy.id)) {
+      const job = this.track(this.service.processIncoming(policy.id));
+      this.incomingJobs.set(policy.id, job);
+      job.finally(() => { if (this.incomingJobs.get(policy.id) === job) this.incomingJobs.delete(policy.id); });
     }
     this.track(this.service.tick());
     await this.notify();
@@ -259,10 +273,18 @@ export class DelegationRuntime {
     await this.service.ownerStop({ messageId: message.id, threadId: message.threadId, userId: message.userId, timestamp: message.timestamp, global });
     return receipt;
   }
+  async preStop() {
+    if (!this.running) return;
+    // Host ports are still current only during preStop. After this point stop
+    // may run with all authority revoked, including failed-start rollback.
+    try { await this.service.takeover(null); } finally { await this.stop(); }
+  }
   async stop() {
     clearInterval(this.timer);
     if (!this.running) return;
-    try { await this.service.takeover(null); } finally { this.running = false; await this.supervisor.stop(); }
+    this.running = false;
+    this.service.interruptLocal();
+    await this.supervisor.stop();
     await this.drain();
   }
 }

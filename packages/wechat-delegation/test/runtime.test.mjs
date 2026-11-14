@@ -105,8 +105,34 @@ test('local takeover acknowledgement does not wait for an unresponsive account s
   assert.equal(result.globalPause, true);
 });
 
+test('Host teardown persists stop before revocation, then releases local resources without using revoked storage', async t => {
+  const f = await fixture(t);
+  await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
+  await f.runtime.dispatch({ action: 'pause_all' }, owner());
+  // The real Host calls preStop while its ports are current, then revokes them
+  // before stop. A second durable takeover during stop must not call the Host.
+  await f.runtime.preStop();
+  assert.equal((await f.runtime.service.snapshot()).globalPause, true);
+  let revokedAccesses = 0;
+  f.host.storage.get = async () => { revokedAccesses++; throw Error('Host activation revoked'); };
+  f.host.storage.compareAndSet = async () => { revokedAccesses++; throw Error('Host activation revoked'); };
+  await f.runtime.stop();
+  assert.equal(f.runtime.supervisor.client, null);
+  assert.equal(revokedAccesses, 0);
+});
+
+test('failed-start cleanup can stop owned resources after Host ports have already been revoked', async t => {
+  const f = await fixture(t);
+  await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
+  f.host.storage.get = async () => { throw Error('Host activation revoked'); };
+  await f.runtime.stop();
+  assert.equal(f.runtime.supervisor.client, null);
+  assert.equal(f.runtime.running, false);
+});
+
 test('global takeover also cancels an authorization still waiting for model preparation, including a new conversation', async t => {
   const f = await fixture(t);
+  const revoked=[]; f.host.memberSessions={revoke:async id=>{revoked.push(id);}};
   await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
   let release, entered;
   const prepared = new Promise(resolve => { release = resolve; });
@@ -119,6 +145,46 @@ test('global takeover also cancels an authorization still waiting for model prep
   release({ sessionId: 'late', generation: 1, threadId: 'isolated', consumedCursor: 0 });
   await assert.rejects(activation, /接管|变化|changed/);
   assert.equal((await f.runtime.status()).policies.length, 0);
+  assert.deepEqual(revoked,['late']);
+});
+
+test('a busy conversation retains incoming work without blocking the account cursor or another conversation', async t => {
+  const f=await fixture(t); await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
+  f.client.threads=async()=>({items:[{id:'room@chatroom',accountId:'clowder',kind:'group'},{id:'friend',accountId:'clowder',kind:'direct'}]});
+  for(const target of [{id:'room@chatroom',kind:'group'},{id:'friend',kind:'direct'}]) await f.runtime.dispatch({action:'activate',target,catId:'cat',persona:'友好',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'},owner());
+  f.client.submit=async run=>{f.sends.push(run);return{sendId:run.id,state:'queued'};};
+  let settled=false; f.client.inspect=async run=>({sendId:run.id,state:settled?'accepted':'queued'});
+  const group=(await f.runtime.service.snapshot()).policies.find(p=>p.kind==='group');
+  await f.runtime.service.initiate(group.id,'busy');
+  const createdAt=new Date(Date.now()+1000).toISOString();
+  f.client.events=async(_account,cursor)=>({items:cursor==='0'?['room@chatroom','friend'].map((threadId,index)=>({cursor:String(index+1),kind:'message.committed',createdAt,data:{threadId,messageId:`message-${index}`}})):[]});
+  f.client.message=async(_account,id)=>({id,accountId:'clowder',threadId:id==='message-0'?'room@chatroom':'friend',direction:'incoming',body:'周末读书',createdAt});
+  await f.runtime.cycle(); await f.runtime.drain();
+  let state=await f.runtime.service.snapshot(); assert.equal(state.cursors.clowder,'2');
+  assert.equal(f.sends.filter(run=>run.conversationId==='friend').length,1);
+  assert.equal(state.runs.filter(run=>run.phase==='waiting').length,1);
+  settled=true; await f.runtime.cycle(); await f.runtime.drain();
+  state=await f.runtime.service.snapshot(); assert.equal(state.runs.filter(run=>run.phase==='waiting').length,0);
+  assert.equal(f.sends.filter(run=>run.conversationId==='room@chatroom').length,2);
+});
+
+test('an owner or subscription failure after member preparation revokes the uncommitted session', async t => {
+  const f=await fixture(t); await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
+  const revoked=[];f.host.memberSessions={revoke:async id=>{revoked.push(id);}};
+  f.host.messaging.subscribe=async()=>{throw Error('subscription unavailable');};
+  await assert.rejects(f.runtime.dispatch({action:'activate',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'友好',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview',notificationThreadId:'owner-thread'},owner()),/subscription/);
+  assert.deepEqual(revoked,['s']); assert.equal((await f.runtime.service.snapshot()).policies.length,0);
+});
+
+test('takeover during an event-page request prevents subsequent message-body reads and model work', async t => {
+  const f=await fixture(t); await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
+  await f.runtime.dispatch({action:'activate',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'友好',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'},owner());
+  let entered,release;const requested=new Promise(resolve=>{entered=resolve;}),page=new Promise(resolve=>{release=resolve;});
+  f.client.events=async()=>{entered();return page;};let reads=0;f.client.message=async()=>{reads++;throw Error('body read after takeover');};
+  const cycle=f.runtime.cycle();await requested;
+  await f.runtime.dispatch({action:'pause_all'},owner());
+  release({items:[{cursor:'1',kind:'message.committed',createdAt:new Date(Date.now()+1000).toISOString(),data:{threadId:'room@chatroom',messageId:'after-stop'}}]});
+  await cycle;await f.runtime.drain();assert.equal(reads,0);assert.equal(f.sends.length,0);
 });
 
 test('older audit records remain reachable through bounded history pages after the live view fills', async t => {

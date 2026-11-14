@@ -57,7 +57,7 @@ export default {
           },
           deliver: input => current.ownerDelivery(input),
           async configRefresh() { await current.service.takeover(null); await current.supervisor.stop(); },
-          async preStop() { await current.service.takeover(null); },
+          async preStop() { await current.preStop(); },
           async stop() { await current.stop(); if (runtime === current) runtime = undefined; },
         };
       },

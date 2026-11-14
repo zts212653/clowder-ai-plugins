@@ -190,7 +190,7 @@
         el('div', { class: 'toolbar' }, [button('我来聊', () => perform({ action: 'takeover', policyId: policy.id }, '本地后续代聊已停止；在途结果单独核对。'), 'stop'), start,
           button('交回 / 换猫 / 修改范围', () => fillPolicy(policy)), button('撤销会话授权', () => perform({ action: 'revoke', policyId: policy.id }, '已撤销此会话的后续处理。'))])]));
     }
-    const phases = { generating: '猫正在起草', prepared: '已生成 · 尚未移交', submitting: '已移交组件 · 结果待核对', queued: '组件内待发送', accepted: '平台已受理 · 对端实收未验证',
+    const phases = { waiting: '已保存来信 · 等待本会话上一轮完成', observed: '已收到对方消息 · 自动接话关闭', generating: '猫正在起草', prepared: '已生成 · 尚未移交', submitting: '已移交组件 · 结果待核对', queued: '组件内待发送', accepted: '平台已受理 · 对端实收未验证',
       sent: '平台记录已核验 · 不代表已读', needs_review: '发送结果未知 · 不会自动重发', cancelled: '本轮已取消', failed: '本轮未完成 · 已暂停', needs_owner: '需要本人处理 · 已暂停', silent: '无需继续发言 · 已暂停', owner_confirmed_sent: '本人已确认在微信发出' };
     attempts.replaceChildren();
     if (!snapshot.runs.length) attempts.append(el('p', { class: 'empty', text: '还没有发送记录。这里会保留每一轮实际处理状态。' }));

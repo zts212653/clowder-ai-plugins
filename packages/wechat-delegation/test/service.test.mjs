@@ -176,3 +176,47 @@ test('global pause and restart cannot turn a revoked conversation back into an o
   await f.service.takeover(null);
   assert.equal((await f.service.snapshot()).policies[0].mode, 'revoked');
 });
+
+test('taking over before handoff does not leave a phantom unanswered message after explicit restoration', async () => {
+  const entered = deferred(), output = deferred();
+  const f = await fixture({ model: { generate: async () => { entered.resolve(); return output.promise; } } });
+  const first = f.service.initiate(f.binding.id, 'cancelled-draft'); await entered.promise;
+  await f.service.takeover(f.binding.id); output.resolve({kind:'message',text:'迟到文字'}); await first;
+  await f.service.activate(policy());
+  f.model.generate = async () => ({kind:'message',text:'重新主动开口'});
+  await f.service.initiate(f.binding.id, 'after-restoration');
+  assert.equal(f.calls.length, 1);
+  assert.equal(f.calls[0].text, '重新主动开口');
+});
+
+test('proactive-only permission still observes a peer reply without generating an automatic answer', async () => {
+  const f = await fixture({ policy:{replies:false}, channel:{submit:async row=>{f.calls.push(row);return{sendId:row.id,state:'accepted'};}} });
+  await f.service.initiate(f.binding.id, 'first');
+  await f.service.incoming('account',{id:'peer',threadId:'friend',direction:'incoming',body:'周末可以',createdAt:10001});
+  assert.equal(f.generations.length,1);
+  await f.service.initiate(f.binding.id, 'second');
+  assert.equal(f.calls.length,2);
+});
+
+test('a confirmed native cancellation releases the unanswered guard while an unknown send keeps it', async () => {
+  const f = await fixture(); await f.service.initiate(f.binding.id,'cancelled-native');
+  await f.service.takeover(f.binding.id); await f.service.reconcile();
+  await f.service.activate(policy()); await f.service.initiate(f.binding.id,'new-native');
+  assert.equal(f.calls.length,2);
+});
+
+test('expired incoming events do not throw or generate and cannot block account event processing', async () => {
+  const f=await fixture({policy:{expiresAt:11000}}); f.service.now=()=>12000;
+  await f.service.incoming('account',{id:'after-expiry',threadId:'friend',direction:'incoming',body:'你好',createdAt:12000});
+  assert.equal(f.generations.length,0);
+});
+
+test('a body request admitted before takeover cannot enter a later restored policy generation', async () => {
+  const f=await fixture(); const body=deferred();
+  const reading=await f.service.beginIncomingRead(f.binding,()=>body.promise);
+  await f.service.takeover(f.binding.id); await f.service.activate(policy());
+  body.resolve({id:'late-inbound',threadId:'friend',direction:'incoming',body:'旧读取的迟到正文',createdAt:20000});
+  await f.service.enqueueIncoming('account',await reading.promise,f.binding);
+  await f.service.processIncoming(f.binding.id);
+  assert.equal((await f.service.snapshot()).runs.length,0); assert.equal(f.calls.length,0);
+});
