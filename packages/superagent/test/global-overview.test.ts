@@ -22,8 +22,8 @@ test('every watched conversation is represented, including no Task and unavailab
     { threadId: 'source-b', status: 'unknown', progress: '近期没有可用于确认进展的消息。', blocker: '', nextStep: '需要时回原会话核实。', evidenceIds: [] },
     { threadId: 'removed', status: 'unknown', progress: '会话当前不可读取。', blocker: '', nextStep: '请在监听范围中核对会话是否仍可访问。', evidenceIds: [] },
   ];
-  await assert.rejects(async () => runtime.actions['superagent.overview']({ kind: 'publish', requestId: inspected.overview.requestId, rows: rows.slice(0, 1) }, f.caller(state.coordinationThreadId!)), /全部|coverage/);
-  await assert.rejects(async () => runtime.actions['superagent.overview']({ kind: 'publish', requestId: inspected.overview.requestId, rows: rows.map((row) => ({ ...row, evidenceIds: ['invented'] })) }, f.caller(state.coordinationThreadId!)), /证据|evidence/);
+  assert.equal((await runtime.actions['superagent.overview']({ kind: 'publish', requestId: inspected.overview.requestId, rows: rows.slice(0, 1) }, f.caller(state.coordinationThreadId!)) as { errorCode: string }).errorCode, 'coverage');
+  assert.equal((await runtime.actions['superagent.overview']({ kind: 'publish', requestId: inspected.overview.requestId, rows: rows.map((row) => ({ ...row, evidenceIds: ['invented'] })) }, f.caller(state.coordinationThreadId!)) as { errorCode: string }).errorCode, 'evidence');
   await runtime.actions['superagent.overview']({ kind: 'publish', requestId: inspected.overview.requestId, rows }, f.caller(state.coordinationThreadId!));
   const digests = [...f.sent.values()].filter((message) => message.threadId === state.mainThreadId && JSON.stringify(message.payload).includes('监听会话总览'));
   assert.equal(digests.length, 1);

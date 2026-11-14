@@ -16,10 +16,11 @@ test('a global overview retains doing tasks and no-Task sources without changing
   const overview = overviewSchema.parse(f.rows.get('overview')?.value);
   assert.equal(overview.sources.length, 2);
   assert.equal(overview.sources[0].existingWork[0].ownerCatId, 'original-owner');
-  await assert.rejects(async () => runtime.actions['superagent.overview']({ kind: 'publish', requestId: overview.requestId, rows: [
+  const rejected = await runtime.actions['superagent.overview']({ kind: 'publish', requestId: overview.requestId, rows: [
     { threadId: 'source-a', status: 'done', progress: '模型说完成', blocker: '', nextStep: '无需操作', evidenceIds: ['task-a'] },
     { threadId: 'source-b', status: 'unknown', progress: '未核实', blocker: '', nextStep: '回原会话核实', evidenceIds: [] },
-  ] }, f.caller(state.coordinationThreadId!)), /尚未闭合/);
+  ] }, f.caller(state.coordinationThreadId!)) as { errorCode: string };
+  assert.equal(rejected.errorCode, 'task_open');
   assert.deepEqual([...f.tasks.values()], original);
   await runtime.stop({ reason: 'test' });
 });

@@ -97,7 +97,7 @@ export async function refreshOverview(host: SuperagentHost, pref: Preferences, c
   const requestId = randomUUID();
   const request = { formatVersion: 2, requestId, phase: 'pending' as const, sources, capturedAt: now, nextCheckAt: now + 60_000, nextRequestAt: now + 10 * 60_000, rows: before?.rows };
   const wake = await send(host, coordinationThreadId, `overview:${requestId}`,
-    `请给未看过过程的用户整理全部监听会话总览。通过 plugin_list_tools 发现 official.superagent，调用 superagent_inspect 读取 overview.sources，再调用 superagent_overview(kind=publish, requestId, rows)。每个来源恰好一项，引用本批消息/Task 的 evidenceIds。必须填写tracking（明确Host/插件等仓库、Issue和PR编号；只有证据能证明未建PR才写尚未创建，否则写未核实）和background（问题现象、用户受什么影响，不复述状态）。结合来源标题、Task.why和原消息说明progress：已经解决了什么、还没解决什么；blocker写具体卡点，nextStep写谁继续、用户是否需要做什么。消息不足时，可按existingWork[].id调用cat_cafe_list_tasks(taskId)只读核对该Task的progress.summary、blockerReason和nextStep，仍引用该Task id；仅核已选来源，不扩大检索或执行范围。保留Issue/PR编号、关键故障与解决内容；不要为了短而只写PR已完成/等批准。每项背景和进展各用一两句，排除SHA、工位路径、测试数量和内部工具过程。无证据明确待核实，不能猜关联、已完成、负责人或截止时间；不能漏无Task会话。先用户决定/验收，再阻塞、进行中、安静/完成。区分回复结束、方案完成和正式验收。只提交总览，不route/start、不创建Task/工作线程、不跨发聊天回复到助手。`, pref.coordinatorId);
+    `请给未看过过程的用户整理全部监听会话总览。通过 plugin_list_tools 发现 official.superagent，调用 superagent_inspect 读取 overview.sources，再调用 superagent_overview(kind=publish, requestId, rows)。每个来源恰好一项，引用本批消息/Task 的 evidenceIds。必须填写tracking（明确Host/插件等仓库、Issue和PR编号；只有证据能证明未建PR才写尚未创建，否则写未核实）和background（问题现象、用户受什么影响，不复述状态）。结合来源标题、Task.why和原消息说明progress：已经解决了什么、还没解决什么；blocker写具体卡点，nextStep写谁继续、用户是否需要做什么。消息不足时，可按existingWork[].id调用cat_cafe_list_tasks(taskId)只读核对该Task的progress.summary、blockerReason和nextStep，仍引用该Task id；仅核已选来源，不扩大检索或执行范围。保留Issue/PR编号、关键故障与解决内容；不要为了短而只写PR已完成/等批准。每项背景和进展各用一两句，排除SHA、工位路径、测试数量和内部工具过程。无证据明确待核实，不能猜关联、已完成、负责人或截止时间；不能漏无Task会话。先用户决定/验收，再阻塞、进行中、安静/完成。区分回复结束、方案完成和正式验收。只提交总览，不route/start、不创建Task/工作线程、不跨发聊天回复到助手。提交返回ok:false时必须读取errorCode和对应threadId/Task/证据，修正后沿同一requestId提交；仅request_changed或scope_changed才重新读取范围。不能把task_open/evidence错误猜成空会话或让用户改监听范围；不能用refresh绕过任务验收约束。`, pref.coordinatorId);
   const next = { ...request, wakeMessageId: wake.messageId };
   await host.storage.set('overview', next);
   return next;
@@ -105,21 +105,21 @@ export async function refreshOverview(host: SuperagentHost, pref: Preferences, c
 
 export async function publishOverview(host: SuperagentHost, pref: Preferences, mainThreadId: string, input: Extract<z.infer<typeof overviewInputSchema>, { kind: 'publish' }>) {
   const overview = await read(host, 'overview', overviewSchema);
-  if (!overview || input.requestId !== overview.requestId) throw new Error('总览请求已变化，请重新读取 inspect.overview');
+  if (!overview || input.requestId !== overview.requestId) return { ok: false, errorCode: 'request_changed', message: '总览请求已变化，请重新读取 inspect.overview', requestId: overview?.requestId };
   const selected = pref.threadIds;
   if (input.rows.length !== selected.length || new Set(input.rows.map((row) => row.threadId)).size !== selected.length || selected.some((id) => !input.rows.some((row) => row.threadId === id)))
-    throw new Error('总览必须逐一覆盖全部监听会话，不能遗漏或重复 coverage');
+    return { ok: false, errorCode: 'coverage', message: '总览必须逐一覆盖全部监听会话，不能遗漏或重复 coverage', expectedSourceIds: selected, submittedCount: input.rows.length };
   for (const row of input.rows) {
     const source = overview.sources.find((entry) => entry.threadId === row.threadId);
-    if (!source) throw new Error('监听范围已变化，请刷新总览');
+    if (!source) return { ok: false, errorCode: 'scope_changed', message: '监听范围已变化，请重新读取并刷新总览', threadId: row.threadId };
     const evidence = [...source.recent, ...source.existingWork, ...source.questions].map((entry) => entry.id);
     if (row.evidenceIds.some((id) => !evidence.includes(id)) || (!row.evidenceIds.length && !['unknown', 'quiet'].includes(row.status)))
-      throw new Error('总览判断缺少本来源证据 evidence');
+      return { ok: false, errorCode: 'evidence', message: '总览判断缺少本来源证据 evidence', threadId: row.threadId, allowedEvidenceIds: evidence };
     if (row.status === 'done' && source.existingWork.some((task) => task.closure === 'open' || !task.closure && task.status !== 'done'))
-      throw new Error('正式任务尚未闭合，不能把回复结束当作已完成');
+      return { ok: false, errorCode: 'task_open', message: '正式任务尚未闭合，不能把回复结束当作已完成', threadId: row.threadId, openTaskIds: source.existingWork.filter((task) => task.closure === 'open' || !task.closure && task.status !== 'done').map((task) => task.id) };
   }
   if (overview.phase === 'done') {
-    if (JSON.stringify(overview.rows) !== JSON.stringify(input.rows)) throw new Error('同一总览已提交，请刷新后修改');
+    if (JSON.stringify(overview.rows) !== JSON.stringify(input.rows)) return { ok: false, errorCode: 'already_published', message: '同一总览已提交，请刷新后修改', requestId: overview.requestId };
     return overview;
   }
   const labels = { needs_you: '需要你决定', waiting_acceptance: '待你验收', blocked: '受阻', doing: '进行中', done: '已完成', quiet: '安静', unknown: '待核实' };
