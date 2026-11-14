@@ -108,7 +108,7 @@ export async function publishOverview(host: SuperagentHost, pref: Preferences, m
   if (!overview || input.requestId !== overview.requestId) return { ok: false, errorCode: 'request_changed', message: '总览请求已变化，请重新读取 inspect.overview', requestId: overview?.requestId };
   const selected = pref.threadIds;
   if (input.rows.length !== selected.length || new Set(input.rows.map((row) => row.threadId)).size !== selected.length || selected.some((id) => !input.rows.some((row) => row.threadId === id)))
-    return { ok: false, errorCode: 'coverage', message: '总览必须逐一覆盖全部监听会话，不能遗漏或重复 coverage', expectedSourceIds: selected, submittedCount: input.rows.length };
+    return { ok: false, errorCode: 'coverage', message: '总览必须逐一覆盖全部监听会话，不能遗漏或重复 coverage', expectedSourceIds: selected, submittedSourceIds: input.rows.map((row) => row.threadId), submittedCount: input.rows.length };
   for (const row of input.rows) {
     const source = overview.sources.find((entry) => entry.threadId === row.threadId);
     if (!source) return { ok: false, errorCode: 'scope_changed', message: '监听范围已变化，请重新读取并刷新总览', threadId: row.threadId };
