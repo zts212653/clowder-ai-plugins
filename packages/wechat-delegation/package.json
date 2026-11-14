@@ -1,0 +1,17 @@
+{
+  "name": "@clowder-ai/wechat-delegation",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Owner-controlled proactive WeChat conversations with persistent human takeover",
+  "exports": { ".": "./dist/plugin-entrypoint.mjs", "./manifest": "./plugin.yaml" },
+  "files": ["dist", "plugin.yaml", "assets", "README.md", "README.en.md", "LICENSE"],
+  "engines": { "node": ">=20.3.0" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "lint": "node --check src/service.mjs && node --check src/plugin-entrypoint.mjs",
+    "prepack": "npm run build"
+  }
+}
