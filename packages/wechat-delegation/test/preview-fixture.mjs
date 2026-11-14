@@ -15,7 +15,7 @@ export async function previewFixture() {
   const client = {
     json: async () => ({ items: [{ id: 'clowder' }] }),
     identity: async () => ({ serverId: 'preview-server', accountId: 'clowder', accountIdentity: connected ? '模拟微信账号' : null, connected }),
-    createAccount: async () => ({}), login: async () => ({ id: 'preview-login', kind: 'login', accountId: 'clowder', state: 'succeeded' }),
+    createAccount: async () => ({}), login: async () => { connected = true; return { id: 'preview-login', kind: 'login', accountId: 'clowder', state: 'succeeded' }; },
     operation: async () => ({ id: 'preview-login', kind: 'login', accountId: 'clowder', state: 'succeeded' }),
     threads: async () => ({ items: [{ id: 'preview-friend', accountId: 'clowder', displayName: '测试好友（模拟）', kind: 'direct' },
       { id: 'preview-room@chatroom', accountId: 'clowder', displayName: '周末读书群（模拟）', kind: 'group' }], nextCursor: null }),
@@ -24,7 +24,7 @@ export async function previewFixture() {
     cancel: async run => ({ sendId: run.sendId ?? run.id, state: 'needs_review' }),
     disconnect: async () => { connected = false; return { disconnected: true }; },
   };
-  const supervisor = { client: null, prepare: async () => { supervisor.client = client; connected = true; return client; }, stop: async () => { supervisor.client = null; } };
+  const supervisor = { client: null, prepare: async () => { supervisor.client = client; return client; }, stop: async () => { supervisor.client = null; } };
   const model = { available: () => true,
     describe: async () => ({ available: true, fingerprint: 'preview-model', runtime: { clientId: '隔离测试', model: '模拟模型' } }),
     prepare: async () => ({ sessionId: 'preview-session', generation: 1, consumedCursor: 0, threadId: 'preview-isolated' }),

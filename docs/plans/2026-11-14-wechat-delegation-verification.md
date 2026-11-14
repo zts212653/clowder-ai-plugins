@@ -37,3 +37,24 @@
 所有权见[实施计划](2026-11-14-wechat-delegation.md)。包保持 `private`，未加入正式目录、未发布 npm。CI workflow 与 lockfile 属于信任边界，按当前 CONTRIBUTING 由风险匹配的非作者独立审查覆盖，并要求 required CI；CODEOWNERS 是责任地图，不额外要求指定账号批准。作者本地结果不替代独立审查或 required CI。
 
 下一步：非作者审查固定提交并处理 findings；在相容宿主验证安装入口和真实受限执行；由本人完成不可代替的微信扫码、目标选择和授权，再分别记录好友与群实收、主动会话与接管竞态。需要本人前先备好可审查安装候选，不把作者代码与浏览器验证转给本人。
+
+## 介绍页与控制台整改（alpha.2，2026-11-15）
+
+原始要求：`thread_mwg7kandcxztqeab#0001794680646624-000134-0a4a06e3`，介绍页不再提供其他功能按钮，控制台统一宿主风格。小多子的具体设计已由作者核对公共契约与运行态 CSS 后实现；不改 Host 壳或权限合同。
+
+- 介绍页移除 `configuration` / `test`，同时删除未再使用的三个 Settings 动作端口。保留说明、使用步骤与 Host 原有启停管理，业务集中控制台。
+- 侧栏使用包内居中线性对话气泡 SVG；公共契约不支持 `message-circle` 字符串，未将内部图标枚举冒充公共能力。
+- 控制台沿用实际宿主的 OKLCH 颜色、16px 工作标题、32px 控件及柔和边框。未连接时只呈现连接步骤；连接后配置好友或群与值班猫；已有会话时优先呈现紧凑会话列表，账号设置和历史按需展开。在途提示与顶部暂停始终可达。
+- 浏览器先复现未知结果自动暂停后“我来聊”被隐藏的问题，修正为 active/paused 均能明确接管；owner 状态不重复展示。保留真实在途提示与明确恢复，不改变后端发送协议。
+
+作者验证：42 项插件回归通过；manifest 验证通过且无 configuration/test；实际 alpha.2 归档在空白离线 consumer 启动。浏览器在当前 feature 工位 `http://127.0.0.1:5188/` 完成未连接 → 准备 → 模拟扫码 → 选群与猫 → 模型授权 → 主动发言 → 未知结果 → 接管 → 全局暂停；1280×900、390×844 及暗色均通过，无 pageerror 或手机横向溢出，作者已查看截图。此端口是模拟账号/模型，不是真实微信验证。
+
+最终归档另经真实 Host 源码的隔离 admission、module carrier、owner HTTP routes 与 manager projection 验证：安装版本 alpha.2、`testable=false`、`configFields=[]`，面板/status/pause_all/停用及重启保留暂停全部通过。数据仅在临时 inventory 和内存 storage，fetch 禁止，不访问用户微信数据。
+
+宿主渲染验证也已通过：无头浏览器打开实际 `3003/settings?s=plugins`，仅在该浏览器内将插件 API 的读响应替换为上述真实隔离 Host 投影、README 与包内 SVG；通过原侧栏打开最终归档面板，账号状态单独模拟。所有 live 插件写请求被拦截，没有替换用户安装、准备组件或连接真实账号。实际介绍页确认无状态/暂停/测试业务按钮，作者查看了介绍页与控制台截图。证据目录 `meow-talk/output/wechat-delegation-alpha2`，含桌面、手机、暗色、宿主介绍页及面板截图；这属于候选包在真实 shell 内的渲染证据，不冒称 runtime 已升级。
+
+本轮归档：`clowder-ai-wechat-delegation-0.1.0-alpha.2.tgz`，SHA-1 `28dcbd58f2fb85507fcb09c901e47309d5a9e108`，SRI `sha512-2GYiX7XnCP41za7k1nAXkiBjjEX38Y3O7hvefq/Y0nEOxUew47HYLgGF9CEaMoLr91kI+OJ6kI8ELnWSEl5gtw==`。当前用户实例仍是 alpha.1，未替换。
+
+本轮最终 `pnpm gate:ci` 使用固定 Node 24.18.0 / npm 11.16.0 工具链，42 阶段全部通过，731 秒，exit 0；包含本包回归及最终 27 个可发布包的 prepack 检查。日志 `/tmp/wechat-delegation-alpha2-full-gate.log`。所有产品源码在这次 gate 开始前已稳定，之后只追加本验证记录。
+
+风险：行为变化限于插件 UI、介绍页操作移除及旧 Settings 端口清理；不改变数据存储、模型/账号权限、外部发送契约或自动恢复规则。本次是界面整改交付，完整好友/群真实收发任务仍未完成。alpha.2 保持 private，本轮不发布 npm/catalog。

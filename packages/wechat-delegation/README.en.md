@@ -8,7 +8,7 @@ This candidate uses the third-party Agent WeChat native HTTP API. It does not su
 
 ## Setup and use
 
-1. Install the archive into a compatible Host, enable it and open the plugin's WeChat delegation panel. Enabling the plugin does not start the native client or authorize conversations.
+1. Install the archive into a compatible Host and enable it. Close the introduction and click the WeChat delegation speech-bubble icon near the bottom of the far-left navigation rail. The introduction contains documentation and lifecycle management; account connection, authorization and takeover live in the panel. Enabling the plugin does not start the native client or authorize conversations.
 2. Read and accept the third-party component and synchronization disclosure. Prepare the account component through the panel. The plugin downloads a pinned release, checks its SHA-256 and supervises a dedicated process. There are no token-copying or terminal setup steps.
 3. Scan the actual login QR with your phone and confirm the account. Saved login trust may reconnect and synchronize when the component starts. Login alone grants cats no conversation access.
 4. Select a real friend or group, an available cat, a persona and purpose. Review the actual model service and explicitly authorize automatic replies and/or proactive messages.
