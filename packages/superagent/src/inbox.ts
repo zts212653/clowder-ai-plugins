@@ -44,6 +44,9 @@ export async function observe(
   )
     return;
   if (!pref.threadIds.includes(input.threadId) && input.threadId !== mainThreadId && !work) return;
+  // Existing conversations keep their original owner once a reply has already been admitted.
+  if (input.threadId !== mainThreadId && !work && !(works.some((entry) => entry.sourceThreadId === input.threadId)) &&
+    (await host.threads.readMessages(input.threadId, { limit: 30 })).some((message) => message.response?.inputMessageIds.includes(input.envelope.messageId))) return;
   if (work && input.envelope.actor.kind === 'cat' && input.envelope.actor.id === work.workerId) {
     const response = (await host.threads.readMessages(input.threadId, { limit: 100 })).find(
       (message) => message.id === input.envelope.messageId && message.sender.catId === work.workerId,

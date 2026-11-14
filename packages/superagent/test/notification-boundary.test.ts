@@ -27,9 +27,9 @@ test('a completed invocation with a native progress report stays quiet and can l
   const f = fixture();
   await f.seed();
   const runtime = await startSuperagent(f.host);
-  await runtime.actions['superagent.observe'](event('progress-work'));
+  await runtime.actions['superagent.observe'](event('progress-work', [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id));
   await runtime.actions['superagent.tick']({});
-  const control = [...f.sent.values()].find((message) => message.wake)!.threadId;
+  const control = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id;
   await runtime.actions['superagent.route']({ eventId: 'progress-work', decisions: [{ kind: 'start', title: '导出修复', outcome: '恢复导出', workerId: 'worker' }] }, f.caller(control));
   await runtime.actions['superagent.tick']({});
   const task = [...f.tasks.values()][0];
@@ -47,7 +47,7 @@ test('a completed invocation with a native progress report stays quiet and can l
   assert.equal([...f.sent.values()].filter((message) => message.wake).length, before);
   await runtime.actions['superagent.report']({ workId: task.id, reportId: 'result', kind: 'result', content: '修复与验证已完成。' }, caller);
   await runtime.actions['superagent.tick']({});
-  assert.equal([...f.sent.values()].filter((message) => message.threadId === 'source-a' && JSON.stringify(message.payload).includes('修复与验证已完成')).length, 1);
+  assert.equal([...f.sent.values()].filter((message) => message.threadId === control && JSON.stringify(message.payload).includes('修复与验证已完成')).length, 1);
   assert.equal(f.tasks.get(task.id)?.entrustedWork?.closure.state, 'open');
   await runtime.stop({ reason: 'test' });
 });
@@ -88,9 +88,9 @@ test('a member used as both coordinator and worker stays quiet for ordinary rece
   const f = fixture();
   await f.host.storage.set('preferences', { ...f.preferences, workerIds: ['coordinator'] });
   const runtime = await startSuperagent(f.host);
-  await runtime.actions['superagent.observe'](event('same-member'));
+  await runtime.actions['superagent.observe'](event('same-member', [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id));
   await runtime.actions['superagent.tick']({});
-  const control = [...f.sent.values()].find((message) => message.wake)!.threadId;
+  const control = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id;
   await runtime.actions['superagent.route']({ eventId: 'same-member', decisions: [{ kind: 'start', title: '气泡修复', outcome: '恢复本人气泡', workerId: 'coordinator' }] }, f.caller(control));
   await runtime.actions['superagent.tick']({});
   const task = [...f.tasks.values()][0];
@@ -118,9 +118,9 @@ test('a result in the assistant identifies the issue, source, background and req
   f.threads.set('source-a', { ...f.threads.get('source-a')!, title: 'issue#1973 发送气泡丢失' });
   const runtime = await startSuperagent(f.host);
   const main = runtimeSchema.parse(f.rows.get('runtime')?.value).mainThreadId!;
-  await runtime.actions['superagent.observe'](event('new-design'));
+  await runtime.actions['superagent.observe'](event('new-design', [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id));
   await runtime.actions['superagent.tick']({});
-  const control = [...f.sent.values()].find((message) => message.wake)!.threadId;
+  const control = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id;
   await runtime.actions['superagent.route']({ eventId: 'new-design', decisions: [{ kind: 'start', title: '发送回执设计', outcome: '解决发送后看不到气泡的问题', workerId: 'worker' }] }, f.caller(control));
   await runtime.actions['superagent.tick']({});
   const task = [...f.tasks.values()][0];
@@ -128,7 +128,7 @@ test('a result in the assistant identifies the issue, source, background and req
   await runtime.actions['superagent.tick']({});
   const notice = [...f.sent.values()].find((message) => message.threadId === main && JSON.stringify(message.payload).includes('已补齐'))!;
   const text = notice.payload.elements.filter((element) => element.kind === 'text').map((element) => element.payload.text).join('\n');
-  for (const expected of ['发送回执设计', 'issue#1973', 'http://localhost/?threadId=source-a', '解决发送后看不到气泡', '下一步', '验收']) assert.ok(text.includes(expected), expected);
+  for (const expected of ['发送回执设计', '我的助手', `http://localhost/?threadId=${main}`, '解决发送后看不到气泡', '下一步', '验收']) assert.ok(text.includes(expected), expected);
   assert.doesNotMatch(text, /eventId|plugin_call|superagent_inspect/);
   assert.equal(notice.wake, undefined);
   await runtime.stop({ reason: 'test' });

@@ -4,6 +4,7 @@ import test from 'node:test';
 import { z } from 'zod';
 import { parse } from 'yaml';
 import { planSchema, reportSchema } from '../src/state.js';
+import { overviewInputSchema } from '../src/overview.js';
 
 test('published tool schemas describe exactly what the runtime accepts', async () => {
   const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
@@ -11,6 +12,7 @@ test('published tool schemas describe exactly what the runtime accepts', async (
     inspect: z.object({}).strict(),
     route: planSchema.omit({ applied: true }),
     report: reportSchema.omit({ applied: true, invocationId: true }),
+    overview: overviewInputSchema,
   })) {
     const { $schema: _dialect, ...expected } = z.toJSONSchema(schema, { target: 'draft-7' });
     assert.deepEqual(

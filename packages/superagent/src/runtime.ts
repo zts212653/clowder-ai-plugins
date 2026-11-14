@@ -1,6 +1,6 @@
 import { isPluginDeliveryInput } from '@clowder-ai/plugin-contract';
 import type { ModulePluginHostShape, PluginModuleActivationShape } from '@clowder-ai/plugin-sdk';
-import { followUp, watchedSources } from './follow-up.js';
+import { overviewInputSchema, overviewSchema, publishOverview, refreshOverview, watchedSources } from './overview.js';
 import { advanceInbox, clearRecoveredError, observe } from './inbox.js';
 import { coordinatorInstructions } from './instructions.js';
 import { createSettings } from './settings.js';
@@ -174,7 +174,8 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
       }
       current();
       await advanceInbox(host, pref, runtime.mainThreadId, runtime.coordinationThreadId!);
-      await followUp(host, pref, runtime.mainThreadId);
+      if (!(await queued(host, 'inbox', 'inbox:', inboxSchema)).some((entry) => entry.phase === 'routed'))
+        await refreshOverview(host, pref, runtime.coordinationThreadId!);
     });
     const completed = run.then(() => clearRecoveredError(host));
     tail = completed.then(
@@ -252,6 +253,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
             ? {
                 inbox,
                 sources,
+                overview: await read(host, 'overview', overviewSchema),
                 watchedSources: await watchedSources(host, pref),
                 questions: (await records(host, 'question:', questionSchema)).filter((q) => !q.resolved),
               }
@@ -276,6 +278,8 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         if (plan.decisions.some((decision) => decision.kind === 'start') &&
           (event.delivery.envelope.actor.kind !== 'user' || event.delivery.envelope.actor.id !== context.userId))
           throw new Error('新的工作必须来自当前用户的明确委托；成员汇报只能跟进原任务。');
+        if (plan.decisions.some((decision) => decision.kind === 'start') && event.delivery.threadId !== runtime.mainThreadId)
+          throw new Error('监听会话的工作沿原会话和原负责人继续，不另建 Work；仅助手主对话明确交办的独立新事项可 start。');
         const before = await read(host, `plan:${plan.eventId}`, planSchema);
         if (before) {
           if (JSON.stringify(before.decisions) !== JSON.stringify(plan.decisions))
@@ -292,6 +296,19 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         }
         if (!before?.applied) await editQueue(host, 'plans', plan.eventId, true);
         return { accepted: true, eventId: plan.eventId };
+      },
+      async 'superagent.overview'(input, context) {
+        current();
+        const value = overviewInputSchema.parse(input);
+        const pref = await preferences();
+        const runtime = await read(host, 'runtime', runtimeSchema);
+        if (!context || context.toolExecutionPolicy || context.catId !== pref.coordinatorId ||
+          (context.threadId !== runtime?.mainThreadId && context.threadId !== runtime?.coordinationThreadId))
+          throw new Error('Only the configured coordinator can summarize watched sources');
+        await context.assertCurrent();
+        return value.kind === 'refresh'
+          ? refreshOverview(host, pref, runtime.coordinationThreadId!, true)
+          : publishOverview(host, pref, runtime.mainThreadId!, value);
       },
       async 'superagent.report'(input, context) {
         current();

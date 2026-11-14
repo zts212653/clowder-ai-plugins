@@ -1,0 +1,77 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { startSuperagent } from '../src/runtime.js';
+import { runtimeSchema } from '../src/state.js';
+import { watchedSources } from '../src/overview.js';
+import { event, fixture } from './fixture.js';
+
+test('every watched conversation is represented, including no Task and unavailable sources; one issue cannot dominate', async () => {
+  const f = fixture();
+  await f.host.storage.set('preferences', { ...f.preferences, started: true, threadIds: ['source-a', 'source-b', 'removed'] });
+  f.history.set('source-a', [{ id: 'evidence-a', timestamp: 10, content: 'CI 仍失败，负责人正在修复，不需要用户操作。', sender: { kind: 'cat', catId: 'worker' } }]);
+  const runtime = await startSuperagent(f.host);
+  await runtime.actions['superagent.tick']({});
+  const state = runtimeSchema.parse(f.rows.get('runtime')?.value);
+  const inspected = await runtime.actions['superagent.inspect']({}, f.caller(state.coordinationThreadId!)) as {
+    overview: { requestId: string; sources: { threadId: string; available: boolean; recent: { id: string }[] }[] };
+  };
+  assert.deepEqual(inspected.overview.sources.map((source) => source.threadId), ['source-a', 'source-b', 'removed']);
+  assert.equal(inspected.overview.sources[2].available, false);
+  const rows = [
+    { threadId: 'source-a', status: 'blocked', progress: '已提交修复，CI 未通过。', blocker: 'CI 失败，原负责人正在修复。', nextStep: '负责人修复后复跑；你暂不需要操作。', evidenceIds: ['evidence-a'] },
+    { threadId: 'source-b', status: 'unknown', progress: '近期没有可用于确认进展的消息。', blocker: '', nextStep: '需要时回原会话核实。', evidenceIds: [] },
+    { threadId: 'removed', status: 'unknown', progress: '会话当前不可读取。', blocker: '', nextStep: '请在监听范围中核对会话是否仍可访问。', evidenceIds: [] },
+  ];
+  await assert.rejects(async () => runtime.actions['superagent.overview']({ kind: 'publish', requestId: inspected.overview.requestId, rows: rows.slice(0, 1) }, f.caller(state.coordinationThreadId!)), /全部|coverage/);
+  await assert.rejects(async () => runtime.actions['superagent.overview']({ kind: 'publish', requestId: inspected.overview.requestId, rows: rows.map((row) => ({ ...row, evidenceIds: ['invented'] })) }, f.caller(state.coordinationThreadId!)), /证据|evidence/);
+  await runtime.actions['superagent.overview']({ kind: 'publish', requestId: inspected.overview.requestId, rows }, f.caller(state.coordinationThreadId!));
+  const digests = [...f.sent.values()].filter((message) => message.threadId === state.mainThreadId && JSON.stringify(message.payload).includes('监听会话总览'));
+  assert.equal(digests.length, 1);
+  const text = JSON.stringify(digests[0].payload);
+  assert.match(text, /3\/3/);
+  assert.match(text, /source-b/);
+  assert.match(text, /removed/);
+  assert.match(text, /CI 失败/);
+  assert.equal(digests[0].wake, undefined);
+  assert.equal(f.tasks.size, 0);
+  await runtime.actions['superagent.tick']({});
+  await runtime.stop({ reason: 'restart' });
+  const second = await startSuperagent(f.host);
+  await second.actions['superagent.tick']({});
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 1, 'quiet checks and restart must not repeat a model request');
+  await second.stop({ reason: 'test' });
+});
+
+test('a legacy work result is grouped under its original watched source; failed reads do not hide other sources', async () => {
+  const f = fixture();
+  await f.seed();
+  f.tasks.set('design', { id: 'design', threadId: 'outside', title: '气泡设计', status: 'blocked', kind: 'work', subjectKey: null, ownerCatId: 'worker', why: '', createdBy: 'owner', createdAt: 1, updatedAt: 1, userId: 'owner' });
+  const key = 'b'.repeat(64);
+  await f.host.storage.set(`work:${key}`, { key, taskId: 'design', title: '气泡设计', outcome: '设计已回原会话', sourceThreadId: 'source-a', sourceMessageId: 'owner-original', threadId: 'outside', workerId: 'worker' });
+  await f.host.storage.set('question:design-result', { id: 'design-result', workId: 'design', sourceThreadId: 'source-a', content: '设计已附到 issue，等待用户验收。', resolved: false });
+  await f.host.storage.set('queue', { works: [key], questions: ['design-result'] });
+  f.host.threads.readMessages = async (id) => { if (id === 'source-b') throw new Error('source unavailable'); return []; };
+  const sources = await watchedSources(f.host, { ...f.preferences, v: 1, started: true });
+  assert.deepEqual(sources.map((source) => source.threadId), ['source-a', 'source-b']);
+  assert.equal(sources[0].existingWork[0].id, 'design');
+  assert.match(sources[0].questions[0].content, /等待用户验收/);
+  assert.equal(sources[1].available, false);
+  assert.equal(sources.length, 2, 'work conversations are not additional watched sources');
+});
+
+test('watching an existing issue does not admit a second Work or execution conversation', async () => {
+  const f = fixture();
+  await f.seed();
+  const runtime = await startSuperagent(f.host);
+  const state = runtimeSchema.parse(f.rows.get('runtime')?.value);
+  const before = f.threads.size;
+  f.history.set('source-a', [{ id: 'original-reply', timestamp: 2, content: '已接下设计。', sender: { kind: 'cat', catId: 'coordinator' }, response: { executionId: 'original-invocation', inputMessageIds: ['source-existing-issue'], status: 'processing', startedAt: 1 } }]);
+  await runtime.actions['superagent.observe'](event('existing-issue', 'source-a', '你和鲸鲸一起继续气泡设计。'));
+  await runtime.actions['superagent.tick']({});
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 0, 'the original conversation must not cause a second coordination round');
+  await f.host.storage.set('inbox:existing-issue', { delivery: event('existing-issue'), phase: 'pending', receivedAt: 1 });
+  await assert.rejects(async () => runtime.actions['superagent.route']({ eventId: 'existing-issue', decisions: [{ kind: 'start', title: '气泡设计', outcome: '设计方案', workerId: 'worker' }] }, f.caller(state.coordinationThreadId!)), /原会话|监听/);
+  assert.equal(f.threads.size, before);
+  assert.equal(f.tasks.size, 0);
+  await runtime.stop({ reason: 'test' });
+});

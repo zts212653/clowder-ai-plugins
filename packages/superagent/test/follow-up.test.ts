@@ -1,68 +1,61 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { PluginTaskStatus } from '@clowder-ai/plugin-sdk';
+import { overviewSchema } from '../src/overview.js';
 import { startSuperagent } from '../src/runtime.js';
-import { inboxSchema } from '../src/state.js';
+import { inboxSchema, runtimeSchema } from '../src/state.js';
 import { event, fixture } from './fixture.js';
 
-function task(id: string, threadId: string, status: PluginTaskStatus) {
-  return {
-    id, threadId, status, kind: 'work' as const, subjectKey: null,
-    title: id, ownerCatId: 'existing-owner', why: '', createdBy: 'owner',
-    createdAt: 1, updatedAt: 1, userId: 'owner',
-  };
-}
-
-test('existing completed and blocked work in selected conversations is reported without taking over or waking a model', async () => {
+test('a global overview retains doing tasks and no-Task sources without changing ownership or declaring open work complete', async () => {
   const f = fixture();
-  await f.seed();
-  f.tasks.set('导出修复', task('导出修复', 'source-a', 'done'));
-  f.tasks.set('发布等待批准', task('发布等待批准', 'source-b', 'blocked'));
-  f.tasks.set('范围外的工作', task('范围外的工作', 'outside', 'done'));
+  await f.host.storage.set('preferences', { ...f.preferences, started: true });
+  f.tasks.set('task-a', { id: 'task-a', threadId: 'source-a', status: 'doing', kind: 'work', subjectKey: null, title: '尚未验收', ownerCatId: 'original-owner', why: '修复导出', createdBy: 'owner', createdAt: 1, updatedAt: 1, userId: 'owner', entrustedWork: { revision: 3, closure: { state: 'open' }, admission: { sourceRefs: ['message:owner'] } } });
   const original = structuredClone([...f.tasks.values()]);
-  const reads: string[] = [];
-  f.host.tasks.list = async (filter) => {
-    assert.ok(filter.threadId, 'follow-up must read only exact selected conversations');
-    reads.push(filter.threadId);
-    return [...f.tasks.values()].filter((item) => item.threadId === filter.threadId);
-  };
   const runtime = await startSuperagent(f.host);
   await runtime.actions['superagent.tick']({});
-  const notices = [...f.sent.values()].filter((item) => JSON.stringify(item.payload).includes('导出修复'));
-  assert.equal(notices.length, 1, 'existing completion must be visible before a new source message arrives');
-  const content = JSON.stringify(notices[0].payload);
-  assert.match(content, /已完成/);
-  assert.match(content, /发布等待批准/);
-  assert.doesNotMatch(content, /范围外|早上好|想让我|先做哪/);
-  assert.equal(notices[0].wake, undefined);
-  assert.deepEqual([...f.tasks.values()], original, 'read-only follow-up must retain canonical ownership and status');
-  assert.deepEqual(new Set(reads), new Set(['source-a', 'source-b']));
-  const inspected = await runtime.actions['superagent.inspect']({}, f.caller(notices[0].threadId));
-  assert.match(JSON.stringify(inspected), /导出修复/);
+  const state = runtimeSchema.parse(f.rows.get('runtime')?.value);
+  const overview = overviewSchema.parse(f.rows.get('overview')?.value);
+  assert.equal(overview.sources.length, 2);
+  assert.equal(overview.sources[0].existingWork[0].ownerCatId, 'original-owner');
+  await assert.rejects(async () => runtime.actions['superagent.overview']({ kind: 'publish', requestId: overview.requestId, rows: [
+    { threadId: 'source-a', status: 'done', progress: '模型说完成', blocker: '', nextStep: '无需操作', evidenceIds: ['task-a'] },
+    { threadId: 'source-b', status: 'unknown', progress: '未核实', blocker: '', nextStep: '回原会话核实', evidenceIds: [] },
+  ] }, f.caller(state.coordinationThreadId!)), /尚未闭合/);
+  assert.deepEqual([...f.tasks.values()], original);
   await runtime.stop({ reason: 'test' });
 });
 
-test('completion changes are reported once across quiet checks and restart; ordinary progress stays quiet', async (t) => {
+test('changes coalesce for ten minutes; pending requests survive restart and completed-without-summary does not loop', async (t) => {
   t.mock.timers.enable({ apis: ['Date'], now: 100_000 });
   const f = fixture();
-  await f.seed();
-  f.tasks.set('导出修复', task('导出修复', 'source-a', 'doing'));
-  f.host.tasks.list = async ({ threadId }) => [...f.tasks.values()].filter((item) => item.threadId === threadId);
+  await f.host.storage.set('preferences', { ...f.preferences, started: true });
   const first = await startSuperagent(f.host);
   await first.actions['superagent.tick']({});
-  assert.equal(f.sent.size, 1, 'ongoing work does not create another readiness or progress message');
-  f.tasks.set('导出修复', { ...f.tasks.get('导出修复')!, status: 'done', updatedAt: 110_000 });
-  t.mock.timers.setTime(161_000);
+  const state = runtimeSchema.parse(f.rows.get('runtime')?.value);
+  const overview = overviewSchema.parse(f.rows.get('overview')?.value);
+  const rows = f.preferences.threadIds.map((threadId) => ({ threadId, status: 'unknown', progress: '暂无可确认的进展', blocker: '', nextStep: '需要时回原会话核实', evidenceIds: [] }));
+  await first.actions['superagent.overview']({ kind: 'publish', requestId: overview.requestId, rows }, f.caller(state.coordinationThreadId!));
+  f.history.set('source-a', [{ id: 'new-progress', content: '正在修复', timestamp: 200_000, sender: { kind: 'cat', catId: 'original-owner' } }]);
+  t.mock.timers.setTime(200_000);
   await first.actions['superagent.tick']({});
-  assert.equal([...f.sent.values()].filter((item) => JSON.stringify(item.payload).includes('导出修复')).length, 1);
-  t.mock.timers.setTime(222_000);
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 1);
+  t.mock.timers.setTime(701_000);
   await first.actions['superagent.tick']({});
+  const secondRequest = overviewSchema.parse(f.rows.get('overview')?.value);
+  assert.notEqual(secondRequest.requestId, overview.requestId);
   await first.stop({ reason: 'restart' });
   const second = await startSuperagent(f.host);
-  t.mock.timers.setTime(283_000);
   await second.actions['superagent.tick']({});
-  assert.equal([...f.sent.values()].filter((item) => JSON.stringify(item.payload).includes('导出修复')).length, 1);
-  assert.equal([...f.sent.values()].filter((item) => item.wake).length, 0);
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 2);
+  f.history.set(state.coordinationThreadId!, [{ id: 'no-summary', timestamp: 701_001, content: '已查看', sender: { kind: 'cat', catId: 'coordinator' }, response: { executionId: 'second', inputMessageIds: [secondRequest.wakeMessageId!], status: 'completed', startedAt: 701_000, completedAt: 701_001 } }]);
+  t.mock.timers.setTime(800_000);
+  await second.actions['superagent.tick']({});
+  assert.equal(overviewSchema.parse(f.rows.get('overview')?.value).phase, 'failed');
+  t.mock.timers.setTime(2_000_000);
+  await second.actions['superagent.tick']({});
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 2, 'no automatic paid retry');
+  await assert.rejects(async () => second.actions['superagent.overview']({ kind: 'refresh' }, f.caller('outside')), /coordinator/);
+  await second.actions['superagent.overview']({ kind: 'refresh' }, f.caller(state.mainThreadId!));
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 3);
   await second.stop({ reason: 'test' });
 });
 
@@ -75,58 +68,34 @@ test('a failed old judgment is retained without blocking a new conversation even
   await runtime.actions['superagent.observe'](event('new-completion', 'source-b', '导出修复已经完成。'));
   await runtime.actions['superagent.tick']({});
   const wakes = [...f.sent.values()].filter((item) => item.wake);
-  assert.equal(wakes.length, 1, 'one failed judgment must not stop every other conversation');
+  assert.equal(wakes.length, 1);
   assert.match(JSON.stringify(wakes[0].payload), /new-completion/);
-  assert.doesNotMatch(JSON.stringify(wakes[0].payload), /old-failure/);
   assert.equal(inboxSchema.parse(f.rows.get('inbox:old-failure')?.value).phase, 'failed');
   assert.equal(inboxSchema.parse(f.rows.get('inbox:old-failure')?.value).attempt, 0);
   await runtime.stop({ reason: 'test' });
 });
 
-test('an open entrusted closure is not completed merely because a legacy status or model turn ended', async () => {
+test('a scope change refreshes all sources even while the previous snapshot was pending', async () => {
   const f = fixture();
-  await f.seed();
-  f.tasks.set('尚未验收', {
-    ...task('尚未验收', 'source-a', 'done'),
-    entrustedWork: { revision: 3, closure: { state: 'open' }, admission: { sourceRefs: ['message:original-owner'] } },
-  });
-  f.host.tasks.list = async ({ threadId }) => [...f.tasks.values()].filter((item) => item.threadId === threadId);
+  await f.host.storage.set('preferences', { ...f.preferences, started: true });
   const runtime = await startSuperagent(f.host);
   await runtime.actions['superagent.tick']({});
-  assert.equal(f.sent.size, 1, 'authoritative closure must win over legacy done');
-  assert.equal(f.tasks.get('尚未验收')?.entrustedWork?.closure.state, 'open');
+  const original = overviewSchema.parse(f.rows.get('overview')?.value);
+  await f.host.storage.set('preferences', { ...f.preferences, started: true, threadIds: ['source-b'] });
+  await runtime.actions['superagent.overview']({ kind: 'refresh' }, f.caller(runtimeSchema.parse(f.rows.get('runtime')?.value).mainThreadId!));
+  const next = overviewSchema.parse(f.rows.get('overview')?.value);
+  assert.deepEqual(next.sources.map((source) => source.threadId), ['source-b']);
+  assert.notEqual(original.requestId, next.requestId);
   await runtime.stop({ reason: 'test' });
 });
 
-test('a baseline is one compact digest with explicit remaining coverage, not one message for every old task', async () => {
-  const f = fixture();
-  await f.seed();
-  ['A', 'B', 'C', 'D', 'E'].forEach((id) => f.tasks.set(id, task(id, 'source-a', 'done')));
-  const runtime = await startSuperagent(f.host);
-  await runtime.actions['superagent.tick']({});
-  const notices = [...f.sent.values()].filter((item) => JSON.stringify(item.payload).includes('进展更新'));
-  assert.equal(notices.length, 1);
-  const text = JSON.stringify(notices[0].payload);
-  assert.match(text, /已完成 5 项/);
-  assert.equal((text.match(/http:\/\/localhost/g) ?? []).length, 3);
-  assert.match(text, /另有 2 项/);
-  assert.equal(notices[0].wake, undefined);
-  await runtime.stop({ reason: 'test' });
-});
-
-test('follow-up stays paused with intake and one failed snapshot does not prevent the next intake event', async (t) => {
-  t.mock.timers.enable({ apis: ['Date'], now: 100_000 });
+test('overview stays paused with intake and does not create work or call a model', async () => {
   const f = fixture();
   await f.host.storage.set('preferences', { ...f.preferences, enabled: false, started: true });
-  let reads = 0;
-  f.host.tasks.list = async () => { reads++; throw new Error('task read changed'); };
+  f.host.tasks.list = async () => { throw new Error('paused code must not read tasks'); };
   const runtime = await startSuperagent(f.host);
   await runtime.actions['superagent.tick']({});
-  assert.equal(reads, 0);
-  await f.seed();
-  await runtime.actions['superagent.observe'](event('new-after-directory-error'));
-  await assert.rejects(async () => runtime.actions['superagent.tick']({}), /task read changed/);
-  assert.equal([...f.sent.values()].filter((item) => item.wake).length, 1, 'intake must run before the optional snapshot');
-  assert.equal(inboxSchema.parse(f.rows.get('inbox:new-after-directory-error')?.value).phase, 'routed');
+  assert.equal(f.rows.has('overview'), false);
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 0);
   await runtime.stop({ reason: 'test' });
 });

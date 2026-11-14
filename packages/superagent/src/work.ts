@@ -78,7 +78,7 @@ export async function publish(
     kind === 'question' ? '请在原会话回复这个问题。' : kind === 'error' ? '请在原会话核对错误，确认后再决定是否重试。' : '请在原会话验收结果，或说明需要调整的地方。', work.outcome)}${source ? `\n[查看完整结果](${source.deepLinkUrl})` : ''}`;
   const original = await send(host, work.sourceThreadId, `${key}:source`,
     work.sourceThreadId === mainThreadId ? mainContent : content);
-  if (mainThreadId !== work.sourceThreadId)
+  if (mainThreadId !== work.sourceThreadId && kind === 'question')
     await send(host, mainThreadId, `${key}:main`, mainContent);
   if (kind === 'question' || kind === 'result') {
     await host.storage.compareAndSet(`question:${key}`, null, {
@@ -111,6 +111,10 @@ export async function applyPlan(
       await host.storage.set(`refused-start:${key}`, {
         eventId: plan.eventId, sourceMessageId: inbox.delivery.envelope.messageId, reason: 'non-user-source',
       });
+      continue;
+    }
+    if (decision.kind === 'start' && inbox.delivery.threadId !== mainThreadId) {
+      await host.storage.set(`refused-start:${key}`, { eventId: plan.eventId, reason: 'continue-in-source-conversation' });
       continue;
     }
     if ((decision.kind === 'start' || decision.kind === 'ignore') && decision.questionId) {
