@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -8,8 +8,17 @@ import { NativeSupervisor } from '../src/native-supervisor.mjs';
 
 const source = Buffer.from(`#!/usr/bin/env node
 const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
 let token='';
 const arg = name => process.argv[process.argv.indexOf(name)+1];
+// The pinned native component requires a config root even with --data-dir.
+const configRoot = process.env.XDG_CONFIG_HOME;
+if (!configRoot || !path.isAbsolute(configRoot) || process.env.HOME) {
+  process.stderr.write('an isolated absolute configuration root is required');
+  process.exit(2);
+}
+fs.writeFileSync(path.join(configRoot, 'component-started'), 'ready');
 process.stdin.on('data', c => token+=c);
 process.stdin.on('end', () => {
 const [hostname, port] = arg('--listen').split(':');
@@ -17,7 +26,7 @@ http.createServer((req,res)=> {
   if(req.headers.authorization!=='Bearer '+token.trim()) {res.statusCode=401;return res.end();}
   res.setHeader('content-type','application/json');
   res.end(JSON.stringify({serverId:'test-server', dataDir:arg('--data-dir'), pid:process.pid, ownershipGeneration:'owned',
-  state:'ready',version:{product:'agent-wechat',backend:'native',apiVersion:1,version:'test', capabilities:['serve','events','profile-read','text-send','native-login']}}));
+  state:'ready',configRoot,version:{product:'agent-wechat',backend:'native',apiVersion:1,version:'test', capabilities:['serve','events','profile-read','text-send','native-login']}}));
 }).listen(Number(port),hostname);
 });
 `);
@@ -32,6 +41,9 @@ test('owner preparation verifies exact bytes and supervises one child using a pr
   const status = await client.status();
   assert.equal(status.serverId, 'test-server');
   assert.equal(status.dataDir, join(await realpath(root), 'native-profile'));
+  assert.ok(status.configRoot.startsWith(`${await realpath(root)}/`));
+  assert.equal(await readFile(join(status.configRoot, 'component-started'), 'utf8'), 'ready');
+  assert.equal((await stat(status.configRoot)).mode & 0o777, 0o700);
   assert.equal((await supervisor.prepare(actor())), client);
   assert.ok(supervisor.child.pid > 0);
   assert.ok(!supervisor.child.spawnargs.some(value => value.includes(client.token)));

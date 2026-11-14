@@ -58,3 +58,17 @@
 本轮最终 `pnpm gate:ci` 使用固定 Node 24.18.0 / npm 11.16.0 工具链，42 阶段全部通过，731 秒，exit 0；包含本包回归及最终 27 个可发布包的 prepack 检查。日志 `/tmp/wechat-delegation-alpha2-full-gate.log`。所有产品源码在这次 gate 开始前已稳定，之后只追加本验证记录。
 
 风险：行为变化限于插件 UI、介绍页操作移除及旧 Settings 端口清理；不改变数据存储、模型/账号权限、外部发送契约或自动恢复规则。本次是界面整改交付，完整好友/群真实收发任务仍未完成。alpha.2 保持 private，本轮不发布 npm/catalog。
+
+## 真实组件启动修复（alpha.3，2026-11-15）
+
+来源：本人报告 `thread_mwg7kandcxztqeab#0001794684171591-000176-766427c2`“连接不上微信组件”。Host 只读投影确认当前已安装 alpha.2；不是按仓库版本猜测安装未更新。
+
+使用全新临时目录、独立空 profile 与公开 v2.4.1 macOS ARM64 归档复现。发布方元数据的 SHA-256 与下载字节均为 `98cca7f34a09d30a0ff552b10ca91dd94198c9c6b31302f3acbea09e4c55c85b`，37,408,672 bytes。相同环境下 `--json version` 成功，但 `serve --data-dir ... --token-stdin --listen 127.0.0.1:...` 退出码为 2，stderr 为 `HOME or absolute XDG_CONFIG_HOME is required`。根因是 supervisor 的最小环境缺少组件在处理 `--data-dir` 之外仍必需的配置根。
+
+修复为每个插件实例创建 `dataPath/native-config`（0700），仅向受监督子进程显式提供其绝对路径 `XDG_CONFIG_HOME`，继续不继承家庭 HOME、XDG 配置或其他家庭凭据。原 `native-profile`、持久策略、接管与发送协议不变；manifest 同时声明 `native-config` retained。包推进 alpha.3。
+
+Red → Green：增强原 supervisor 可执行夹具，使其在缺少绝对配置根或继承 HOME 时拒绝启动。修复前原启动与缓存修复测试均报“账号连接组件已退出”；修复后 3/3 通过，并检查配置目录写入、归属及0700权限。全包42/42通过，包含最终归档的空白离线consumer。真实固定版本组件通过修复后的生产 supervisor 启动，`v1/status` 确认版本2.4.1及进程PID匹配，随后停止自有进程。没有读取现有微信资料、扫码、建真实账号或发消息。
+
+最终 alpha.3 归档另经真实 Host 源码的临时 inventory、内存 storage 安装/启用验证；只向临时插件数据目录预置上述公开且校验一致的组件文件，从实际 owner HTTP control 的 `prepare` 成功启动真实组件，返回 `runtime=running`、`lastError=null`、`globalPause=true`。私有配置目录0700、全局暂停和停用/重启保留暂停均通过。此验证没有替换用户当前安装，也未创建账号或触发登录。
+
+本次固定 Node24.18.0/npm11.16.0 工具链的 `pnpm gate:ci` 全42阶段通过，714秒，exit0，日志 `/tmp/wechat-delegation-alpha3-full-gate.log`。非作者独立审查仍须覆盖本次启动环境变更；alpha.2的界面批准不冒充alpha.3批准。真实好友/群收发及实际模型验收仍未完成。

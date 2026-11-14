@@ -1,5 +1,5 @@
 pluginId: dev.clowder.wechat-delegation
-version: 0.1.0-alpha.2
+version: 0.1.0-alpha.3
 contractVersion: 0.3.0
 name: 微信代聊
 description:
@@ -37,6 +37,7 @@ features:
 data:
   - { name: delegation-journal, dataClass: user-authored, strategy: retained }
   - { name: native-profile, dataClass: user-authored, strategy: retained }
+  - { name: native-config, dataClass: user-authored, strategy: retained }
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.mjs

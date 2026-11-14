@@ -82,9 +82,14 @@ export class NativeSupervisor {
     await chmod(binary, 0o700);
     const dataDir = join(root, 'native-profile');
     await mkdir(dataDir, { recursive: true, mode: 0o700 });
+    // The native CLI resolves global config before serving, even with --data-dir.
+    // Keep it in this plugin instance rather than inheriting the owner's HOME.
+    const configDir = join(root, 'native-config');
+    await mkdir(configDir, { recursive: true, mode: 0o700 });
     const listen = await port(); const token = randomBytes(32).toString('hex');
     const environment = Object.fromEntries(['PATH', 'TMPDIR', 'TMP', 'TEMP', 'SystemRoot', 'WINDIR', 'LANG', 'LC_ALL', 'TZ', 'SSL_CERT_FILE', 'SSL_CERT_DIR']
       .filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]]));
+    environment.XDG_CONFIG_HOME = configDir;
     owner.signal.throwIfAborted(); await owner.assertCurrent(); owner.signal.throwIfAborted();
     const child = spawn(binary, ['serve', '--data-dir', dataDir, '--token-stdin', '--listen', `127.0.0.1:${listen}`],
       { env: environment, stdio: ['pipe', 'ignore', 'pipe'], shell: false });

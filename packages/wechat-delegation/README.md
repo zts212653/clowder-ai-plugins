@@ -26,7 +26,7 @@
 - 需要支持标准 builtin 插件、owner HTTP 面板、Host storage CAS，以及受限 `memberSessions` 的宿主。受限执行缺失时明确不可用，不回退到全权限家庭猫。
 - 模型会话只使用本次批准的猫及模型账号，`memory=[]`，插件 MCP 不暴露任何工具、资源或提示。模型只能返回结构化文字建议，不能自行修改授权、收件人、支付、文件、命令或外链权限。
 - 当前固定的 native 组件为 `thisnick/agent-wechat` 的 `v2.4.1`（MIT），支持已登记校验的 macOS ARM64、Linux ARM64/x64 制品；其他平台显示未就绪。固定来源与摘要在 `src/native-supervisor.mjs`，不会追随 `latest`。
-- 组件仅在本人从控制台准备时启动。其数据目录是宿主 `dataPath/native-profile`，不接管官方桌面微信 profile。凭据通过私有 stdin 管道传给组件，不进入模型、聊天、URL、命令行参数或日志。
+- 组件仅在本人从控制台准备时启动。其数据目录是宿主 `dataPath/native-profile`，启动配置目录为 `dataPath/native-config`；两者均由插件独立持有，不继承家庭 HOME 或接管官方桌面微信 profile。凭据通过私有 stdin 管道传给组件，不进入模型、聊天、URL、命令行参数或日志。
 - 客户端可能同步所选范围以外的微信数据到本机。插件只对已授权的账号与稳定会话 ID 取正文、送模型和外发；列表只向本人呈现必要元数据。
 - 后端 HTTP 只连接本次拥有的 loopback 服务；每次外发前核对 daemon serverId、实际微信身份及当前授权版本。请求禁止重定向和超大响应。
 
