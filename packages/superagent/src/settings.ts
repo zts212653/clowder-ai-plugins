@@ -1,6 +1,7 @@
 import type { PluginActionHandler, PluginHostActionContext } from '@clowder-ai/plugin-sdk';
 import { z } from 'zod';
 import type { SuperagentHost } from './runtime.js';
+import { watchScope } from './scope.js';
 import {
   editPreferences,
   editQueue,
@@ -84,8 +85,12 @@ export function createSettings(
       read(host, 'runtime', runtimeSchema),
       records(host, 'work:', workSchema),
     ]);
+    const scope = await watchScope(host, pref);
     return {
       selected: pref.threadIds,
+      automaticCount: scope.automatic.length,
+      effectiveCount: scope.threadIds.length,
+      summary: `手动 ${pref.threadIds.length} 个 · 自动置顶 ${scope.automatic.length} 个 · 合计 ${scope.threadIds.length} 个`,
       excluded: [runtime?.mainThreadId, runtime?.coordinationThreadId, ...works.map((work) => work.threadId)]
         .filter((id): id is string => id !== undefined),
     };
@@ -147,6 +152,7 @@ export function createSettings(
       await owner(context, true);
       const name = await host.config.get('botName');
       const responsibility = await host.config.get('responsibility');
+      const scope = await watchScope(host, await preferences());
       await editPreferences(
         host,
         (pref) => {
@@ -157,7 +163,7 @@ export function createSettings(
             enabled: true,
             started: true,
           });
-          if (!next.coordinatorId || !next.workerIds.length || !next.threadIds.length || !next.responsibility.trim())
+          if (!next.coordinatorId || !next.workerIds.length || !scope.threadIds.length || !next.responsibility.trim())
             throw new Error('请先选择助手 Agent、执行 Agent 和监听会话，并保存允许处理的工作范围。');
           return next;
         },

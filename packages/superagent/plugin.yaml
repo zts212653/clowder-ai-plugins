@@ -1,5 +1,5 @@
 pluginId: official.superagent
-version: 0.1.0-alpha.12
+version: 0.1.0-alpha.13
 contractVersion: 0.1.0
 name: Superagent
 description:
@@ -71,9 +71,15 @@ configuration:
           method: superagent.choose
         resultRender: rows
         next: list
+  - key: watchPinned
+    label: 监听所有置顶会话
+    description: 自动跟随置顶和取消置顶的变化。手动选择的会话仍会保留；关闭此项仅停止自动纳入置顶会话。
+    kind: boolean
+    default: true
+    required: false
   - key: scope
-    label: 监听会话
-    description: 按会话列表的分组、置顶和顺序选择。保存后，到「持续跟进」确认开始。
+    label: 手动选择监听会话
+    description: 额外选择要跟进的会话，与自动置顶范围合并。手动选中的会话取消置顶后仍会跟进；保存后到「持续跟进」确认开始。
     kind: operation
     required: false
     actions:
@@ -393,6 +399,16 @@ contributions:
                       - done
                       - quiet
                       - unknown
+                  tracking:
+                    default: 关联 Issue/PR 尚未核实
+                    type: string
+                    minLength: 1
+                    maxLength: 300
+                  background:
+                    default: 问题背景尚未核实
+                    type: string
+                    minLength: 1
+                    maxLength: 300
                   progress:
                     type: string
                     minLength: 1
@@ -414,6 +430,8 @@ contributions:
                 required:
                   - threadId
                   - status
+                  - tracking
+                  - background
                   - progress
                   - blocker
                   - nextStep

@@ -4,6 +4,7 @@ import { overviewInputSchema, overviewSchema, publishOverview, refreshOverview }
 import { advanceInbox, clearRecoveredError, observe } from './inbox.js';
 import { coordinatorInstructions } from './instructions.js';
 import { createSettings } from './settings.js';
+import { watchScope } from './scope.js';
 import {
   editQueue,
   inboxSchema,
@@ -36,7 +37,11 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
   const current = () => {
     if (stopped) throw new Error('Superagent stopped');
   };
-  const preferences = async () => preferencesSchema.parse((await host.storage.get('preferences'))?.value ?? {});
+  const savedPreferences = async () => preferencesSchema.parse((await host.storage.get('preferences'))?.value ?? {});
+  const preferences = async () => {
+    const pref = await savedPreferences();
+    return { ...pref, threadIds: (await watchScope(host, pref)).threadIds };
+  };
   const reconcile = () => {
     const run = reconciliation.then(async () => {
       current();
@@ -207,7 +212,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
       await reconcile();
     },
     actions: {
-      ...createSettings(host, preferences, reconcile, current),
+      ...createSettings(host, savedPreferences, reconcile, current),
       async 'superagent.observe'(input) {
         current();
         if (!isPluginDeliveryInput(input)) throw new Error('Invalid Superagent delivery');

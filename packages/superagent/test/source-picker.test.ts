@@ -7,7 +7,7 @@ import { fixture } from './fixture.js';
 
 const picker = z.object({
   render: z.literal('thread-picker'),
-  data: z.object({ selected: z.array(z.string()), excluded: z.array(z.string()) }).strict(),
+  data: z.object({ selected: z.array(z.string()), excluded: z.array(z.string()), automaticCount: z.number(), effectiveCount: z.number(), summary: z.string() }).strict(),
 });
 const owner = (instance: string) => ({
   kind: 'owner-operation' as const,
@@ -22,6 +22,7 @@ const owner = (instance: string) => ({
 
 test('the native picker delegates titles, groups, pins and ordering to the Host without enumerating a second directory', async () => {
   const f = fixture();
+  f.host.config.get = async (key) => key === 'watchPinned' ? false : undefined;
   await f.host.storage.set('preferences', { ...f.preferences, enabled: false });
   const runtime = await startSuperagent(f.host);
   f.host.threads.list = async () => { throw new Error('The picker must use the native sidebar'); };

@@ -128,6 +128,7 @@ test('empty directories explain how to configure members and do not read convers
   };
   const runtime = await startSuperagent(f.host);
   const rowsSchema = z.object({ data: z.object({ rows: z.array(z.unknown()), empty: z.string() }) });
+  directoryReads = 0;
   for (const method of ['superagent.assistant', 'superagent.workers']) {
     const result = rowsSchema.parse(await runtime.actions[method]({})).data;
     assert.deepEqual(result.rows, []);
@@ -137,6 +138,6 @@ test('empty directories explain how to configure members and do not read convers
   const conversations = z.object({ render: z.literal('thread-picker'), data: z.object({ selected: z.array(z.string()) }) })
     .parse(await runtime.actions['superagent.settings']({})).data;
   assert.deepEqual(conversations.selected, []);
-  assert.equal(directoryReads, 0, 'the Host supplies its own native conversation picker');
+  assert.equal(directoryReads, 1, 'only the automatic pinned scope is queried; the Host supplies the manual picker');
   await runtime.stop({ reason: 'test' });
 });

@@ -86,7 +86,8 @@ export function fixture(): Fixture {
     threads: {
       get: async (id) => threads.get(id) ?? null,
       list: async (options) => [...threads.values()].filter((thread) =>
-        !options?.threadIds || options.threadIds.includes(thread.id)),
+        (!options?.threadIds || options.threadIds.includes(thread.id)) &&
+        (!options || !('pinnedOnly' in options) || !options.pinnedOnly)),
       readMessages: async (id) => history.get(id) ?? [],
       create: async (input) => {
         const id = `thread-${threads.size}`;
