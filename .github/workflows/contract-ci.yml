@@ -28,6 +28,7 @@ on:
       - 'packages/tripo-studio/**'
       - 'packages/video-generation/**'
       - 'packages/wechat-visible-reader/**'
+      - 'packages/wechat-delegation/**'
       - 'packages/weixin-mp/**'
       - 'packages/xiangqi/**'
       - 'packages/genoffice-docx/**'

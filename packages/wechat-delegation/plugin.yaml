@@ -1,0 +1,44 @@
+pluginId: dev.clowder.wechat-delegation
+version: 0.1.0-alpha.3
+contractVersion: 0.3.0
+name: 微信代聊
+description:
+  default: 让指定的猫在已授权的微信好友或群中主动聊天，随时由本人接管。需准备第三方个人号组件及支持受限成员执行的宿主；真实账号兼容性须实测。
+  translations:
+    en: Proactive WeChat conversations with selected friends or groups and persistent human takeover. Requires an explicitly prepared third-party native client and controlled member sessions.
+icon: { type: svg, src: assets/icon.svg }
+steps:
+  - text: 启用后点击左侧导航栏的“微信代聊”图标进入控制台。账号连接、会话授权及接管操作均在控制台完成。
+  - text: 在控制台阅读客户端同步范围，准备连接组件后扫码登录；扫码不授予猫读写权。
+  - text: 选择真实好友或群、值班猫与聊天范围，核对模型服务并明确开启。普通授权内的消息无需逐条批准。
+  - text: 随时点击“我来聊”或“暂停全部代聊”；已在途且取消未确认的消息单独显示，恢复须由本人明确操作。
+contributions:
+  - { type: identity, id: wechat-delegation, displayName: 微信代聊 }
+  - { type: message-subscription, id: wechat.owner, binding: wechat-delegation, action: { method: wechat.ownerDelivery }, presentation: v2 }
+  - { type: ui, id: wechat.open, kind: command, label: 微信代聊, action: { method: wechat.panel } }
+  - { type: ui, id: wechat.rail, kind: slot-item, label: 微信代聊, command: wechat.open, group: activity-bar.bottom, order: 95 }
+  - { type: webhook, id: wechat.page, path: panel, methods: [GET], action: { method: wechat.panel } }
+  - { type: webhook, id: wechat.control, path: control, methods: [POST], action: { method: wechat.control } }
+  - type: mcp
+    id: wechat-isolated
+    runtime: { transport: stdio, entrypoint: dist/empty-mcp.mjs }
+features:
+  - id: wechat-delegation
+    name: 微信好友与群代聊
+    resources: []
+    contributions:
+      - { type: identity, id: wechat-delegation }
+      - { type: message-subscription, id: wechat.owner }
+      - { type: ui, id: wechat.open }
+      - { type: ui, id: wechat.rail }
+      - { type: webhook, id: wechat.page }
+      - { type: webhook, id: wechat.control }
+      - { type: mcp, id: wechat-isolated }
+data:
+  - { name: delegation-journal, dataClass: user-authored, strategy: retained }
+  - { name: native-profile, dataClass: user-authored, strategy: retained }
+  - { name: native-config, dataClass: user-authored, strategy: retained }
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.mjs
+  dataDirectory: wechat-delegation
