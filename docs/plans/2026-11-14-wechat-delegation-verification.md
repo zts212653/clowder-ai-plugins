@@ -90,3 +90,17 @@ Red → Green：增强原 supervisor 可执行夹具，使其在缺少绝对配�
 数据边界的限定核验另见共享 `output/wechat-delegation-network-audit-2026-11-15.md`：本机实际为Darwin组件、回环API，固定源码声明Linux设备类型；实际存在非回环连接，微信通信和未来云模型处理都不能描述为零外传。当前没有代聊授权/运行记录；本次只读诊断元数据仍进入当前猫上下文。没有历史全量流量或供应商完整安全审计，不宣称第三方安全认证。本轮没有改变用户当前安装或实际代聊授权。
 
 alpha.4 最终固定工具链 `pnpm gate:ci` 全42阶段通过，716秒，exit0，日志 `/tmp/wechat-delegation-alpha4-full-gate.log`。本轮尚待非作者独立审查；旧版批准不覆盖本次目录与披露变更。
+
+## 当前通讯录污染修复（alpha.5，2026-11-15）
+
+接受来源：`thread_mwg7kandcxztqeab#0001794764010738-000226-66bbdf1f`，本人要求完成修复，并说明实际联系人22个。只读来源诊断确认群成员昵称被上游project_metadata_roster写进contact表，原contacts接口不区分当前好友，alpha.4直接使用导致候选扩大；未取得WeLink混合证据。两个微信账号不同不是混入证明；数量22不作为筛选条件。
+
+修复把资格来源改到完整实时目录：自initcontact(0,0)全分页，getcontact新鲜完整flag核验；服务/系统/自身/其他命名空间及未核实对象排除。完整目录由专门异步operation返回，缺页不公布。NativeClient不读contacts/groups原始缓存；快照分页绑定account/operation，读缓存前核对实际身份，五分钟或本人刷新重新同步。前端保留独立选猫，显示完整ID、好友/群数量及未核实数量，失败明确要求刷新，不再无限重复发起长同步。
+
+底层原HTTP接口不足，因此本候选内置基于固定MIT上游的`2.4.1-clowder.1`修复构建；完整补丁、构建说明、许可和摘要在`packages/wechat-delegation/assets/native/`。本次仅产出macOS ARM64组件，其他平台诚实显示未就绪。真实用户profile未用于开发或测试，也未静默更新当前安装。
+
+已观察旧targets用混合缓存的回归RED；新targets、切号、异步授权和进程/打包隔离测试通过。作者在5188模拟预览实际走通同步中选猫、目录恢复、选群/模型、开启模拟代聊、未知发送、本人接管和全局暂停；桌面/手机/暗色无pageerror。真实打包组件在全新临时目录启动，API版本/能力/扩展route均核验，未登录真实账号或发送。
+
+最终测试数、归档摘要、独立审查及完整gate结果记录于本次review请求和`output/wechat-delegation-alpha5/安装与验收.md`。真实22联系人覆盖、好友与群实际收发、真实模型与接管验收尚未完成；整体Task保持doing，PR保持draft。
+
+底层修复构建验证：相关metadata/目录单元23/23，API库71/71通过；补丁在固定上游源码`git apply --check`通过。还尝试了整个上游core库：393通过、11失败、1忽略；失败位于现有wxgf/视频转换、仅Linux支持的official-app profile接管及macOS /var路径约定，非本插件采用的扫码profile/文字路径。本轮没有把上游全库宣称为通过，也不扩展修改这些模块。实际修复组件在空白扫码profile的进程监督与新增route smoke通过。全包最终51项检查及真实Host源码临时inventory接线的结果见归档记录。

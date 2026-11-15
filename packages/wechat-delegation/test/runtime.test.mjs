@@ -251,3 +251,24 @@ test('native process loss and re-preparation never silently resume existing conv
   assert.equal((await f.runtime.status()).policies[0].mode, 'owner');
   assert.equal(f.sends.length, 0);
 });
+
+test('directory verification remains asynchronous, does not block owner status and cannot authorize a pending recipient', async t => {
+  const f = await fixture(t);
+  await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
+  let resets = 0;
+  f.client.directoryPending = () => true;
+  f.client.refreshTargets = () => { resets++; };
+  f.client.identity = async () => { throw Error('metadata lock must not block status'); };
+  f.client.targets = async () => ({ items: [], pending: true });
+  const state = await f.runtime.dispatch({ action: 'status' }, owner());
+  assert.equal(state.account.connected, true);
+  assert.equal(state.accountIsLive, false);
+  const pending = await f.runtime.dispatch({ action: 'chats', refreshDirectory: true }, owner());
+  assert.equal(pending.pending, true);
+  assert.equal(resets, 1);
+  await assert.rejects(f.runtime.dispatch({ action: 'chats', refreshDirectory: true, cursor: 'old' }, owner()), /第一页/);
+  f.client.identity = async () => ({ serverId: 'server', accountId: 'clowder', accountIdentity: 'wxid_owner', connected: true });
+  await assert.rejects(f.runtime.dispatch({ action: 'activate', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', confirm: true }, owner()), /正在核对/);
+  assert.equal((await f.runtime.status()).policies.length, 0);
+  assert.equal(f.sends.length, 0);
+});

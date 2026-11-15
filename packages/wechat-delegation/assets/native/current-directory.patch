@@ -1,0 +1,502 @@
+--- a/packages/native-client-rust/crates/wechat-core/src/metadata.rs
++++ b/packages/native-client-rust/crates/wechat-core/src/metadata.rs
+@@ -6,6 +6,8 @@
+     protobuf as p, ContactLookup, ContactRecord, GroupMetadataPage, InitContactPage, MetadataReply,
+     RoomRoster,
+ };
++#[path = "contact_directory.rs"]
++mod contact_directory;
+ #[derive(Clone, Serialize, Deserialize, ts_rs::TS)]
+ #[serde(
+     tag = "kind",
+@@ -13,6 +15,7 @@
+     rename_all_fields = "camelCase"
+ )]
+ pub enum MetadataAction {
++    ContactDirectory,
+     Contact {
+         contact_id: String,
+     },
+@@ -458,6 +461,7 @@
+         action: MetadataAction,
+     ) -> Result<Operation> {
+         match &action {
++            MetadataAction::ContactDirectory => {},
+             MetadataAction::Contact { contact_id } => valid_name(contact_id)?,
+             MetadataAction::Avatar {
+                 contact_id,
+@@ -892,6 +896,7 @@
+         self.metadata_check(account, operation, deadline)?;
+         self.recover_metadata(account)?;
+         match action {
++            MetadataAction::ContactDirectory => self.current_contact_directory(account, operation, deadline),
+             MetadataAction::Contact { contact_id } => {
+                 let outcome = self.metadata_contact_lookup(account, &[contact_id])?;
+                 Ok(
+--- /dev/null
++++ b/packages/native-client-rust/crates/wechat-core/src/contact_directory.rs
+@@ -0,0 +1,318 @@
++//! A fresh, complete server inventory bounds the address book. Cached peer rows
++//! may describe group members and old contacts; they never add inventory members.
++use super::*;
++use std::collections::{BTreeSet, HashSet};
++
++#[derive(Default)]
++struct DirectoryInventory {
++    ids: BTreeSet<String>,
++    cursors: HashSet<(u32, u32)>,
++    complete: bool,
++}
++impl DirectoryInventory {
++    fn add(&mut self, page: &InitContactPage) -> Result<()> {
++        ensure!(!self.complete, "directory_already_complete");
++        for id in &page.usernames {
++            valid_name(id)?;
++            self.ids.insert(id.clone());
++        }
++        ensure!(self.ids.len() <= 10000, "directory_capacity_exceeded");
++        let cursor = (page.contact_sequence, page.room_sequence);
++        ensure!(
++            !page.more || self.cursors.insert(cursor),
++            "directory_cursor_stalled"
++        );
++        self.complete = !page.more;
++        Ok(())
++    }
++    fn select(&self, rows: Vec<Value>, own: &str) -> Result<Vec<Value>> {
++        ensure!(self.complete, "directory_incomplete");
++        let mut selected = std::collections::BTreeMap::new();
++        for row in rows {
++            let id = row["id"].as_str().context("directory_identity_missing")?;
++            if !self.ids.contains(id) || id == own || id.starts_with("gh_") {
++                continue;
++            }
++            if matches!(
++                row["classification"]["category"].as_str(),
++                Some("system" | "business")
++            ) {
++                continue;
++            }
++            if row["classification"]["namespace"]
++                .as_str()
++                .is_some_and(|v| v != "wechat")
++            {
++                continue;
++            }
++            let group = id.ends_with("@chatroom");
++            if !group && id.contains('@') || row["isInGroup"] == false {
++                continue;
++            }
++            if !group && row["currentFriend"] != true {
++                continue;
++            }
++            selected.insert(id.to_owned(),json!({"id":id,"kind":if group {"group"}else{"direct"},"displayName":row["displayName"].as_str().unwrap_or(id)}));
++        }
++        Ok(selected.into_values().collect())
++    }
++}
++
++// Sparse masks can retain old cached flag bits; only a full response proves
++// current friend status. No cached value participates in this decision.
++fn current_friend(record: &ContactRecord) -> Result<Option<bool>> {
++    Ok(match contact_patch(record)?.fields.get("flag") {
++        Some(SqlValue::Integer(flag)) => Some(flag.parse::<u32>()? & 1 != 0),
++        _ => None,
++    })
++}
++
++impl Core {
++    pub(super) fn current_contact_directory(
++        &self,
++        account: &str,
++        operation: &str,
++        deadline: Instant,
++    ) -> Result<Value> {
++        // This operation deliberately starts at zero. The resumable metadata
++        // cursor is a different stream and cannot prove a complete current list.
++        let owner = self.account_state(account)?.own_username.clone();
++        let mut sequence = (0, 0);
++        let mut inventory = DirectoryInventory::default();
++        for _ in 0..50 {
++            self.metadata_check(account, operation, deadline)?;
++            let mut state = self.account_state(account)?;
++            let reply = self.native_request(account, &mut state, |request| {
++                request.init_contacts_receipt(sequence.0, sequence.1)
++            })?;
++            self.save_state(account, &state)?;
++            inventory.add(&reply.value)?;
++            sequence = (reply.value.contact_sequence, reply.value.room_sequence);
++            if inventory.complete {
++                break;
++            }
++        }
++        ensure!(inventory.complete, "directory_inventory_incomplete");
++        ensure!(!owner.is_empty(), "directory_account_identity_missing");
++        let wanted: Vec<_> = inventory
++            .ids
++            .iter()
++            .filter(|id| {
++                *id != &owner
++                    && !id.starts_with("gh_")
++                    && (!id.contains('@') || id.ends_with("@chatroom"))
++            })
++            .cloned()
++            .collect();
++        let mut unavailable = Vec::new();
++        let mut current_friends = HashSet::new();
++        let mut unverified = HashSet::new();
++        for ids in wanted.chunks(2) {
++            self.metadata_check(account, operation, deadline)?;
++            let reply = self.metadata_contact_reply(account, ids)?;
++            let mut outcome = contact_hydration(ids, &reply.value, 0);
++            ensure!(outcome.unresolved == 0, "directory_details_incomplete");
++            for record in &reply.value.contacts {
++                let index = ids
++                    .iter()
++                    .position(|id| id == &record.username)
++                    .context("unrequested_directory_identity")?;
++                if !reply.value.results.is_empty() && reply.value.results.get(index) != Some(&0) {
++                    continue;
++                }
++                if !record.username.ends_with("@chatroom") {
++                    // Only a fresh, complete flag replacement can establish the
++                    // ordinary-contact bit. A retained row is not fresh proof.
++                    match current_friend(record)? {
++                        Some(true) => {
++                            current_friends.insert(record.username.clone());
++                        }
++                        Some(false) => {}
++                        None => {
++                            unverified.insert(record.username.clone());
++                        }
++                    }
++                }
++            }
++            let receipt = self.stage_metadata_body(
++                account,
++                ReceiptBody::Contacts {
++                    requested: ids.to_vec(),
++                    reply,
++                },
++            )?;
++            outcome.applied = self.apply_metadata_receipt(account, &receipt, false)?;
++            self.record_contact_hydration(account, &outcome)?;
++            unavailable.extend(outcome.rejections.into_iter().map(|r| r.username));
++        }
++        // Rejected detail lookups are explicit uncertainty, not proof of absence.
++        unverified.extend(unavailable);
++        self.metadata_check(account, operation, deadline)?;
++        ensure!(
++            self.account_state(account)?.own_username == owner,
++            "directory_account_changed"
++        );
++        let mut rows = Vec::new();
++        for kind in ["contacts", "groups"] {
++            let mut cursor = None;
++            let mut cursors = HashSet::new();
++            loop {
++                let q = wechat_profile::ListQuery {
++                    limit: Some(200),
++                    cursor: cursor.clone(),
++                    search: None,
++                };
++                let page = if kind == "contacts" {
++                    self.contacts(account, &q)?
++                } else {
++                    self.groups(account, &q)?
++                };
++                rows.extend(
++                    page["items"]
++                        .as_array()
++                        .context("directory_cache_invalid")?
++                        .iter()
++                        .cloned()
++                        .map(|mut row| {
++                            row["currentFriend"] = json!(row["id"]
++                                .as_str()
++                                .is_some_and(|id| current_friends.contains(id)));
++                            row
++                        }),
++                );
++                let next = page["nextCursor"].as_str().map(str::to_owned);
++                if let Some(ref next) = next {
++                    ensure!(
++                        cursors.insert(next.clone()),
++                        "directory_cache_cursor_stalled"
++                    );
++                } else {
++                    break;
++                }
++                cursor = next;
++            }
++        }
++        rows.retain(|row| !row["id"].as_str().is_some_and(|id| unverified.contains(id)));
++        let items = inventory.select(rows, &owner)?;
++        Ok(
++            json!({"complete":true,"directory":{"version":1,"source":"wechat.initcontact","accountId":account,"accountIdentity":owner,"catalogComplete":true,"unverifiedCount":unverified.len(),"observedAt":chrono::Utc::now().to_rfc3339(),"items":items}}),
++        )
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn complete_server_inventory_excludes_group_only_and_old_peers_without_a_count_limit() {
++        for count in [1, 22, 73] {
++            let current: Vec<_> = (0..count).map(|i| format!("current-{i:03}")).collect();
++            let mut inventory = DirectoryInventory::default();
++            inventory
++                .add(&InitContactPage {
++                    contact_sequence: 1,
++                    room_sequence: 0,
++                    more: true,
++                    usernames: current[..count / 2].to_vec(),
++                })
++                .unwrap();
++            let rows: Vec<_> = current
++                .iter()
++                .chain(["old-friend".to_owned(), "group-only-member".to_owned()].iter())
++                .map(|id| json!({"id":id,"displayName":id,"currentFriend":true}))
++                .collect();
++            assert!(inventory.select(rows.clone(), "owner").is_err());
++            inventory
++                .add(&InitContactPage {
++                    contact_sequence: 2,
++                    room_sequence: 0,
++                    more: false,
++                    usernames: current[count / 2..].to_vec(),
++                })
++                .unwrap();
++            assert_eq!(
++                inventory
++                    .select(rows, "owner")
++                    .unwrap()
++                    .iter()
++                    .map(|r| r["id"].as_str().unwrap().to_owned())
++                    .collect::<Vec<_>>(),
++                current
++            );
++        }
++    }
++    #[test]
++    fn sparse_or_negative_flags_never_reuse_cached_friend_status() {
++        let record = |mask, value| {
++            wechat_protocol::wire::decode_contact_record(
++                &p::message(&[
++                    p::bytes(1, &p::bytes(1, b"peer")),
++                    p::uint(7, mask),
++                    p::uint(8, value),
++                ])
++                .unwrap(),
++            )
++            .unwrap()
++        };
++        assert_eq!(
++            current_friend(&record(u64::from(u32::MAX), 3)).unwrap(),
++            Some(true)
++        );
++        assert_eq!(
++            current_friend(&record(u64::from(u32::MAX), 8388608)).unwrap(),
++            Some(false)
++        );
++        assert_eq!(current_friend(&record(0x800, 0x801)).unwrap(), None);
++        let mut inventory = DirectoryInventory::default();
++        inventory
++            .add(&InitContactPage {
++                contact_sequence: 1,
++                room_sequence: 1,
++                more: false,
++                usernames: vec!["peer".into()],
++            })
++            .unwrap();
++        assert!(inventory
++            .select(vec![json!({"id":"peer","currentFriend":false})], "owner")
++            .unwrap()
++            .is_empty());
++    }
++    #[test]
++    fn stalled_inventory_is_not_published_and_service_or_foreign_peers_are_not_recipients() {
++        let page = InitContactPage {
++            contact_sequence: 1,
++            room_sequence: 0,
++            more: true,
++            usernames: vec!["peer".into()],
++        };
++        let mut inventory = DirectoryInventory::default();
++        inventory.add(&page).unwrap();
++        assert!(inventory.add(&page).is_err());
++        let mut inventory = DirectoryInventory::default();
++        inventory
++            .add(&InitContactPage {
++                contact_sequence: 1,
++                room_sequence: 1,
++                more: false,
++                usernames: vec![
++                    "owner".into(),
++                    "gh_service".into(),
++                    "filehelper".into(),
++                    "foreign@openim".into(),
++                    "room@chatroom".into(),
++                ],
++            })
++            .unwrap();
++        let rows = vec![
++            json!({"id":"owner"}),
++            json!({"id":"gh_service"}),
++            json!({"id":"filehelper","classification":{"category":"system"}}),
++            json!({"id":"foreign@openim"}),
++            json!({"id":"room@chatroom"}),
++        ];
++        assert_eq!(
++            inventory.select(rows, "owner").unwrap(),
++            vec![json!({"id":"room@chatroom","kind":"group","displayName":"room@chatroom"})]
++        );
++    }
++}
+--- a/packages/native-client-rust/crates/wechat-api/src/actions.rs
++++ b/packages/native-client-rust/crates/wechat-api/src/actions.rs
+@@ -394,16 +394,25 @@
+         },
+     )
+ }
++#[derive(Default, Deserialize, schemars::JsonSchema)]
++#[serde(default, deny_unknown_fields)]
++pub(crate) struct ContactDirectoryQuery {
++    /// Start a fresh complete current-account directory instead of resuming metadata synchronization.
++    directory: bool,
++}
++
+ async fn sync_contacts(
+     State(app): State<App>,
+     Extension(c): Extension<Claims>,
+     Path(a): Path<String>,
+-) -> ApiResult<(StatusCode, Json<Value>)> {
+-    metadata(
+-        app,
+-        c,
+-        a,
+-        wechat_core::MetadataAction::ContactSync { max_pages: 10 },
++    Query(query): Query<ContactDirectoryQuery>,
++) -> ApiResult<(StatusCode, Json<Value>)> {
++    metadata(
++        app,
++        c,
++        a,
++        if query.directory { wechat_core::MetadataAction::ContactDirectory }
++        else { wechat_core::MetadataAction::ContactSync { max_pages: 10 } },
+     )
+ }
+ async fn sync_groups(
+--- a/packages/native-client-rust/crates/wechat-api/src/lib.rs
++++ b/packages/native-client-rust/crates/wechat-api/src/lib.rs
+@@ -61,12 +61,13 @@
+     Version {
+         product: "agent-wechat",
+         backend: "native",
+-        version: env!("CARGO_PKG_VERSION"),
++        version: concat!(env!("CARGO_PKG_VERSION"), "-clowder.1"),
+         stage: "supported-profile",
+         target: env!("WX_TARGET"),
+         api_version: API_VERSION,
+         capabilities: vec![
+             "serve",
++            "current-contact-directory",
+             "profile-attach",
+             "profile-copy",
+             "profile-read",
+--- a/packages/native-client-rust/crates/wechat-api/src/http_route_table.rs
++++ b/packages/native-client-rust/crates/wechat-api/src/http_route_table.rs
+@@ -1354,11 +1354,11 @@
+         scope: Scope::One("read"),
+         idempotency: Idempotency::No,
+         request: Body::None,
+-        query: Body::None,
+-        response: Body::Untyped,
+-        status: 202,
+-        sdk: &[("response", "NativeOperation")],
+-        summary: "Start syncing the contact catalog from WeChat. Poll the returned operation.",
++        query: Body::Type("ContactDirectoryQuery"),
++        response: Body::Untyped,
++        status: 202,
++        sdk: &[("response", "NativeOperation")],
++        summary: "Sync contact metadata, or use directory=true for a fresh complete current-account recipient directory. Poll the operation.",
+     },
+     Route {
+         method: "POST",
+--- a/packages/native-client-rust/crates/wechat-api/src/http_interface_tests.rs
++++ b/packages/native-client-rust/crates/wechat-api/src/http_interface_tests.rs
+@@ -60,6 +60,7 @@
+     "CreateAccountRequest" => crate::CreateAccountRequest,
+     "UpdateAccountRequest" => crate::actions::UpdateAccountRequest,
+     "ContactLookupRequest" => crate::ContactLookupRequest,
++    "ContactDirectoryQuery" => crate::actions::ContactDirectoryQuery,
+     "EventAckRequest" => crate::EventAckRequest,
+     "PageQuery" => crate::PageQuery,
+     "QrQuery" => crate::QrQuery,
+--- a/interfaces/http/routes.txt
++++ b/interfaces/http/routes.txt
+@@ -10,6 +10,8 @@
+ request AddCustomStickerRequest.source.kind | string, required, values prepared|message | prepared: Validated temporary output created by sticker preparation; message: A verified original attachment belonging to a received sticker message
+ request AddCustomStickerRequest.source.messageId | string, required, when kind message | Existing message identity in this account.
+ request AddCustomStickerRequest.source.preparationId | string, required, when kind prepared | ID of a completed, unexpired preparation.
++request ContactDirectoryQuery | object, rejects unknown fields | MISSING DESCRIPTION
++request ContactDirectoryQuery.directory | boolean, default false | Start a fresh complete current-account directory instead of resuming metadata synchronization.
+ request ContactLookupRequest | object, rejects unknown fields | Request to look up several contacts.
+ request ContactLookupRequest.ids | array of string, required | Contact IDs to look up.
+ request ContentQuery | object, rejects unknown fields | Options for fetching media bytes.
+@@ -1149,7 +1151,7 @@
+ route POST /v1/accounts/{a}/avatars/{id}/refresh | scope media and read, request RefreshAvatarRequest (optional), response untyped, status 202, sdk response NativeOperation | Ask WeChat for the latest avatar of one contact, with optional group context for an OpenIM member. Poll the returned operation.
+ route POST /v1/accounts/{a}/connect | scope login, response untyped, status 202, sdk response NativeOperation | Connect the signed-in account to WeChat. Poll the returned operation.
+ route POST /v1/accounts/{a}/consumers/{consumer}/ack | scope read, request EventAckRequest, response untyped | Record how far a named consumer has read the event stream. It never marks messages read.
+-route POST /v1/accounts/{a}/contact-sync | scope read, response untyped, status 202, sdk response NativeOperation | Start syncing the contact catalog from WeChat. Poll the returned operation.
++route POST /v1/accounts/{a}/contact-sync | scope read, query ContactDirectoryQuery, response untyped, status 202, sdk response NativeOperation | Sync contact metadata, or use directory=true for a fresh complete current-account recipient directory. Poll the operation.
+ route POST /v1/accounts/{a}/contacts/lookup | scope read, request ContactLookupRequest, response untyped | Look up the saved details of several contacts by ID.
+ route POST /v1/accounts/{a}/contacts/{id}/refresh | scope read, response untyped, status 202, sdk response NativeOperation | Ask WeChat for the latest details of one contact. Poll the returned operation.
+ route POST /v1/accounts/{a}/custom-stickers | scope send, idempotency key required, request AddCustomStickerRequest, response MediaJob, status 202, sdk request AddCustomStickerRequest, sdk response MediaJob | Save a prepared or received sticker asynchronously without sending a message.
+--- a/interfaces/http/openapi.json
++++ b/interfaces/http/openapi.json
+@@ -679,6 +679,17 @@
+           "busy",
+           "ownedByThisClient"
+         ],
++        "type": "object"
++      },
++      "ContactDirectoryQuery": {
++        "additionalProperties": false,
++        "properties": {
++          "directory": {
++            "default": false,
++            "description": "Start a fresh complete current-account directory instead of resuming metadata synchronization.",
++            "type": "boolean"
++          }
++        },
+         "type": "object"
+       },
+       "ContactLookupRequest": {
+@@ -5372,6 +5383,16 @@
+             "schema": {
+               "type": "string"
+             }
++          },
++          {
++            "description": "The fields of this object are separate query parameters.",
++            "explode": true,
++            "in": "query",
++            "name": "contactDirectoryQuery",
++            "schema": {
++              "$ref": "#/components/schemas/ContactDirectoryQuery"
++            },
++            "style": "form"
+           }
+         ],
+         "responses": {
+@@ -5398,7 +5419,7 @@
+             ]
+           }
+         ],
+-        "summary": "Start syncing the contact catalog from WeChat. Poll the returned operation.",
++        "summary": "Sync contact metadata, or use directory=true for a fresh complete current-account recipient directory. Poll the operation.",
+         "tags": [
+           "contacts"
+         ],

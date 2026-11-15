@@ -1,6 +1,7 @@
 // Protocol provenance: thisnick/agent-wechat @
 // 1e7dec817ca2ff893b8365b768058b6c0274563d, shared/src/native-client.ts
 // and native.generated.ts. This independent adapter has no OpenClaw dependency.
+import { randomUUID } from 'node:crypto';
 const segment = value => {
   if (typeof value !== 'string' || !value || value.length > 256 || value === '.' || value === '..' || /[\u0000-\u001f]/.test(value)) throw Error('invalid platform coordinate');
   return encodeURIComponent(value);
@@ -11,7 +12,7 @@ export class NativeClient {
     if (url.protocol !== 'http:' || !['127.0.0.1', '[::1]'].includes(url.hostname) || url.pathname !== '/' || url.username || url.password || url.search || url.hash)
       throw Error('native channel requires a private loopback origin');
     if (typeof token !== 'string' || !/^[A-Za-z0-9._~-]{24,512}$/.test(token)) throw Error('invalid native credential');
-    this.base = url; this.token = token; this.fetch = transport; this.timeoutMs = timeoutMs;
+    this.base = url; this.token = token; this.fetch = transport; this.timeoutMs = timeoutMs; this.directories = new Map();
   }
   async bytes(path, { method = 'GET', body, key, signal, image = false } = {}) {
     if (!path.startsWith('v1/')) throw Error('undeclared native route');
@@ -48,33 +49,69 @@ export class NativeClient {
   createAccount(accountId) { return this.json('v1/accounts', { method: 'POST', body: { id: accountId } }); }
   threads(accountId, cursor = '') { return this.json(`v1/accounts/${segment(accountId)}/threads?limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`); }
   async targets(accountId, cursor = '') {
-    let paging = { version: 1, accountId, contacts: '', groups: '' };
+    let paging;
     if (cursor) {
+      if (typeof cursor !== 'string' || cursor.length > 8192) throw Error('invalid target cursor');
       try { paging = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')); }
       catch { throw Error('invalid target cursor'); }
-      if (!paging || Object.keys(paging).sort().join(',') !== 'accountId,contacts,groups,version' ||
-          paging.version !== 1 || paging.accountId !== accountId ||
-          ['contacts', 'groups'].some(key => paging[key] !== null && (typeof paging[key] !== 'string' || paging[key].length > 8192)))
+      if (!paging || Object.keys(paging).sort().join(',') !== 'accountId,offset,operationId,version' ||
+          paging.version !== 2 || paging.accountId !== accountId || typeof paging.operationId !== 'string' ||
+          !Number.isSafeInteger(paging.offset) || paging.offset < 0)
         throw Error('invalid target cursor');
     }
-    const next = { ...paging };
-    const pages = await Promise.all([['contacts', 'direct'], ['groups', 'group']].map(async ([source, kind]) => {
-      if (paging[source] === null) return [];
-      const page = await this.json(`v1/accounts/${segment(accountId)}/${source}?limit=50${paging[source] ? `&cursor=${encodeURIComponent(paging[source])}` : ''}`);
-      if (!Array.isArray(page.items) || page.nextCursor != null && (typeof page.nextCursor !== 'string' || page.nextCursor.length > 8192))
-        throw Error('invalid native target directory');
-      next[source] = page.nextCursor || null;
-      return page.items.map(item => {
-        segment(item.id);
-        if ((kind === 'direct' ? item.username : item.roomId) !== item.id) throw Error('native target identity mismatch');
-        if (['system', 'business'].includes(item.classification?.category) ||
-            item.classification?.namespace && item.classification.namespace !== 'wechat' ||
-            (kind === 'group' ? !item.id.endsWith('@chatroom') || item.isInGroup === false : item.id.includes('@'))) return null;
-        return { id: item.id, accountId, kind, displayName: item.displayName ?? item.id };
-      }).filter(Boolean);
-    }));
-    return { items: pages.flat(), nextCursor: next.contacts === null && next.groups === null ? null : Buffer.from(JSON.stringify(next)).toString('base64url') };
+    let directory = this.directories.get(accountId);
+    if (paging && (!directory?.items || directory.operationId !== paging.operationId || Date.now() - directory.observedAt > 300000)) throw Error('target cursor expired; refresh the directory');
+    if (!paging && directory?.items && Date.now() - directory.observedAt > 300000) directory = null;
+    if (!directory) {
+      directory = { startedAt: Date.now() };
+      this.directories.set(accountId, directory);
+      directory.start = this.json(`v1/accounts/${segment(accountId)}/contact-sync?directory=true`, { method: 'POST', key: randomUUID(), body: {} });
+      try {
+        const operation = await directory.start;
+        if (operation.accountId !== accountId || operation.kind !== 'metadata' || typeof operation.id !== 'string') throw Error('native directory operation identity mismatch');
+        directory.operationId = operation.id;
+      } catch (error) { directory.error = error; throw error; }
+      return { items: [], nextCursor: null, pending: true };
+    }
+    if (directory.error) throw directory.error;
+    if (!directory.operationId) { await directory.start; return { items: [], nextCursor: null, pending: true }; }
+    if (!directory.items) {
+      if (!directory.poll) directory.poll = (async () => {
+        const operation = await this.operation(accountId, directory.operationId);
+        if (operation.id !== directory.operationId || operation.accountId !== accountId || operation.kind !== 'metadata') throw Error('native directory operation identity mismatch');
+        if (['queued', 'running', 'pending'].includes(operation.state)) return;
+        if (operation.state !== 'succeeded') throw Error('当前通讯录同步未完成，请刷新联系人目录重试。');
+        const value = operation.result?.directory;
+        if (value?.version !== 1 || value.source !== 'wechat.initcontact' || value.accountId !== accountId || value.catalogComplete !== true ||
+            typeof value.accountIdentity !== 'string' || !Array.isArray(value.items) || value.items.length > 10000)
+          throw Error('连接组件未提供完整当前通讯录；请更新账号连接组件。');
+        const identity = await this.identity(accountId);
+        if (!identity.connected || identity.accountIdentity !== value.accountIdentity) throw Error('directory account identity changed');
+        const ids = new Set();
+        directory.items = value.items.map(item => {
+          segment(item.id);
+          if (!['direct', 'group'].includes(item.kind) || (item.kind === 'group' ? !item.id.endsWith('@chatroom') : item.id.includes('@')) || ids.has(item.id)) throw Error('invalid current directory identity');
+          ids.add(item.id);
+          return { id: item.id, accountId, kind: item.kind, displayName: typeof item.displayName === 'string' ? item.displayName : item.id };
+        });
+        directory.accountIdentity = identity.accountIdentity; directory.serverId = identity.serverId;
+        directory.unverifiedCount = Number.isSafeInteger(value.unverifiedCount) && value.unverifiedCount >= 0 ? value.unverifiedCount : 0;
+        directory.observedAt = Date.now();
+      })().catch(error => { directory.error = error; throw error; }).finally(() => { directory.poll = null; });
+      await directory.poll;
+    }
+    if (!directory.items) return { items: [], nextCursor: null, pending: true };
+    const current = await this.identity(accountId);
+    if (!current.connected || current.accountIdentity !== directory.accountIdentity || current.serverId !== directory.serverId) {
+      this.directories.delete(accountId); throw Error('directory account identity changed');
+    }
+    const offset = paging?.offset ?? 0;
+    if (offset > directory.items.length) throw Error('invalid target cursor');
+    const items = directory.items.slice(offset, offset + 50), nextOffset = offset + items.length;
+    return { items, pending: false, observedAt: directory.observedAt, unverifiedCount: directory.unverifiedCount, nextCursor: nextOffset < directory.items.length ? Buffer.from(JSON.stringify({ version: 2, accountId, operationId: directory.operationId, offset: nextOffset })).toString('base64url') : null };
   }
+  refreshTargets(accountId) { const current = this.directories.get(accountId); if (!current || current.items || current.error) this.directories.delete(accountId); }
+  directoryPending(accountId) { const current = this.directories.get(accountId); return Boolean(current && !current.items && !current.error); }
   message(accountId, messageId) { return this.json(`v1/accounts/${segment(accountId)}/messages/${segment(messageId)}`); }
   events(accountId, cursor = '0') {
     if (!/^\d+$/.test(cursor)) throw Error('invalid event cursor');

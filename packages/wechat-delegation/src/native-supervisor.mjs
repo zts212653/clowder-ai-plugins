@@ -2,42 +2,24 @@ import { spawn } from 'node:child_process';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { chmod, lstat, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
+import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { NativeClient } from './native-client.mjs';
 
-// Vendor release metadata read 2026-11-14; exact digests are pinned, never latest.
-const pins = {
-  'darwin-arm64': ['wx-v2.4.1-darwin-arm64', 37408672, '98cca7f34a09d30a0ff552b10ca91dd94198c9c6b31302f3acbea09e4c55c85b'],
-  'linux-arm64': ['wx-v2.4.1-linux-arm64-gnu', 43027568, 'bc504a9d1053e04d8b29885688e6695796c13cdc3a0b061475bc114420c6e73f'],
-  'linux-x64': ['wx-v2.4.1-linux-x64-gnu', 46437160, '8d18d49d9e4c4e69bc3249405c119a9d25f9ccf92b0893907da14f3f56307f8c'],
-};
+// A source-pinned Clowder repair build, bundled for offline installation.
+const pins = JSON.parse(readFileSync(new URL('../assets/native/manifest.json', import.meta.url), 'utf8'));
 export function nativeAsset(platform = process.platform, arch = process.arch) {
-  const pin = pins[`${platform}-${arch}`];
-  if (!pin) throw Error('当前系统没有已固定校验的账号连接组件');
-  const [fileName, size, sha256] = pin;
-  return { fileName, size, sha256, version: '2.4.1', url: `https://github.com/thisnick/agent-wechat/releases/download/v2.4.1/${fileName}` };
+  const pin = pins.artifacts[`${platform}-${arch}`];
+  if (!pin) throw Error('本次通讯录修复构建暂只提供 macOS Apple Silicon 版本');
+  return { ...pin, version: pins.version, capabilities: ['current-contact-directory'] };
 }
-export async function downloadPinned(asset, signal) {
-  let url = new URL(asset.url);
-  for (let hop = 0; hop < 4; hop++) {
-    if (url.protocol !== 'https:' || url.username || url.password || !['github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'].includes(url.hostname))
-      throw Error('账号组件下载来源不受支持');
-    const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.any([signal, AbortSignal.timeout(60000)]) });
-    if ([301, 302, 303, 307, 308].includes(response.status)) {
-      const location = response.headers.get('location'); await response.body?.cancel();
-      if (!location) throw Error('账号组件下载跳转无效');
-      url = new URL(location, url); continue;
-    }
-    if (!response.ok || !response.body) { await response.body?.cancel(); throw Error('账号组件下载未完成'); }
-    if (Number(response.headers.get('content-length')) > asset.size) { await response.body.cancel(); throw Error('账号组件大小不符'); }
-    const reader = response.body.getReader(); const chunks = []; let size = 0;
-    try {
-      for (;;) { const part = await reader.read(); if (part.done) break; size += part.value.length; if (size > asset.size) throw Error('账号组件大小不符'); chunks.push(part.value); }
-    } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
-    return Buffer.concat(chunks);
-  }
-  throw Error('账号组件下载跳转次数过多');
+export async function loadBundled(asset, signal) {
+  signal.throwIfAborted();
+  const compressed = await readFile(new URL(`../assets/native/${asset.fileName}.gz`, import.meta.url));
+  if (createHash('sha256').update(compressed).digest('hex') !== asset.compressedSha256) throw Error('native bundle integrity mismatch');
+  return gunzipSync(compressed, { maxOutputLength: asset.size });
 }
 async function port() {
   const listener = createServer();
@@ -47,7 +29,7 @@ async function port() {
   return number;
 }
 export class NativeSupervisor {
-  constructor({ dataPath, asset, download = downloadPinned }) {
+  constructor({ dataPath, asset, download = loadBundled }) {
     this.dataPath = dataPath; this.asset = asset; this.download = download; this.client = null;
   }
   async prepare(owner) {
@@ -110,7 +92,7 @@ export class NativeSupervisor {
         try { status = await client.status(); } catch { await delay(100, undefined, { signal: owner.signal }); continue; }
         if (status.pid !== child.pid || status.dataDir !== dataDir || status.version?.product !== 'agent-wechat' ||
             status.version?.backend !== 'native' || status.version?.apiVersion !== 1 || status.version?.version !== asset.version || !status.serverId || !status.ownershipGeneration ||
-            !Array.isArray(status.version.capabilities) || ['serve', 'events', 'profile-read', 'text-send', 'native-login'].some(capability => !status.version.capabilities.includes(capability)))
+            !Array.isArray(status.version.capabilities) || ['serve', 'events', 'profile-read', 'text-send', 'native-login', ...(asset.capabilities ?? [])].some(capability => !status.version.capabilities.includes(capability)))
           throw Error('账号连接组件身份与本次进程不符');
         await owner.assertCurrent(); owner.signal.throwIfAborted();
         this.client = new NativeClient({ baseUrl: client.base.href, token }); this.status = status;

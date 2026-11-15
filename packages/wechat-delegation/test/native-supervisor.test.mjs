@@ -74,3 +74,40 @@ test('preparation repairs a corrupt owned component cache without deleting the a
   assert.equal((await client.status()).serverId, 'test-server');
   assert.equal(await readFile(join(root, 'native-profile', 'retained-history'), 'utf8'), 'preserve this account data');
 });
+
+test('the bundled directory repair component has exact pinned bytes and declares its own provenance', async () => {
+  const { nativeAsset, loadBundled } = await import('../src/native-supervisor.mjs');
+  const asset = nativeAsset('darwin', 'arm64');
+  const binary = await loadBundled(asset, new AbortController().signal);
+  assert.equal(binary.length, asset.size);
+  assert.equal(createHash('sha256').update(binary).digest('hex'), asset.sha256);
+  assert.equal(asset.version, '2.4.1-clowder.1');
+  assert.ok(asset.capabilities.includes('current-contact-directory'));
+  assert.throws(() => nativeAsset('linux', 'x64'), /暂只提供/);
+});
+
+test('the actual bundled component starts in an empty isolated profile and exposes the extended directory route', { skip: process.platform !== 'darwin' || process.arch !== 'arm64' }, async t => {
+  const root = await mkdtemp(join(tmpdir(), 'wechat-native-bundle-'));
+  const supervisor = new NativeSupervisor({ dataPath: root });
+  t.after(async () => { await supervisor.stop(); await rm(root, { recursive: true, force: true }); });
+  const client = await supervisor.prepare(actor());
+  const status = await client.status();
+  assert.equal(status.version.version, '2.4.1-clowder.1');
+  assert.ok(status.version.capabilities.includes('current-contact-directory'));
+  await client.createAccount('isolated');
+  // An unregistered directory route would return 404, whereas this handler
+  // recognizes the request and rejects it because the synthetic account has no login.
+  const response = await fetch(new URL('v1/accounts/isolated/contact-sync?directory=true', client.base), {
+    method: 'POST', headers: { Authorization: `Bearer ${client.token}` },
+  });
+  assert.notEqual(response.status, 404);
+  assert.equal(response.ok, false);
+  const account = await client.account('isolated');
+  assert.equal(account.authenticated, false);
+});
+
+test('the packaged source patch is bound to the component provenance manifest', async () => {
+  const manifest = JSON.parse(await readFile(new URL('../assets/native/manifest.json', import.meta.url), 'utf8'));
+  const patch = await readFile(new URL('../assets/native/current-directory.patch', import.meta.url));
+  assert.equal(createHash('sha256').update(patch).digest('hex'), manifest.patchSha256);
+});
