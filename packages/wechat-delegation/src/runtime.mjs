@@ -131,14 +131,14 @@ export class DelegationRuntime {
         ...(operation.state === 'succeeded' ? { account: await client.identity(ACCOUNT) } : {}) };
     }
     if (action === 'chats') {
-      const page = await client.threads(ACCOUNT, input.cursor ?? '');
+      const page = await client.targets(ACCOUNT, input.cursor ?? '');
       if (!Array.isArray(page.items)) throw Error('会话列表不可用');
       return { items: page.items.filter(chat => chat.accountId === ACCOUNT && ['direct', 'group'].includes(chat.kind)).map(chat => ({ id: chat.id, kind: chat.kind, displayName: chat.displayName ?? chat.id })), nextCursor: page.nextCursor ?? null };
     }
     if (action === 'cats') {
-      return { items: (await this.host.members.list()).filter(member => member.available).map(member => ({ id: member.catId, label: member.displayName, model: member.defaultModel })),
-        threads: (await this.host.threads.list({ limit: 100 })).map(thread => ({ id: thread.id, title: thread.title ?? thread.id })) };
+      return { items: (await this.host.members.list()).filter(member => member.available).map(member => ({ id: member.catId, label: member.displayName, model: member.defaultModel })) };
     }
+    if (action === 'reminder_threads') return { items: (await this.host.threads.list({ limit: 50 })).map(thread => ({ id: thread.id, title: thread.title ?? thread.id })) };
     if (action === 'cat_details') return this.model.describe(input.catId);
     if (action === 'activate') {
       if (input.confirm !== true || !this.model.available()) throw Error('请确认会话与模型数据范围；宿主必须支持受限成员执行');
@@ -150,7 +150,7 @@ export class DelegationRuntime {
       let cursor = '', chosen;
       const seen = new Set();
       do {
-        const page = await client.threads(ACCOUNT, cursor);
+        const page = await client.targets(ACCOUNT, cursor);
         chosen = page.items.find(item => item.id === target.id && item.kind === target.kind && item.accountId === ACCOUNT);
         if (chosen) break;
         const next = page.nextCursor;

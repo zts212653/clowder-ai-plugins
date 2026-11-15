@@ -47,6 +47,34 @@ export class NativeClient {
   }
   createAccount(accountId) { return this.json('v1/accounts', { method: 'POST', body: { id: accountId } }); }
   threads(accountId, cursor = '') { return this.json(`v1/accounts/${segment(accountId)}/threads?limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`); }
+  async targets(accountId, cursor = '') {
+    let paging = { version: 1, accountId, contacts: '', groups: '' };
+    if (cursor) {
+      try { paging = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')); }
+      catch { throw Error('invalid target cursor'); }
+      if (!paging || Object.keys(paging).sort().join(',') !== 'accountId,contacts,groups,version' ||
+          paging.version !== 1 || paging.accountId !== accountId ||
+          ['contacts', 'groups'].some(key => paging[key] !== null && (typeof paging[key] !== 'string' || paging[key].length > 8192)))
+        throw Error('invalid target cursor');
+    }
+    const next = { ...paging };
+    const pages = await Promise.all([['contacts', 'direct'], ['groups', 'group']].map(async ([source, kind]) => {
+      if (paging[source] === null) return [];
+      const page = await this.json(`v1/accounts/${segment(accountId)}/${source}?limit=50${paging[source] ? `&cursor=${encodeURIComponent(paging[source])}` : ''}`);
+      if (!Array.isArray(page.items) || page.nextCursor != null && (typeof page.nextCursor !== 'string' || page.nextCursor.length > 8192))
+        throw Error('invalid native target directory');
+      next[source] = page.nextCursor || null;
+      return page.items.map(item => {
+        segment(item.id);
+        if ((kind === 'direct' ? item.username : item.roomId) !== item.id) throw Error('native target identity mismatch');
+        if (['system', 'business'].includes(item.classification?.category) ||
+            item.classification?.namespace && item.classification.namespace !== 'wechat' ||
+            (kind === 'group' ? !item.id.endsWith('@chatroom') || item.isInGroup === false : item.id.includes('@'))) return null;
+        return { id: item.id, accountId, kind, displayName: item.displayName ?? item.id };
+      }).filter(Boolean);
+    }));
+    return { items: pages.flat(), nextCursor: next.contacts === null && next.groups === null ? null : Buffer.from(JSON.stringify(next)).toString('base64url') };
+  }
   message(accountId, messageId) { return this.json(`v1/accounts/${segment(accountId)}/messages/${segment(messageId)}`); }
   events(accountId, cursor = '0') {
     if (!/^\d+$/.test(cursor)) throw Error('invalid event cursor');

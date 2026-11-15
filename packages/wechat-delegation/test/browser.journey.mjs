@@ -18,10 +18,15 @@ try {
   const typography = await frame.getByRole('heading', { name: '微信代聊', exact: true }).evaluate(node => getComputedStyle(node).fontSize);
   assert.equal(typography, '16px');
   await page.screenshot({ path: `${evidence}/unconnected.png`, fullPage: true });
-  await frame.getByLabel('我了解将准备第三方 Agent WeChat 2.4.1；登录可能同步更广范围消息到本机。猫只处理我另行授权的会话。').check();
+  await frame.getByLabel('我了解将准备第三方 Agent WeChat 2.4.1；组件会连接微信服务器，登录可能同步更广范围消息到本机。猫只处理我另行授权的会话。').check();
   await frame.getByRole('button', { name: '准备账号连接组件', exact: true }).click();
   await frame.getByRole('button', { name: '微信扫码登录', exact: true }).click();
   await frame.getByRole('heading', { name: '配置代聊会话', exact: true }).waitFor();
+  // Cats must be selectable while the new login's directory is still empty and
+  // the independent reminder directory is unavailable; empty catalogs retry.
+  await frame.getByLabel('值班猫', { exact: true }).selectOption('review-cat');
+  await frame.getByText('微信组件尚未返回联系人和群', { exact: false }).waitFor();
+  await frame.getByText('提醒对话加载未完成', { exact: false }).waitFor();
   await page.screenshot({ path: `${evidence}/configure.png`, fullPage: true });
   await frame.getByLabel('指定好友或群', { exact: true }).selectOption(JSON.stringify({ id: 'preview-room@chatroom', kind: 'group' }));
   await frame.getByLabel('值班猫', { exact: true }).selectOption('review-cat');

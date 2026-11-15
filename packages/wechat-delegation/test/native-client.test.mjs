@@ -3,6 +3,30 @@ import { createServer } from 'node:http';
 import test from 'node:test';
 import { NativeClient } from '../src/native-client.mjs';
 
+test('fresh-login targets come from contacts and groups without requiring existing chat history', async () => {
+  const requests = [];
+  const client = new NativeClient({ baseUrl: 'http://127.0.0.1:1/', token: 'a'.repeat(64), fetch: async url => {
+    requests.push(String(url));
+    assert.equal(url.searchParams.get('limit'), '50');
+    if (url.pathname.endsWith('/contacts')) return Response.json(url.searchParams.has('cursor')
+      ? { items: [{ id: 'second-friend', username: 'second-friend', displayName: '第二位联系人', relation: 'unknown' }], nextCursor: null }
+      : { items: [{ id: 'friend', username: 'friend', displayName: '联系人', relation: 'unknown' },
+          { id: 'filehelper', username: 'filehelper', classification: { category: 'system' } }], nextCursor: 'contacts-next' });
+    if (url.pathname.endsWith('/groups')) return Response.json({ items: [{ id: 'room@chatroom', roomId: 'room@chatroom', displayName: '测试群' }], nextCursor: null });
+    throw Error('the empty recent-chat list must not be used as the contact directory');
+  } });
+  const first = await client.targets('account');
+  assert.deepEqual(first.items.map(item => [item.id, item.kind, item.accountId]), [['friend', 'direct', 'account'], ['room@chatroom', 'group', 'account']]);
+  assert.ok(first.nextCursor);
+  const second = await client.targets('account', first.nextCursor);
+  assert.deepEqual(second.items.map(item => item.id), ['second-friend']);
+  assert.equal(second.nextCursor, null);
+  assert.equal(requests.filter(url => url.includes('/groups')).length, 1);
+  const before = requests.length;
+  await assert.rejects(client.targets('foreign-account', first.nextCursor), /cursor/);
+  assert.equal(requests.length, before);
+});
+
 test('real loopback HTTP uses the pinned text-send contract, stable key and exact canonical message for inspection', async t => {
   const requests = [];
   const server = createServer(async (req, res) => {

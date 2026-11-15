@@ -17,7 +17,7 @@ async function fixture(t) {
     identity: async () => ({ serverId: 'server', accountId: 'clowder', accountIdentity: 'wxid_owner', connected: true }),
     account: async () => ({ id: 'clowder', authenticated: true, ownUsername: 'wxid_owner', connection: 'online' }),
     createAccount: async () => ({}),
-    threads: async () => ({ items: [{ id: 'room@chatroom', accountId: 'clowder', kind: 'group', displayName: '测试群' }], nextCursor: null }),
+    targets: async () => ({ items: [{ id: 'room@chatroom', accountId: 'clowder', kind: 'group', displayName: '测试群' }], nextCursor: null }),
     login: async (_id, key) => { logins.push(key); return { id: 'login', kind: 'login', accountId: 'clowder', state: 'awaiting_scan' }; },
     operation: async () => ({ id: 'login', kind: 'login', accountId: 'clowder', state: 'awaiting_scan', result: { qrAvailable: true } }),
     qr: async () => 'data:image/png;base64,aGVsbG8=', prepare: async () => {},
@@ -52,6 +52,20 @@ test('owner login retries stay on the original durable operation and never grant
   assert.equal(f.logins.length, 1);
   assert.equal((await f.runtime.status()).policies.length, 0);
   assert.equal(f.sends.length, 0);
+});
+
+test('cat selection is independent of reminder lookup and reminder pages respect the real Host limit', async t => {
+  const f = await fixture(t);
+  await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
+  f.host.threads.list = async ({ limit }) => {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50) throw Error('limit must be an integer in 1..50');
+    return [{ id: 'owner-thread', title: '本人对话' }];
+  };
+  assert.equal((await f.runtime.dispatch({ action: 'cats' }, owner())).items[0].id, 'cat');
+  assert.equal((await f.runtime.dispatch({ action: 'reminder_threads' }, owner())).items[0].id, 'owner-thread');
+  f.host.threads.list = async () => { throw Error('reminder directory temporarily unavailable'); };
+  await assert.rejects(f.runtime.dispatch({ action: 'reminder_threads' }, owner()), /temporarily unavailable/);
+  assert.equal((await f.runtime.dispatch({ action: 'cats' }, owner())).items[0].id, 'cat');
 });
 test('owner selects a real group and cat, enables delegation, proactively sends then takes over through plugin operations', async t => {
   const f = await fixture(t);
@@ -150,7 +164,7 @@ test('global takeover also cancels an authorization still waiting for model prep
 
 test('a busy conversation retains incoming work without blocking the account cursor or another conversation', async t => {
   const f=await fixture(t); await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
-  f.client.threads=async()=>({items:[{id:'room@chatroom',accountId:'clowder',kind:'group'},{id:'friend',accountId:'clowder',kind:'direct'}]});
+  f.client.targets=async()=>({items:[{id:'room@chatroom',accountId:'clowder',kind:'group'},{id:'friend',accountId:'clowder',kind:'direct'}]});
   for(const target of [{id:'room@chatroom',kind:'group'},{id:'friend',kind:'direct'}]) await f.runtime.dispatch({action:'activate',target,catId:'cat',persona:'友好',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'},owner());
   f.client.submit=async run=>{f.sends.push(run);return{sendId:run.id,state:'queued'};};
   let settled=false; f.client.inspect=async run=>({sendId:run.id,state:settled?'accepted':'queued'});
