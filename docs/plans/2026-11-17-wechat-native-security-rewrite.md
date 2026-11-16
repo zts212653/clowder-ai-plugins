@@ -78,6 +78,14 @@ Architecture cell：微信插件 native 连接服务。Map delta：将通用上�
 
 原锁1.54.0撤回原因已回读维护者安全公告及修复源码，不再作为‘原因待核’。已精确固定1.54.1，仅改变该包版本/摘要；实际下载摘要与官方registry一致，完整Cargo检查和offline/locked构建通过。source-audit的范围、适用性未知及原始来源见`packages/wechat-delegation/native/DEPENDENCY-NOTES.md`，不能把版本更新说成已经复现/排除所有内存缺陷或整个账号安全已通过。小多子的000391仍是2a967c3持久层内部审查；新依赖delta须一并交准确最终HEAD核验。当前安装未替换。
 
+### 内审与公钥证据的最新回流
+
+已完整消费小多子`0001794852719314-000397-cbc66a85`的typed approval，准确批准`b3028a984e6155bed3f4797dbe47ab3d4058cc61`内部持久层及Tokio更新，no open items；没有把批准扩大到整张产品PR、未实现的执行器或真实主号验收。其独立执行文件/状态机及IPC/进程检查；受限环境的真实Keychain行为核作者原始日志，范围见原verdict。
+
+宪宪虽触发额度限制，第二版取证已落共享目录。砚砚读回并独立复跑MMTLS记录提取、核应用签名/资源封印：MMTLS5/1000两把公钥值与腾讯mac4.2.0制品一致；六把业务层key仍未确认。精确层级与本轮未重跑的反汇编/全包阴性扫描边界见`native/KEY-PROVENANCE.md`，旧“八把全未确认”不再是当前完整描述；整个`officialKeyOriginVerified`仍false。
+
+本次仅回流已审实现状态和只读证据，代码/锁/构建输入与`b3028a9`一致；不为机械登记重新召回reviewer。下一项仍由砚砚实施真正登录/目录/sync/发送执行器与Node窄stdio接线；当前main进程只hello/status且not_ready，不能关闭Task或发布。工位沿原`feat/wechat-delegation`保留续做。
+
 ### 首轮已落地：启动端凭据目录和环境边界
 
 `NativeSupervisor` 在启动任何组件前，以 `O_DIRECTORY | O_NOFOLLOW` 打开实例根、凭据目录和配置目录，检查当前 UID 并通过该文件句柄设置0700；拒绝末级符号链接，避免 chmod 修改链接目标。配置根和凭据目录不能指向另一个目录。原账号资料不删除，缓存修复仍保留原资料。
