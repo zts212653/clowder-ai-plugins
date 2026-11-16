@@ -18,8 +18,23 @@ try {
   const typography = await frame.getByRole('heading', { name: '微信代聊', exact: true }).evaluate(node => getComputedStyle(node).fontSize);
   assert.equal(typography, '16px');
   await page.screenshot({ path: `${evidence}/unconnected.png`, fullPage: true });
-  await frame.getByLabel('我了解将准备基于 Agent WeChat 2.4.1 的 Clowder 通讯录修复构建；组件会连接微信服务器，登录可能同步更广范围消息到本机。猫只处理我另行授权的会话。').check();
+  await frame.getByLabel('我了解将准备 Clowder 自有连接组件；登录后可能同步其他未选中会话到本机，猫只处理我另行授权的会话。').check();
   await frame.getByRole('button', { name: '准备账号连接组件', exact: true }).click();
+  await frame.getByRole('button', { name: '微信扫码登录', exact: true }).click();
+  await frame.getByText('请用手机微信扫描本次二维码', { exact: true }).waitFor();
+  const original = await frame.getByText('本次扫码记录：', { exact: false }).textContent();
+  await page.reload();
+  await frame.getByText(original, { exact: true }).waitFor();
+  assert.equal((await page.evaluate(() => fetch('/fixture-counts').then(r => r.json()))).loginCount, 1, 'reopening the panel does not create a new login');
+  await frame.getByRole('button', { name: '取消本次认证', exact: true }).click();
+  await frame.getByText('本次认证已取消', { exact: true }).waitFor();
+  assert.equal(await frame.getByAltText('本次微信登录二维码').count(), 0);
+  await page.screenshot({ path: `${evidence}/cancelled-login.png`, fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const authMetrics = await frame.locator('body').evaluate(node => ({ scroll: node.scrollWidth, width: document.documentElement.clientWidth }));
+  assert.ok(authMetrics.scroll <= authMetrics.width + 1, 'authentication record must wrap on mobile');
+  await page.screenshot({ path: `${evidence}/cancelled-login-mobile.png`, fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
   await frame.getByRole('button', { name: '微信扫码登录', exact: true }).click();
   await frame.getByRole('heading', { name: '配置代聊会话', exact: true }).waitFor();
   // Cats must be selectable while the new login's directory is still empty and
@@ -74,7 +89,19 @@ try {
   const dark = await frame.locator('html').evaluate(node => getComputedStyle(node).backgroundColor);
   assert.notEqual(dark, light, 'dark scheme must change the panel surface');
   await page.screenshot({ path: `${evidence}/mobile-dark.png`, fullPage: true });
+  await page.evaluate(() => fetch('/fixture-offline', { method: 'POST' }));
+  await frame.getByRole('button', { name: '刷新状态', exact: true }).click();
+  await frame.getByRole('button', { name: '恢复已保存的微信会话', exact: true }).waitFor();
+  await page.reload();
+  await frame.getByRole('button', { name: '恢复已保存的微信会话', exact: true }).waitFor();
+  assert.equal((await page.evaluate(() => fetch('/fixture-counts').then(r => r.json()))).resumeCount, 0, 'reopening the panel cannot authenticate a saved account');
+  await frame.getByRole('button', { name: '恢复已保存的微信会话', exact: true }).click();
+  await frame.getByText('账号已连接；请逐会话设置猫的处理与发言范围。', { exact: true }).waitFor({ state: 'attached' });
+  assert.equal((await page.evaluate(() => fetch('/fixture-counts').then(r => r.json()))).resumeCount, 1);
+  await frame.getByText('本人接管中 · 后续代聊已停止', { exact: true }).waitFor();
+  assert.equal(await frame.getByRole('button', { name: '立即主动开口', exact: true }).isDisabled(), true);
+  await page.screenshot({ path: `${evidence}/saved-session-resumed.png`, fullPage: true });
   assert.deepEqual(errors, []);
-  process.stdout.write(JSON.stringify({ passed: true, viewports: ['1280x900', '390x844'], evidence, boundary: 'isolated fake daemon/model only' }) + '\n');
+  process.stdout.write(JSON.stringify({ passed: true, viewports: ['1280x900', '390x844'], evidence, boundary: 'isolated native client/model fixtures only' }) + '\n');
   await page.close();
 } finally { await browser.close(); }

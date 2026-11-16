@@ -46,47 +46,16 @@
   app.append(el('header', {}, [el('h1', { text: '微信代聊' }), el('div', { class: 'toolbar' }, [button('刷新状态', () => {
     return perform({ action: 'status' });
   }, 'ghost'), globalStop])]), message);
-  const summary = el('div', { class: 'statusline' }); app.append(summary);
+  const summary = el('div', { class: 'statusline' }), globalSenderStop = el('p', { class: 'muted sender-stop', role: 'status', hidden: true }); app.append(summary, globalSenderStop);
+  const senderStopText = state => ({ pending: '本地已停发；正在确认发送端暂停。', confirmed: '发送端已确认暂停；已提交消息仍按原记录核对。', unknown: '发送端暂停未确认；本地停发保持，在途结果仍需核对。' })[state] ?? '';
   const steps = ['连接微信', '配置会话', '开始代聊'].map((text, index) => el('li', {}, [el('span', { class: 'step-number', text: String(index + 1) }), el('span', { text })]));
   app.append(el('ol', { class: 'steps', 'aria-label': '代聊设置进度' }, steps));
   const inflightText = el('p'), inflight = el('aside', { class: 'inflight', hidden: true, role: 'status' }, [
     el('div', {}, [el('strong', { text: '在途消息待核对' }), inflightText]),
     button('查看发送记录', () => { attemptsSection.hidden = false; attemptsSection.scrollIntoView({ behavior: 'smooth' }); })]);
   app.append(inflight);
-  const consent = check('我了解将准备基于 Agent WeChat 2.4.1 的 Clowder 通讯录修复构建；组件会连接微信服务器，登录可能同步更广范围消息到本机。猫只处理我另行授权的会话。');
-  const setup = button('准备账号连接组件', async () => {
-    if (!consent.input.checked) return show('请先阅读并确认客户端同步范围。', true);
-    setup.disabled = true; show('正在校验并准备连接组件…');
-    await perform({ action: 'prepare', acceptThirdParty: true }, '连接组件已准备，可以扫码。'); setup.disabled = false;
-  }, 'primary');
-  let pollTimer, pollingLogin = false;
-  const qr = el('div', { id: 'qr' }), loginState = el('p', { class: 'muted' });
-  const renderLogin = result => {
-    if (!result) return;
-    const texts = { requesting: '正在建立同一次扫码操作', awaiting_scan: '请用手机微信扫码', awaiting_approval: '请在手机微信确认', succeeded: '账号身份已核验；猫的处理权限仍需单独开启', failed: '登录未完成，请检查后重试', expired: '二维码已过期，可在原记录重新扫码' };
-    if (result.state === 'succeeded') show('微信登录已确认，请选择具体好友或群。');
-    loginState.textContent = texts[result.state] ?? `登录状态：${result.state}`;
-    if (result.qr) qr.replaceChildren(el('img', { src: result.qr, alt: '本次微信登录二维码' }));
-    if (['succeeded', 'failed', 'expired', 'cancelled', 'rejected', 'needs_login'].includes(result.state)) { clearInterval(pollTimer); if (result.state === 'succeeded') qr.replaceChildren(); }
-  };
-  const login = button('微信扫码登录', async () => {
-    const result = await perform({ action: 'login' }); renderLogin(result); clearInterval(pollTimer);
-    if (!result || ['succeeded', 'failed', 'expired', 'cancelled'].includes(result.state)) return;
-    pollTimer = setInterval(async () => {
-      if (pollingLogin) return; pollingLogin = true;
-      try { renderLogin(await call({ action: 'login_poll' })); await refresh(); } catch (error) { show(error.message, true); clearInterval(pollTimer); }
-      finally { pollingLogin = false; }
-    }, 2000);
-  }, 'primary');
-  const storePath = el('small');
-  const connectionHint = el('p', { class: 'muted', text: '先连接微信，再选择允许代聊的好友或群。' });
-  const disconnect = button('断开微信连接', () => perform({ action: 'disconnect' }, '本地代聊已停止，账号断开结果请核对。'));
-  const connectionSection = el('section', { class: 'stage-card account-section' }, [el('h2', { text: '连接微信账号' }), connectionHint,
-    consent.node, el('div', { class: 'toolbar' }, [setup, login, disconnect]), loginState, qr,
-    el('details', { class: 'privacy' }, [el('summary', { text: '数据与授权范围' }),
-      el('p', { text: '第三方 Agent WeChat 在本机专属目录保存登录凭据和同步数据，可能同步其他未授权会话。猫只处理你另行授权的会话；扫码不会自动开启代聊。不会导入桌面微信的本地目录。' }), storePath])]);
-  connectionSection.querySelector('details').append(el('p', { text: '手机微信可能显示 Linux 登录设备：这是当前组件声明的微信协议设备类型，组件进程实际运行在当前宿主，不表示本插件另行部署了 Linux 服务器。微信登录和同步需要与微信服务器通信；开启代聊后，授权会话文字还会交给所选模型服务，云端模型会接收这些文字。' }));
-  app.append(connectionSection);
+  const connection = window.createWechatConnection({ el, button, check, call, perform, show, refresh });
+  const connectionSection = connection.node; app.append(connectionSection);
 
   const target = window.createWechatTargetPicker({ el, button, load: body => call({ action: 'chats', ...body }), onChange: () => {
     confirm.input.checked = false; formError = ''; updateAuthorization();
@@ -140,13 +109,14 @@
   const submit = el('button', { type: 'button', text: '开启代聊', class: 'primary' });
   const authorizationHint = el('p', { class: 'muted', role: 'status' });
   function authorizationReason() {
+    if (!state?.messageSync?.ready) return '消息历史正在同步；完成后才能开启代聊。';
     return !target.value ? '请选择一个好友或群。' : !cat.value ? '请选择值班猫。' : !selectedPreview?.available || previewCat !== cat.value ? '所选猫的受限模型尚未就绪，请等待核验或换一只猫。' : !persona.value.trim() || !goal.value.trim() ? '请填写人设和聊天目标。' : !confirm.input.checked ? '请先勾选上面的模型与会话授权确认。' : '';
   }
   function updateAuthorization() {
     const modelReady = selectedPreview?.available && previewCat === cat.value;
     confirm.node.hidden = !target.value || !modelReady;
     confirm.input.disabled = false;
-    submit.disabled = submitting;
+    submit.disabled = submitting || !state?.messageSync?.ready;
     authorizationHint.textContent = formError || authorizationReason(); authorizationHint.className = formError ? 'error' : 'muted';
   }
   for (const input of [persona, goal, confirm.input]) input.addEventListener('input', () => { formError = ''; updateAuthorization(); });
@@ -227,13 +197,12 @@
     inflight.hidden = unresolvedCount === 0;
     inflightText.textContent = `${unresolvedCount} 笔消息仍可能发出。暂停只停止后续代聊；结果未确认时不会自动重发。`;
     summary.replaceChildren(...[snapshot.account?.connected ? `${snapshot.accountIsLive ? '微信账号' : '上次核验的微信账号'}：${snapshot.account.accountIdentity}` : '微信账号：尚未连接或待核验',
-      snapshot.memberRuntimeAvailable ? '猫服务可用' : '猫服务暂不可用', snapshot.globalPause ? '全部代聊已暂停' : `代聊中：${activeCount} 个会话`].map((text, index) => el('span', { class: 'badge', text, 'data-tone': index === 0 && connected || index === 1 && snapshot.memberRuntimeAvailable ? 'connected' : index === 2 && activeCount > 0 ? 'active' : 'idle' })));
-    setup.hidden = snapshot.runtime === 'running';
-    consent.node.hidden = snapshot.runtime === 'running';
-    login.hidden = snapshot.runtime !== 'running' || connected;
-    login.disabled = snapshot.runtime !== 'running';
-    disconnect.hidden = snapshot.runtime !== 'running';
-    connectionHint.textContent = connected ? '账号已连接。会话处理与发言范围由每个会话的授权决定。' : snapshot.runtime === 'running' ? '连接组件已准备。请用手机微信扫码，核对连接的账号。' : '首次连接会准备第三方组件，随后使用手机微信扫码。';
+      snapshot.memberRuntimeAvailable ? '猫服务可用' : '猫服务暂不可用', snapshot.globalPause ? '全部代聊已暂停' : `代聊中：${activeCount} 个会话`,
+      !connected ? '消息同步：尚未连接' : snapshot.messageSync?.ready ? '消息同步已完成' : '消息同步中 · 暂不能开启代聊'].map((text, index) => el('span', { class: 'badge', text, 'data-tone': index === 0 && connected || index === 1 && snapshot.memberRuntimeAvailable || index === 3 && snapshot.messageSync?.ready ? 'connected' : index === 2 && activeCount > 0 ? 'active' : 'idle' })));
+    const globalStopState = snapshot.senderStops?.find(item => item.policyId === null)?.state;
+    globalSenderStop.hidden = !snapshot.globalPause || !globalStopState;
+    globalSenderStop.textContent = senderStopText(globalStopState);
+    connection.render(snapshot);
     accountDrawer.hidden = !connected;
     if (connected && connectionSection.parentNode !== accountDrawer) accountDrawer.append(connectionSection);
     if (!connected && connectionSection.parentNode !== app) app.insertBefore(connectionSection, formSection);
@@ -241,12 +210,13 @@
     returnToList.hidden = snapshot.policies.length === 0;
     policiesSection.hidden = snapshot.policies.length === 0;
     attemptsSection.hidden = snapshot.runs.length === 0;
-    storePath.textContent = snapshot.storagePath ? `本机保存位置：${snapshot.storagePath}` : '保存位置由宿主的插件专属数据目录管理。';
+
     policies.replaceChildren();
     if (!snapshot.policies.length) policies.append(el('p', { class: 'empty', text: '尚未授权任何好友或群。登录后选择具体会话，再开启代聊。' }));
     for (const policy of snapshot.policies) {
       const unresolved = snapshot.runs.filter(run => run.policyId === policy.id && run.submitted && ['submitting', 'queued', 'needs_review'].includes(run.phase)).length;
       const status = policy.mode === 'active' ? '猫代聊中 · 可随时接管' : policy.mode === 'owner' ? policy.ownerReason === 'boundary' ? '需要本人处理 · 猫已停止代聊' : '本人接管中 · 后续代聊已停止' : policy.mode === 'revoked' ? '会话授权已撤销' : policy.mode === 'expired' ? '代聊许可已到期 · 后续执行停止' : '代聊已暂停 · 需本人明确恢复';
+      const stopped = snapshot.senderStops?.find(item => item.policyId === policy.id)?.state;
       const start = button('立即主动开口', () => perform({ action: 'initiate', policyId: policy.id, operationId: crypto.randomUUID() }, '请求已接收；实际发送结果见下方记录。'));
       start.disabled = policy.mode !== 'active' || !policy.proactive || unresolved > 0 || policy.unanswered >= 1;
       const takeover = button('我来聊', () => perform({ action: 'takeover', policyId: policy.id }, '本地后续代聊已停止；在途结果单独核对。'), 'stop');
@@ -254,6 +224,7 @@
       policies.append(el('article', { class: 'card' }, [el('div', { class: 'row' }, [el('h3', { text: `${policy.displayName} · ${policy.kind === 'group' ? '群' : '好友'}` }), el('span', { class: 'badge', text: status, 'data-tone': policy.mode === 'active' ? 'active' : 'idle' })]),
         el('p', { text: `值班：${policy.catDisplayName ?? '所选猫'} · 主动发起${policy.proactive ? '开启' : '关闭'} · 自动接话${policy.replies ? '开启' : '关闭'}` }),
         el('p', { class: 'muted', text: policy.goal }),
+        ...(policy.mode !== 'active' && stopped ? [el('p', { class: 'muted', text: senderStopText(stopped) })] : []),
         ...(unresolved ? [el('p', { class: 'error', text: `${unresolved} 笔在途或未知结果待核对，仍可能发出。` })] : []),
         el('div', { class: 'toolbar' }, [takeover, start, button(policy.mode === 'active' ? '换猫 / 设置' : '交回值班猫 / 设置', () => fillPolicy(policy)),
           el('details', { class: 'more-actions' }, [el('summary', { text: '更多' }), button('撤销会话授权', () => perform({ action: 'revoke', policyId: policy.id }, '已撤销此会话的后续处理。'))])])]));
@@ -305,5 +276,5 @@
     } catch (error) { show(error.message, true); } finally { refreshing = false; }
   }
   refresh(); const timer = setInterval(refresh, 3000);
-  window.addEventListener('pagehide', () => { clearInterval(timer); clearInterval(pollTimer); for (const item of pending.values()) clearTimeout(item.timer); });
+  window.addEventListener('pagehide', () => { clearInterval(timer); connection.close(); for (const item of pending.values()) clearTimeout(item.timer); });
 })();

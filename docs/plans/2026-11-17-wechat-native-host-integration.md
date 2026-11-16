@@ -6,7 +6,9 @@ Before：本人依赖宽接口第三方 daemon，自己分辨组件、授权和�
 
 ## 已核现场与权威
 
-工位 `clowder-ai-plugins-wechat-delegation / feat/wechat-delegation`，PR 232 draft。原生协议/持久库/登录/文字/同步/目录已审到 `4fa0dc5`；显式恢复 `d83aa2b` 已获000428准确HEAD typed approved。Node 已有有界 stdio 字节层，但当前 NativeSupervisor/NativeClient/Runtime 仍走旧 HTTP 及旧资产。不能把前半段接口检查当完整产品验收。
+工位 `clowder-ai-plugins-wechat-delegation / feat/wechat-delegation`，PR 232 draft。显式恢复 `d83aa2b` 获000428、Host/Supervisor `8f512d7` 获000440、认证/消息基线/查证 `ab8dfa4` 获000448准确HEAD typed approved，均只覆盖各自内部实现切片。NativeSupervisor/NativeLinkClient/Runtime现已消费自有私有stdio组件，旧HTTP客户端与daemon资产已移除。当前运行的旧插件尚未替换，真实账号未操作，不能把内部检查当完整产品验收。
+
+面板沿既有设计提供原认证记录、取消、明确恢复已保存会话、同步状态及本地停发/发送端确认的分立投影；隔离浏览器已覆盖取消/刷新不重建、群主动开口/接管/未知、恢复连接不恢复代聊、桌面/手机和暗色。完整初始化/钥匙串修复与显式LAN仍待。宪宪000444发现旧release缺hardened runtime，作者独立观察DYLD注入RED；`b236ced`已用强制runtime签名重打包且物理回归GREEN，正在独立审查。仍无DeveloperID/公证或真实升级授权验收。
 
 - WeChat/协议进程拥有原始账号秘密、消息同步游标、加密消息、关系证明、发送意图及最终提交。Native Store 是唯一账号事务 owner。
 - Host 的 DelegationService 拥有用户策略、policy/global epoch、模型会话选择、对人可见的运行记录和停止意图；不得复制一套到 native 再声称两边都是用户意图真相。

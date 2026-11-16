@@ -2,7 +2,10 @@ import { DelegationRuntime } from '../src/runtime.mjs';
 import { targetQuery, searchTargets } from '../src/target-search.mjs';
 
 export async function previewFixture() {
-  const data = new Map(); let connected = false, catalogReads = 0, reminderReads = 0, staleActivation = true; const messages = new Map();
+  const data = new Map(); let connected = false, credentials = false, generation = 0, catalogReads = 0, reminderReads = 0, staleActivation = true;
+  let loginCount = 0, resumeCount = 0, caughtUp = false; const messages = new Map(), auth = new Map();
+  const stream = () => ({ sourceRef: 'preview-stream', resetEpoch: 0, eventCursor: '0', caughtUp });
+  const loginResult = id => ({ operation: structuredClone(auth.get(id)), qr: auth.get(id)?.phase === 'pending' ? { pngBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jXioAAAAASUVORK5CYII=', expiresAt: Date.now() / 1000 + 300 } : null });
   let grant;
   const canonical = new Map(), runtimeModel = { clientId: '隔离测试', model: '模拟模型' };
   const host = { pluginInstanceId: 'isolated-preview', dataPath: '隔离验收的内存数据，不写用户微信目录',
@@ -38,10 +41,27 @@ export async function previewFixture() {
     },
   };
   const client = {
-    json: async () => ({ items: [{ id: 'clowder' }] }),
-    identity: async () => ({ serverId: 'preview-server', accountId: 'clowder', accountIdentity: connected ? '模拟微信账号' : null, connected }),
-    createAccount: async () => ({}), login: async () => { connected = true; return { id: 'preview-login', kind: 'login', accountId: 'clowder', state: 'succeeded' }; },
-    operation: async () => ({ id: 'preview-login', kind: 'login', accountId: 'clowder', state: 'succeeded' }),
+    storeId: 'preview-store', instanceId: 'preview-server',
+    identity: async () => ({ serverId: 'preview-server', nativeStoreId: 'preview-store', accountId: 'clowder', accountGeneration: generation,
+      accountIdentity: credentials ? '模拟微信账号' : null, connected, credentialsAvailable: credentials, stream: credentials ? stream() : null }),
+    startLogin: async id => { loginCount++; auth.set(id, { id, generation: loginCount, accountGeneration: 0, accountIdentity: null,
+      phase: 'pending', startedAtMs: Date.now(), updatedAtMs: Date.now(), authenticationMayHaveOccurred: false }); return loginResult(id); },
+    pollLogin: async id => {
+      if (loginCount > 1 && auth.get(id).phase === 'pending') { connected = credentials = true; generation = 1; caughtUp = false;
+        Object.assign(auth.get(id), { phase: 'succeeded', accountGeneration: generation, accountIdentity: '模拟微信账号', updatedAtMs: Date.now(), authenticationMayHaveOccurred: true }); }
+      return loginResult(id);
+    },
+    loginOperation: async id => loginResult(id),
+    cancelLogin: async id => { auth.get(id).phase = 'cancelled'; return loginResult(id); },
+    resume: async id => { resumeCount++; const sourceGeneration = generation; generation++; connected = true; caughtUp = false;
+      const record = { id, sourceGeneration, accountGeneration: generation, accountIdentity: '模拟微信账号', phase: 'succeeded',
+        startedAtMs: Date.now(), updatedAtMs: Date.now(), authenticationMayHaveOccurred: true }; auth.set(id, record); return structuredClone(record); },
+    resumeOperation: async id => structuredClone(auth.get(id)),
+    cancelResume: async id => { auth.get(id).phase = 'cancelled'; return structuredClone(auth.get(id)); },
+    pull: async () => { caughtUp = true; return { accountGeneration: generation, checkpoint: 1, eventCursor: '0', more: false, retainedUnprojected: 0, reset: false, stream: stream() }; },
+    events: async (_account, after) => ({ items: [], nextCursor: after, more: false }),
+    authorize: async (_account, _identity, destination) => ({ lease: { accountGeneration: generation, conversationGeneration: 1, destination }, stream: stream() }),
+    pause: async () => ({ paused: true }),
     refreshTargets: () => { catalogReads = 0; },
     targets: async (_account, cursor = '', options = {}) => {
       if (!options.limit && staleActivation) { staleActivation = false; return { items: [], pending: true, nextCursor: null }; }
@@ -59,10 +79,11 @@ export async function previewFixture() {
     prepare: async () => {}, submit: async run => { messages.set(run.id, run); return { sendId: run.id, state: 'needs_review' }; },
     inspect: async run => ({ sendId: run.sendId ?? run.id, state: 'needs_review' }),
     cancel: async run => ({ sendId: run.sendId ?? run.id, state: 'needs_review' }),
-    disconnect: async () => { connected = false; return { disconnected: true }; },
+    disconnect: async () => { connected = credentials = caughtUp = false; return { disconnected: true }; },
   };
-  const supervisor = { client: null, prepare: async () => { supervisor.client = client; return client; }, stop: async () => { supervisor.client = null; } };
-  const runtime = await DelegationRuntime.open(host, { supervisor, startTimer: false });
+  const supervisor = { client: null, prepare: async () => { supervisor.client = client; return client; }, stopOwned: async current => { if (supervisor.client === current) supervisor.client = null; }, stop: async () => { supervisor.client = null; } };
+  const runtime = await DelegationRuntime.open(host, { supervisor });
   return { runtime, owner: { kind: 'owner-http-request', userId: 'preview-owner', pluginInstanceId: host.pluginInstanceId, operation: 'write',
-    requestIdentity: { requestId: 'preview-request' }, signal: new AbortController().signal, assertCurrent: async () => {} }, messages };
+    requestIdentity: { requestId: 'preview-request' }, signal: new AbortController().signal, assertCurrent: async () => {} }, messages,
+    offline: async () => { connected = caughtUp = false; await runtime.cycle(); }, counts: () => ({ loginCount, resumeCount }) };
 }

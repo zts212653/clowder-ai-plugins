@@ -313,10 +313,12 @@ test('an owner stop returns locally before native pause ACK; explicit restore wa
   f.client.pause=()=>pause;f.host.memberSessions={revoke:()=>{revocations++;return revoke;}};
   await f.runtime.dispatch({action:'takeover',policyId:id},owner());
   assert.equal((await f.runtime.service.snapshot()).policies[0].mode,'owner');assert.equal(revocations,1);
+  assert.deepEqual((await f.runtime.status()).senderStops.find(item=>item.policyId===id),{policyId:id,state:'pending'});
   const epoch=(await f.runtime.service.snapshot()).policies[0].epoch;
   const restoring=f.runtime.dispatch({...input,expectedEpoch:epoch},owner());
   await new Promise(r=>setImmediate(r));assert.equal(grants.length,1);
   pauseDone({paused:true});await new Promise(r=>setImmediate(r));assert.equal(grants.length,1);
+  assert.deepEqual((await f.runtime.status()).senderStops.find(item=>item.policyId===id),{policyId:id,state:'confirmed'});
   revokeDone({revoked:true});await restoring;assert.equal(grants.length,2);
 });
 

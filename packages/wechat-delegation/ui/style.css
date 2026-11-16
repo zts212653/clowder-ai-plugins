@@ -64,6 +64,8 @@ header button.stop.is-urgent { background: var(--semantic-critical); border-colo
 button:disabled { opacity: .5; cursor: not-allowed; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--cafe-accent); outline-offset: 2px; }
 .statusline { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 10px 20px; color: var(--cafe-text-secondary); font-size: 12px; }
+.sender-stop { padding: 0 20px 8px; margin: 0; }
+.auth-operation { display: block; overflow-wrap: anywhere; }
 .badge { display: inline-flex; align-items: center; gap: 6px; color: var(--cafe-text-secondary); font-size: 12px; }
 .badge[data-tone]::before { content: ''; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--semantic-warning); }
 .badge[data-tone=active]::before { background: var(--semantic-info); }
@@ -113,6 +115,7 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; background:
   header .toolbar { gap: 4px; }
   header button { padding: 0 8px; font-size: 12px; }
   .statusline { padding: 8px 12px; gap: 6px 12px; }
+  .sender-stop { padding-inline: 12px; }
   .steps { padding: 10px 12px; gap: 8px; }
   .steps li { gap: 5px; font-size: 11px; }
   .step-number { width: 20px; height: 20px; flex: none; }

@@ -95,6 +95,7 @@ export class DelegationRuntime {
 
     }
     return { ...snapshot, auth: await this.auth.status(), messageSync: this.sync.snapshot(account), runtime: this.supervisor.client ? 'running' : 'dormant', account, accountIsLive, accountProbeFailed, accountObservedAt: this.accountObservedAt ?? null, storagePath: this.host.dataPath,
+      senderStops: [...this.barriers].filter(([key]) => key.startsWith('native:')).map(([key, entry]) => ({ policyId: key === 'native:all' ? null : key.slice(7), state: entry.state })),
       memberRuntimeAvailable: this.model.available(), lastError: this.lastError,
       // Credentials and provider session data are never part of the page projection.
       policies: snapshot.policies.map(({ session, ...policy }) => ({ ...policy,
