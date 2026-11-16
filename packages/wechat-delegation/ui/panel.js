@@ -265,6 +265,7 @@
       const policy = snapshot.policies.find(item => item.id === run.policyId), detail = el('details', {}, [el('summary', { text: '查看本轮正文与状态' }), el('pre', { text: run.text ?? run.incomingText ?? '尚未生成正文' })]);
       const card = el('article', { class: 'card' }, [el('h3', { text: `${policy?.displayName ?? run.conversationId} · ${phases[run.phase] ?? run.phase}` }),
         el('small', { text: `${new Date(run.createdAt).toLocaleString()} · ${run.trigger === 'reply' ? '自动接话' : '主动开口'}` }),
+        ...(run.error ? [el('p', { class: 'error', text: run.error })] : []),
         ...(run.cancelRequested && ['queued', 'submitting', 'needs_review'].includes(run.phase) ? [el('p', { class: 'error', text: '本地已停止后续代聊；组件取消尚未确认，这条仍可能发出。' })] : []), detail]);
       if (run.submitted && ['queued', 'submitting', 'needs_review', 'accepted'].includes(run.phase)) {
         const verified = check('我已在微信核对这条消息的实际会话与全文，确认已经发出');

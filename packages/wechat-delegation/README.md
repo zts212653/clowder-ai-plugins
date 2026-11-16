@@ -25,7 +25,7 @@
 
 - 需要支持标准 builtin 插件、owner HTTP 面板、Host storage CAS，以及受限 `memberSessions` 的宿主。受限执行缺失时明确不可用，不回退到全权限家庭猫。
 - 模型会话只使用本次批准的猫及模型账号，`memory=[]`，插件 MCP 不暴露任何工具、资源或提示。模型只能返回结构化文字建议，不能自行修改授权、收件人、支付、文件、命令或外链权限。
-- alpha.8 内置基于 `thisnick/agent-wechat@ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e`（v2.4.1，MIT）的 Clowder 通讯录修复构建 `2.4.1-clowder.2`，本候选仅提供 macOS Apple Silicon 制品。它不是供应商原版二进制。补丁、构建说明、许可和准确摘要见 [`assets/native/README.md`](assets/native/README.md) 与 `manifest.json`；不跟随 latest，也不下载旧版组件来冒充修复。
+- alpha.9 内置基于 `thisnick/agent-wechat@ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e`（v2.4.1，MIT）的 Clowder 通讯录修复构建 `2.4.1-clowder.2`，本候选仅提供 macOS Apple Silicon 制品。它不是供应商原版二进制。补丁、构建说明、许可和准确摘要见 [`assets/native/README.md`](assets/native/README.md) 与 `manifest.json`；不跟随 latest，也不下载旧版组件来冒充修复。
 - 好友来自一次从 `(0,0)` 开始的完整 initcontact 分页，再核对本次 getcontact 的完整好友 flag。群有独立发现来源：已同步群及 group_inventory 提供ID线索，当前成员关系必须由新鲜详情或包含当前账号的群名册证明；线索或群成员不能扩大好友候选。群发现接口上游明确为partial，界面显示已同步且成员关系已核实的群；未核实和同步未完成均明确提示。
 - 对象选择器打开才加载，支持名称/备注/昵称/ID模糊查询，好友/群分类、20条分页、滚动加载和键盘操作。已选对象与搜索词分开保存，普通状态刷新不清除选择或同意。开启失败就地显示原因；目录重新核对后仍需本人再次点击，绝不自动开启。瞬时身份探测失败只显示上次核验身份，真实开启必须核对UI确认的账号与进程。
 - 组件仅在本人从控制台准备时启动。其数据目录是宿主 `dataPath/native-profile`，启动配置目录为 `dataPath/native-config`；两者均由插件独立持有，不继承家庭 HOME 或接管官方桌面微信 profile。凭据通过私有 stdin 管道传给组件，不进入模型、聊天、URL、命令行参数或日志。

@@ -271,7 +271,10 @@ export class DelegationService {
         const run = state.runs[runId];
         if (run.phase === 'cancelled') return;
         run.phase = run.submitted ? 'needs_review' : 'failed';
-        run.error = run.submitted ? '发送结果待核对；不会自动重发' : '本轮生成未完成；请检查后重新发起';
+        const formatFailure = !run.submitted && error?.code === 'member_response_format';
+        if (formatFailure) run.errorCode = 'member_response_format';
+        run.error = run.submitted ? '发送结果待核对；不会自动重发' : formatFailure
+          ? '猫的回复格式无法识别，未提交微信发送；请检查后重新发起' : '本轮生成未完成；请检查后重新发起';
         if (this.current(state, run)) { state.policies[policyId].mode = 'paused'; state.policies[policyId].epoch++; }
       }));
     } finally { if (this.controllers.get(runId)?.controller === controller) this.controllers.delete(runId); }

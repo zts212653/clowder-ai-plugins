@@ -52,10 +52,18 @@ export class MemberRunner {
     if (!message || message.id !== result.responseMessageId || message.threadId !== grant.threadId ||
         message.userId !== grant.ownerUserId || message.catId !== grant.catId || typeof message.content !== 'string' || message.content.length > 10000)
       throw Error('canonical member response identity mismatch');
-    const output = JSON.parse(message.content.trim());
-    if (!output || Object.keys(output).some(key => !['kind', 'text'].includes(key)) ||
-        !['message', 'needs_owner', 'silent'].includes(output.kind) || typeof output.text !== 'string' || output.text.length > 4000)
-      throw Error('canonical member response format invalid');
-    return output;
+    try {
+      // Family runtimes append one presentation signature even to machine JSON.
+      // Remove only that final line, then require the entire remaining JSON;
+      // never turn arbitrary prose or a second object into an outbound message.
+      const content = message.content.trim().replace(/\r?\n\s*\[[^\]\r\n/]{1,80}\/[^\]\r\n]{1,160}🐾\]$/u, '');
+      const output = JSON.parse(content);
+      if (!output || Array.isArray(output) || Object.keys(output).some(key => !['kind', 'text'].includes(key)) ||
+          !['message', 'needs_owner', 'silent'].includes(output.kind) || typeof output.text !== 'string' || output.text.length > 4000 ||
+          output.kind === 'message' && !output.text.trim()) throw Error('invalid response envelope');
+      return output;
+    } catch {
+      throw Object.assign(Error('canonical member response format invalid'), { code: 'member_response_format' });
+    }
   }
 }

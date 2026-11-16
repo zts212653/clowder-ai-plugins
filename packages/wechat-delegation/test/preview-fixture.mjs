@@ -3,6 +3,8 @@ import { targetQuery, searchTargets } from '../src/target-search.mjs';
 
 export async function previewFixture() {
   const data = new Map(); let connected = false, catalogReads = 0, reminderReads = 0, staleActivation = true; const messages = new Map();
+  let grant;
+  const canonical = new Map(), runtimeModel = { clientId: '隔离测试', model: '模拟模型' };
   const host = { pluginInstanceId: 'isolated-preview', dataPath: '隔离验收的内存数据，不写用户微信目录',
     storage: {
       get: async key => structuredClone(data.get(key)),
@@ -15,7 +17,25 @@ export async function previewFixture() {
       if (++reminderReads === 1) throw Error('模拟提醒列表暂不可用');
       return [{ id: 'preview-owner-thread', title: '验收提醒（模拟）' }];
     }, get: async id => ({ id, title: '验收提醒（模拟）' }) },
-    messaging: { send: async () => ({ messageId: 'fixture-notification' }), subscribe: async () => {}, unsubscribe: async () => {} },
+    messaging: { get: async id => canonical.get(id) ?? null, send: async () => ({ messageId: 'fixture-notification' }), subscribe: async () => {}, unsubscribe: async () => {} },
+    memberSessions: {
+      describe: async ({ catId }) => ({ available: catId !== 'review-cat-unavailable', runtime: runtimeModel, accounts: [] }),
+      ensureThread: async () => ({ threadId: 'preview-isolated' }),
+      prepare: async ({ catId }) => {
+        grant = { sessionId: 'preview-session', generation: (grant?.generation ?? 0) + 1, consumedCursor: 0,
+          threadId: 'preview-isolated', catId, ownerUserId: 'preview-owner', revoked: false, runtime: runtimeModel };
+        return structuredClone(grant);
+      },
+      get: async () => structuredClone(grant),
+      execute: async ({ executionId }) => {
+        const id = `canonical:${executionId}`;
+        canonical.set(id, { id, threadId: grant.threadId, userId: grant.ownerUserId, catId: grant.catId,
+          content: JSON.stringify({ kind: 'message', text: '大家周末想读哪一本书？（隔离验收模拟，未发往微信）' }) + '\n\n[验收猫/模拟模型🐾]' });
+        return { executionId, phase: 'succeeded', responseMessageId: id };
+      },
+      getExecution: async () => null,
+      revoke: async () => { if (grant) grant.revoked = true; },
+    },
   };
   const client = {
     json: async () => ({ items: [{ id: 'clowder' }] }),
@@ -42,11 +62,7 @@ export async function previewFixture() {
     disconnect: async () => { connected = false; return { disconnected: true }; },
   };
   const supervisor = { client: null, prepare: async () => { supervisor.client = client; return client; }, stop: async () => { supervisor.client = null; } };
-  const model = { available: () => true,
-    describe: async catId => ({ available: catId !== 'review-cat-unavailable', fingerprint: 'preview-model', runtime: { clientId: '隔离测试', model: '模拟模型' } }),
-    prepare: async () => ({ sessionId: 'preview-session', generation: 1, consumedCursor: 0, threadId: 'preview-isolated' }),
-    generate: async () => ({ kind: 'message', text: '大家周末想读哪一本书？（隔离验收模拟，未发往微信）' }) };
-  const runtime = await DelegationRuntime.open(host, { supervisor, model, startTimer: false });
+  const runtime = await DelegationRuntime.open(host, { supervisor, startTimer: false });
   return { runtime, owner: { kind: 'owner-http-request', userId: 'preview-owner', pluginInstanceId: host.pluginInstanceId, operation: 'write',
     requestIdentity: { requestId: 'preview-request' }, signal: new AbortController().signal, assertCurrent: async () => {} }, messages };
 }
