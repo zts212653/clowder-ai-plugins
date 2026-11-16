@@ -30,6 +30,35 @@ export const overviewSchema = z.object({
   sources: z.array(sourceSchema), rows: z.array(rowSchema).optional(), wakeMessageId: z.string().optional(), error: z.string().optional(),
 });
 
+export function formatOverview(overview: z.infer<typeof overviewSchema>, rows: z.infer<typeof rowSchema>[]) {
+  const actions = rows.filter(row => row.status === 'needs_you' || row.status === 'waiting_acceptance');
+  const attention = rows.filter(row => row.status === 'blocked');
+  // Cells are plain text: keep embedded Markdown and newlines from breaking the short table.
+  const cell = (text: string, limit: number) => {
+    const plain = text.replace(/\s+/g, ' ').trim();
+    return (plain.length > limit ? `${plain.slice(0, limit)}…` : plain).replace(/[\\|\[\]*_`<>]/g, '\\$&');
+  };
+  const table = (items: typeof rows, heading: string, actionable: boolean) => [
+    `**${heading}**\n`,
+    `| 事项 | ${actionable ? '你要做什么' : '卡点与跟进'} |\n| --- | --- |`,
+    ...items.slice(0, 3).map(row => {
+      const source = overview.sources.find(entry => entry.threadId === row.threadId)!;
+      const subject = `**${cell(source.title, 48)}** · ${cell(row.tracking, 70)}${source.deepLinkUrl ? ` [原会话](${source.deepLinkUrl})` : ''}`;
+      const action = actionable ? row.nextStep : `${row.blocker || row.progress} ${row.nextStep}`;
+      return `| ${subject} | ${cell(action, 100)} |`;
+    }),
+    ...(items.length > 3 ? [`\n另有 ${items.length - 3} 项${actionable ? '需要你处理' : '受阻'}；向助手说“${actionable ? '展开待办' : '展开阻塞'}”查看。`] : []),
+  ].join('\n');
+  return [
+    `**监听会话总览 · ${rows.length}/${overview.sources.length} 个会话**`,
+    `**要你处理 ${actions.length} 项 · 重点关注 ${attention.length} 项**`,
+    ...(actions.length ? [table(actions, '要你处理', true)] : ['当前没有需要你处理的事项。']),
+    ...(attention.length ? [table(attention, '重点关注 · 由原负责人跟进', false)] : []),
+    `其余：进行中 ${rows.filter(row => row.status === 'doing').length} · 待核实 ${rows.filter(row => row.status === 'unknown').length} · 安静 ${rows.filter(row => row.status === 'quiet').length} · 已完成 ${rows.filter(row => row.status === 'done').length}。`,
+    `截至 ${new Date(overview.capturedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC；完整背景与进展可问“展开总览”。`,
+  ].join('\n\n');
+}
+
 export async function watchedSources(host: SuperagentHost, preferences: Preferences) {
   const threads = await host.threads.list({ threadIds: preferences.threadIds });
   const works = await records(host, 'work:', workSchema);
@@ -75,7 +104,7 @@ export async function refreshOverview(host: SuperagentHost, pref: Preferences, c
   if (!refresh && (!pref.started || before && now < before.nextCheckAt)) return before;
   const previousSources = new Map(before?.sources.map((source) => [source.threadId, source]));
   const sameScope = pref.threadIds.length === previousSources.size && pref.threadIds.every((id) => previousSources.has(id));
-  const currentFormat = before?.formatVersion === 2;
+  const currentFormat = before?.formatVersion === 3;
   if (before?.phase === 'pending' && sameScope && currentFormat) {
     const response = (await host.threads.readMessages(coordinationThreadId, { limit: 100 })).find((message) =>
       message.sender.catId === pref.coordinatorId && message.response?.inputMessageIds.includes(before.wakeMessageId ?? ''))?.response;
@@ -95,7 +124,7 @@ export async function refreshOverview(host: SuperagentHost, pref: Preferences, c
   }
   if (!refresh && sameScope && currentFormat && before && now < before.nextRequestAt) return before;
   const requestId = randomUUID();
-  const request = { formatVersion: 2, requestId, phase: 'pending' as const, sources, capturedAt: now, nextCheckAt: now + 60_000, nextRequestAt: now + 10 * 60_000, rows: before?.rows };
+  const request = { formatVersion: 3, requestId, phase: 'pending' as const, sources, capturedAt: now, nextCheckAt: now + 60_000, nextRequestAt: now + 10 * 60_000, rows: before?.rows };
   const wake = await send(host, coordinationThreadId, `overview:${requestId}`,
     `请给未看过过程的用户整理全部监听会话总览。通过 plugin_list_tools 发现 official.superagent，调用 superagent_inspect 读取 overview.sources，再调用 superagent_overview(kind=publish, requestId, rows)。每个来源恰好一项，引用本批消息/Task 的 evidenceIds。必须填写tracking（明确Host/插件等仓库、Issue和PR编号；只有证据能证明未建PR才写尚未创建，否则写未核实）和background（问题现象、用户受什么影响，不复述状态）。结合来源标题、Task.why和原消息说明progress：已经解决了什么、还没解决什么；blocker写具体卡点，nextStep写谁继续、用户是否需要做什么。消息不足时，可按existingWork[].id调用cat_cafe_list_tasks(taskId)只读核对该Task的progress.summary、blockerReason和nextStep，仍引用该Task id；仅核已选来源，不扩大检索或执行范围。保留Issue/PR编号、关键故障与解决内容；不要为了短而只写PR已完成/等批准。每项背景和进展各用一两句，排除SHA、工位路径、测试数量和内部工具过程。无证据明确待核实，不能猜关联、已完成、负责人或截止时间；不能漏无Task会话。先用户决定/验收，再阻塞、进行中、安静/完成。区分回复结束、方案完成和正式验收。只提交总览，不route/start、不创建Task/工作线程、不跨发聊天回复到助手。提交返回ok:false时必须读取errorCode和对应threadId/Task/证据，修正后沿同一requestId提交；仅request_changed或scope_changed才重新读取范围。不能把task_open/evidence错误猜成空会话或让用户改监听范围；不能用refresh绕过任务验收约束。`, pref.coordinatorId);
   const next = { ...request, wakeMessageId: wake.messageId };
@@ -122,29 +151,14 @@ export async function publishOverview(host: SuperagentHost, pref: Preferences, m
     if (JSON.stringify(overview.rows) !== JSON.stringify(input.rows)) return { ok: false, errorCode: 'already_published', message: '同一总览已提交，请刷新后修改', requestId: overview.requestId };
     return overview;
   }
-  const labels = { needs_you: '需要你决定', waiting_acceptance: '待你验收', blocked: '受阻', doing: '进行中', done: '已完成', quiet: '安静', unknown: '待核实' };
   const order: z.infer<typeof rowSchema>['status'][] = ['needs_you', 'waiting_acceptance', 'blocked', 'doing', 'unknown', 'quiet', 'done'];
   const rows = [...input.rows].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status) || selected.indexOf(a.threadId) - selected.indexOf(b.threadId));
   const previous = await read(host, 'overview-published', z.array(rowSchema));
+  const publishedFormat = await read(host, 'overview-published-format', z.number());
   const meaning = (items: z.infer<typeof rowSchema>[]) => JSON.stringify(items.map(({ evidenceIds: _evidence, ...row }) => row));
-  if (!previous || meaning(previous) !== meaning(input.rows)) await send(host, mainThreadId, `overview-result:${overview.requestId}`, [
-    `**监听会话总览 · ${rows.length}/${selected.length} 个会话**`,
-    order.map((status) => `${labels[status]} ${rows.filter((row) => row.status === status).length}`).join(' · '),
-    `截至 ${new Date(overview.capturedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC；原会话继续处理。`,
-    ...rows.map((row) => {
-      const source = overview.sources.find((entry) => entry.threadId === row.threadId)!;
-      const title = source.title.replace(/[\[\]\\]/g, '\\$&');
-      return [
-        `**【${labels[row.status]}】${title}**`,
-        `关联：${row.tracking}`,
-        `背景：${row.background}`,
-        `进展：${row.progress}`,
-        ...(row.blocker ? [`卡点：${row.blocker}`] : []),
-        `下一步：${row.nextStep}`,
-        ...(source.deepLinkUrl ? [`原会话：[打开](${source.deepLinkUrl})`] : []),
-      ].join('  \n');
-    }),
-  ].join('\n\n'));
+  if (publishedFormat !== 3 || !previous || meaning(previous) !== meaning(input.rows))
+    await send(host, mainThreadId, `overview-result:${overview.requestId}`, formatOverview(overview, rows));
+  await host.storage.set('overview-published-format', 3);
   await host.storage.set('overview-published', input.rows);
   const next = { ...overview, rows: input.rows, phase: 'done' as const };
   await host.storage.set('overview', next);

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { startSuperagent } from '../src/runtime.js';
 import { runtimeSchema } from '../src/state.js';
-import { watchedSources } from '../src/overview.js';
+import { overviewSchema, watchedSources } from '../src/overview.js';
 import { event, fixture } from './fixture.js';
 
 test('every watched conversation is represented, including no Task and unavailable sources; one issue cannot dominate', async () => {
@@ -29,8 +29,8 @@ test('every watched conversation is represented, including no Task and unavailab
   assert.equal(digests.length, 1);
   const text = JSON.stringify(digests[0].payload);
   assert.match(text, /3\/3/);
-  assert.match(text, /source-b/);
-  assert.match(text, /removed/);
+  assert.match(text, /待核实 2/);
+  assert.deepEqual(overviewSchema.parse(f.rows.get('overview')?.value).rows?.map(row => row.threadId), ['source-a', 'source-b', 'removed']);
   assert.match(text, /CI 失败/);
   assert.equal(digests[0].wake, undefined);
   assert.equal(f.tasks.size, 0);
@@ -126,7 +126,7 @@ test('a multi-member result projected as a user envelope is not a new human comm
   await runtime.stop({ reason: 'test' });
 });
 
-test('overview keeps the conversation subject readable outside links, with issue/PR, background and concrete progress', async () => {
+test('an attention row keeps its subject and issue/PR readable while full background and progress stay available to inspect', async () => {
   const f = fixture();
   f.threads.set('source-a', { ...f.threads.get('source-a')!, title: '消息气泡延迟排查 · Host Issue #1973' });
   f.history.set('source-a', [{ id: 'problem', timestamp: 1, content: '发送后用户气泡暂时不可见，需要检查发送与排队状态。', sender: { kind: 'owner' } }]);
@@ -136,7 +136,7 @@ test('overview keeps the conversation subject readable outside links, with issue
   const main = runtimeSchema.parse(f.rows.get('runtime')?.value).mainThreadId!;
   const request = await runtime.actions['superagent.overview']({ kind: 'refresh' }, f.caller(main)) as { requestId: string };
   await runtime.actions['superagent.overview']({ kind: 'publish', requestId: request.requestId, rows: [{
-    threadId: 'source-a', status: 'doing', tracking: 'Host Issue #1973；PR 尚未创建',
+    threadId: 'source-a', status: 'blocked', tracking: 'Host Issue #1973；PR 尚未创建',
     background: '发送消息后气泡暂时不可见，用户无法确认是否已发送。',
     progress: '已确定发送与排队状态的展示方案，尚未开始修改产品代码。',
     blocker: '发送记录与执行队列的关联方式仍待确认。',
@@ -144,12 +144,13 @@ test('overview keeps the conversation subject readable outside links, with issue
   }] }, f.caller(main));
   const digest = [...f.sent.values()].find((message) => message.threadId === main && JSON.stringify(message.payload).includes('监听会话总览'))!;
   const text = JSON.stringify(digest.payload);
-  assert.match(text, /【进行中】消息气泡延迟排查 · Host Issue #1973\*\*/);
+  assert.match(text, /\*\*消息气泡延迟排查 · Host Issue #1973\*\*/);
   assert.doesNotMatch(text, /\[消息气泡延迟排查/);
-  assert.match(text, /关联：Host Issue #1973；PR 尚未创建/);
-  assert.match(text, /背景：发送消息后气泡暂时不可见/);
-  assert.match(text, /进展：已确定发送与排队状态/);
-  assert.match(text, /卡点：发送记录与执行队列/);
+  assert.match(text, /Host Issue #1973；PR 尚未创建/);
+  assert.match(text, /发送记录与执行队列/);
   assert.match(text, /你暂不需要操作/);
+  const detail = overviewSchema.parse(f.rows.get('overview')?.value).rows![0];
+  assert.match(detail.background, /发送消息后气泡暂时不可见/);
+  assert.match(detail.progress, /已确定发送与排队状态/);
   await runtime.stop({ reason: 'test' });
 });
