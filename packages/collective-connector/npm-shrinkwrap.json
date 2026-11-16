@@ -29,7 +29,7 @@
       },
       "version": "0.4.0-candidate.0",
       "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-contract/-/plugin-contract-0.4.0-candidate.0.tgz",
-      "integrity": "sha512-0GJq7TAVxJfBrCB0csjRTpXgHH7RNjmOlAa0/8UwKRE0DeuNMJOxa4EhSFql9Xe6VzvA0n2dL7z7K5GP5ePbHw==",
+      "integrity": "sha512-vydYQaNFdAWxqM9D3pLqjykLAdjVyLc9oY6mqwO71TZaIF25Fan4i9H7aMuNMGgCLKMACnFw1MrjpJhee/RsGQ==",
       "dependencies": {
         "ajv": "^8.17.0",
         "ajv-formats": "^3.0.0"
