@@ -47,6 +47,93 @@ const FIRST: &[u8] = b"SYNTHETIC_SESSION_SECRET_original";
 const SECOND: &[u8] = b"SYNTHETIC_SESSION_SECRET_renewed";
 
 #[test]
+fn initialization_recovery_requires_durable_prepublication_proof_and_preserves_identity() {
+    struct RecoverKeys(SyntheticKeys);
+    impl KeyStore for RecoverKeys {
+        fn load(&self, id: &[u8; 16]) -> Result<Zeroizing<[u8; 32]>> {
+            self.0
+                 .0
+                .borrow()
+                .get(id)
+                .cloned()
+                .ok_or(VaultError::KeyMissing)
+        }
+        fn create(&self, id: &[u8; 16], key: &[u8; 32]) -> Result<()> {
+            self.0.create(id, key)
+        }
+    }
+    struct Denied;
+    impl KeyStore for Denied {
+        fn load(&self, _: &[u8; 16]) -> Result<Zeroizing<[u8; 32]>> {
+            Err(VaultError::KeyUnavailable)
+        }
+        fn create(&self, _: &[u8; 16], _: &[u8; 32]) -> Result<()> {
+            Err(VaultError::KeyUnavailable)
+        }
+    }
+    let root = Scratch::new();
+    let keys = RecoverKeys(SyntheticKeys::default());
+    assert!(Vault::create(&root.0, &Denied, b"").is_err());
+    let original = fs::read(root.0.join("vault.id")).unwrap();
+    struct DeniedRead;
+    impl KeyStore for DeniedRead {
+        fn load(&self, _: &[u8; 16]) -> Result<Zeroizing<[u8; 32]>> {
+            Err(VaultError::KeyUnavailable)
+        }
+        fn create(&self, _: &[u8; 16], _: &[u8; 32]) -> Result<()> {
+            panic!("denied access must not create a replacement key")
+        }
+    }
+    assert!(matches!(
+        Vault::recover_initialization(&root.0, &DeniedRead),
+        Err(VaultError::KeyUnavailable)
+    ));
+    assert!(!root.0.join("state.vault").exists());
+    let recovered = Vault::recover_initialization(&root.0, &keys).unwrap();
+    assert!(recovered.read().unwrap().is_empty());
+    let initialized = crate::store::Store::initialize(recovered).unwrap();
+    assert_eq!(initialized.generation().unwrap(), 0);
+    drop(initialized);
+    assert_eq!(fs::read(root.0.join("vault.id")).unwrap(), original);
+    let count = keys.0 .0.borrow().len();
+    fs::remove_file(root.0.join("state.vault")).unwrap();
+    assert!(
+        Vault::recover_initialization(&root.0, &keys).is_err(),
+        "published-but-missing data must never look like first initialization"
+    );
+    assert_eq!(keys.0 .0.borrow().len(), count);
+    assert!(!root.0.join("state.vault").exists());
+    let legacy = Scratch::new();
+    drop(Vault::create(&legacy.0, &keys, FIRST).unwrap());
+    let bytes = fs::read(legacy.0.join("state.vault")).unwrap();
+    assert!(matches!(
+        Vault::recover_initialization(&legacy.0, &keys),
+        Err(VaultError::AlreadyInitialized)
+    ));
+    assert_eq!(fs::read(legacy.0.join("state.vault")).unwrap(), bytes);
+    fs::remove_file(legacy.0.join("init.phase")).unwrap();
+    assert!(Vault::recover_initialization(&legacy.0, &keys).is_err());
+    assert_eq!(fs::read(legacy.0.join("state.vault")).unwrap(), bytes);
+}
+
+#[test]
+fn opening_existing_state_never_creates_a_missing_lock_or_changes_original_bytes() {
+    let root = Scratch::new();
+    let keys = SyntheticKeys::default();
+    drop(Vault::create(&root.0, &keys, FIRST).unwrap());
+    let identity = fs::read(root.0.join("vault.id")).unwrap();
+    let ciphertext = fs::read(root.0.join("state.vault")).unwrap();
+    fs::remove_file(root.0.join("vault.lock")).unwrap();
+    assert!(matches!(
+        Vault::open(&root.0, &keys),
+        Err(VaultError::InvalidStorage)
+    ));
+    assert!(!root.0.join("vault.lock").exists());
+    assert_eq!(fs::read(root.0.join("vault.id")).unwrap(), identity);
+    assert_eq!(fs::read(root.0.join("state.vault")).unwrap(), ciphertext);
+}
+
+#[test]
 fn encrypted_state_survives_reopen_and_failed_key_access_preserves_original() {
     let root = Scratch::new();
     let keys = SyntheticKeys::default();

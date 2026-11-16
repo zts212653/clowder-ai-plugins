@@ -3,7 +3,7 @@ import { targetQuery, searchTargets } from '../src/target-search.mjs';
 
 export async function previewFixture() {
   const data = new Map(); let connected = false, credentials = false, generation = 0, catalogReads = 0, reminderReads = 0, staleActivation = true;
-  let loginCount = 0, resumeCount = 0, caughtUp = false; const messages = new Map(), auth = new Map();
+  let loginCount = 0, resumeCount = 0, repairCount = 0, caughtUp = false; const messages = new Map(), auth = new Map();
   const stream = () => ({ sourceRef: 'preview-stream', resetEpoch: 0, eventCursor: '0', caughtUp });
   const loginResult = id => ({ operation: structuredClone(auth.get(id)), qr: auth.get(id)?.phase === 'pending' ? { pngBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jXioAAAAASUVORK5CYII=', expiresAt: Date.now() / 1000 + 300 } : null });
   let grant;
@@ -82,8 +82,9 @@ export async function previewFixture() {
     disconnect: async () => { connected = credentials = caughtUp = false; return { disconnected: true }; },
   };
   const supervisor = { client: null, prepare: async () => { supervisor.client = client; return client; }, stopOwned: async current => { if (supervisor.client === current) supervisor.client = null; }, stop: async () => { supervisor.client = null; } };
+  supervisor.reauthorize = async () => { repairCount++; await supervisor.stop(); connected = caughtUp = false; return { state: 'verified' }; };
   const runtime = await DelegationRuntime.open(host, { supervisor });
   return { runtime, owner: { kind: 'owner-http-request', userId: 'preview-owner', pluginInstanceId: host.pluginInstanceId, operation: 'write',
     requestIdentity: { requestId: 'preview-request' }, signal: new AbortController().signal, assertCurrent: async () => {} }, messages,
-    offline: async () => { connected = caughtUp = false; await runtime.cycle(); }, counts: () => ({ loginCount, resumeCount }) };
+    offline: async () => { connected = caughtUp = false; await runtime.cycle(); }, counts: () => ({ loginCount, resumeCount, repairCount }) };
 }

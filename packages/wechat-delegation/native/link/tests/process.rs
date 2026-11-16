@@ -68,3 +68,25 @@ fn malformed_startup_and_symlinked_state_never_reach_the_default_keychain() {
     assert_eq!(fs::read_dir(&target).unwrap().count(), 0);
     fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(target_os = "macos")]
+#[test]
+fn one_shot_reauthorization_rejects_missing_state_before_opening_the_default_keychain() {
+    let mut nonce = [0; 16];
+    openssl::rand::rand_bytes(&mut nonce).unwrap();
+    let root = std::env::temp_dir().join(format!("clowder-missing-repair-{nonce:x?}"));
+    let output = Command::new(env!("CARGO_BIN_EXE_clowder-wechat-link"))
+        .arg("--data-dir")
+        .arg(&root)
+        .arg("--reauthorize")
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["repair"], "keychain-reauthorization");
+    assert_eq!(report["state"], "invalid_state");
+    assert_eq!(report.as_object().unwrap().len(), 5);
+    assert!(!root.exists());
+}

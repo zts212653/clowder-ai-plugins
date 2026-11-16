@@ -26,6 +26,7 @@ extern "C" {
         use_password: u8,
     ) -> i32;
     fn SecKeychainCopySearchList(list: *mut Ref) -> i32;
+    fn SecKeychainGetUserInteractionAllowed(allowed: *mut u8) -> i32;
     fn CFEqual(a: Ref, b: Ref) -> u8;
 }
 struct Isolated {
@@ -90,6 +91,23 @@ fn real_keychain_backend_seals_restores_and_never_overwrites_an_existing_item() 
     drop(vault);
     let id: [u8; 16] = fs::read(root.join("vault.id")).unwrap().try_into().unwrap();
     let old = isolated.keys.load(&id).unwrap();
+    // Already trusted, unlocked synthetic item: exercises the repair backend
+    // without presenting any dialog or accessing the user's default Keychain.
+    let original_ciphertext = fs::read(root.join("state.vault")).unwrap();
+    assert_eq!(
+        isolated.keys.reauthorize_existing(&id).unwrap().as_ref(),
+        old.as_ref()
+    );
+    let mut interaction = 1;
+    assert_eq!(
+        unsafe { SecKeychainGetUserInteractionAllowed(&mut interaction) },
+        0
+    );
+    assert_eq!(interaction, 0);
+    assert_eq!(
+        fs::read(root.join("state.vault")).unwrap(),
+        original_ciphertext
+    );
     assert!(matches!(
         isolated.keys.create(&id, &[0xa5; 32]),
         Err(VaultError::KeyUnavailable)

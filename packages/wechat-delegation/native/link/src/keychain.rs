@@ -1,5 +1,6 @@
 //! Application ACL-bound file-Keychain backend for the macOS CLI.
-//! No UI, search-list mutation, arbitrary service name, or raw-key IPC method.
+//! Normal operations never enable UI. The one-shot repair caller can authorize
+//! an existing item through the system dialog; no password or raw key IPC.
 use crate::vault::{KeyStore, Result, VaultError};
 use std::ffi::c_void;
 use zeroize::Zeroizing;
@@ -10,6 +11,7 @@ extern "C" {
     fn CFRelease(value: Ref);
     fn cw_key_create(keychain: Ref, id: *const u8, key: *const u8) -> i32;
     fn cw_key_load(keychain: Ref, id: *const u8, key: *mut u8) -> i32;
+    fn cw_key_reauthorize(keychain: Ref, id: *const u8, key: *mut u8) -> i32;
 }
 pub struct Keychain {
     handle: Ref,
@@ -29,6 +31,29 @@ impl Keychain {
             return Err(VaultError::KeyUnavailable);
         }
         Ok(Self { handle })
+    }
+    /// Only for a dedicated one-shot process entered by an explicit owner
+    /// action. Never call this in the multithreaded account service.
+    pub fn reauthorize_existing(&self, id: &[u8; 16]) -> Result<Zeroizing<[u8; 32]>> {
+        let mut key = Zeroizing::new([0; 32]);
+        match unsafe { cw_key_reauthorize(self.handle, id.as_ptr(), key.as_mut_ptr()) } {
+            0 => {}
+            -25300 => return Err(VaultError::KeyMissing),
+            -25293 => return Err(VaultError::KeyAccessDenied),
+            -128 => return Err(VaultError::AuthorizationCancelled),
+            -25308 | -25315 | -25320 => return Err(VaultError::InteractionUnavailable),
+            _ => return Err(VaultError::KeyUnavailable),
+        }
+        // Reject if even a second noninteractive read fails. Fresh process
+        // preparation is still required to test cross-process retained trust;
+        // success here alone does not prove an "Always Allow" was persisted.
+        let accepted = self
+            .load(id)
+            .map_err(|_| VaultError::AuthorizationNotPersistent)?;
+        if !openssl::memcmp::eq(key.as_ref(), accepted.as_ref()) {
+            return Err(VaultError::KeyUnavailable);
+        }
+        Ok(key)
     }
 }
 impl Drop for Keychain {

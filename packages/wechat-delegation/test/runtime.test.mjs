@@ -49,6 +49,16 @@ test('activation is dormant and actions reject forged or stale owner contexts', 
     await assert.rejects(f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, context), /owner|本人|已登录/);
   assert.equal(f.prepared(), 0);
 });
+test('an explicit owner system authorization stops delegation, retains the result and requires a separate connection preparation',async t=>{
+  const f=await fixture(t);let repairs=0;
+  f.runtime.supervisor.reauthorize=async()=>{repairs++;await f.runtime.supervisor.stop();return{state:'verified'};};
+  await assert.rejects(f.runtime.dispatch({action:'reauthorize_keychain'},owner()),/确认/);
+  assert.equal(repairs,0);
+  const result=await f.runtime.dispatch({action:'reauthorize_keychain',confirm:true},owner());
+  assert.equal(result.state,'verified');assert.equal(repairs,1);
+  const status=await f.runtime.status();assert.equal(status.runtime,'dormant');assert.equal(status.globalPause,true);
+  assert.equal(status.keychainRepair.operationId,result.operationId);assert.equal(status.keychainRepair.state,'verified');
+});
 test('owner login retries stay on the original durable operation and never grant conversation access', async t => {
   const f = await fixture(t);
   f.client.identity=async()=>({serverId:'server',nativeStoreId:'synthetic-store',accountGeneration:0,accountIdentity:null,credentialsAvailable:false,connected:false});

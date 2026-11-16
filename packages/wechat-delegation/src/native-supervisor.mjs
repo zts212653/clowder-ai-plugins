@@ -49,11 +49,37 @@ function validAsset(asset) {
  * lookup, generic configuration root, legacy profile import or backend fallback. */
 export class NativeSupervisor {
   constructor({ dataPath, asset, download = loadBundled }) {
-    Object.assign(this, { dataPath, asset, download }); this.client = null; this.clients = new WeakMap();
+    Object.assign(this, { dataPath, asset, download }); this.client = null; this.clients = new WeakMap(); this.epoch = 0;
+  }
+  async executable(signal, current) {
+    const asset = this.asset ?? nativeAsset();
+    if (!validAsset(asset)) throw Error('native integrity descriptor invalid');
+    await privateDirectory(this.dataPath, true);
+    const root = await realpath(this.dataPath), binary = join(root, asset.fileName);
+    let bytes;
+    try {
+      const stat = await lstat(binary);
+      if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || typeof process.getuid === 'function' && stat.uid !== process.getuid()) throw Error('native integrity mismatch');
+      if (stat.size === asset.size) bytes = await readFile(binary);
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (!bytes || createHash('sha256').update(bytes).digest('hex') !== asset.sha256) {
+      bytes = await this.download(asset, signal);
+      if (!Buffer.isBuffer(bytes) || bytes.length !== asset.size || createHash('sha256').update(bytes).digest('hex') !== asset.sha256) throw Error('native integrity mismatch');
+      await current();
+      const temporary = join(root, `.component-${randomUUID()}`);
+      try { await writeFile(temporary, bytes, { mode: 0o700, flag: 'wx' }); await rename(temporary, binary); }
+      finally { await rm(temporary, { force: true }); }
+    }
+    await chmod(binary, 0o700);
+    return { asset, root, binary };
   }
   async prepare(owner) {
+    const epoch = this.epoch;
     owner.signal.throwIfAborted(); await owner.assertCurrent();
+    if (epoch !== this.epoch) throw Error("connection preparation expired");
+    if (this.repairing) throw Error("system authorization is already in progress");
     if (this.record?.stopping) await this.record.stopping;
+    if (epoch !== this.epoch || this.repairing) throw Error("connection preparation expired");
     if (this.client) { await this.client.status(); return this.client; }
     if (this.preparing) return this.preparing;
     const record = { controller: new AbortController(), child: null, client: null, exited: null, stopping: null };
@@ -67,25 +93,7 @@ export class NativeSupervisor {
     const abort = () => { void this.stopRecord(record); };
     signal.addEventListener('abort', abort, { once: true });
     try {
-      const asset = this.asset ?? nativeAsset();
-      if (!validAsset(asset)) throw Error('native integrity descriptor invalid');
-      await privateDirectory(this.dataPath, true);
-      const root = await realpath(this.dataPath), binary = join(root, asset.fileName);
-      let bytes;
-      try {
-        const stat = await lstat(binary);
-        if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || typeof process.getuid === 'function' && stat.uid !== process.getuid()) throw Error('native integrity mismatch');
-        if (stat.size === asset.size) bytes = await readFile(binary);
-      } catch (error) { if (error.code !== 'ENOENT') throw error; }
-      if (!bytes || createHash('sha256').update(bytes).digest('hex') !== asset.sha256) {
-        bytes = await this.download(asset, signal);
-        if (!Buffer.isBuffer(bytes) || bytes.length !== asset.size || createHash('sha256').update(bytes).digest('hex') !== asset.sha256) throw Error('native integrity mismatch');
-        await current();
-        const temporary = join(root, `.component-${randomUUID()}`);
-        try { await writeFile(temporary, bytes, { mode: 0o700, flag: 'wx' }); await rename(temporary, binary); }
-        finally { await rm(temporary, { force: true }); }
-      }
-      await chmod(binary, 0o700);
+      const { asset, root, binary } = await this.executable(signal, current);
       const vault = join(root, 'link-vault'); await privateDirectory(vault);
       const initialize = await initializeVault(vault);
       await current();
@@ -108,6 +116,63 @@ export class NativeSupervisor {
       this.client = client; return client;
     } catch (error) { await this.stopRecord(record); throw error; }
     finally { signal.removeEventListener('abort', abort); }
+  }
+  async reauthorize(owner, mode = 'reauthorize') {
+    if (!['reauthorize', 'recover-initialization'].includes(mode)) throw Error('unsupported system authorization operation');
+    const epoch = this.epoch;
+    owner.signal.throwIfAborted(); await owner.assertCurrent();
+    if (epoch !== this.epoch) throw Error('system authorization expired');
+    if (this.preparing || this.repairing) throw Error('connection operation already in progress');
+    const previous = this.record;
+    const record = { controller: new AbortController(), child: null, client: null, exited: null, stopping: null };
+    this.record = record; this.client = null; this.child = undefined;
+    const pending = this.authorizeProcess(record, previous, owner, mode).finally(() => { if (this.repairing === pending) this.repairing = null; });
+    record.pending = pending; this.repairing = pending; return pending;
+  }
+  async authorizeProcess(record, previous, owner, mode) {
+    const signal = AbortSignal.any([owner.signal, record.controller.signal]);
+    const current = async () => { signal.throwIfAborted(); await owner.assertCurrent(); signal.throwIfAborted(); };
+    const abort = () => { void this.stopRecord(record); };
+    signal.addEventListener('abort', abort, { once: true });
+    let timer;
+    try {
+      if (previous) await this.stopRecord(previous);
+      await current();
+      const { root, binary, asset } = await this.executable(signal, current);
+      const vault = join(root, 'link-vault');
+      // No new vault directory/marker is created by this path. The native
+      // process validates file descriptors and decrypts existing state only.
+      const stateDirectory = await lstat(vault);
+      if (!stateDirectory.isDirectory() || stateDirectory.isSymbolicLink() || (stateDirectory.mode & 0o7777) !== 0o700 ||
+          typeof process.getuid === 'function' && stateDirectory.uid !== process.getuid()) throw Error('invalid existing account state directory');
+      if (mode === 'reauthorize' && await initializeVault(vault)) throw Error('existing account state is required');
+      await current();
+      const child = spawn(binary, ['--data-dir', vault, `--${mode}`], { env: {}, stdio: ['ignore', 'pipe', 'ignore'], shell: false });
+      record.child = child; this.child = child;
+      record.exited = new Promise(resolve => { child.once('exit', resolve); child.once('error', resolve); });
+      let bytes = Buffer.alloc(0), oversized = false;
+      child.stdout.on('data', chunk => {
+        if (bytes.length + chunk.length > 4096) { oversized = true; abort(); }
+        else bytes = Buffer.concat([bytes, chunk]);
+      });
+      const output = new Promise(resolve => child.once('close', code => resolve({ code, bytes })));
+      timer = setTimeout(abort, 120000); timer.unref();
+      const result = await output;
+      if (signal.aborted || oversized || result.code !== 0) throw Error('system authorization result unknown');
+      let value;
+      try { value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(result.bytes)); }
+      catch { throw Error('invalid system authorization response'); }
+      const keys = ['product', 'version', 'pid', 'repair', 'state'];
+      const states = ['verified', 'initialized', 'already_initialized', 'key_missing', 'access_denied', 'cancelled', 'interaction_unavailable', 'authorization_not_persistent', 'busy', 'key_unavailable', 'invalid_state'];
+      const kind = mode === 'reauthorize' ? 'keychain-reauthorization' : 'initialization-recovery';
+      if (!value || Object.keys(value).length !== keys.length || Object.keys(value).some(key => !keys.includes(key)) || value.product !== 'clowder-wechat-link' ||
+          value.version !== asset.version || value.pid !== child.pid || value.repair !== kind || !states.includes(value.state) ||
+          mode === 'reauthorize' && value.state === 'initialized' || mode === 'recover-initialization' && value.state === 'verified') throw Error('invalid system authorization response');
+      return { state: value.state };
+    } finally {
+      clearTimeout(timer); signal.removeEventListener('abort', abort);
+      await this.stopRecord(record);
+    }
   }
   stopRecord(record) {
     if (record.stopping) return record.stopping;
@@ -133,6 +198,7 @@ export class NativeSupervisor {
   }
   async stopOwned(client) { const record = this.clients.get(client); if (record) await this.stopRecord(record); }
   async stop() {
+    this.epoch++;
     const record = this.record;
     if (!record) return;
     await this.stopRecord(record); await record.pending?.catch(() => {});

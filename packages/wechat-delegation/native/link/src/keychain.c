@@ -43,11 +43,17 @@ cleanup:
     if (self) CFRelease(self);
     return status;
 }
-int32_t cw_key_load(SecKeychainRef keychain, const uint8_t id[16], uint8_t key[32]) {
+static int32_t load_key(SecKeychainRef keychain, const uint8_t id[16], uint8_t key[32], Boolean interactive) {
     if (!keychain || !id || !key) return errSecParam;
     memset_s(key, 32, 0, 32);
-    OSStatus status = SecKeychainSetUserInteractionAllowed(false);
+    OSStatus status = SecKeychainSetUserInteractionAllowed(interactive);
     if (status) return status;
+    if (interactive) {
+        // Password is handled exclusively by the system's own dialog. This
+        // entrypoint is used only by the one-shot owner-authorized process.
+        status = SecKeychainUnlock(keychain, 0, NULL, false);
+        if (status) goto restore;
+    }
     char account[32]; account_name(id, account);
     UInt32 length = 0; void *bytes = NULL;
     // A concrete keychain handle prevents search-list fallback to another store.
@@ -61,5 +67,16 @@ int32_t cw_key_load(SecKeychainRef keychain, const uint8_t id[16], uint8_t key[3
         memset_s(bytes, length, 0, length);
         SecKeychainItemFreeContent(NULL, bytes);
     }
+restore:
+    {
+        OSStatus restored = SecKeychainSetUserInteractionAllowed(false);
+        if (restored) { memset_s(key, 32, 0, 32); return restored; }
+    }
     return status;
+}
+int32_t cw_key_load(SecKeychainRef keychain, const uint8_t id[16], uint8_t key[32]) {
+    return load_key(keychain, id, key, false);
+}
+int32_t cw_key_reauthorize(SecKeychainRef keychain, const uint8_t id[16], uint8_t key[32]) {
+    return load_key(keychain, id, key, true);
 }

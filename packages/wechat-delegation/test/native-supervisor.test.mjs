@@ -13,6 +13,11 @@ import { NativeStdioTransport } from '../src/native-stdio.mjs';
 const source = Buffer.from(`#!${process.execPath}
 const fs=require('node:fs'),path=require('node:path'),readline=require('node:readline');
 const dir=process.argv[process.argv.indexOf('--data-dir')+1];
+if(process.argv.includes('--reauthorize')||process.argv.includes('--recover-initialization')){
+fs.writeFileSync(path.join(path.dirname(dir),'repair-started.json'),JSON.stringify({args:process.argv.slice(2),environment:Object.keys(process.env)}),{mode:0o600});
+const initial=process.argv.includes('--recover-initialization');
+process.stdout.write(JSON.stringify({product:'clowder-wechat-link',version:'test',pid:process.pid,repair:initial?'initialization-recovery':'keychain-reauthorization',state:initial?'initialized':'verified'})+'\\n');process.exit(0);
+}
 fs.writeFileSync(path.join(dir,'started.json'),JSON.stringify({args:process.argv.slice(2),environment:Object.keys(process.env)}),{mode:0o600});
 if(process.argv.includes('--initialize')) for(const name of ['vault.id','state.vault'])fs.writeFileSync(path.join(dir,name),'synthetic',{mode:0o600});
 const caps=['stdio-v1','text-protocol-subset','account-login-v1','durable-text-send-v1','durable-text-sync-v1','current-directory-v1','explicit-session-resume-v1','canonical-message-lookup-v1','stable-text-stream-v1'];
@@ -71,6 +76,30 @@ test('reopening uses the same vault but a new process identity; an old stop cann
   assert.notEqual((await second.identity('clowder')).serverId,firstIdentity.serverId);
   const started=JSON.parse(await readFile(join(root,'link-vault','started.json'),'utf8'));assert.deepEqual(started.args,['--data-dir',join(await realpath(root),'link-vault')]);
   await supervisor.stopOwned(first);assert.equal((await second.status()).serverId,'synthetic-store');
+});
+test('explicit Keychain repair runs one verified owned process, leaves vault bytes intact and never starts an account service',async t=>{
+  const {root,supervisor}=await fixture(t);await supervisor.prepare(actor());await supervisor.stop();
+  const vault=join(root,'link-vault'),before=new Map(await Promise.all(['vault.id','state.vault'].map(async name=>[name,await readFile(join(vault,name),'utf8')])));
+  assert.equal((await supervisor.reauthorize(actor())).state,'verified');assert.equal(supervisor.client,null);
+  const started=JSON.parse(await readFile(join(root,'repair-started.json'),'utf8'));
+  assert.deepEqual(started.args,['--data-dir',await realpath(vault),'--reauthorize']);
+  assert.equal(started.environment.every(key=>key==='__CF_USER_TEXT_ENCODING'),true);
+  for(const[name,bytes]of before)assert.equal(await readFile(join(vault,name),'utf8'),bytes);
+});
+test('stopping while system-repair authority is pending prevents any late process launch',async t=>{
+  const {root,supervisor}=await fixture(t);await supervisor.prepare(actor());await supervisor.stop();
+  let release;const pending=new Promise(resolve=>release=resolve);
+  const repairing=supervisor.reauthorize({...actor(),assertCurrent:()=>pending});
+  await supervisor.stop();release();await assert.rejects(repairing,/expired|停止/);
+  await assert.rejects(stat(join(root,'repair-started.json')),{code:'ENOENT'});assert.equal(supervisor.client,null);
+});
+test('first-initialization recovery has a separate bounded native mode and does not implicitly start an account service',async t=>{
+  const {root,supervisor}=await fixture(t);await supervisor.prepare(actor());await supervisor.stop();
+  assert.equal((await supervisor.reauthorize(actor(),'recover-initialization')).state,'initialized');
+  assert.equal(supervisor.client,null);
+  const started=JSON.parse(await readFile(join(root,'repair-started.json'),'utf8'));
+  assert.deepEqual(started.args,['--data-dir',join(await realpath(root),'link-vault'),'--recover-initialization']);
+  await assert.rejects(supervisor.reauthorize(actor(),'arbitrary-mode'),/unsupported/);
 });
 test('bundled rewritten component has exact source-pinned bytes; offline physical probe touches no Keychain', {skip:process.platform!=='darwin'||process.arch!=='arm64'},async t=>{
   const descriptor=nativeAsset('darwin','arm64');assert.equal(descriptor.product,'clowder-wechat-link');

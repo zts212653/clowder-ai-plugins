@@ -13,6 +13,7 @@ window.createWechatConnection = ({ el, button, check, call, perform, show, refre
   const qr = el('div', { id: 'qr' }), authText = el('p', { role: 'status' }), operation = el('small', { class: 'muted auth-operation' });
   const uncertainty = el('p', { class: 'notice', hidden: true, text: '认证请求可能已经到达微信。取消或退出本机组件不能证明手机上的设备授权已撤销；请在手机微信核对已登录设备。' });
   const hint = el('p', { class: 'muted' }), sync = el('p', { role: 'status', class: 'muted' }), path = el('small');
+  const repair = window.createWechatKeychainRepair({ el, button, check, perform, show });
   const consent = check('我了解将准备 Clowder 自有连接组件；登录后可能同步其他未选中会话到本机，猫只处理我另行授权的会话。');
   const setup = button('准备账号连接组件', async () => {
     if (!consent.input.checked) return show('请先阅读并确认客户端同步范围。', true);
@@ -75,11 +76,16 @@ window.createWechatConnection = ({ el, button, check, call, perform, show, refre
     el('p', { class: 'muted', text: '当前安全重写仍在验收中，真实账号兼容性、局域网验证及签名升级恢复尚未验收完成。' }),
     consent.node, el('div', { class: 'toolbar' }, [setup, login, resume, cancel, query, disconnect]), authText, operation, uncertainty, qr, sync,
     el('details', { class: 'privacy' }, [el('summary', { text: '数据与授权范围' }),
-      el('p', { text: '协议代码来自固定版本的 Agent WeChat 开源代码。微信登录和同步需要连接微信服务器；开启代聊后，所选会话的文字会交给你确认的模型服务。' }), path])]);
+      el('p', { text: '协议代码来自固定版本的 Agent WeChat 开源代码。微信登录和同步需要连接微信服务器；开启代聊后，所选会话的文字会交给你确认的模型服务。' }), path]), repair.node]);
   return {
     node,
     render(value) {
       snapshot = value; renderAuth(value.auth);
+      repair.render(value.keychainRepair);
+      if (value.runtime !== 'running') {
+        clearInterval(timer); timer = null; qr.replaceChildren();
+        if (!ended.has(current.state)) authText.textContent = '原认证记录暂无法核验；重新准备组件后只查询原记录，不会自动重新认证。';
+      }
       const account = value.account;
       hint.textContent = account?.connected ? '账号已连接；请逐会话设置猫的处理与发言范围。' : account?.credentialsAvailable ? '本机保存了账号，当前未在线。请明确恢复；不会自动扫码或重连。' : value.runtime === 'running' ? '连接组件已准备。请用手机微信扫码并核对账号。' : '先确认同步范围并准备连接组件，再选择登录方式。';
       sync.hidden = !account?.connected;

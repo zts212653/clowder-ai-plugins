@@ -4,6 +4,7 @@ import { MemberRunner } from './member-runner.mjs';
 import { NativeSupervisor } from './native-supervisor.mjs';
 import { AuthFlow } from './auth-flow.mjs';
 import { SyncState } from './sync-state.mjs';
+import { KeychainFlow } from './keychain-flow.mjs';
 
 const ACCOUNT = 'clowder';
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -19,6 +20,9 @@ export class DelegationRuntime {
     runtime.service = await DelegationService.open({ storage: host.storage, channel, model, onStop: event => runtime.observeStop(event) });
     runtime.auth = new AuthFlow({ storage: host.storage, getClient: () => runtime.client(), assertOwner: context => runtime.requireOwner(context),
       beforeStart: () => runtime.service.takeover(null) });
+    runtime.keychain = new KeychainFlow({ storage: host.storage, assertOwner: context => runtime.requireOwner(context),
+      beforeStart: () => runtime.service.takeover(null, policies => runtime.ownerRevocations(policies)),
+      execute: (context, kind) => supervisor.reauthorize(context, kind), cancel: () => supervisor.stop() });
     supervisor.onExit = () => {
       if (!runtime.running) return;
       runtime.lastError = '账号连接组件已退出，代聊已停止；重新准备连接后仍需本人明确交回。';
@@ -94,7 +98,7 @@ export class DelegationRuntime {
       } catch { accountProbeFailed = true; }
 
     }
-    return { ...snapshot, auth: await this.auth.status(), messageSync: this.sync.snapshot(account), runtime: this.supervisor.client ? 'running' : 'dormant', account, accountIsLive, accountProbeFailed, accountObservedAt: this.accountObservedAt ?? null, storagePath: this.host.dataPath,
+    return { ...snapshot, auth: await this.auth.status(), keychainRepair: await this.keychain.status(), messageSync: this.sync.snapshot(account), runtime: this.supervisor.client ? 'running' : 'dormant', account, accountIsLive, accountProbeFailed, accountObservedAt: this.accountObservedAt ?? null, storagePath: this.host.dataPath,
       senderStops: [...this.barriers].filter(([key]) => key.startsWith('native:')).map(([key, entry]) => ({ policyId: key === 'native:all' ? null : key.slice(7), state: entry.state })),
       memberRuntimeAvailable: this.model.available(), lastError: this.lastError,
       // Credentials and provider session data are never part of the page projection.
@@ -135,6 +139,11 @@ export class DelegationRuntime {
       const begin = Math.max(0, end - 50);
       return { items: all.slice(begin, end).reverse(), nextCursor: begin > 0 ? String(begin) : null, total: all.length };
     }
+    if (action === 'reauthorize_keychain' || action === 'recover_initialization') {
+      if (input.confirm !== true) throw Error('请先确认系统对话框、暂停代聊和钥匙串授权范围');
+      return this.keychain.begin(context, action === 'recover_initialization' ? 'recover-initialization' : 'reauthorize');
+    }
+    if (action === 'cancel_keychain_repair') return this.keychain.cancel(context, input.operationId);
     const client = this.client();
     if (action === 'login' || action === 'resume') return this.auth.begin(action, context);
     if (action === 'login_poll') return this.auth.poll(context);
@@ -338,7 +347,7 @@ export class DelegationRuntime {
     clearInterval(this.timer);
     if (!this.running) return;
     this.running = false;
-    this.service.deactivate(); this.auth.deactivate();
+    this.service.deactivate(); this.auth.deactivate(); this.keychain.deactivate();
     await this.supervisor.stop();
     // Host model ports can still have an unresolved external execution. Local
     // resources are released now; aborted work cannot read revoked storage or

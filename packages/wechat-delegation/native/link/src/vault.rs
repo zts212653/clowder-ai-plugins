@@ -4,7 +4,7 @@ use openssl::{
     symm::{Cipher, Crypter, Mode},
 };
 use std::{
-    ffi::CString,
+    ffi::{CStr, CString},
     fs::File,
     io::{Read, Write},
     os::{
@@ -23,6 +23,11 @@ pub enum VaultError {
     AlreadyInitialized,
     Busy,
     KeyUnavailable,
+    KeyMissing,
+    KeyAccessDenied,
+    AuthorizationCancelled,
+    InteractionUnavailable,
+    AuthorizationNotPersistent,
     InvalidCiphertext,
     TooLarge,
     CommitUncertain,
@@ -45,6 +50,29 @@ const MAGIC: &[u8; 8] = b"CWVAULT1";
 const MAX_STATE: usize = 32 * 1024 * 1024;
 const HEADER: usize = 56;
 
+fn validated_length(bytes: &[u8], id: &[u8; 16]) -> Result<usize> {
+    if bytes.len() < HEADER || &bytes[..8] != MAGIC || bytes[8..24] != *id {
+        return Err(VaultError::InvalidCiphertext);
+    }
+    let length = u32::from_be_bytes(
+        bytes[36..40]
+            .try_into()
+            .map_err(|_| VaultError::InvalidCiphertext)?,
+    ) as usize;
+    if length > MAX_STATE || bytes.len() != HEADER + length {
+        return Err(VaultError::InvalidCiphertext);
+    }
+    Ok(length)
+}
+
+fn initialization_phase(id: &[u8; 16], phase: u8) -> [u8; 25] {
+    let mut value = [0; 25];
+    value[..8].copy_from_slice(b"CW_INIT1");
+    value[8] = phase;
+    value[9..].copy_from_slice(id);
+    value
+}
+
 struct PrivateDir {
     directory: File,
     // Kept alive for the entire Vault lifetime. Never unlink the lock inode.
@@ -64,7 +92,7 @@ fn private_file(file: &File) -> Result<()> {
     Ok(())
 }
 impl PrivateDir {
-    fn open(path: &Path) -> Result<Self> {
+    fn open(path: &Path, create_lock: bool) -> Result<Self> {
         let path =
             CString::new(path.as_os_str().as_bytes()).map_err(|_| VaultError::InvalidStorage)?;
         let fd = unsafe {
@@ -83,7 +111,11 @@ impl PrivateDir {
         if stat.uid() != unsafe { libc::geteuid() } || stat.mode() & 0o7777 != 0o700 {
             return Err(VaultError::InvalidStorage);
         }
-        let lock = Self::open_at(&directory, "vault.lock", libc::O_CREAT | libc::O_RDWR)?;
+        let lock = Self::open_at(
+            &directory,
+            "vault.lock",
+            libc::O_RDWR | if create_lock { libc::O_CREAT } else { 0 },
+        )?;
         private_file(&lock)?;
         if unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
             return Err(VaultError::Busy);
@@ -162,7 +194,7 @@ impl PrivateDir {
             .sync_all()
             .map_err(|_| VaultError::CommitUncertain)
     }
-    fn replace(&self, bytes: &[u8]) -> Result<()> {
+    fn replace(&self, target: &CStr, bytes: &[u8]) -> Result<()> {
         let mut random = [0; 16];
         rand_bytes(&mut random).map_err(|_| VaultError::Unavailable)?;
         let name = format!(
@@ -188,7 +220,7 @@ impl PrivateDir {
                 self.directory.as_raw_fd(),
                 from.as_ptr(),
                 self.directory.as_raw_fd(),
-                c"state.vault".as_ptr(),
+                target.as_ptr(),
             )
         } != 0
         {
@@ -242,13 +274,17 @@ impl Vault {
         if initial.len() > MAX_STATE {
             return Err(VaultError::TooLarge);
         }
-        let directory = PrivateDir::open(path)?;
-        if directory.exists("vault.id")? || directory.exists("state.vault")? {
+        let directory = PrivateDir::open(path, true)?;
+        if directory.exists("vault.id")?
+            || directory.exists("state.vault")?
+            || directory.exists("init.phase")?
+        {
             return Err(VaultError::AlreadyInitialized);
         }
         let mut id = [0; 16];
         rand_bytes(&mut id).map_err(|_| VaultError::Unavailable)?;
         directory.create("vault.id", &id)?;
+        directory.create("init.phase", &initialization_phase(&id, 0))?;
         let mut key = Zeroizing::new([0; 32]);
         rand_bytes(key.as_mut()).map_err(|_| VaultError::Unavailable)?;
         keys.create(&id, &key)?;
@@ -264,15 +300,71 @@ impl Vault {
             key,
             poisoned: AtomicBool::new(false),
         };
+        // This durable, never-deleted evidence precedes the first publication.
+        // Missing ciphertext after this point cannot be treated as a new vault.
+        vault
+            .directory
+            .replace(c"init.phase", &initialization_phase(&id, 1))?;
         vault.commit(initial)?;
         Ok(vault)
     }
-    pub fn open(path: &Path, keys: &impl KeyStore) -> Result<Self> {
-        let directory = PrivateDir::open(path)?;
+    /// Explicit recovery of first initialization only. Never reset identity,
+    /// replace an existing key, or infer an empty database from missing files.
+    pub fn recover_initialization(path: &Path, keys: &impl KeyStore) -> Result<Self> {
+        let directory = PrivateDir::open(path, false)?;
         let id: [u8; 16] = directory
             .read("vault.id", 16)?
             .try_into()
             .map_err(|_| VaultError::InvalidStorage)?;
+        let phase = directory.read("init.phase", 25)?;
+        if phase.len() != 25 || &phase[..8] != b"CW_INIT1" || phase[9..] != id || phase[8] > 1 {
+            return Err(VaultError::InvalidStorage);
+        }
+        let has_state = directory.exists("state.vault")?;
+        let publishing = phase[8] == 1;
+        if has_state != publishing {
+            return Err(VaultError::InvalidStorage);
+        }
+        let key = match keys.load(&id) {
+            Ok(key) => key,
+            Err(VaultError::KeyMissing) if !has_state && !publishing => {
+                let mut key = Zeroizing::new([0; 32]);
+                rand_bytes(key.as_mut()).map_err(|_| VaultError::Unavailable)?;
+                keys.create(&id, &key)?;
+                let accepted = keys.load(&id)?;
+                if !openssl::memcmp::eq(key.as_ref(), accepted.as_ref()) {
+                    return Err(VaultError::KeyUnavailable);
+                }
+                key
+            }
+            Err(error) => return Err(error),
+        };
+        let vault = Self {
+            directory,
+            id,
+            key,
+            poisoned: AtomicBool::new(false),
+        };
+        if has_state {
+            if !vault.read()?.is_empty() {
+                return Err(VaultError::AlreadyInitialized);
+            }
+        } else {
+            vault
+                .directory
+                .replace(c"init.phase", &initialization_phase(&id, 1))?;
+            vault.commit(b"")?;
+        }
+        Ok(vault)
+    }
+    pub fn open(path: &Path, keys: &impl KeyStore) -> Result<Self> {
+        let directory = PrivateDir::open(path, false)?;
+        let id: [u8; 16] = directory
+            .read("vault.id", 16)?
+            .try_into()
+            .map_err(|_| VaultError::InvalidStorage)?;
+        let bytes = directory.read("state.vault", MAX_STATE + HEADER)?;
+        validated_length(&bytes, &id)?;
         let key = keys.load(&id)?;
         let vault = Self {
             directory,
@@ -280,7 +372,7 @@ impl Vault {
             key,
             poisoned: AtomicBool::new(false),
         };
-        vault.read()?;
+        vault.decrypt(&bytes)?;
         Ok(vault)
     }
     pub fn read(&self) -> Result<Zeroizing<Vec<u8>>> {
@@ -288,17 +380,10 @@ impl Vault {
             return Err(VaultError::CommitUncertain);
         }
         let bytes = self.directory.read("state.vault", MAX_STATE + HEADER)?;
-        if bytes.len() < HEADER || &bytes[..8] != MAGIC || bytes[8..24] != self.id {
-            return Err(VaultError::InvalidCiphertext);
-        }
-        let length = u32::from_be_bytes(
-            bytes[36..40]
-                .try_into()
-                .map_err(|_| VaultError::InvalidCiphertext)?,
-        ) as usize;
-        if length > MAX_STATE || bytes.len() != HEADER + length {
-            return Err(VaultError::InvalidCiphertext);
-        }
+        self.decrypt(&bytes)
+    }
+    fn decrypt(&self, bytes: &[u8]) -> Result<Zeroizing<Vec<u8>>> {
+        let length = validated_length(bytes, &self.id)?;
         // Keep all unauthenticated plaintext in a zeroizing buffer, including
         // the failure path. OpenSSL errors never become diagnostics or DTOs.
         let cipher = Cipher::aes_256_gcm();
@@ -351,7 +436,7 @@ impl Vault {
         .map_err(|_| VaultError::Unavailable)?;
         header.extend_from_slice(&tag);
         header.extend_from_slice(&ciphertext);
-        let result = self.directory.replace(&header);
+        let result = self.directory.replace(c"state.vault", &header);
         if matches!(result, Err(VaultError::CommitUncertain)) {
             self.poisoned.store(true, Ordering::Release);
         }

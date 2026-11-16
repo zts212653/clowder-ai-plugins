@@ -86,8 +86,40 @@ fn run() -> io::Result<()> {
     }
     let stdin = io::stdin();
     let stdout = io::stdout();
+    let args: Vec<OsString> = std::env::args_os().skip(1).collect();
+    #[cfg(target_os = "macos")]
+    if let [flag, path, repair] = args.as_slice() {
+        if flag == "--data-dir"
+            && (repair == "--reauthorize" || repair == "--recover-initialization")
+        {
+            // A system dialog must not leave an orphaned credential reader.
+            // Host also owns/kills this process, but the process enforces its
+            // own bound if the parent crashes before its timeout can run.
+            let parent = unsafe { libc::getppid() };
+            std::thread::spawn(move || {
+                let started = std::time::Instant::now();
+                loop {
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                    if unsafe { libc::getppid() } != parent || started.elapsed().as_secs() >= 120 {
+                        unsafe { libc::_exit(2) };
+                    }
+                }
+            });
+            let initialization = repair == "--recover-initialization";
+            let state = if initialization {
+                clowder_wechat_link::keychain_repair::recover_initialization(&PathBuf::from(path))
+            } else {
+                clowder_wechat_link::keychain_repair::reauthorize(&PathBuf::from(path))
+            };
+            println!(
+                "{}",
+                serde_json::json!({"product":"clowder-wechat-link", "version":env!("CARGO_PKG_VERSION"), "pid":std::process::id(), "repair":if initialization {"initialization-recovery"} else {"keychain-reauthorization"}, "state":state})
+            );
+            return Ok(());
+        }
+    }
     let mut reader = stdin.lock();
-    let service = configure(std::env::args_os().skip(1).collect())?;
+    let service = configure(args)?;
     stdio::serve(&mut reader, stdout, service)
 }
 fn main() {

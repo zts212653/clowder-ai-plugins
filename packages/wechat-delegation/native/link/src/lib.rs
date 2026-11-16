@@ -3,6 +3,8 @@ pub mod account_service;
 pub mod ipc;
 #[cfg(target_os = "macos")]
 pub mod keychain;
+#[cfg(target_os = "macos")]
+pub mod keychain_repair;
 pub mod stdio;
 pub mod store;
 pub mod vault;
