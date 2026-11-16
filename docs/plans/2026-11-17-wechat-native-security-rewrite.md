@@ -84,3 +84,19 @@ Architecture cell：微信插件 native 连接服务。Map delta：拟将通用�
 - `AccountState` 的内部状态导出方法确实存在，但不能由库方法存在推断某条HTTP密钥导出route已挂载；需要分别核对。库暴露面与服务可达面都要列明。
 
 Rust/Cargo/标准库1.93.1现已安装在任务临时目录，官方组件摘要逐一核对，`rustc --version` 与 `cargo --version` 已验证。没有修改全局工具链或用户HOME。
+
+### 已收到架构稿，进入协议与进程实现
+
+宪宪原稿 `000355` 及补充 `000362` 已读回；采纳自有最小进程、stdio传输、物理裁出协议子集、钥匙串保管包装密钥的方向。三处修正已由她在 `000375` 接受：继续使用固定版本的成熟HTTP解析；钥匙串不可用时默认报错并保留原件，不能静默退化为易失登录；本机同步披露保留，LAN挑战默认不监听，须本人显式许可才可开放。
+
+`native/proto/` 现在是可独立构建的协议子集，不引入旧core/api/store/profile/daemon、媒体/CDN、贴纸、通话、图片或压缩包解析模块。原密码学和wire格式保留；导出原始快照仅编入内部测试，扫码尝试不再可序列化。新的transport集中生产socket和HTTP构造，DNS过滤后固定到该请求，业务路径限制为已核对的15条文字/账号/目录操作。保留系统Fake-IP的适用性说明，并在握手验签及Finished验证后记录实际pin版本/区域。
+
+`native/link/` 已有可编译、实际可运行的有界stdio入口；只开放hello/status，明确返回 `accountServiceReady=false`。重复键、未知字段/方法和非法帧使用固定错误，不回显内容；入口关闭stdin后退出。创建工作线程前清除环境、禁止core dump，macOS请求禁止调试附加。**尚无钥匙串、登录/发送执行器、发送日志、同步消费、通讯录服务或插件替换，整体使用旅程仍未走通；不向本人发布这个基础进程当安装候选。**
+
+自证：协议库96项检查、6项compile-fail检查通过；stdio的2项局部检查及实际编译进程组合检查通过；`cargo fmt --all --check`通过。来源检查核26文件摘要，并在固定上游文件基础上实际应用 `protocol.patch`，逐文件重建当前源码一致；符号/字符串扫描仍只作辅助。日志在 `meow-talk/output/wechat-delegation-security-rewrite/protocol/`。
+
+可信失败证据分别记录：原版6个不需要的接口/序列化能力探针均可编译；旧路径校验的负向检查因 `mmemojiupload` 被放行而失败；伪造ECDH+非内置私钥签名的服务端被真实握手在验签阶段拒绝，且ClientHello后零写出。隔离副本忽略验签失败时，同一检查因未在验签阶段终止而失败，不把超时说成发生了凭据泄漏。新增stdio检查属于实现后的组合验证，不伪报为旧版RED。裁剪时缺失原模块引用及工具格式化参数问题是开发环境/编译修正，未当产品RED。
+
+重要未决：宪宪只读核官方mac应用包后，未能独立匹配上游8把公钥（`000375`；证据 `meow-talk/output/wechat-delegation-alpha10/key-provenance/结论.md`）。这不是非官方的证明；当前最多可声称‘对端通过内置公钥验签，公钥官方来源未确认’，不能声称‘只向微信官方发送凭据’。已路由她继续只读追应用层默认配置（`000378`），不读运行中内存或真实profile。新workspace首次无锁解析还发现本机registry将tokio1.54.0标为yanked；保持原锁可构建，最终制品前须核撤回原因与替换策略，不把当前依赖集合描述为已完成安全审计。
+
+Architecture cell：微信插件自有连接服务及其协议子集。Map delta：已新增 native Rust workspace、proto库与有界stdio进程入口；尚未切换任何运行consumer。Why：把登录秘密的可达代码面与网络出口从通用第三方daemon收回到可审查的专用实现。此处是内部实现与审查记录，不是分批验收、Feature close或发布许可；整体Task继续开放。
