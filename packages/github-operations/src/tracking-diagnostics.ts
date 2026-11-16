@@ -4,6 +4,8 @@ import { z } from 'zod';
 import type { FeatureContext, PluginActionContext, PluginStorageHost } from '@clowder-ai/plugin-sdk';
 
 const prefix = 'github.tracking-diagnostics.v1.';
+export const registrationDiagnosticKey = (caller: { userId: string; catId: string; threadId: string }, registrationId: string) =>
+  prefix + createHash('sha256').update(JSON.stringify([caller.userId, caller.catId, caller.threadId, registrationId])).digest('hex');
 export interface DiagnosticError {
   name: string; message: string; stack?: string; stderr?: string;
   code?: string | number; signal?: string; cause?: DiagnosticError; truncated?: boolean;
@@ -27,8 +29,7 @@ export type RegistrationDiagnostic = z.infer<typeof schema>;
 /** Persist diagnostic exceptions privately after credential redaction; never send them as notifications. */
 export async function writeRegistrationDiagnostic(storage: PluginStorageHost, caller: PluginActionContext,
   registrationId: string, subject: string, value: Pick<RegistrationDiagnostic, 'phase' | 'status' | 'code' | 'at' | 'statusCode' | 'error'>) {
-  const requestKey = createHash('sha256').update(JSON.stringify([caller.userId, caller.catId, caller.threadId, registrationId])).digest('hex');
-  const key = prefix + requestKey;
+  const key = registrationDiagnosticKey(caller, registrationId), requestKey = key.slice(prefix.length);
   for (let attempt = 0; attempt < 3; attempt++) {
     const current = await storage.get(key);
     const previous = current ? schema.parse(current.value) : undefined;
