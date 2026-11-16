@@ -1,6 +1,6 @@
 # 微信文字协议子集（实施中）
 
-这是账号安全重写的协议基础，尚未接入用户正在运行的插件。已有可运行的有界stdio入口，只开放hello/status，明确返回账号服务未就绪；钥匙串保险库、持久发送日志、同步消费和插件替换仍待实现与验收，不能将这个基础进程当成完成的账号连接服务。
+这是账号安全重写的内部实施代码，尚未接入用户正在运行的插件。有界stdio入口仍只开放hello/status，明确返回账号服务未就绪；已增加可单独运行验证的钥匙串保险库、账号持久化及发送门禁库，尚未接入真正登录、目录、同步和发送执行器，不能将此基础进程当成完成的账号连接服务。
 
 来源与授权：本人 `thread_mwg7kandcxztqeab#0001794847733075-000352-bf448701`；架构来源为宪宪 `000355` / `000362`，独立威胁稿为小多子 `000356`。完整产品与安全终态要求见 `docs/plans/2026-11-17-wechat-native-security-rewrite.md`。
 
@@ -36,8 +36,22 @@ node packages/wechat-delegation/native/scripts/verify-source.mjs /path/to/agent-
 
 伪服务端测试运行真正的握手实现：成功进行 ECDH 并发送有效加密记录，但使用非内置私钥签名，客户端必须在 `MMTLS signature verification` 终止；除无凭据 ClientHello 外不发送字节。隔离副本忽略验签失败时，同一测试因没有在验签阶段终止而失败；这验证了检查的检测力，不表示观察过真实账号泄漏。
 
-原始检查输出在共享工作区 `meow-talk/output/wechat-delegation-security-rewrite/protocol/`。尚无此新协议组件的完整独立审查结论、正式 native 制品、实际安装或真实微信验收。
+协议检查输出在共享工作区 `meow-talk/output/wechat-delegation-security-rewrite/protocol/`。`74c18cf`的协议/stdio基础已获小多子在`000382`的准确HEAD独立批准；批准范围不覆盖后续保险库/执行器、正式制品、实际安装或真实微信验收。
 
 stdio入口的2项局部检查及实际编译进程的组合检查已通过：未知方法/字段、重复键、超长或截断帧不回显输入内容；正常关闭stdin后进程退出，无任何账号授权或网络活动。这些是实现后的组合验证，不虚报为在旧组件上观察到的RED。进程在创建工作线程前清除环境、禁止core dump，并在macOS请求拒绝调试附加；完整分发签名及钥匙串ACL的效果仍需独立验证。
 
 本目录是内部实施材料，尚无新增用户操作入口或可发布能力；capability tips不适用。完整产品旅程目前没走通，Task不关闭，不向本人提供此进程作为安装候选。
+
+## 凭据与发送持久层（未接入运行入口）
+
+`link/src/keychain.{rs,c}`将随机32字节包装密钥保存在固定service的macOS文件钥匙串条目中，以创建进程本身为唯一受信应用；不扩大到所有应用，不更新已有条目的密钥/ACL，不改搜索列表，也不回退到同目录密钥文件。所有调用禁用交互；锁定、缺项或应用身份变化时向上返回固定错误。默认钥匙串只在显式打开账号服务时使用；本次测试从未调用该默认入口，全部使用新建的私有合成钥匙串。
+
+选择文件钥匙串ACL是针对当前未配置access-group provisioning的CLI边界，不冒充数据保护钥匙串、Secure Enclave或不可导出硬件密钥。Apple [TN3137](https://developer.apple.com/documentation/technotes/tn3137-on-mac-keychains.md)区分了两类钥匙串；正式签名、升级后的授权和恢复入口仍须验证，不能从一次本机探针推导分发终态。C shim以系统Security/CoreFoundation编译，复用锁内cc、OpenSSL和anyhow，没有引入新的registry包版本；最终构建溯源还须记录实际C编译器/SDK。
+
+`vault.rs`使用AES-256-GCM及每次随机nonce；密文头绑定独立的vault身份。0700根目录、0600普通单链接文件、末级symlink拒绝、持有目录FD的openat和flock限制落盘入口。原子提交先写独占临时密文、同步文件（macOS另用F_FULLFSYNC）、rename，再同步目录。初始化先写不可静默重建的身份标记；缺钥、损坏、缺密文均保留原件并报错。提交持久性不确定时，当前owner停止读写，由显式重开核查实际状态。没有TTL或隐式删除；单快照上限32MiB，超限报错，不清理历史。上述检查不声称抵御已控制同UID/root、能够回放或替换整个目录的攻击者，也不是突然断电实测。
+
+`store.rs`是账号凭据和发送状态的唯一事务owner，向协议库提供数据型AccountPersistence回调：先加密持久化再发布状态，比较previous和账号generation，拒绝旧回调在退出后重新激活账号。未使用的数据库密码及原认证快照禁止落入此store。`outbox.rs`是同一store内的发送记录与会话授权，无第二套独立队列/凭据writer。
+
+显式授权后的会话generation和账号generation共同保护发送；接管持久化后取消queued，已进入submitting的保留真实在途状态。最终before-submit guard必须调用begin_submission，不能在握手或await前调用并把它当网络提交证明。重启把submitting标为needs_review、取消未发队列并暂停全部会话，不重发未知结果。此库尚不执行网络发送、不核当前好友/群关系，也不证明运行中的接管已经接线。
+
+本次检查覆盖真实后端跨进程恢复、用同一C后端的异身份程序拒读、钥匙串锁定保持密文、重复项不覆盖和搜索列表不变；隔离文件测试覆盖篡改/缺失/替换、权限、hardlink/FIFO、互斥、失败提交与不确定提交；账号和好友/群发送门禁覆盖更新、退出、接管、幂等与重启。测试及RED摘录见`meow-talk/output/wechat-delegation-security-rewrite/vault/`。这些检查不替代完整秘密投影、Host→新进程接线、实际网络观察或本人授权后的真实账号验收。

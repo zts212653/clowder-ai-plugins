@@ -1,6 +1,6 @@
 # 微信连接组件重写：账号凭据安全
 
-授权：`thread_mwg7kandcxztqeab#0001794847733075-000352-bf448701`。本人要求砚砚、小多子、宪宪重写第三方组件，使其满足账号密码与登录凭据安全要求。沿用 Task `0001794671791059-000075-403b5a41`，不复制责任。本文为实施中的契约草稿，架构尚待两份独立分析收敛，不表示已完成重写或通过安全验收。
+授权：`thread_mwg7kandcxztqeab#0001794847733075-000352-bf448701`。本人要求砚砚、小多子、宪宪重写第三方组件，使其满足账号密码与登录凭据安全要求。沿用 Task `0001794671791059-000075-403b5a41`，不复制责任。架构已按宪宪000355/000362及小多子000356收敛为自有最小stdio进程、物理裁剪协议和应用身份绑定钥匙串。本文记录实施契约，不表示已完成重写或通过安全验收。
 
 ## 交付目标
 
@@ -62,7 +62,17 @@
 - 原产品与接管验证：`docs/plans/2026-11-14-wechat-delegation-verification.md`。
 - 原构建与补丁：`packages/wechat-delegation/assets/native/{README.md,manifest.json,current-directory.patch}`。
 
-Architecture cell：微信插件 native 连接服务。Map delta：拟将通用上游 daemon/core 替换为自有最小服务；具体复用协议和 consumer/authority 边界待架构稿核定。Why：本人明确拒绝把未经充分核验的第三方账号组件作为信任基础。
+Architecture cell：微信插件 native 连接服务。Map delta：将通用上游 daemon/core 替换为自有最小stdio服务；proto保留固定文字/账号/目录协议，KeyStore仅管理包装密钥，Vault仅负责私有原子密文，Store为账号/会话授权/发送记录的唯一事务owner，outbox为Store内状态机，不建立并行队列；原Node consumer尚未切换。Why：本人明确拒绝把未经充分核验的第三方账号组件作为信任基础。
+
+### 本轮内部持久层自检（完整产品未完成）
+
+原始使用路径仍是本人在插件中扫码→选指定好友/群→主动开口及接话→人工接管→明确恢复。**完整旅程没走通**：新stdio入口仍只有hello/status且accountServiceReady=false，登录/目录/sync/发送执行器与Node接线尚缺。当前KeyStore/Vault/Store/outbox是原授权内的必要实现，内审不代表分批交付、主号安全批准或Task关闭；后续沿同一owner扩展。
+
+已在真正实现上验证：应用ACL绑定包装密钥、同二进制的新进程恢复、相同C后端异身份程序拒读、钥匙串锁定和重复项不覆盖、搜索列表不变；磁盘只写AEAD密文，缺钥/损坏/缺文件保留原件，互斥、权限、symlink/hardlink/FIFO拒绝，失败提交保持旧版，不确定提交使当前owner停止；账号更新先持久化，退出后迟到writer不能复活；好友/群接管取消未发、保留在途，幂等payload冲突拒绝，重启未知不重发且全部scope暂停。cfg(test)中模拟提交失败，不声称已做断电验证。
+
+五轴：behavior=新增内部持久层，运行consumer未切换；data=只新建合成隔离数据，无真实迁移/删除；security=应用钥匙串ACL、私有原子密文、generation及发送门禁；contract=原HTTP/插件入口未改，未来窄stdio接线仍需验证；irreversible=无。新增C shim直接使用系统Security/CoreFoundation，只引用锁内已有anyhow/cc/OpenSSL，没有新registry版本。文件钥匙串与数据保护钥匙串的区别、分发签名/升级授权、恢复交互和实际C编译器/SDK溯源保留为正式制品要求。
+
+日志及可信RED摘录：`meow-talk/output/wechat-delegation-security-rewrite/vault/{tests.log,tdd-evidence.md}`。当前Cargo全workspace验证通过11项持久层主测试（另有1项ignored子测试由父测试实际拉起）、2项IPC、1项实际stdio进程、96项协议、6项compile-fail；rustfmt和26文件上游补丁逐字节重建通过，官方key核验仍false。没有新增产品界面/用户能力，因此内部dogfood以真实Keychain/文件/子进程合成旅程验证，不能替代未走通的产品验收。仓库根无新增媒体工件。
 
 ### 首轮已落地：启动端凭据目录和环境边界
 
