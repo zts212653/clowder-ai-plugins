@@ -32,6 +32,33 @@ use serde::{Deserialize, Serialize};
 use std::{fmt, time::Duration};
 use zeroize::Zeroize;
 
+/// Volatile authority for one QR operation. It cannot be serialized or revived.
+#[derive(Clone)]
+pub struct LoginGuard {
+    cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    deadline: std::time::Instant,
+}
+impl LoginGuard {
+    pub fn new(deadline: std::time::Instant) -> Self {
+        Self {
+            cancelled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            deadline,
+        }
+    }
+    pub fn cancel(&self) {
+        self.cancelled
+            .store(true, std::sync::atomic::Ordering::Release);
+    }
+    pub fn interrupted(&self) -> bool {
+        self.cancelled.load(std::sync::atomic::Ordering::Acquire)
+            || std::time::Instant::now() >= self.deadline
+    }
+    fn check(&self) -> Result<()> {
+        ensure!(!self.interrupted(), "Login operation interrupted");
+        Ok(())
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeviceProfile {
@@ -352,6 +379,45 @@ pub fn is_retryable_login_poll_error(error: &anyhow::Error) -> bool {
     })
 }
 impl NativeClient {
+    fn guarded_login(&self, guard: LoginGuard) -> Self {
+        let mut client = self.clone();
+        let previous = self.submission_guard.clone();
+        client.submission_guard = Some(std::sync::Arc::new(move || {
+            guard.check()?;
+            if let Some(previous) = &previous {
+                previous()?;
+            }
+            Ok(())
+        }));
+        client
+    }
+    pub fn start_qr_login_guarded(
+        &self,
+        device: DeviceProfile,
+        computer_name: &str,
+        guard: LoginGuard,
+    ) -> Result<LoginAttempt> {
+        guard.check()?;
+        self.guarded_login(guard)
+            .start_qr_login(device, computer_name)
+    }
+    pub fn poll_login_cancellable(
+        &self,
+        attempt: &mut LoginAttempt,
+        guard: LoginGuard,
+    ) -> Result<LoginStatus> {
+        guard.check()?;
+        let client = self.guarded_login(guard.clone());
+        client.poll_login_guarded(attempt, guard.deadline, move || guard.interrupted())
+    }
+    pub fn complete_login_guarded(
+        &self,
+        attempt: &mut LoginAttempt,
+        guard: LoginGuard,
+    ) -> Result<AccountState> {
+        guard.check()?;
+        self.guarded_login(guard).complete_login(attempt)
+    }
     /// Validate transport options. Construction itself makes no network request.
     pub fn new(options: NativeOptions) -> Result<Self> {
         mmtls::validate_host(&options.long_host)?;
@@ -1141,6 +1207,23 @@ mod tests {
         assert!(!text.contains("synthetic-user"));
         assert!(!text.contains("123"));
         assert!(text.contains("redacted"));
+    }
+    #[test]
+    fn login_cancellation_and_deadline_reach_the_final_business_submission_guard() {
+        let client = NativeClient::new(NativeOptions::default()).unwrap();
+        let guard = LoginGuard::new(std::time::Instant::now() + Duration::from_secs(30));
+        let guarded = client.guarded_login(guard.clone());
+        guarded.check_submission().unwrap();
+        guard.cancel();
+        assert!(
+            guarded.check_submission().is_err(),
+            "cancelled QR must refuse final submission"
+        );
+        let expired = client.guarded_login(LoginGuard::new(std::time::Instant::now()));
+        assert!(
+            expired.check_submission().is_err(),
+            "expired QR must refuse final submission"
+        );
     }
     #[test]
     fn account_state_roundtrips_without_number_loss() {

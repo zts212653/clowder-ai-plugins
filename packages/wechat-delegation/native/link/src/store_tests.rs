@@ -3,7 +3,7 @@ use crate::vault::{KeyStore, Result as VaultResult};
 use std::{collections::HashMap, fs, os::unix::fs::PermissionsExt, path::PathBuf, sync::Mutex};
 use zeroize::Zeroizing;
 #[derive(Default)]
-pub(super) struct Keys(Mutex<HashMap<[u8; 16], Zeroizing<[u8; 32]>>>);
+pub(crate) struct Keys(Mutex<HashMap<[u8; 16], Zeroizing<[u8; 32]>>>);
 impl KeyStore for Keys {
     fn create(&self, id: &[u8; 16], key: &[u8; 32]) -> VaultResult<()> {
         self.0.lock().unwrap().insert(*id, Zeroizing::new(*key));
@@ -18,9 +18,9 @@ impl KeyStore for Keys {
             .ok_or(VaultError::KeyUnavailable)
     }
 }
-pub(super) struct Root(pub(super) PathBuf);
+pub(crate) struct Root(pub(crate) PathBuf);
 impl Root {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let mut id = [0; 16];
         openssl::rand::rand_bytes(&mut id).unwrap();
         let root = std::env::temp_dir().join(format!("clowder-store-synthetic-{:x?}", id));
@@ -34,7 +34,7 @@ impl Drop for Root {
         fs::remove_dir_all(&self.0).unwrap();
     }
 }
-pub(super) fn account() -> AccountState {
+pub(crate) fn account() -> AccountState {
     serde_json::from_value(serde_json::json!({
         "schema":1,"device":{"device_id":vec![0x6c;16],"device_type":"MacBookPro","client_version":-227271398},
         "uin":123,"own_username":"synthetic-user","cookie":[],"session_key":vec![0x71;16],

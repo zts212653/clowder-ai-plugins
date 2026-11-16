@@ -7,6 +7,9 @@ use zeroize::Zeroizing;
 #[path = "outbox.rs"]
 mod outbox;
 pub use outbox::{ConversationLease, PreparedSend, SendOutcome, SendPhase, SendReceipt};
+#[path = "login.rs"]
+mod login;
+pub use login::{LoginAdmission, LoginPhase, LoginRecord, LoginTicket};
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -17,6 +20,8 @@ pub enum StoreError {
     IdempotencyConflict,
     AlreadySubmitted,
     UnknownSend,
+    LoginBusy,
+    UnknownLogin,
 }
 impl std::fmt::Display for StoreError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -40,6 +45,10 @@ struct State {
     outbox: std::collections::BTreeMap<String, outbox::Entry>,
     grants: std::collections::BTreeMap<String, outbox::Grant>,
     next_message_id: u32,
+    #[serde(default)]
+    login_generation: u64,
+    #[serde(default)]
+    logins: std::collections::BTreeMap<String, LoginRecord>,
 }
 fn validate_account(account: &AccountState) -> Result<()> {
     account.validate().map_err(|_| StoreError::InvalidState)?;
@@ -71,6 +80,7 @@ impl State {
             validate_account(account)?;
         }
         outbox::validate(self)?;
+        login::validate(self)?;
         Ok(())
     }
 }
@@ -95,6 +105,8 @@ impl Store {
             server_id: id.iter().map(|v| format!("{v:02x}")).collect(),
             generation: 0,
             account: None,
+            login_generation: 0,
+            logins: std::collections::BTreeMap::new(),
             outbox,
             grants,
             next_message_id: (u32::from_be_bytes(
@@ -112,7 +124,8 @@ impl Store {
         let mut state: State =
             serde_json::from_slice(&plaintext).map_err(|_| StoreError::InvalidState)?;
         state.validate()?;
-        if outbox::recover(&mut state) {
+        let login_changed = login::recover(&mut state);
+        if outbox::recover(&mut state) || login_changed {
             vault.commit(&encode(&state)?)?;
         }
         Ok(Self {
@@ -150,6 +163,7 @@ impl Store {
                 .checked_add(1)
                 .ok_or(StoreError::InvalidState)?;
             state.account = Some(account);
+            login::inhibit(state);
             outbox::inhibit(state);
             Ok(state.generation)
         })
@@ -168,6 +182,7 @@ impl Store {
                 .checked_add(1)
                 .ok_or(StoreError::InvalidState)?;
             state.account = None;
+            login::inhibit(state);
             outbox::inhibit(state);
             Ok(state.generation)
         })
@@ -209,4 +224,4 @@ impl AccountPersistence for Persistence {
 
 #[cfg(test)]
 #[path = "store_tests.rs"]
-mod tests;
+pub(crate) mod tests;

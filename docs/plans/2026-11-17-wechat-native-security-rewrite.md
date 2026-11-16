@@ -86,6 +86,18 @@ Architecture cell：微信插件 native 连接服务。Map delta：将通用上�
 
 本次仅回流已审实现状态和只读证据，代码/锁/构建输入与`b3028a9`一致；不为机械登记重新召回reviewer。下一项仍由砚砚实施真正登录/目录/sync/发送执行器与Node窄stdio接线；当前main进程只hello/status且not_ready，不能关闭Task或发布。工位沿原`feat/wechat-delegation`保留续做。
 
+### 当前续做：账号登录已接到stdio，完整产品仍未完成
+
+原工位、原Task续做。本轮加入Store内的持久login意图/回执和ticket fence，AccountService及真实NativeLoginPeer，窄RPC和显式私有目录启动；无参仍离线检查，整体accountServiceReady=false。接口详见`native/IPC.md`。没有改当前安装包、读取默认钥匙串条目、真实扫码或微信请求，所有自动化旅程仅用合成数据；真实OS钥匙串回归用自有临时私有库，不能混称为主号实测。
+
+真实的Store→AccountService→RPC→stdio组合检查先复现缺失接线，再看到串行长轮询会阻塞取消的超时，已改为最多两个网络工作线程，取消/查询/断开保留在入口线程。取消或EOF后，迟到的认证状态不能写入账号；原意图重启保留为Interrupted，终态id不会自动生成新QR或重放认证。AccountState/一次性批准材料不Serialize成宿主DTO，完整输入字段、重复键和秘密导入负向检查通过；认证可能已在途时保留authenticationMayHaveOccurred，不把取消冒充远端设备信任撤销。
+
+协议client.rs新增LoginGuard及三个guarded调用，提交checkpoint和redirect后的下一请求都检查取消/期限；已观察取消检查初始未实现的RED再修绿。物理裁剪范围不扩大，已同步protocol.patch及UPSTREAM摘要并从固定上游逐字节重建26文件。Cargo只增加锁内base64直接引用及serde_json raw_value特性，没有新registry版本。
+
+Architecture cell不变；Map delta为同一Store内login记录和同一native服务的AccountService/stdio执行，不新增第二套账号writer。LoginPeer仅封装协议调用及易失挑战，替身仅测试构造；控制锁不跨网络，持久ticket与易失guard分别防迟到提交/重启复活及后续出站，不是相互兜底。五轴：behavior=开发中登录与IPC；data=加密状态的加法字段/合成数据，无真实迁移删除；security=秘密投影/取消及进程边界；contract=新stdio子集，Node consumer未切换；irreversible=无。
+
+原始完整旅程仍没走通，断点在新Node consumer、当前好友/群目录、sync及实际文字发送执行器；正式制品签名/升级授权、LAN显式验证、业务层key来源及本人授权的真实验收仍待。此为实现内审，不能作为分批发布或Task关闭。内部dogfood由真实文件/钥匙串/协议checkpoint/字节流组合与受影响检查支撑；网络登录成功旅程使用替身，不能冒充真实账号验证。
+
 ### 首轮已落地：启动端凭据目录和环境边界
 
 `NativeSupervisor` 在启动任何组件前，以 `O_DIRECTORY | O_NOFOLLOW` 打开实例根、凭据目录和配置目录，检查当前 UID 并通过该文件句柄设置0700；拒绝末级符号链接，避免 chmod 修改链接目标。配置根和凭据目录不能指向另一个目录。原账号资料不删除，缓存修复仍保留原资料。

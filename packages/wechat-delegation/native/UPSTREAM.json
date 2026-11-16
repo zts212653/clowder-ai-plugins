@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "upstream": "thisnick/agent-wechat",
   "upstreamCommit": "ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
-  "patchSha256": "70445fd44c78cbf0e2c37c908395551a486652e6ae9d1cc57cd8695aebed1647",
+  "patchSha256": "905ea680b5d3ebdad87d55b26e43ea0a4da6958dd968f3fa39b0972f546ef36c",
   "files": [
     {
       "path": "LICENSE",
@@ -80,7 +80,7 @@
       "path": "src/client.rs",
       "origin": "upstream",
       "upstreamSha256": "9edcd1172b8e3632926993f24a78384853ef2a3df939ce1b22bf2771bbe7e3e8",
-      "derivedSha256": "6a3814a89e3603edebfd68beed63c88f4e0a92f36e76126afd9b0d8a7d9def26"
+      "derivedSha256": "45838d74384aad422e82e78189fbd3935085a0cde373793cce49cfc2e2397220"
     },
     {
       "path": "src/contact_sync.rs",

@@ -1,5 +1,67 @@
-mod ipc;
-use std::io;
+use clowder_wechat_link::{account_service::AccountService, stdio};
+use std::{ffi::OsString, io, path::PathBuf, sync::Arc};
+
+fn configure(args: Vec<OsString>) -> io::Result<Option<Arc<AccountService>>> {
+    if args.is_empty() {
+        return Ok(None);
+    }
+    let (path, initialize) = match args.as_slice() {
+        [flag, path] if flag == "--data-dir" => (PathBuf::from(path), false),
+        [flag, path, init] if flag == "--data-dir" && init == "--initialize" => {
+            (PathBuf::from(path), true)
+        }
+        _ => return Err(io::Error::other("invalid startup options")),
+    };
+    if !path.is_absolute() {
+        return Err(io::Error::other("invalid private state directory"));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        use clowder_wechat_link::{
+            keychain::Keychain,
+            store::Store,
+            vault::{KeyStore, Vault},
+        };
+        // The default Keychain is opened only after Vault has validated its
+        // private directory and identity. No test/default-mode query touches it.
+        struct UserKeys;
+        impl KeyStore for UserKeys {
+            fn load(
+                &self,
+                id: &[u8; 16],
+            ) -> clowder_wechat_link::vault::Result<zeroize::Zeroizing<[u8; 32]>> {
+                Keychain::default_for_user()?.load(id)
+            }
+            fn create(
+                &self,
+                id: &[u8; 16],
+                key: &[u8; 32],
+            ) -> clowder_wechat_link::vault::Result<()> {
+                Keychain::default_for_user()?.create(id, key)
+            }
+        }
+        let vault = if initialize {
+            Vault::create(&path, &UserKeys, b"")
+        } else {
+            Vault::open(&path, &UserKeys)
+        }
+        .map_err(|_| io::Error::other("private state unavailable"))?;
+        let store = if initialize {
+            Store::initialize(vault)
+        } else {
+            Store::open(vault)
+        }
+        .map_err(|_| io::Error::other("private state unavailable"))?;
+        let service = AccountService::new(Arc::new(store))
+            .map_err(|_| io::Error::other("account service unavailable"))?;
+        Ok(Some(Arc::new(service)))
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (path, initialize);
+        Err(io::Error::other("account service unsupported"))
+    }
+}
 
 fn run() -> io::Result<()> {
     // Before any worker is created, remove inherited process configuration.
@@ -25,17 +87,8 @@ fn run() -> io::Result<()> {
     let stdin = io::stdin();
     let stdout = io::stdout();
     let mut reader = stdin.lock();
-    let mut writer = stdout.lock();
-    loop {
-        match ipc::read_frame(&mut reader) {
-            Ok(Some(frame)) => ipc::write_response(&mut writer, &ipc::respond(&frame))?,
-            Ok(None) => return Ok(()),
-            Err(_) => {
-                ipc::write_response(&mut writer, &ipc::framing_error())?;
-                return Err(io::Error::other("invalid frame"));
-            }
-        }
-    }
+    let service = configure(std::env::args_os().skip(1).collect())?;
+    stdio::serve(&mut reader, stdout, service)
 }
 fn main() {
     std::panic::set_hook(Box::new(|_| {}));

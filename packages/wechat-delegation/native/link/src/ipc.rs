@@ -1,5 +1,7 @@
 //! Closed, bounded stdio frames. Underlying parser errors never leave here.
-use serde::Deserialize;
+use crate::account_service::{AccountService, ServiceError};
+use serde::{de::DeserializeOwned, Deserialize};
+use serde_json::value::RawValue;
 use serde_json::{json, Value};
 use std::io::{self, BufRead};
 use zeroize::Zeroizing;
@@ -41,42 +43,147 @@ struct Request {
     id: u64,
     method: String,
     #[serde(default)]
-    params: Value,
+    params: Option<Box<RawValue>>,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EmptyParams {}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct OperationParams {
+    operation_id: String,
+}
+fn params<T: DeserializeOwned>(request: &Request) -> Result<T, ()> {
+    serde_json::from_str(request.params.as_ref().map_or("{}", |p| p.get())).map_err(|_| ())
+}
+fn valid_operation_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 128
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"-_.:".contains(&b))
+}
+fn parse(frame: &[u8]) -> Result<Request, ()> {
+    match serde_json::from_slice::<Request>(frame) {
+        Ok(value) if value.id > 0 && value.id <= 9_007_199_254_740_991 => Ok(value),
+        _ => Err(()),
+    }
 }
 fn error(id: Option<u64>, code: &'static str) -> Value {
     json!({"id":id,"error":{"code":code}})
 }
 
 pub fn respond(frame: &[u8]) -> Value {
-    let request = match serde_json::from_slice::<Request>(frame) {
-        Ok(value) if value.id > 0 && value.id <= 9_007_199_254_740_991 => value,
+    respond_with(frame, None)
+}
+pub fn is_blocking(frame: &[u8]) -> bool {
+    parse(frame).is_ok_and(|r| matches!(r.method.as_str(), "login.start" | "login.poll"))
+}
+pub fn busy_response(frame: &[u8]) -> Value {
+    error(parse(frame).ok().map(|r| r.id), "operation_busy")
+}
+pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
+    let request = match parse(frame) {
+        Ok(value) => value,
         _ => return error(None, "invalid_request"),
     };
-    if request.method.len() > 64 || !matches!(request.method.as_str(), "hello" | "status") {
+    if request.method.len() > 64
+        || !matches!(
+            request.method.as_str(),
+            "hello"
+                | "status"
+                | "login.start"
+                | "login.poll"
+                | "login.operation"
+                | "login.cancel"
+                | "account.disconnect"
+        )
+    {
         return error(Some(request.id), "unsupported_method");
     }
-    if !request.params.is_null()
-        && !request
-            .params
-            .as_object()
-            .is_some_and(|params| params.is_empty())
-    {
-        return error(Some(request.id), "invalid_params");
-    }
+    let operation = if request.method.starts_with("login.") {
+        match params::<OperationParams>(&request) {
+            Ok(value) if valid_operation_id(&value.operation_id) => Some(value.operation_id),
+            _ => return error(Some(request.id), "invalid_params"),
+        }
+    } else {
+        if params::<EmptyParams>(&request).is_err() {
+            return error(Some(request.id), "invalid_params");
+        }
+        None
+    };
+    let project = |value: Result<Value, ServiceError>| -> Value {
+        match value {
+            Ok(result) => json!({"id":request.id,"result":result}),
+            Err(problem) => error(
+                Some(request.id),
+                match problem {
+                    ServiceError::Busy => "operation_busy",
+                    ServiceError::PrivateState => "private_state_unavailable",
+                    ServiceError::InvalidOperation => "invalid_operation",
+                    ServiceError::Unavailable => "account_service_unavailable",
+                },
+            ),
+        }
+    };
     let result = match request.method.as_str() {
-        "hello" => json!({"product":"clowder-wechat-link","version":env!("CARGO_PKG_VERSION"),
+        "hello" => {
+            let mut capabilities = vec!["stdio-v1", "text-protocol-subset"];
+            if service.is_some() {
+                capabilities.push("account-login-v1");
+            }
+            json!({"product":"clowder-wechat-link","version":env!("CARGO_PKG_VERSION"),
             "pid":std::process::id(),"protocolVersion":1,
             "upstreamCommit":"ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
-            // Login/send capabilities are deliberately absent until implemented.
-            "capabilities":["stdio-v1","text-protocol-subset"],"accountServiceReady":false}),
+            // Directory/sync/send execution is not yet wired to this entry.
+            "capabilities":capabilities,"accountServiceReady":false})
+        }
         "status" => {
             let records = match wechat_protocol::egress_snapshot() {
                 Ok(value) => value,
                 Err(_) => return error(Some(request.id), "observation_unavailable"),
             };
-            json!({"connection":"not_ready","authenticated":false,"egress":records})
+            if let Some(service) = service {
+                let mut value = match service.status() {
+                    Ok(value) => match serde_json::to_value(value) {
+                        Ok(value) => value,
+                        Err(_) => return error(Some(request.id), "internal_error"),
+                    },
+                    Err(error) => return project(Err(error)),
+                };
+                if let Some(object) = value.as_object_mut() {
+                    object.insert("egress".into(), json!(records));
+                }
+                value
+            } else {
+                json!({"connection":"not_ready","authenticated":false,"egress":records})
+            }
         }
-        _ => unreachable!(),
+        _ => {
+            let Some(service) = service else {
+                return error(Some(request.id), "not_ready");
+            };
+            let id = operation.as_deref().unwrap_or("");
+            let value = match request.method.as_str() {
+                "login.start" => service
+                    .start_login(id)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                "login.poll" => service
+                    .poll_login(id)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                "login.operation" => service
+                    .login_operation(id)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                "login.cancel" => service
+                    .cancel_login(id)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                "account.disconnect" => service
+                    .disconnect()
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                _ => return error(Some(request.id), "unsupported_method"),
+            };
+            return project(value);
+        }
     };
     json!({"id":request.id,"result":result})
 }
