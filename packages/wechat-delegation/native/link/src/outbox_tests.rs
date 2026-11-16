@@ -111,3 +111,60 @@ fn restart_keeps_uncertain_sends_and_pauses_every_scope_without_retry() {
         .queue_send(&resumed, "after-logout", "must refuse")
         .is_err());
 }
+
+#[test]
+fn a_queued_send_cannot_cross_its_explicit_deadline_at_the_final_submission_checkpoint() {
+    let root = Root::new();
+    let keys = Keys::default();
+    let store = Store::initialize(Vault::create(&root.0, &keys, b"").unwrap()).unwrap();
+    store.accept_login(0, account()).unwrap();
+    let lease = store.authorize(1, "friend").unwrap();
+    store
+        .queue_send(&lease, "deadline-handoff", "synthetic text")
+        .unwrap();
+    // Configure the deadline after fixture admission, before the actual final
+    // checkpoint, so slow setup cannot turn this into a queue-admission test.
+    store
+        .update(|state| {
+            state.grants.get_mut("friend").unwrap().expires_at_ms = Some(1);
+            Ok(())
+        })
+        .unwrap();
+    assert!(
+        store.begin_submission("deadline-handoff").is_err(),
+        "expired authorization must fail at final handoff even if it was queued earlier"
+    );
+    assert_ne!(
+        store.receipt("deadline-handoff").unwrap().state,
+        SendPhase::Submitting
+    );
+}
+
+#[test]
+fn deadline_grants_are_bounded_durable_and_never_delete_send_history() {
+    let root = Root::new();
+    let keys = Keys::default();
+    let store = Store::initialize(Vault::create(&root.0, &keys, b"").unwrap()).unwrap();
+    store.accept_login(0, account()).unwrap();
+    for deadline in [0, 1, 9_007_199_254_740_992] {
+        assert!(store.authorize_until(1, "friend", Some(deadline)).is_err());
+    }
+    let deadline = now_ms().unwrap() + 60_000;
+    let lease = store.authorize_until(1, "friend", Some(deadline)).unwrap();
+    store
+        .queue_send(&lease, "retained", "synthetic text")
+        .unwrap();
+    drop(store);
+    let store = Store::open(Vault::open(&root.0, &keys).unwrap()).unwrap();
+    assert_eq!(
+        store.lock().unwrap().state.grants["friend"].expires_at_ms,
+        Some(deadline)
+    );
+    assert_eq!(
+        store.receipt("retained").unwrap().state,
+        SendPhase::Cancelled
+    );
+    assert!(store
+        .queue_send(&lease, "no-auto-restore", "synthetic text")
+        .is_err());
+}

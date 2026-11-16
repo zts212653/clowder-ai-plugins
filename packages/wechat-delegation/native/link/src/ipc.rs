@@ -60,6 +60,7 @@ struct AuthorizationParams {
     account_generation: u64,
     account_identity: String,
     destination: String,
+    expires_at_ms: Option<u64>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -209,7 +210,13 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
         }
     } else if request.method == "conversation.authorize" {
         match params::<AuthorizationParams>(&request) {
-            Ok(value) => ParsedParams::Authorize(value),
+            Ok(value)
+                if value
+                    .expires_at_ms
+                    .is_none_or(|v| v > 0 && v <= 9_007_199_254_740_991) =>
+            {
+                ParsedParams::Authorize(value)
+            }
             _ => return error(Some(request.id), "invalid_params"),
         }
     } else if request.method == "conversation.pause" {
@@ -306,7 +313,8 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
             json!({"product":"clowder-wechat-link","version":env!("CARGO_PKG_VERSION"),
             "pid":std::process::id(),"protocolVersion":1,
             "upstreamCommit":"ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
-            // Explicit session recovery and the Host replacement remain pending.
+            // API availability is distinct from complete Host/product acceptance.
+            "nativeApiAvailable":service.is_some(),
             "capabilities":capabilities,"accountServiceReady":false})
         }
         "status" => {
@@ -355,6 +363,7 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                         p.account_generation,
                         &p.account_identity,
                         &p.destination,
+                        p.expires_at_ms,
                     )
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 ("conversation.pause", ParsedParams::Pause(p)) => service

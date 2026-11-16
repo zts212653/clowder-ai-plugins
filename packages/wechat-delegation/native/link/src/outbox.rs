@@ -42,6 +42,8 @@ pub(super) struct Entry {
 pub(super) struct Grant {
     generation: u64,
     active: bool,
+    #[serde(default)]
+    expires_at_ms: Option<u64>,
 }
 pub struct PreparedSend {
     pub receipt: SendReceipt,
@@ -76,6 +78,17 @@ fn valid_server_id(value: &str) -> bool {
         && value.bytes().all(|b| b.is_ascii_digit())
         && value.parse::<u64>().is_ok_and(|v| v > 0)
 }
+fn valid_deadline(value: u64) -> bool {
+    value > 0 && value <= 9_007_199_254_740_991
+}
+fn now_ms() -> Result<u64> {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| StoreError::InvalidState)?
+        .as_millis()
+        .try_into()
+        .map_err(|_| StoreError::InvalidState)
+}
 pub(super) fn inhibit(state: &mut State) {
     for grant in state.grants.values_mut() {
         grant.active = false;
@@ -107,6 +120,7 @@ pub(super) fn validate(state: &State) -> Result<()> {
     for (destination, grant) in &state.grants {
         if !valid_destination(destination)
             || grant.generation == 0
+            || grant.expires_at_ms.is_some_and(|v| !valid_deadline(v))
             || (grant.active && state.account.is_none())
         {
             return Err(StoreError::InvalidState);
@@ -146,12 +160,14 @@ pub(super) fn validate(state: &State) -> Result<()> {
     Ok(())
 }
 fn check_lease(state: &State, lease: &ConversationLease) -> Result<()> {
+    let at = now_ms()?;
     if state.account.is_none()
         || state.generation != lease.account_generation
-        || !state
-            .grants
-            .get(&lease.destination)
-            .is_some_and(|g| g.active && g.generation == lease.conversation_generation)
+        || !state.grants.get(&lease.destination).is_some_and(|g| {
+            g.active
+                && g.generation == lease.conversation_generation
+                && g.expires_at_ms.is_none_or(|deadline| deadline > at)
+        })
     {
         return Err(StoreError::PermissionDenied);
     }
@@ -161,10 +177,21 @@ impl Store {
     /// Called after the service verifies account and current friend/group identity
     /// and consumes an explicit host authorization. This is not a directory check.
     pub fn authorize(&self, generation: u64, destination: &str) -> Result<ConversationLease> {
-        if !valid_destination(destination) {
+        self.authorize_until(generation, destination, None)
+    }
+    pub fn authorize_until(
+        &self,
+        generation: u64,
+        destination: &str,
+        expires_at_ms: Option<u64>,
+    ) -> Result<ConversationLease> {
+        if !valid_destination(destination) || expires_at_ms.is_some_and(|v| !valid_deadline(v)) {
             return Err(StoreError::InvalidState);
         }
         self.update(|state| {
+            if expires_at_ms.is_some_and(|v| now_ms().map_or(true, |at| v <= at)) {
+                return Err(StoreError::PermissionDenied);
+            }
             if state.account.is_none() || state.generation != generation {
                 return Err(StoreError::StaleGeneration);
             }
@@ -178,6 +205,7 @@ impl Store {
                 Grant {
                     generation: next,
                     active: true,
+                    expires_at_ms,
                 },
             );
             for entry in state.outbox.values_mut() {

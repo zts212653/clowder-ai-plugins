@@ -177,6 +177,7 @@ impl AccountService {
         generation: u64,
         identity: &str,
         destination: &str,
+        expires_at_ms: Option<u64>,
     ) -> Result<ConversationLease> {
         if !ordinary_destination(destination) {
             return Err(ServiceError::PermissionDenied);
@@ -203,7 +204,9 @@ impl AccountService {
         if control.authorization_epoch != epoch {
             return Err(ServiceError::PermissionDenied);
         }
-        Ok(self.store.authorize(generation, destination)?)
+        Ok(self
+            .store
+            .authorize_until(generation, destination, expires_at_ms)?)
     }
     pub fn pause_conversation(&self, generation: u64, destination: Option<&str>) -> Result<()> {
         let mut control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;

@@ -220,3 +220,57 @@ test('a body request admitted before takeover cannot enter a later restored poli
   await f.service.processIncoming(f.binding.id);
   assert.equal((await f.service.snapshot()).runs.length,0); assert.equal(f.calls.length,0);
 });
+
+test('a new native instance cannot bypass unknown sends for the same real account and conversation', async () => {
+  const f = await fixture({channel:{submit:async()=>{throw Error('unknown native result');}}});
+  await f.service.initiate(f.binding.id,'before-instance-restart');
+  const next = await DelegationService.open({storage:f.storage,channel:f.channel,model:f.model,now:()=>10000});
+  await assert.rejects(next.activate(policy({serverId:'new-native-instance'})),/核对|确定|unknown/);
+});
+test('every durable exit from active dispatches a nonblocking native-stop observation before the next serial operation', async () => {
+  for (const kind of ['silent','needs_owner']) {
+    const f = await fixture({model:{generate:async()=>({kind,text:'本轮交还本人'})}});
+    const observed=[];
+    f.service.onStop = event => {observed.push(event);};
+    await f.service.initiate(f.binding.id,`boundary-${kind}`);
+    assert.equal(observed.length,1,'implicit stop must reach the sender control consumer');
+    assert.equal(observed[0].policies[0].id,f.binding.id);
+    assert.notEqual((await f.service.snapshot()).policies[0].mode,'active');
+  }
+  const f=await fixture();const order=[];
+  f.service.onStop=()=>{order.push('stop');};
+  const stopped=f.service.takeover(f.binding.id);const next=f.service.serial(()=>{order.push('next');});
+  await Promise.all([stopped,next]);assert.deepEqual(order,['stop','next']);
+});
+test('the admitted run keeps its own native lease instead of inheriting a later grant', async () => {
+  const lease={accountGeneration:1,conversationGeneration:7,destination:'friend'};
+  const f=await fixture({policy:{nativeLease:lease}});
+  const admitted=await f.service.admit(f.binding.id,'proactive','lease-snapshot',null);
+  assert.deepEqual(admitted.run.nativeLease,lease);
+  lease.conversationGeneration=99;
+  assert.equal((await f.service.snapshot()).runs[0].nativeLease.conversationGeneration,7);
+});
+
+test('expiry and generation failure persist a stop observation; a different account remains independent', async () => {
+  const f = await fixture({ policy:{expiresAt:10001} });
+  const stopped=[];f.service.onStop=event=>stopped.push(event);
+  await f.service.tick(10001);
+  assert.equal((await f.service.snapshot()).policies[0].mode,'expired');
+  assert.equal(stopped.length,1);
+  const failure=await fixture({model:{generate:async()=>{throw Error('synthetic');}}});
+  failure.service.onStop=event=>stopped.push(event);
+  await failure.service.initiate(failure.binding.id,'failed');
+  assert.equal(stopped.length,2);
+  const unknown=await fixture({channel:{submit:async()=>{throw Error('unknown');}}});
+  await unknown.service.initiate(unknown.binding.id,'unknown');
+  await unknown.service.activate(policy({serverId:'new',accountIdentity:'another-account'}));
+});
+
+test('a typed sender refusal before commit is failed, while loss after write remains unknown',async()=>{
+  const {NativeRequestError}=await import('../src/native-stdio.mjs');
+  for(const uncertain of [false,true]){
+    const f=await fixture({channel:{submit:async()=>{throw new NativeRequestError(uncertain?'request_unknown':'permission_denied',uncertain);}}});
+    await f.service.initiate(f.binding.id,'typed-refusal');
+    assert.equal((await f.service.snapshot()).runs[0].phase,uncertain?'needs_review':'failed');
+  }
+});

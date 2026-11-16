@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { NativeRequestError } from './native-stdio.mjs';
 
 const KEY = 'wechat-delegation.v1';
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -70,6 +71,15 @@ export class DelegationService {
     const result = operation(state);
     const written = await this.storage.compareAndSet(KEY, row.revision, state);
     if (!written.applied) throw Error('journal revision conflict');
+    const all = state.globalControlEpoch !== row.value.globalControlEpoch;
+    const stopped = Object.values(state.policies).filter(policy => {
+      const before = row.value.policies[policy.id];
+      return all || before && policy.mode !== 'active' && (before.mode === 'active' || before.epoch !== policy.epoch);
+    });
+    // The consumer registers asynchronous sender control here, after durable
+    // intent and before another serial operation can prepare a new grant.
+    // It must not wait for the network inside this journal boundary.
+    if (all || stopped.length) this.onStop?.({ all, policies: structuredClone(stopped) });
     return structuredClone(result);
   }
   async snapshot() {
@@ -104,7 +114,8 @@ export class DelegationService {
       const old = state.policies[policyId];
       if (fence && ((old?.epoch ?? 0) !== fence.policyEpoch || state.globalControlEpoch !== fence.globalControlEpoch))
         throw Error('授权准备期间发生接管或配置变化，请重新确认');
-      if (Object.values(state.runs).some(run => run.policyId === policyId && run.submitted && ['submitting', 'queued', 'needs_review'].includes(run.phase)))
+      if (Object.values(state.runs).some(run => run.accountId === input.accountId && run.accountIdentity === input.accountIdentity &&
+          run.conversationId === input.conversationId && run.submitted && ['submitting', 'queued', 'needs_review'].includes(run.phase)))
         throw Error('请先核对该会话尚未确定的发送结果');
       for (const run of Object.values(state.runs)) if (run.policyId === policyId) {
         if (['waiting', 'generating', 'prepared'].includes(run.phase)) run.phase = 'cancelled';
@@ -166,6 +177,7 @@ export class DelegationService {
       const boundary = sensitive(message.body);
       state.runs[runId] = {id:runId,policyId:policy.id,epoch:policy.epoch,catId:policy.catId,
         accountId:policy.accountId,accountIdentity:policy.accountIdentity,serverId:policy.serverId,conversationId:policy.conversationId,
+        ...(policy.nativeLease === undefined ? {} : {nativeLease:structuredClone(policy.nativeLease),nativeStoreId:policy.nativeStoreId}),
         trigger,operationId:message.id,incomingText:message.body,incomingAt:message.createdAt,createdAt:this.now(),submitted:false,
         phase:boundary?'needs_owner':policy.replies?'waiting':'observed'};
       if (boundary) { stopInState(state,[policy.id]); policy.ownerReason='boundary'; }
@@ -214,6 +226,7 @@ export class DelegationService {
       policy.turns++; policy.cursor++; policy.nextAt = this.now() + policy.intervalMinutes * 60000;
       const run = { ...existing, id: runId, policyId, epoch: policy.epoch, catId: policy.catId,
         accountId: policy.accountId, accountIdentity: policy.accountIdentity, serverId: policy.serverId,
+        ...(policy.nativeLease === undefined ? {} : {nativeLease: structuredClone(policy.nativeLease),nativeStoreId:policy.nativeStoreId}),
         conversationId: policy.conversationId, trigger, operationId, incomingText,
         semanticCursor: policy.cursor, createdAt: this.now(), phase: incomingText && sensitive(incomingText) ? 'needs_owner' : 'generating', submitted: false };
       state.runs[runId] = run;
@@ -260,7 +273,7 @@ export class DelegationService {
           return row;
         });
         if (!run) return null;
-        // submit() starts its HTTP call before its first await. Release this
+        // submit() starts its transport write before its first await. Release this
         // serial boundary with the promise wrapped, so takeover never waits for
         // a remote ACK, while the start and local stop have one defined order.
         return { promise: this.channel.submit(run) };
@@ -270,10 +283,11 @@ export class DelegationService {
       await this.serial(() => this.change(state => {
         const run = state.runs[runId];
         if (run.phase === 'cancelled') return;
-        run.phase = run.submitted ? 'needs_review' : 'failed';
+        const refused = run.submitted && error instanceof NativeRequestError && error.mayHaveCommitted === false;
+        run.phase = run.submitted && !refused ? 'needs_review' : 'failed';
         const formatFailure = !run.submitted && error?.code === 'member_response_format';
         if (formatFailure) run.errorCode = 'member_response_format';
-        run.error = run.submitted ? '发送结果待核对；不会自动重发' : formatFailure
+        run.error = refused ? '发送端已拒绝本轮请求，未提交微信发送；请检查后重新发起' : run.submitted ? '发送结果待核对；不会自动重发' : formatFailure
           ? '猫的回复格式无法识别，未提交微信发送；请检查后重新发起' : '本轮生成未完成；请检查后重新发起';
         if (this.current(state, run)) { state.policies[policyId].mode = 'paused'; state.policies[policyId].epoch++; }
       }));
@@ -311,6 +325,12 @@ export class DelegationService {
     }
   }
   async tick(at = this.now()) {
+    await this.serial(() => this.change(state => {
+      for (const policy of Object.values(state.policies)) if (policy.mode === 'active' && policy.expiresAt !== null && policy.expiresAt <= at) {
+        policy.mode = 'expired'; policy.epoch++;
+        for (const run of Object.values(state.runs)) if (run.policyId === policy.id && ['waiting', 'generating', 'prepared'].includes(run.phase)) run.phase = 'cancelled';
+      }
+    }));
     for (const policy of (await this.snapshot()).policies) {
       if (policy.mode !== 'active' || !policy.proactive || policy.scheduleEnabled !== true || policy.nextAt > at || policy.turns >= policy.maxTurns ||
           policy.expiresAt !== null && policy.expiresAt <= at) continue;

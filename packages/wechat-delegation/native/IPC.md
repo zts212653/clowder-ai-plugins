@@ -14,7 +14,7 @@ clowder-wechat-link --data-dir /absolute/private/vault --initialize
 
 `--initialize`是明确的新库初始化，已经有身份或密文时拒绝，不能把它当修复/覆盖参数。钥匙串失败和中断的原件保留；本轮尚未交付其恢复UI，不可删除标记静默重试。没有旧profile导入/迁移或自动开新数据目录的fallback。
 
-成功加载账号目录后，hello增加`account-login-v1`能力；完整`accountServiceReady`仍为false，缺当前目录枚举、显式恢复与完整Node consumer。已保存凭据重开后仅为`stored`，不谎报已和服务器验证在线；新二维码成功完成协议认证才报告online。尚未添加自动重连/凭据重认证策略。
+成功加载账号目录后，hello的`nativeApiAvailable=true`并增加登录、文字、同步、目录和显式恢复能力；无参为false。完整`accountServiceReady`仍为false，完整Host consumer和产品验收尚缺。已保存凭据重开后仅为`stored`，不谎报已和服务器验证在线；明确扫码或显式恢复成功才报告online，没有自动重连/认证。
 
 ## 请求与响应
 
@@ -32,7 +32,7 @@ id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、�
 | login.poll | operationId | 查询一个已创建挑战；同一意图不并发轮询。批准后认证交换一次，提交账号和成功回执 |
 | login.operation | operationId | 读取持久回执；仅当前待扫/待批准挑战附加易失QR投影 |
 | login.cancel | operationId | 持久取消；清除当前QR与取消guard；网络已在途时不声称可以追回授权 |
-| conversation.authorize | accountGeneration、accountIdentity、destination | 新鲜核当前好友/群身份后，返回账号/会话双generation的租约；不会使用缓存证明关系 |
+| conversation.authorize | accountGeneration、accountIdentity、destination，可省略/null的expiresAtMs | 新鲜核当前好友/群身份后持久授权期限，返回账号/会话双generation租约；最终提交点再次检查期限 |
 | conversation.pause | accountGeneration，可省略destination表示全部 | 先持久暂停及取消未提交消息，拒绝并发迟到授权；保留Submitting |
 | text.send | lease、operationId、text | 同一Store先记意图；在协议最终before-submit持久化Submitting；只回受限SendReceipt |
 | send.receipt | operationId | 查询原发送回执，不触发网络发送 |
@@ -62,11 +62,13 @@ Node侧还未接线；上述是受控开发入口，不是对最终用户新增�
 
 子进程exit后立即拒绝新请求，但保留待读响应直到stdout读尽或close，避免丢失退出前已经写出的最终回执。真实Node子进程检查覆盖这一退出顺序、乱序、超时晚回包、关闭、超长/坏JSON及含秘密诊断拒绝；另已让该transport连接真正编译的Rust无参进程核PID、hello/status及离线登录拒绝。该组合没有默认钥匙串条目/账号访问，也不是真实扫码或Host安装验收。
 
+`src/link-client.mjs`新增上述私有管道的窄类型消费端，逐层拒绝未知字段，核当前PID/精确版本/能力，账号、租约与发送回执身份须匹配。每个adapter只绑定一个owned child，运行instance id每次新建；持久Store.serverId单独保存，不冒充新进程身份。提交直接使用run中的lease，写前没有await；未知/无效回包不重发，已明确副作用前拒绝与写后未知区分。认证/目录/同步/消息DTO及QR仅按封闭结构返回，不导出AccountState。尚未替换Supervisor/Runtime及旧资产，亦未完成流基线/查证和实际插件旅程，不能把这层视为完整产品就绪。
+
 同步使用账号generation和私有checkpoint ticket拒绝迟到/重复提交；网络不持control锁，同一账号最多一个sync.pull在途，stdio总网络线程仍最多两个。未知或不能投影的命令保留在同一个加密Vault且计数披露，不进RPC；不因新游标删除它们。相同命令去重，无变化轮询不改写Vault。消息id绑定账号代次和服务端id（缺id时用命令摘要）；同id冲突保留原投影及原始新命令，增加未投影计数，不覆盖已保存正文。
 
 群消息的senderId保持null，尚未推导发言人；正文保留协议原文字，不捏造昵称或成员身份。非文字/过大/不能解码的正文为null；原命令仍加密保留。消息不会触发任何媒体、链接或预览下载。这里只完成本机持久消息入口，完整模型消费及真实群收发验收仍待。
 
-对协议明确分类的会话拒绝，停止当前client并持久暂停全部grants；凭据保留、authenticated=false，不自动续期/扫码，也不将一般网络故障直接当凭据失效。显式重新验证保存会话尚待实现。
+对协议明确分类的会话拒绝，停止当前client并持久暂停全部grants；凭据保留、authenticated=false，不自动续期/扫码，也不将一般网络故障直接当凭据失效。重新验证只走下面的显式恢复入口。
 
 ## 当前目录
 
@@ -74,7 +76,7 @@ Node侧还未接线；上述是受控开发入口，不是对最终用户新增�
 
 候选来自从零联系人ID目录、独立群目录和已同步群id，均用发送入口同一verified_target新鲜核关系和受限名字字段。无法核验计入unverifiedCount；群发现失败继续核验已知候选并标groupDiscoveryIncomplete=true。stalled cursor/超限记failed；服务端wait投影为retryAfterMs，等待时不发新查询。原始metadata/cursor不出RPC。
 
-意图及终态快照落同一Vault；中间外部缓存和进度只在进程内，避免每个联系人后重写整个账号库。断开/EOF/重启记interrupted，不自动续跑或假造完成计数。新刷新可替换当前目录缓存，旧意图保留且snapshotAvailable=false；没有删除聊天、发送或控制历史，也没有为它们增加TTL。完整Host消费端及显式会话恢复仍待，accountServiceReady=false。
+意图及终态快照落同一Vault；中间外部缓存和进度只在进程内，避免每个联系人后重写整个账号库。断开/EOF/重启记interrupted，不自动续跑或假造完成计数。新刷新可替换当前目录缓存，旧意图保留且snapshotAvailable=false；没有删除聊天、发送或控制历史，也没有为它们增加TTL。完整Host消费端仍待，accountServiceReady=false。
 
 ## 显式保存会话恢复
 
