@@ -4,7 +4,7 @@
 
 目标是在 Clowder AI 中由本人选择普通微信好友或群、选择猫与说话风格，允许主动开口和接话，并随时交还本人。不是 iLink Bot、桌面 OCR 或只会回应群内提及的替代方案。
 
-**当前分支尚不能作为新安装版验收。** 自有原生服务、私有管道消费端、发送端期限与接管、持久认证意图、同步基线/重置和精确发送查证已实现。面板已提供明确恢复/取消、同步状态、钥匙串系统授权和有证据的首次初始化恢复；真实系统交互、显式LAN、最终完整验收仍在继续。`accountServiceReady=false`。正在运行的旧插件未被替换，未操作真实微信账号，也未合并或发布本候选。
+**当前分支尚不能作为新安装版验收。** 自有原生服务、私有管道消费端、发送端期限与接管、持久认证意图、同步基线/重置和精确发送查证已实现。面板已提供明确恢复/取消、同步状态、钥匙串系统授权和有证据的首次初始化恢复；显式LAN许可已接入，真实系统交互、最终完整验收仍在继续。`accountServiceReady=false`。正在运行的旧插件未被替换，未操作真实微信账号，也未合并或发布本候选。
 
 ## 当前实现与安全边界
 
@@ -16,7 +16,7 @@
 - 模型仅通过 Host 受限成员会话收到本人填写的人设、目标和获准聊天文字；无账号凭据、Keychain/Vault、二维码、收件人改权或直接发送工具。外部聊天文字按不可信数据处理。验证码、支付、链接等明确边界会转交本人；文字规则不是识别所有骗局的保证。
 - 已提交、受理、未知与真正核验送达分别记录。未知或 ACK 丢失不自动重发，同账号同会话的未知记录不能因子进程重启而绕过。聊天、控制与发送历史无默认 TTL。
 
-完整接线计划：[Host integration](../../docs/plans/2026-11-17-wechat-native-host-integration.md)。内部接口：[IPC.md](native/IPC.md)。具体签名、构建字节、依赖及许可：[assets/native/README.md](assets/native/README.md)。两把 MMTLS 验签 pin 已与本机腾讯签名制品匹配；六把业务 key 来源仍未确认，不能把局部核验称为总体验收，见 [KEY-PROVENANCE.md](native/KEY-PROVENANCE.md)。
+完整接线计划：[Host integration](https://github.com/YukinaXSer/clowder-ai-plugins/blob/feat/wechat-delegation/docs/plans/2026-11-17-wechat-native-host-integration.md)。内部接口：[IPC.md](native/IPC.md)。具体签名、构建字节、依赖及许可：[assets/native/README.md](assets/native/README.md)。两把 MMTLS 验签 pin 已与本机腾讯签名制品匹配；六把业务 key 来源仍未确认，不能把局部核验称为总体验收，见 [KEY-PROVENANCE.md](native/KEY-PROVENANCE.md)。
 
 ## 验证范围
 

@@ -1,6 +1,6 @@
 # 微信文字协议子集（实施中）
 
-这是账号安全重写的内部实施代码，尚未接入用户正在运行的插件。无参只开放hello/status；显式私有目录已接扫码、显式保存会话恢复、文字发送/接管、入站同步及当前目录。Node/Host和面板已消费自有私有stdio组件，新增明确的钥匙串系统授权和首次初始化恢复入口；真实交互、显式LAN、最终制品/完整旅程仍待验收，accountServiceReady=false。入口契约见[IPC.md](IPC.md)。
+这是账号安全重写的内部实施代码，尚未接入用户正在运行的插件。无参只开放hello/status；显式私有目录已接扫码、显式保存会话恢复、文字发送/接管、入站同步及当前目录。Node/Host和面板已消费自有私有stdio组件，新增明确的钥匙串系统授权和首次初始化恢复入口；显式LAN许可已实现；真实交互、最终制品/完整旅程仍待验收，accountServiceReady=false。入口契约见[IPC.md](IPC.md)。
 
 来源与授权：本人 `thread_mwg7kandcxztqeab#0001794847733075-000352-bf448701`；架构来源为宪宪 `000355` / `000362`，独立威胁稿为小多子 `000356`。完整产品与安全终态要求见 `docs/plans/2026-11-17-wechat-native-security-rewrite.md`。`b3028a9`的内部持久层与依赖更新已获小多子`000397`准确HEAD独立批准，未覆盖尚缺的执行器/真实旅程。
 
@@ -10,13 +10,15 @@
 
 未编入原 daemon、HTTP API、账号 profile、存储、音视频、媒体/CDN、贴纸、图片/压缩包解析、官方桌面微信导入。保留扫码、会话、同步、纯文字和好友/群目录协议及其相关回归。密钥算法与消息格式沿用上游；不能把移植称为完整密码学审计。
 
-新的 `transport.rs` 集中生产建连和 HTTP 客户端构造。HTTP 仍使用原锁定的成熟 reqwest 解析，移除 TLS 栈，仅允许固定 MMTLS POST、禁跳转、禁代理继承；不手写 HTTP 响应解析。DNS 结果先过滤本机/私网/元数据地址，再固定给本次连接，防止第二次解析绕过。网络请求还须经过15条文字/账号/目录业务路径白名单。没有通用 URL 接口。
+新的 `transport.rs` 集中生产建连和 HTTP 客户端构造。HTTP 仍使用原锁定的成熟 reqwest 解析，移除 TLS 栈，仅允许固定 MMTLS POST、禁跳转、禁代理继承；不手写 HTTP 响应解析。DNS 结果先过滤本机/私网/元数据地址，再固定给本次连接，防止第二次解析绕过。网络请求还须经过16条文字/账号/目录及显式LAN上报业务路径白名单。没有通用 URL 接口。
 
 当前保留系统 Fake-IP 路由，并在观察记录中如实标注；不能据此声称实际出口直连腾讯。长链记录 socket 实际读写字节；短链仅记录准备的加密请求体、读到的响应体，不把它们冒称内核流量或服务端实收。握手签名及Finished均验证后才记录实际选中的pin版本和区域，这仍不证明pin的官方来源。DNS 解析本身仍由系统阻塞 resolver 提供，不声称整个解析过程有严格截止保证。
 
 扫码尝试类型不再实现 Serialize/Deserialize；快照导出只在内部测试编译。不用的官方 profile 数据库密码与原始认证快照在认证归约后清零丢弃。最终保险库仍必须保护剩余的实际会话秘密。
 
-当前不会自动处理服务端要求的 LAN 登录挑战：协议返回 `LanApprovalRequired`，账号服务记为`lan_required`，不打开监听器。该情形的显式授权及实际兼容路径仍待完成，不能把常规QR隔离检查当成所有账号都可登录的证明。
+服务端要求 LAN 验证时，账号服务保留原操作并进入 `lan_awaiting_consent`，不监听、不上报。只有本人在面板确认后，`login.allow_lan` 在同一 Store 记录一次许可及最长120秒期限，再绑定至最多8个启用的 en* 私有IPv4广播接口具体地址、同一个8050–8100端口；没有通配监听或VPN/公共地址。固定CGI22312上报只尝试一次，ACK丢失不重发。令牌仅在native易失内存中；只向同子网设备写出固定frame，不读对端内容，最多32次连接、单次写入最多1秒。监听线程独立检查原取消guard/期限，不等待上传网络返回；取消、到期、批准/拒绝或进程退出结束监听。后续仍须通过正常手机批准和认证，不因收到令牌取得账号权限。
+
+许可、期限及结果无TTL持久化；重启中断，不恢复监听。旧 `lan_required` 保持终态，不复活权限。Host只对同进程/库/原操作发一次明确许可，未知只查原记录。自动化只枚举合成地址、监听loopback；没有绑定真实局域网或运行实际手机验证。当前en*接口与私网限制能否覆盖本人的实际网络仍待验收。Apple [TN3179](https://developer.apple.com/documentation/technotes/tn3179-understanding-local-network-privacy)说明入站TCP监听/接受本身不要求Local Network权限，因此面板不承诺系统一定再弹网络提示；防火墙与实际网络行为不能由该文档推断。
 
 ## 可复跑检查
 
@@ -84,7 +86,7 @@ stdio只将login.start/poll、conversation.authorize和text.send交给最多两�
 
 结果只有通过目的地/client id与业务code验证、带规范非零u64 serverId才为accepted；匹配的明确拒绝为failed，其余在途结果为needs_review。accepted不宣称对方已读或canonical同步回显。完整方法和字段见IPC.md。生产路径采用NativeTextPeer；组合测试用替身控制远端回执，不能冒充真实微信网络发送检查。
 
-应用层身份判定来源为同一固定MIT上游wechat-core/src/metadata.rs（完整mask及字段控制）、peer_classification.rs（系统/公众号排除）及本包既有current-directory.patch（群成员正向证明）。只复用这些小范围解释，无core/profile/SQLite依赖；许可仍保留于proto/LICENSE，协议26文件来源checker不覆盖新应用代码的语义正确性。
+应用层身份判定来源为同一固定MIT上游wechat-core/src/metadata.rs（完整mask及字段控制）、peer_classification.rs（系统/公众号排除）及本包既有current-directory.patch（群成员正向证明）。只复用这些小范围解释，无core/profile/SQLite依赖；许可仍保留于proto/LICENSE，协议27文件来源checker不覆盖新应用代码的语义正确性。
 
 ## 入站同步接线（实施中）
 
@@ -97,3 +99,7 @@ stdio只将login.start/poll、conversation.authorize和text.send交给最多两�
 目录从零拉取联系人ID，再独立发现群候选，逐项复用文字发送的verified_target核好友/成员关系。旧入站群id只作候选，头像/原始metadata不回传；名字字段最多512字节。未核实及群发现不完整分别披露，不能用缓存推断关系。
 
 同一Vault保存刷新意图、终态及最终当前缓存，中间进度只在进程内推进；重启/退出/EOF记interrupted，不自动续跑。新刷新替换当前外部目录缓存，但保留旧意图回执；聊天/发送/控制历史没有TTL或删除。每次metadata查询免写整个Vault，完成时一次发布。自动化远端仍为替身，不是实际微信目录或Host安装验收。
+
+## 合成Host到真实Rust进程的组合检查
+
+`test/native-host-journey.test.mjs`可通过`WECHAT_NATIVE_TEST_BINARY=/absolute/path/to/clowder_wechat_link-<hash>`指向本次`cargo test --lib --no-run`生成的libtest执行文件，再用Node运行该测试。它只拉起精确的ignored `account_service::host_journey_fixture::serve_host_journey`，专用FD3/4承载真正的stdio reader/RPC；正常产品没有该CLI模式或测试密钥入口。实际Host Runtime、MemberRunner、Node窄client、Rust AccountService及加密Store共用一条管道，微信远端和Host成员服务仍为合成替身。检查好友主动开口、入站接话、canonical精确核对、切猫、接管后旧lease拒绝、群发送未知不重发，及账号秘密/未知协议命令/网络异常canary不进Host状态和模型。结束后同一私有加密库重新打开，保留流与账号。该检查不代表真实Host安装、真实模型服务或真实微信收发。

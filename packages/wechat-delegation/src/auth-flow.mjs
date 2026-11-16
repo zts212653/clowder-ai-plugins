@@ -2,8 +2,8 @@ import { createHash, randomUUID } from 'node:crypto';
 import { NativeRequestError } from './native-stdio.mjs';
 const KEY = 'wechat-auth.v2';
 const terminal = new Set(['succeeded', 'failed', 'cancelled', 'interrupted', 'expired', 'rejected', 'lan_required']);
-const activeNative = new Set(['starting', 'pending', 'scanned', 'completing', 'authenticating']);
-const metadata = value => Object.fromEntries(['id', 'generation', 'sourceGeneration', 'accountGeneration', 'accountIdentity', 'phase', 'startedAtMs', 'updatedAtMs', 'authenticationMayHaveOccurred']
+const activeNative = new Set(['starting', 'pending', 'scanned', 'completing', 'authenticating', 'lan_awaiting_consent', 'lan_verifying']);
+const metadata = value => Object.fromEntries(['id', 'generation', 'sourceGeneration', 'accountGeneration', 'accountIdentity', 'phase', 'startedAtMs', 'updatedAtMs', 'authenticationMayHaveOccurred', 'lanApprovalRequested', 'lanDeadlineAtMs']
   .filter(key => Object.hasOwn(value, key)).map(key => [key, value[key]]));
 
 /** Host intent metadata only. The native service owns credentials and actual
@@ -47,6 +47,7 @@ export class AuthFlow {
       source: record.native && record.phase === record.native.phase ? 'native' : 'host',
       ...(record.legacy ? { legacy: true, note: '旧组件认证记录已保留；新组件无法验证旧状态，不会重放。' } : {}),
       authenticationMayHaveOccurred: record.native?.authenticationMayHaveOccurred === true || record.unconfirmedAuthentication === true,
+      lanConsentRequested: record.lanConsentRequested === true, lanApprovalRequested: record.native?.lanApprovalRequested === true, lanDeadlineAtMs: record.native?.lanDeadlineAtMs ?? null,
       ...(qr && image && ['pending', 'scanned'].includes(record.phase) ? { qr: `data:image/png;base64,${image.pngBase64}` } : {}) };
   }
   async status() { const { state } = await this.read(); return this.projection(state.intents[state.activeId]); }
@@ -75,12 +76,15 @@ export class AuthFlow {
       record.updatedAt = this.now();
     });
     if (expected.kind === 'login' && projection.qr && !this.closed && this.getClient() === client) this.qrs.set(expected.id, { pngBase64: projection.qr.pngBase64 });
-    else if (!activeNative.has(native.phase)) this.qrs.delete(expected.id);
+    else if (!['pending', 'scanned'].includes(native.phase)) this.qrs.delete(expected.id);
   }
   async failure(expected, error, stage) {
     this.live(); await this.change(state => {
       const record = state.intents[expected.id];
       if (!record || terminal.has(record.phase)) return;
+      if (stage === 'lan' && error instanceof NativeRequestError && error.mayHaveCommitted === false) {
+        record.lanConsentRequested = false; record.phase = record.cancelRequested ? 'cancel_requested' : record.native.phase; record.updatedAt = this.now(); return;
+      }
       const knownRefusal = stage === 'start' && error instanceof NativeRequestError && error.mayHaveCommitted === false;
       record.phase = knownRefusal ? 'failed' : 'unknown'; record.updatedAt = this.now();
       if (knownRefusal) record.unconfirmedAuthentication = false;
@@ -138,8 +142,8 @@ export class AuthFlow {
       if (client.storeId !== record.storeId) {
         await this.change(state => { state.intents[record.id].phase = 'interrupted'; state.intents[record.id].unconfirmedAuthentication ||= record.kind === 'resume'; }); return;
       }
-      const approving = allowApproval && !record.cancelRequested && record.kind === 'login' && record.instanceId === client.instanceId && ['pending', 'scanned'].includes(record.native?.phase) && record.phase !== 'unknown';
-      if (approving) await this.change(state => { state.intents[record.id].unconfirmedAuthentication = true; });
+      const approving = allowApproval && !record.cancelRequested && record.kind === 'login' && record.instanceId === client.instanceId && ['pending', 'scanned', 'lan_awaiting_consent', 'lan_verifying'].includes(record.native?.phase) && record.phase !== 'unknown';
+      if (approving && record.native?.phase !== 'lan_awaiting_consent') await this.change(state => { state.intents[record.id].unconfirmedAuthentication = true; });
       context.signal.throwIfAborted();
       this.launch(record, client, 'network', approving ? 'poll' : 'query', () => approving ? client.pollLogin(record.id)
         : record.kind === 'login' ? client.loginOperation(record.id) : client.resumeOperation(record.id));
@@ -160,6 +164,22 @@ export class AuthFlow {
       if (!record.submitted || client.storeId !== record.storeId) return;
       context.signal.throwIfAborted();
       this.launch(record, client, 'cancel', 'cancel', () => record.kind === 'login' ? client.cancelLogin(record.id) : client.cancelResume(record.id));
+    });
+    return this.present(context, operationId);
+  }
+  async allowLan(context, operationId) {
+    await this.assertOwner(context); this.live(); const client = this.getClient();
+    await this.serial(async () => {
+      const { state } = await this.read(), record = state.intents[state.activeId]; this.own(record, context);
+      if (!record || record.id !== operationId || record.kind !== 'login' || record.cancelRequested ||
+          record.storeId !== client.storeId || record.instanceId !== client.instanceId) throw Error('请核对本次登录的局域网请求；已结束或换进程的意图不能继续。');
+      if (record.lanConsentRequested) return; // An uncertain grant is only queried.
+      if (record.phase !== 'lan_awaiting_consent' || record.native?.phase !== 'lan_awaiting_consent') throw Error('本次登录尚未请求局域网许可，请先核对原操作');
+      if (this.jobs.has(`${record.id}:network`) || this.jobs.has(`${record.id}:cancel`)) throw Error('正在核对原操作，请稍后确认');
+      context.signal.throwIfAborted();
+      const admitted = await this.change(state => { const record = state.intents[operationId]; record.lanConsentRequested = true; record.phase = 'lan_requesting'; record.updatedAt = this.now(); return record; });
+      if (context.signal.aborted) { await this.failure(admitted, new NativeRequestError('request_cancelled', false), 'lan'); context.signal.throwIfAborted(); }
+      this.launch(admitted, client, 'network', 'lan', () => client.allowLoginLan(operationId));
     });
     return this.present(context, operationId);
   }

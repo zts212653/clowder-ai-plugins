@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "upstream": "thisnick/agent-wechat",
   "upstreamCommit": "ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
-  "patchSha256": "905ea680b5d3ebdad87d55b26e43ea0a4da6958dd968f3fa39b0972f546ef36c",
+  "patchSha256": "c168bc0a2132bbb3e402364deb6c11d424da6f99933229495d9f7c22acc90e51",
   "files": [
     {
       "path": "LICENSE",
@@ -80,7 +80,7 @@
       "path": "src/client.rs",
       "origin": "upstream",
       "upstreamSha256": "9edcd1172b8e3632926993f24a78384853ef2a3df939ce1b22bf2771bbe7e3e8",
-      "derivedSha256": "45838d74384aad422e82e78189fbd3935085a0cde373793cce49cfc2e2397220"
+      "derivedSha256": "80b33964e671d12870dfc42efdde0ebf103b0a4d1f2403b1f51d4b3c60f11e54"
     },
     {
       "path": "src/contact_sync.rs",
@@ -119,6 +119,16 @@
       "derivedSha256": "1cdc3717c7fdfa02d2cc069f3f7c1b2399b1c19639b4a5f0266c1592bf9e1bd3"
     },
     {
+      "path": "src/login_lan_wire.rs",
+      "origin": "clowder",
+      "upstreamSha256": null,
+      "derivedSha256": "bc196b9c9664143bf2eecfdb7dc9628b31b0b7b23a3360263e9642b4a1735307",
+      "adaptedFrom": {
+        "path": "src/lan_login.rs",
+        "upstreamSha256": "4677a74ca1723e56f92a139850bb765aadabeed21ea5c40b0770c8c0c4eaf6cc"
+      }
+    },
+    {
       "path": "src/logout.rs",
       "origin": "upstream",
       "upstreamSha256": "d651ee9cdabcf1e316448b82e3807907338902543d2d7b3126db9351dc7bba79",
@@ -128,7 +138,7 @@
       "path": "src/mmtls.rs",
       "origin": "upstream",
       "upstreamSha256": "ae3844b8f73d0aa52b9e3650fb7ba84affc881eeacf4fb24bd677c33c6849dc6",
-      "derivedSha256": "fd0b491f680fb32df62eaeb19a39f9a38c3ebace488aa27f285130007ee071e4"
+      "derivedSha256": "89fa11b106099cee31fda5d8a1f2823dac7f878f415f52c0e60e1572a578bba8"
     },
     {
       "path": "src/notice.rs",

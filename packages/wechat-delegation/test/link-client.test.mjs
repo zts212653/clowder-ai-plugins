@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { NativeLinkClient } from '../src/link-client.mjs';
-const caps=['stdio-v1','text-protocol-subset','account-login-v1','durable-text-send-v1','durable-text-sync-v1','current-directory-v1','explicit-session-resume-v1','canonical-message-lookup-v1','stable-text-stream-v1'];
+const caps=['stdio-v1','text-protocol-subset','account-login-v1','durable-text-send-v1','durable-text-sync-v1','current-directory-v1','explicit-session-resume-v1','canonical-message-lookup-v1','stable-text-stream-v1','explicit-login-lan-v1'];
 const hello=()=>({product:'clowder-wechat-link',version:'0.1.0',pid:123,protocolVersion:1,upstreamCommit:'ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e',capabilities:[...caps],nativeApiAvailable:true,accountServiceReady:false});
 const status=()=>({serverId:'stable-vault-id',accountGeneration:1,accountIdentity:'synthetic-user',credentialsAvailable:true,authenticated:true,connection:'online',stream:{sourceRef:'stream-one',resetEpoch:0,eventCursor:'0',caughtUp:true},egress:[]});
 function fixture() {
@@ -65,7 +65,7 @@ test('fresh offline and disconnected projections match the Rust account service 
 });
 
 test('authentication, directory, sync and message contracts reject extra secret fields at every nesting boundary',async()=>{
-  const login={operation:{id:'auth',generation:1,accountGeneration:1,phase:'pending',accountIdentity:null,startedAtMs:1,updatedAtMs:2,authenticationMayHaveOccurred:false},qr:null};
+  const login={operation:{id:'auth',generation:1,accountGeneration:1,phase:'pending',accountIdentity:null,startedAtMs:1,updatedAtMs:2,authenticationMayHaveOccurred:false,lanApprovalRequested:false,lanDeadlineAtMs:null},qr:null};
   const directory={operationId:'directory',accountGeneration:1,accountIdentity:'synthetic-user',phase:'ready',catalogComplete:true,verifiedCount:1,unverifiedCount:0,groupDiscoveryIncomplete:false,snapshotAvailable:true,observedAt:1,retryAfterMs:0};
   const target={id:'friend',kind:'direct',displayName:'Friend',nickname:null,remark:null,alias:null};
   const message={id:'1:99',accountGeneration:1,accountIdentity:'synthetic-user',threadId:'friend',senderId:null,direction:'incoming',serverId:'99',messageType:1,body:'authorized text',createdAt:1};

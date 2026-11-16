@@ -18,6 +18,14 @@ use directory_service::{DirectoryPeer, NativeDirectoryPeer};
 #[path = "resume_service.rs"]
 mod resume_service;
 use resume_service::{NativeResumePeer, ResumePeer};
+#[cfg(test)]
+#[path = "host_journey_fixture.rs"]
+mod host_journey_fixture;
+#[path = "lan.rs"]
+mod lan;
+#[cfg(test)]
+#[path = "account_service_lan_tests.rs"]
+mod lan_tests;
 
 #[derive(Debug)]
 pub enum ServiceError {
@@ -85,11 +93,15 @@ trait LoginPeer: Send {
     fn start(&mut self, guard: LoginGuard) -> std::result::Result<QrProjection, PeerError>;
     fn poll(&mut self, guard: LoginGuard) -> std::result::Result<LoginStatus, PeerError>;
     fn complete(&mut self, guard: LoginGuard) -> std::result::Result<AccountState, PeerError>;
+    fn allow_lan(&mut self, _guard: LoginGuard) -> std::result::Result<(), PeerError> {
+        Err(PeerError::Unavailable)
+    }
     fn clear(&mut self);
 }
 struct NativeLoginPeer {
     bootstrap: NativeClient,
     attempt: Option<LoginAttempt>,
+    lan: Option<lan::LanChallenge>,
 }
 impl NativeLoginPeer {
     fn new() -> Result<Self> {
@@ -97,6 +109,7 @@ impl NativeLoginPeer {
             bootstrap: NativeClient::new(NativeOptions::default())
                 .map_err(|_| ServiceError::Unavailable)?,
             attempt: None,
+            lan: None,
         })
     }
 }
@@ -104,6 +117,7 @@ impl LoginPeer for NativeLoginPeer {
     fn start(&mut self, guard: LoginGuard) -> std::result::Result<QrProjection, PeerError> {
         use base64::Engine;
         self.attempt = None;
+        self.lan = None;
         let device = DeviceProfile::generate("UnifiedPCLinux x86_64".into())
             .map_err(|_| PeerError::Unavailable)?;
         let attempt = self
@@ -121,8 +135,12 @@ impl LoginPeer for NativeLoginPeer {
         Ok(projection)
     }
     fn poll(&mut self, guard: LoginGuard) -> std::result::Result<LoginStatus, PeerError> {
+        if self.lan.as_ref().is_some_and(|lan| !lan.active()) {
+            return Err(PeerError::Unavailable);
+        }
         let attempt = self.attempt.as_mut().ok_or(PeerError::Unavailable)?;
-        self.bootstrap
+        let status = self
+            .bootstrap
             .poll_login_cancellable(attempt, guard)
             .map_err(|error| {
                 if error.is::<wechat_protocol::LanApprovalRequired>() {
@@ -132,15 +150,45 @@ impl LoginPeer for NativeLoginPeer {
                 } else {
                     PeerError::Unavailable
                 }
-            })
+            })?;
+        if matches!(
+            status,
+            LoginStatus::Approved
+                | LoginStatus::Rejected
+                | LoginStatus::Cancelled
+                | LoginStatus::Expired
+        ) {
+            self.lan = None;
+        }
+        Ok(status)
+    }
+    fn allow_lan(&mut self, guard: LoginGuard) -> std::result::Result<(), PeerError> {
+        if self.lan.is_some() {
+            return Err(PeerError::Unavailable);
+        }
+        self.lan =
+            Some(lan::LanChallenge::bind(guard.clone()).map_err(|_| PeerError::Unavailable)?);
+        let challenge = self.lan.as_ref().ok_or(PeerError::Unavailable)?;
+        let (addresses, port) = challenge.endpoint();
+        let attempt = self.attempt.as_mut().ok_or(PeerError::Unavailable)?;
+        let token = self
+            .bootstrap
+            .upload_login_lan_guarded(attempt, addresses, port, guard.clone())
+            .map_err(|_| PeerError::Unavailable)?;
+        if guard.interrupted() {
+            return Err(PeerError::Unavailable);
+        }
+        challenge.arm(&token).map_err(|_| PeerError::Unavailable)
     }
     fn complete(&mut self, guard: LoginGuard) -> std::result::Result<AccountState, PeerError> {
+        self.lan = None;
         let mut attempt = self.attempt.take().ok_or(PeerError::Unavailable)?;
         self.bootstrap
             .complete_login_guarded(&mut attempt, guard)
             .map_err(|_| PeerError::Unavailable)
     }
     fn clear(&mut self) {
+        self.lan = None;
         self.attempt = None;
     }
 }
@@ -376,7 +424,13 @@ impl AccountService {
         let (ticket, guard) = {
             let control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
             let record = self.store.login_record(id)?;
-            if !matches!(record.phase, LoginPhase::Pending | LoginPhase::Scanned) {
+            if !matches!(
+                record.phase,
+                LoginPhase::Pending
+                    | LoginPhase::Scanned
+                    | LoginPhase::LanAwaitingConsent
+                    | LoginPhase::LanVerifying
+            ) {
                 return self.projection(&control, id);
             }
             let attempt = control
@@ -388,6 +442,9 @@ impl AccountService {
         };
         if guard.interrupted() {
             return self.failed(&ticket, LoginPhase::Expired);
+        }
+        if self.store.login_record(id)?.phase == LoginPhase::LanAwaitingConsent {
+            return self.login_operation(id);
         }
         let mut peer = match self.peer.try_lock() {
             Ok(peer) => peer,
@@ -404,15 +461,28 @@ impl AccountService {
                     self.login_operation(id)
                 };
             }
-            Err(error) => {
+            Err(PeerError::LanRequired) => {
+                let control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+                if !Self::matches(&control, &ticket) {
+                    peer.clear();
+                    return self.projection(&control, id);
+                }
+                if guard.interrupted() {
+                    drop(control);
+                    peer.clear();
+                    return self.failed(&ticket, LoginPhase::Expired);
+                }
+                let record = self.store.login_record(id)?;
+                if !record.lan_approval_requested && record.phase != LoginPhase::LanAwaitingConsent
+                {
+                    self.store
+                        .advance_login(&ticket, LoginPhase::LanAwaitingConsent)?;
+                }
+                return self.projection(&control, id);
+            }
+            Err(PeerError::Unavailable) => {
                 peer.clear();
-                return self.failed(
-                    &ticket,
-                    match error {
-                        PeerError::LanRequired => LoginPhase::LanRequired,
-                        _ => LoginPhase::Failed,
-                    },
-                );
+                return self.failed(&ticket, LoginPhase::Failed);
             }
         };
         {
@@ -429,7 +499,9 @@ impl AccountService {
             match status {
                 LoginStatus::Pending => {}
                 LoginStatus::Scanned => {
-                    self.store.advance_login(&ticket, LoginPhase::Scanned)?;
+                    if self.store.login_record(id)?.phase != LoginPhase::LanVerifying {
+                        self.store.advance_login(&ticket, LoginPhase::Scanned)?;
+                    }
                 }
                 LoginStatus::Approved => {
                     self.store.advance_login(&ticket, LoginPhase::Completing)?;
@@ -497,6 +569,84 @@ impl AccountService {
     }
     pub fn login_operation(&self, id: &str) -> Result<LoginProjection> {
         let control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+        self.projection(&control, id)
+    }
+    pub fn allow_login_lan(&self, id: &str, admission: &Admission) -> Result<LoginProjection> {
+        {
+            let control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+            if self.store.login_record(id)?.lan_approval_requested {
+                return self.projection(&control, id);
+            }
+        }
+        let mut peer = match self.peer.try_lock() {
+            Ok(peer) => peer,
+            Err(std::sync::TryLockError::WouldBlock) => return Err(ServiceError::Busy),
+            Err(_) => return Err(ServiceError::Unavailable),
+        };
+        let (ticket, guard) = {
+            let mut control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+            let record = self.store.login_record(id)?;
+            if record.lan_approval_requested {
+                return self.projection(&control, id);
+            }
+            self.check_admission(&control, admission)?;
+            if record.phase != LoginPhase::LanAwaitingConsent {
+                return Err(ServiceError::InvalidOperation);
+            }
+            let attempt = control
+                .attempt
+                .as_ref()
+                .filter(|attempt| attempt.ticket.id == id)
+                .ok_or(ServiceError::InvalidOperation)?;
+            let ticket = attempt.ticket.clone();
+            let guard = attempt.guard.bounded(Duration::from_secs(120));
+            if guard.interrupted() {
+                drop(control);
+                peer.clear();
+                return self.failed(&ticket, LoginPhase::Expired);
+            }
+            let now = u64::try_from(
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map_err(|_| ServiceError::Unavailable)?
+                    .as_millis(),
+            )
+            .map_err(|_| ServiceError::Unavailable)?;
+            let deadline = now
+                .checked_add(
+                    u64::try_from(guard.remaining().as_millis())
+                        .map_err(|_| ServiceError::Unavailable)?,
+                )
+                .ok_or(ServiceError::Unavailable)?;
+            self.store.allow_login_lan(&ticket, deadline)?;
+            control
+                .attempt
+                .as_mut()
+                .ok_or(ServiceError::InvalidOperation)?
+                .guard = guard.clone();
+            (ticket, guard)
+        };
+        if peer.allow_lan(guard.clone()).is_err() {
+            peer.clear();
+            return self.failed(
+                &ticket,
+                if guard.interrupted() {
+                    LoginPhase::Expired
+                } else {
+                    LoginPhase::Failed
+                },
+            );
+        }
+        let control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+        if !Self::matches(&control, &ticket) {
+            peer.clear();
+            return self.projection(&control, id);
+        }
+        if guard.interrupted() {
+            drop(control);
+            peer.clear();
+            return self.failed(&ticket, LoginPhase::Expired);
+        }
         self.projection(&control, id)
     }
     pub fn cancel_login(&self, id: &str) -> Result<LoginProjection> {

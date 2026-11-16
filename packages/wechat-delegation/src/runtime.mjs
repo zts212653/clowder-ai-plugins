@@ -148,6 +148,10 @@ export class DelegationRuntime {
     if (action === 'login' || action === 'resume') return this.auth.begin(action, context);
     if (action === 'login_poll') return this.auth.poll(context);
     if (action === 'login_cancel') return this.auth.cancel(context, input.operationId);
+    if (action === 'login_allow_lan') {
+      if (input.confirm !== true) throw Error('请先确认本次局域网端口、地址上报和验证数据范围');
+      return this.auth.allowLan(context, input.operationId);
+    }
     if (action === 'chats') {
       if (input.refreshDirectory === true) { if (input.cursor) throw Error('请从第一页刷新当前通讯录'); client.refreshTargets(ACCOUNT); }
       const page = await client.targets(ACCOUNT, input.cursor ?? '', { query: input.query ?? '', kind: input.kind ?? 'all', limit: 20 });

@@ -3,7 +3,7 @@ import { targetQuery, searchTargets } from '../src/target-search.mjs';
 
 export async function previewFixture() {
   const data = new Map(); let connected = false, credentials = false, generation = 0, catalogReads = 0, reminderReads = 0, staleActivation = true;
-  let loginCount = 0, resumeCount = 0, repairCount = 0, caughtUp = false; const messages = new Map(), auth = new Map();
+  let loginCount = 0, resumeCount = 0, repairCount = 0, lanCount = 0, caughtUp = false; const messages = new Map(), auth = new Map();
   const stream = () => ({ sourceRef: 'preview-stream', resetEpoch: 0, eventCursor: '0', caughtUp });
   const loginResult = id => ({ operation: structuredClone(auth.get(id)), qr: auth.get(id)?.phase === 'pending' ? { pngBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jXioAAAAASUVORK5CYII=', expiresAt: Date.now() / 1000 + 300 } : null });
   let grant;
@@ -45,12 +45,14 @@ export async function previewFixture() {
     identity: async () => ({ serverId: 'preview-server', nativeStoreId: 'preview-store', accountId: 'clowder', accountGeneration: generation,
       accountIdentity: credentials ? '模拟微信账号' : null, connected, credentialsAvailable: credentials, stream: credentials ? stream() : null }),
     startLogin: async id => { loginCount++; auth.set(id, { id, generation: loginCount, accountGeneration: 0, accountIdentity: null,
-      phase: 'pending', startedAtMs: Date.now(), updatedAtMs: Date.now(), authenticationMayHaveOccurred: false }); return loginResult(id); },
+      phase: 'pending', startedAtMs: Date.now(), updatedAtMs: Date.now(), authenticationMayHaveOccurred: false, lanApprovalRequested: false, lanDeadlineAtMs: null }); return loginResult(id); },
     pollLogin: async id => {
-      if (loginCount > 1 && auth.get(id).phase === 'pending') { connected = credentials = true; generation = 1; caughtUp = false;
+      if (loginCount > 1 && auth.get(id).phase === 'pending') auth.get(id).phase = 'lan_awaiting_consent';
+      else if (auth.get(id).phase === 'lan_verifying') { connected = credentials = true; generation = 1; caughtUp = false;
         Object.assign(auth.get(id), { phase: 'succeeded', accountGeneration: generation, accountIdentity: '模拟微信账号', updatedAtMs: Date.now(), authenticationMayHaveOccurred: true }); }
       return loginResult(id);
     },
+    allowLoginLan: async id => { const record = auth.get(id); if (!record.lanApprovalRequested) { lanCount++; Object.assign(record, { phase: 'lan_verifying', lanApprovalRequested: true, lanDeadlineAtMs: Date.now() + 120000 }); } return loginResult(id); },
     loginOperation: async id => loginResult(id),
     cancelLogin: async id => { auth.get(id).phase = 'cancelled'; return loginResult(id); },
     resume: async id => { resumeCount++; const sourceGeneration = generation; generation++; connected = true; caughtUp = false;
@@ -86,5 +88,5 @@ export async function previewFixture() {
   const runtime = await DelegationRuntime.open(host, { supervisor });
   return { runtime, owner: { kind: 'owner-http-request', userId: 'preview-owner', pluginInstanceId: host.pluginInstanceId, operation: 'write',
     requestIdentity: { requestId: 'preview-request' }, signal: new AbortController().signal, assertCurrent: async () => {} }, messages,
-    offline: async () => { connected = caughtUp = false; await runtime.cycle(); }, counts: () => ({ loginCount, resumeCount, repairCount }) };
+    offline: async () => { connected = caughtUp = false; await runtime.cycle(); }, counts: () => ({ loginCount, resumeCount, repairCount, lanCount }) };
 }

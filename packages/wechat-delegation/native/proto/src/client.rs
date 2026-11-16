@@ -6,6 +6,8 @@ mod group_inventory;
 pub use group_inventory::*;
 #[path = "account.rs"]
 mod account;
+#[path = "login_lan_wire.rs"]
+mod login_lan_wire;
 #[path = "logout.rs"]
 mod logout;
 
@@ -30,7 +32,7 @@ pub use logout::*;
 use openssl::{nid::Nid, pkey::PKey, rsa::Rsa};
 use serde::{Deserialize, Serialize};
 use std::{fmt, time::Duration};
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
 /// Volatile authority for one QR operation. It cannot be serialized or revived.
 #[derive(Clone)]
@@ -52,6 +54,16 @@ impl LoginGuard {
     pub fn interrupted(&self) -> bool {
         self.cancelled.load(std::sync::atomic::Ordering::Acquire)
             || std::time::Instant::now() >= self.deadline
+    }
+    pub fn bounded(&self, duration: Duration) -> Self {
+        Self {
+            cancelled: self.cancelled.clone(),
+            deadline: self.deadline.min(std::time::Instant::now() + duration),
+        }
+    }
+    pub fn remaining(&self) -> Duration {
+        self.deadline
+            .saturating_duration_since(std::time::Instant::now())
     }
     fn check(&self) -> Result<()> {
         ensure!(!self.interrupted(), "Login operation interrupted");
@@ -230,6 +242,8 @@ pub struct LoginAttempt {
     key_info: Vec<u8>,
     credential3: Option<Vec<u8>>,
     credential4: Option<Vec<u8>>,
+    lan_was_required: bool,
+    lan_upload_attempted: bool,
 }
 impl fmt::Debug for LoginAttempt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -252,6 +266,18 @@ impl Drop for LoginAttempt {
     }
 }
 impl LoginAttempt {
+    fn claim_lan_upload(&mut self) -> Result<()> {
+        ensure!(
+            self.lan_was_required
+                && self.status == LoginStatus::Scanned
+                && !self.lan_upload_attempted,
+            "LAN upload not permitted for this attempt"
+        );
+        // Set before any request preparation or network. An uncertain upload
+        // can never be replayed by subsequent polling or another local call.
+        self.lan_upload_attempted = true;
+        Ok(())
+    }
     fn validate(&self) -> Result<()> {
         self.validate_at(wire::unix_time()?)
     }
@@ -410,6 +436,46 @@ impl NativeClient {
         let client = self.guarded_login(guard.clone());
         client.poll_login_guarded(attempt, guard.deadline, move || guard.interrupted())
     }
+    /// Only the owner-authorized connection service supplies locally bound
+    /// endpoints. This performs one fixed authenticated upload, no listening.
+    pub fn upload_login_lan_guarded(
+        &self,
+        attempt: &mut LoginAttempt,
+        addresses: &[std::net::Ipv4Addr],
+        port: u16,
+        guard: LoginGuard,
+    ) -> Result<Zeroizing<Vec<u8>>> {
+        guard.check()?;
+        attempt.validate()?;
+        attempt.claim_lan_upload()?;
+        let random = Zeroizing::new(crate::crypto::random::<16>()?);
+        let request = Zeroizing::new(login_lan_wire::request(
+            &attempt.device,
+            &attempt.identifier,
+            addresses,
+            port,
+            &random,
+        )?);
+        let client = self.guarded_login(guard.clone());
+        let (reply, cookie, _) = client.prelogin_rpc(
+            &attempt.long_host,
+            &attempt.short_host,
+            22312,
+            "/cgi-bin/micromsg-bin/extdeviceuploadlaninfo",
+            &request,
+            &attempt.cookie,
+            &[],
+            Some(attempt.key_version),
+        )?;
+        let reply = Zeroizing::new(reply);
+        guard.check()?;
+        let token = login_lan_wire::token(&reply)?;
+        if !cookie.is_empty() {
+            attempt.cookie.zeroize();
+            attempt.cookie = cookie;
+        }
+        Ok(token)
+    }
     pub fn complete_login_guarded(
         &self,
         attempt: &mut LoginAttempt,
@@ -529,6 +595,8 @@ impl NativeClient {
             key_info: key_info.to_vec(),
             credential3: None,
             credential4: None,
+            lan_was_required: false,
+            lan_upload_attempted: false,
         })
     }
     /// Initiates phone approval for an existing remembered device without a QR.
@@ -608,6 +676,8 @@ impl NativeClient {
             key_info: key_info.to_vec(),
             credential3: None,
             credential4: None,
+            lan_was_required: false,
+            lan_upload_attempted: false,
         })
     }
     /// Poll an existing challenge. Only [`LoginStatus::Approved`] permits
@@ -619,8 +689,8 @@ impl NativeClient {
             || false,
         )
     }
-    /// The guard bounds the temporary LAN listener even while a blocking poll
-    /// or upload is in flight. It must not perform blocking work itself.
+    /// The connection service owns any explicitly permitted temporary listener.
+    /// This function only polls; it cannot open or automatically upload LAN data.
     pub fn poll_login_guarded(
         &self,
         attempt: &mut LoginAttempt,
@@ -1040,7 +1110,16 @@ fn apply_login_notification(
     attempt: &mut LoginAttempt,
     response: wire::PollResponse,
 ) -> Result<LoginStatus> {
+    if response.status.is_some_and(|status| status > 2) {
+        attempt.credential3.zeroize();
+        attempt.credential4.zeroize();
+        attempt.credential3 = None;
+        attempt.credential4 = None;
+        attempt.status = LoginStatus::Rejected;
+        return Ok(attempt.status);
+    }
     if response.lan_challenge {
+        attempt.lan_was_required = true;
         attempt.credential3.zeroize();
         attempt.credential4.zeroize();
         attempt.credential3 = None;
@@ -1096,6 +1175,8 @@ mod tests {
             key_info: b"persisted installation key-info".to_vec(),
             credential3: Some(vec![4; 16]),
             credential4: Some(vec![5; 16]),
+            lan_was_required: false,
+            lan_upload_attempted: false,
         }
     }
     #[test]
@@ -1224,6 +1305,45 @@ mod tests {
             expired.check_submission().is_err(),
             "expired QR must refuse final submission"
         );
+    }
+    #[test]
+    fn explicit_lan_permission_has_one_upload_and_a_shared_shortened_guard() {
+        let original = LoginGuard::new(std::time::Instant::now() + Duration::from_secs(300));
+        let bounded = original.bounded(Duration::from_secs(120));
+        assert!(bounded.remaining() <= Duration::from_secs(120));
+        original.cancel();
+        assert!(bounded.interrupted());
+        let mut challenge = attempt(LoginStatus::Scanned, true);
+        assert!(
+            challenge.claim_lan_upload().is_err(),
+            "ordinary scanned approval cannot start LAN"
+        );
+        challenge.lan_was_required = true;
+        challenge.claim_lan_upload().unwrap();
+        assert!(
+            challenge.claim_lan_upload().is_err(),
+            "the same attempt never uploads twice"
+        );
+        assert!(
+            mmtls::validate_short_route("/cgi-bin/micromsg-bin/extdeviceuploadlaninfo").is_ok()
+        );
+        assert!(mmtls::validate_short_route("/cgi-bin/micromsg-bin/mmemojiupload").is_err());
+    }
+    #[test]
+    fn server_rejection_cannot_be_reinterpreted_as_a_new_lan_permission_request() {
+        let mut attempt = attempt(LoginStatus::Scanned, true);
+        let response = wire::PollResponse {
+            status: Some(3),
+            lan_challenge: true,
+            credential3: Some(vec![7; 16]),
+            credential4: Some(vec![8; 16]),
+        };
+        assert_eq!(
+            apply_login_notification(&mut attempt, response).unwrap(),
+            LoginStatus::Rejected
+        );
+        assert!(attempt.credential3.is_none() && attempt.credential4.is_none());
+        assert!(attempt.claim_lan_upload().is_err());
     }
     #[test]
     fn account_state_roundtrips_without_number_loss() {

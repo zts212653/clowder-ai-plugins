@@ -3,7 +3,7 @@ import { NativeRequestError } from './native-stdio.mjs';
 import { CurrentDirectory } from './current-directory.mjs';
 
 const UPSTREAM = 'ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e';
-const CAPABILITIES = ['stdio-v1', 'text-protocol-subset', 'account-login-v1', 'durable-text-send-v1', 'durable-text-sync-v1', 'current-directory-v1', 'explicit-session-resume-v1', 'canonical-message-lookup-v1', 'stable-text-stream-v1'];
+const CAPABILITIES = ['stdio-v1', 'text-protocol-subset', 'account-login-v1', 'durable-text-send-v1', 'durable-text-sync-v1', 'current-directory-v1', 'explicit-session-resume-v1', 'canonical-message-lookup-v1', 'stable-text-stream-v1', 'explicit-login-lan-v1'];
 const bool = value => typeof value === 'boolean';
 const uint = (min = 0, max = Number.MAX_SAFE_INTEGER) => value => Number.isSafeInteger(value) && value >= min && value <= max;
 const text = (max, empty = false) => value => typeof value === 'string' && (empty || value.length > 0) && value.isWellFormed() && !value.includes('\0') && Buffer.byteLength(value) <= max;
@@ -24,8 +24,8 @@ const egressShape = record({ host: coordinate, port: uint(1, 65535), resolvedIps
 const streamShape = record({ sourceRef: coordinate, resetEpoch: uint(), eventCursor: cursor, caughtUp: bool });
 const accountShape = record({ serverId: coordinate, accountGeneration: uint(), accountIdentity: nullable(coordinate), credentialsAvailable: bool,
   authenticated: bool, connection: oneOf(['online', 'stored', 'offline', 'closed']), stream: nullable(streamShape), egress: list(egressShape, 64) });
-const loginRecord = record({ id: key, generation: uint(1), accountGeneration: uint(), phase: oneOf(['starting', 'pending', 'scanned', 'completing', 'succeeded', 'cancelled', 'interrupted', 'failed', 'expired', 'rejected', 'lan_required']),
-  accountIdentity: nullable(coordinate), startedAtMs: uint(1), updatedAtMs: uint(1), authenticationMayHaveOccurred: bool });
+const loginRecord = record({ id: key, generation: uint(1), accountGeneration: uint(), phase: oneOf(['starting', 'pending', 'scanned', 'completing', 'succeeded', 'cancelled', 'interrupted', 'failed', 'expired', 'rejected', 'lan_required', 'lan_awaiting_consent', 'lan_verifying']),
+  accountIdentity: nullable(coordinate), startedAtMs: uint(1), updatedAtMs: uint(1), authenticationMayHaveOccurred: bool, lanApprovalRequested: bool, lanDeadlineAtMs: nullable(uint(1)) });
 const png = value => {
   if (typeof value !== 'string' || value.length > 699052) return false;
   const bytes = Buffer.from(value, 'base64');
@@ -129,10 +129,13 @@ export class NativeLinkClient {
   async pollLogin(operationId) { return this.loginRequest('login.poll', operationId); }
   async loginOperation(operationId) { return this.loginRequest('login.operation', operationId); }
   async cancelLogin(operationId) { return this.loginRequest('login.cancel', operationId); }
+  async allowLoginLan(operationId) { return this.loginRequest('login.allow_lan', operationId); }
   async loginRequest(method, operationId) {
     if (!this.ready || !key(operationId)) throw new NativeRequestError('invalid_request');
     const value = await this.request(method, { operationId }, loginShape);
     if (value.operation.id !== operationId || value.operation.updatedAtMs < value.operation.startedAtMs ||
+        value.operation.lanApprovalRequested !== (value.operation.lanDeadlineAtMs !== null) || value.operation.lanDeadlineAtMs !== null && value.operation.lanDeadlineAtMs <= value.operation.startedAtMs ||
+        value.operation.phase === 'lan_verifying' && !value.operation.lanApprovalRequested || value.operation.phase === 'lan_awaiting_consent' && value.operation.lanApprovalRequested ||
         (value.operation.phase === 'succeeded') !== (value.operation.accountIdentity !== null) || value.qr && !['pending', 'scanned'].includes(value.operation.phase)) this.invalid(true);
     return value;
   }

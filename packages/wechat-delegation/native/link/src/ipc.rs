@@ -156,6 +156,7 @@ pub fn is_blocking(frame: &[u8]) -> bool {
         matches!(
             r.method.as_str(),
             "login.start"
+                | "login.allow_lan"
                 | "login.poll"
                 | "conversation.authorize"
                 | "text.send"
@@ -187,6 +188,7 @@ pub fn respond_admitted(
             "hello"
                 | "status"
                 | "login.start"
+                | "login.allow_lan"
                 | "login.poll"
                 | "login.operation"
                 | "login.cancel"
@@ -342,6 +344,7 @@ pub fn respond_admitted(
                 capabilities.push("explicit-session-resume-v1");
                 capabilities.push("canonical-message-lookup-v1");
                 capabilities.push("stable-text-stream-v1");
+                capabilities.push("explicit-login-lan-v1");
             }
             json!({"product":"clowder-wechat-link","version":env!("CARGO_PKG_VERSION"),
             "pid":std::process::id(),"protocolVersion":1,
@@ -388,6 +391,17 @@ pub fn respond_admitted(
                 ("login.poll", ParsedParams::Operation(id)) => service
                     .poll_login(&id)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("login.allow_lan", ParsedParams::Operation(id)) => service
+                    .allow_login_lan(
+                        &id,
+                        match admission {
+                            Some(admission) => admission,
+                            None => return project(Err(ServiceError::Unavailable)),
+                        },
+                    )
+                    .and_then(|value| {
+                        serde_json::to_value(value).map_err(|_| ServiceError::Unavailable)
+                    }),
                 ("login.operation", ParsedParams::Operation(id)) => service
                     .login_operation(&id)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),

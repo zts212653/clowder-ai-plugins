@@ -93,3 +93,28 @@ test('the auth journal and typed client complete an owner QR journey through phy
   assert.equal(JSON.stringify([...data.data.values()]).includes('pngBase64'),false);assert.equal(Object.keys((await data.get('wechat-auth.v2')).value.intents).length,1);
  }
 });
+test('LAN consent is explicit for the original QR; physical loss of ACK is queried and never uploads again',async t=>{
+ const {spawn}=await import('node:child_process'),{once}=await import('node:events');
+ const {NativeLinkClient}=await import('../src/link-client.mjs'),{NativeStdioTransport}=await import('../src/native-stdio.mjs');
+ for(const mode of ['lan','lan-lost']){
+  const child=spawn(process.execPath,[new URL('./fixtures/link-peer.mjs',import.meta.url).pathname,mode],{env:{},stdio:['pipe','pipe','pipe'],shell:false});
+  const requests=[],write=child.stdin.write.bind(child.stdin);child.stdin.write=(frame,...args)=>{requests.push(JSON.parse(String(frame)));return write(frame,...args);};
+  const transport=new NativeStdioTransport(child,{timeoutMs:150});t.after(async()=>{transport.close();if(child.exitCode===null&&child.signalCode===null)await once(child,'exit');});
+  const client=new NativeLinkClient({transport,pid:child.pid,version:'0.1.0'});await client.handshake();
+  const data=storage(),flow=new AuthFlow({storage:data,getClient:()=>client,assertOwner:async ctx=>ctx.assertCurrent()});
+  const beginning=await flow.begin('login',owner());await flow.drain();
+  await assert.rejects(flow.allowLan(owner(),beginning.operationId),/尚未/);
+  await flow.poll(owner());await flow.drain();assert.equal((await flow.status()).state,'lan_awaiting_consent');
+  assert.equal(requests.some(request=>request.method==='login.allow_lan'),false);
+  await flow.allowLan(owner(),beginning.operationId);await flow.drain();
+  if(mode==='lan-lost'){
+   assert.equal((await flow.status()).state,'unknown');await flow.poll(owner());await flow.drain();
+  }
+  assert.equal((await flow.status()).state,'lan_verifying');
+  await flow.allowLan(owner(),beginning.operationId);await flow.drain();
+  assert.equal(requests.filter(request=>request.method==='login.allow_lan').length,1);
+  assert.deepEqual(requests.find(request=>request.method==='login.allow_lan').params,{operationId:beginning.operationId});
+  await flow.poll(owner());await flow.drain();assert.equal((await flow.status()).state,'succeeded');
+  assert.equal(Object.keys((await data.get('wechat-auth.v2')).value.intents).length,1);
+ }
+});

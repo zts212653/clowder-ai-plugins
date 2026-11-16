@@ -37,6 +37,7 @@ id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、�
 | hello | 空对象或省略/null | 固定产品、协议、能力和本进程PID；没有内部状态 |
 | status | 空对象或省略/null | serverId、accountGeneration、accountIdentity、credentialsAvailable、authenticated、connection、stream、受限egress观测；没有AccountState |
 | login.start | operationId | 新意图先持久化，再获取一个二维码；重复id只查原意图，终态不会重试 |
+| login.allow_lan | operationId | 只对原LAN待确认意图记录一次有界许可；重复/未知只查原记录，不再次监听或上报 |
 | login.poll | operationId | 查询一个已创建挑战；同一意图不并发轮询。批准后认证交换一次，提交账号和成功回执 |
 | login.operation | operationId | 读取持久回执；仅当前待扫/待批准挑战附加易失QR投影 |
 | login.cancel | operationId | 持久取消；清除当前QR与取消guard；网络已在途时不声称可以追回授权 |
@@ -51,7 +52,7 @@ id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、�
 | message.by_server | accountGeneration、serverId（规范非零u64十进制字符串） | 精确服务端id查当前账号消息流；不按正文猜测；仅供发送结果核对 |
 | account.disconnect | 空对象或省略/null | 停止本地账号、清除已接受凭据并持久取消活动登录/未发意图；不承诺撤销远端设备信任 |
 
-登录结果投影：`operation {id,generation,accountGeneration,phase,accountIdentity,startedAtMs,updatedAtMs,authenticationMayHaveOccurred}`，可有`qr {pngBase64,expiresAt}`。二维码只给授权面板，不进模型消息或通用诊断；图片最多512KiB。phase为starting/pending/scanned/completing/succeeded/cancelled/interrupted/failed/expired/rejected/lan_required。完成认证前已取消或中断不能变成succeeded。
+登录结果投影：`operation {id,generation,accountGeneration,phase,accountIdentity,startedAtMs,updatedAtMs,authenticationMayHaveOccurred,lanApprovalRequested,lanDeadlineAtMs}`，可有`qr {pngBase64,expiresAt}`。二维码只给授权面板，不进模型消息或通用诊断；图片最多512KiB。phase为starting/pending/scanned/lan_awaiting_consent/lan_verifying/completing/succeeded/cancelled/interrupted/failed/expired/rejected/lan_required。完成认证前已取消或中断不能变成succeeded。
 
 `authenticationMayHaveOccurred`在开始认证阶段落盘，表示请求可能已经到达服务端，不是实测字节计数。认证不确定、取消和重启不会清除这项；手机上是否留下了设备授权需要真实验证，不能由本地退出承诺远端撤销。
 
@@ -61,7 +62,7 @@ id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、�
 
 文字发送回执包含id、destination、accountGeneration、conversationGeneration、state、createdAt、clientMessageId、serverId。成功须目的地/客户端id匹配、业务双code成功及非零u64 serverId；仅匹配的显式拒绝为failed，其余已提交错误为needs_review。accepted只证明协议受理，不是收件人已读或同步回显核验。未知/终态不会再次发送，同id不同正文或租约拒绝。好友须新回复的全mask好友位且非官方/系统对象；群须当前成员字段或精确群的正向本人roster证明，字段稀疏不复用旧状态。
 
-Node侧已接入私有流、Supervisor、目录、认证编排及消息流基线。Host认证日志只保留意图与受限状态，提交前持久化原operationId；未知时只查询原意图，不自动认证或换nonce。恢复保存会话必须由本人明确触发；取消携带原operationId，迟到取消不能伤及新意图。二维码只在内存中留给原面板。旧HTTP认证记录保留并标为无法由新组件验证，不重放旧操作。上述仍是开发入口，不是最终用户配置命令；完整修复UI、真实账号、正式签名与升级、LAN显式路径和完整好友/群代聊接管验收仍保持开放。
+Node侧已接入私有流、Supervisor、目录、认证编排及消息流基线。Host认证日志只保留意图与受限状态，提交前持久化原operationId；未知时只查询原意图，不自动认证或换nonce。恢复保存会话必须由本人明确触发；取消携带原operationId，迟到取消不能伤及新意图。二维码只在内存中留给原面板。旧HTTP认证记录保留并标为无法由新组件验证，不重放旧操作。上述仍是开发入口，不是最终用户配置命令；修复UI及显式LAN许可已接入；真实系统交互、真实账号、正式签名与升级及完整好友/群代聊接管验收仍保持开放。
 
 ## Node字节传输层
 
@@ -71,7 +72,7 @@ Node侧已接入私有流、Supervisor、目录、认证编排及消息流基线
 
 子进程exit后立即拒绝新请求，但保留待读响应直到stdout读尽或close，避免丢失退出前已经写出的最终回执。真实Node子进程检查覆盖这一退出顺序、乱序、超时晚回包、关闭、超长/坏JSON及含秘密诊断拒绝；另已让该transport连接真正编译的Rust无参进程核PID、hello/status及离线登录拒绝。该组合没有默认钥匙串条目/账号访问，也不是真实扫码或Host安装验收。
 
-`src/link-client.mjs`是上述私有管道的窄类型消费端，逐层拒绝未知字段，核当前PID/精确版本/9项能力，账号、租约与发送回执身份须匹配。每个adapter只绑定一个owned child，运行instance id每次新建；持久Store.serverId单独保存，不冒充新进程身份。提交直接使用run中的lease，写前没有await；未知/无效回包不重发，已明确副作用前拒绝与写后未知区分。认证/目录/同步/消息DTO及QR仅按封闭结构返回，不导出AccountState。accepted只有精确服务端id、账号、目的地、方向及全文都匹配的同步记录才可升为verified；没有serverId的未知发送不按正文搜索。实际插件旅程尚待，不能视为完整产品就绪。
+`src/link-client.mjs`是上述私有管道的窄类型消费端，逐层拒绝未知字段，核当前PID/精确版本/10项能力（含explicit-login-lan-v1），账号、租约与发送回执身份须匹配。每个adapter只绑定一个owned child，运行instance id每次新建；持久Store.serverId单独保存，不冒充新进程身份。提交直接使用run中的lease，写前没有await；未知/无效回包不重发，已明确副作用前拒绝与写后未知区分。认证/目录/同步/消息DTO及QR仅按封闭结构返回，不导出AccountState。accepted只有精确服务端id、账号、目的地、方向及全文都匹配的同步记录才可升为verified；没有serverId的未知发送不按正文搜索。实际插件旅程尚待，不能视为完整产品就绪。
 
 同步使用账号generation和私有checkpoint ticket拒绝迟到/重复提交；网络不持control锁，同一账号最多一个sync.pull在途，stdio总网络线程仍最多两个。未知或不能投影的命令保留在同一个加密Vault且计数披露，不进RPC；不因新游标删除它们。相同命令去重，无变化轮询不改写Vault。消息id绑定账号代次和服务端id（缺id时用命令摘要）；同id冲突保留原投影及原始新命令，增加未投影计数，不覆盖已保存正文。
 

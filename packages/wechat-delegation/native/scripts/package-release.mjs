@@ -26,7 +26,13 @@ try {
   const bytes = await readFile(binary), gzip = gzipSync(bytes, { level: 9 });
   const hash = value => createHash('sha256').update(value).digest('hex');
   const manifest = JSON.parse(await readFile(new URL('manifest.json', assets), 'utf8'));
-  Object.assign(manifest, { sourceCommit, signingCommand: 'codesign --force --sign - --options runtime --identifier ai.clowder.wechat-link --timestamp=none' });
+  Object.assign(manifest, {
+    sourceCommit,
+    sourceManifestSha256: hash(await readFile(new URL('../UPSTREAM.json', import.meta.url))),
+    protocolPatchSha256: hash(await readFile(new URL('../protocol.patch', import.meta.url))),
+    cargoLockSha256: hash(await readFile(new URL('../Cargo.lock', import.meta.url))),
+    signingCommand: 'codesign --force --sign - --options runtime --identifier ai.clowder.wechat-link --timestamp=none',
+  });
   Object.assign(manifest.artifacts['darwin-arm64'], { size: bytes.length, sha256: hash(bytes), compressedSha256: hash(gzip), signing: 'ad-hoc-hardened-runtime' });
   await writeFile(new URL(manifest.artifacts['darwin-arm64'].fileName + '.gz', assets), gzip);
   await writeFile(new URL('manifest.json', assets), JSON.stringify(manifest, null, 2) + '\n');

@@ -6,7 +6,8 @@ window.createWechatConnection = ({ el, button, check, call, perform, show, refre
     authenticating: '正在恢复已保存的微信会话', succeeded: '账号身份已核验；代聊权限仍需逐会话开启',
     failed: '认证未完成；请核对原记录后再明确发起', expired: '本次二维码已过期，可以明确发起新的扫码',
     cancelled: '本次认证已取消', interrupted: '原认证已中断；记录已保留，不会自动重新认证',
-    rejected: '手机微信未批准本次登录', lan_required: '微信要求局域网验证；当前入口尚未支持，本次未继续认证',
+    rejected: '手机微信未批准本次登录', lan_required: '旧组件的局域网请求已结束，不能继续此旧记录；可明确重新扫码。',
+    lan_awaiting_consent: '等待你确认本次局域网验证范围', lan_requesting: '正在核对本次局域网许可结果', lan_verifying: '正在进行本次局域网验证，请留意手机提示',
     cancel_requested: '已请求取消本次认证；正在核对原操作结果', unknown: '认证结果待核对；只查询原操作，不会自动重新认证',
   };
   let snapshot, current = { state: 'idle' }, timer, polling = false, version = 0, starting = false;
@@ -14,6 +15,7 @@ window.createWechatConnection = ({ el, button, check, call, perform, show, refre
   const uncertainty = el('p', { class: 'notice', hidden: true, text: '认证请求可能已经到达微信。取消或退出本机组件不能证明手机上的设备授权已撤销；请在手机微信核对已登录设备。' });
   const hint = el('p', { class: 'muted' }), sync = el('p', { role: 'status', class: 'muted' }), path = el('small');
   const repair = window.createWechatKeychainRepair({ el, button, check, perform, show });
+  const lan = window.createWechatLoginLan({ el, button, check, authenticate });
   const consent = check('我了解将准备 Clowder 自有连接组件；登录后可能同步其他未选中会话到本机，猫只处理我另行授权的会话。');
   const setup = button('准备账号连接组件', async () => {
     if (!consent.input.checked) return show('请先阅读并确认客户端同步范围。', true);
@@ -38,6 +40,7 @@ window.createWechatConnection = ({ el, button, check, call, perform, show, refre
     if (!result) return;
     if (current.operationId !== result.operationId) qr.replaceChildren();
     current = result;
+    lan.render(result);
     authText.textContent = texts[result.state] ?? (result.state === 'idle' ? '' : '正在核对原认证记录');
     operation.textContent = result.operationId ? `本次${result.kind === 'resume' ? '恢复' : '扫码'}记录：${result.operationId}${result.legacy ? '（旧组件记录，当前无法验证）' : ''}` : '';
     uncertainty.hidden = result.authenticationMayHaveOccurred !== true;
@@ -73,8 +76,8 @@ window.createWechatConnection = ({ el, button, check, call, perform, show, refre
   const node = el('section', { class: 'stage-card account-section' }, [el('h2', { text: '连接微信账号' }), hint,
     el('p', { class: 'notice', text: '使用 Clowder 重写的本机连接服务，含裁剪的 MIT 协议代码。登录后可能接收其他未选中会话及更广范围消息；逐会话授权前不会交给猫处理。开启代聊后，以你登录的个人微信账号发言。' }),
     el('p', { class: 'muted', text: '凭据与同步数据保存在本机专属加密库，密钥由 macOS 文件钥匙串保护。Host 和模型不会取得原始账号密钥；不会导入桌面微信目录。扫码或恢复连接不会开启代聊。' }),
-    el('p', { class: 'muted', text: '当前安全重写仍在验收中，真实账号兼容性、局域网验证及签名升级恢复尚未验收完成。' }),
-    consent.node, el('div', { class: 'toolbar' }, [setup, login, resume, cancel, query, disconnect]), authText, operation, uncertainty, qr, sync,
+    el('p', { class: 'muted', text: '当前安全重写仍在验收中，真实账号、局域网验证及签名升级交互仍需本人现场验收。' }),
+    consent.node, el('div', { class: 'toolbar' }, [setup, login, resume, cancel, query, disconnect]), authText, operation, uncertainty, qr, lan.node, sync,
     el('details', { class: 'privacy' }, [el('summary', { text: '数据与授权范围' }),
       el('p', { text: '协议代码来自固定版本的 Agent WeChat 开源代码。微信登录和同步需要连接微信服务器；开启代聊后，所选会话的文字会交给你确认的模型服务。' }), path]), repair.node]);
   return {

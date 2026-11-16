@@ -665,6 +665,7 @@ pub(crate) fn validate_short_route(path: &str) -> Result<()> {
         path,
         "/cgi-bin/micromsg-bin/getloginqrcode"
             | "/cgi-bin/micromsg-bin/checkloginqrcode"
+            | "/cgi-bin/micromsg-bin/extdeviceuploadlaninfo"
             | "/cgi-bin/micromsg-bin/pushloginurl"
             | "/cgi-bin/micromsg-bin/secmanualauth"
             | "/cgi-bin/micromsg-bin/secautoauth"

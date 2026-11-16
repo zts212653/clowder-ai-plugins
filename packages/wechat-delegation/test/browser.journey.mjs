@@ -36,7 +36,20 @@ try {
   await page.screenshot({ path: `${evidence}/cancelled-login-mobile.png`, fullPage: true });
   await page.setViewportSize({ width: 1280, height: 900 });
   await frame.getByRole('button', { name: '微信扫码登录', exact: true }).click();
+  await frame.getByText('微信要求本次局域网验证', { exact: true }).waitFor();
+  const allowLan = frame.getByRole('button', { name: '允许本次局域网验证', exact: true });
+  assert.equal(await allowLan.isDisabled(), true);
+  assert.equal((await page.evaluate(() => fetch('/fixture-counts').then(r => r.json()))).lanCount, 0);
+  await page.screenshot({ path: `${evidence}/lan-consent.png`, fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const lanMetrics = await frame.locator('body').evaluate(node => ({ scroll: node.scrollWidth, width: document.documentElement.clientWidth }));
+  assert.ok(lanMetrics.scroll <= lanMetrics.width + 1);
+  await page.screenshot({ path: `${evidence}/lan-consent-mobile.png`, fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await frame.getByLabel('只允许本次登录：我同意临时监听并向微信上报本机私网地址和端口，同子网设备可取得本次验证数据。').check();
+  await allowLan.click();
   await frame.getByRole('heading', { name: '配置代聊会话', exact: true }).waitFor();
+  assert.equal((await page.evaluate(() => fetch('/fixture-counts').then(r => r.json()))).lanCount, 1);
   // Cats must be selectable while the new login's directory is still empty and
   // the independent reminder directory is unavailable; empty catalogs retry.
   await frame.getByLabel('值班猫', { exact: true }).selectOption('review-cat');

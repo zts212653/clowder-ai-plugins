@@ -15,12 +15,19 @@ pub enum LoginPhase {
     Expired,
     Rejected,
     LanRequired,
+    LanAwaitingConsent,
+    LanVerifying,
 }
 impl LoginPhase {
     pub fn active(self) -> bool {
         matches!(
             self,
-            Self::Starting | Self::Pending | Self::Scanned | Self::Completing
+            Self::Starting
+                | Self::Pending
+                | Self::Scanned
+                | Self::Completing
+                | Self::LanAwaitingConsent
+                | Self::LanVerifying
         )
     }
 }
@@ -35,6 +42,10 @@ pub struct LoginRecord {
     pub started_at_ms: u64,
     pub updated_at_ms: u64,
     pub authentication_may_have_occurred: bool,
+    #[serde(default)]
+    pub lan_approval_requested: bool,
+    #[serde(default)]
+    pub lan_deadline_at_ms: Option<u64>,
 }
 /// Internal authority; this is never accepted as an IPC input.
 #[derive(Clone)]
@@ -75,6 +86,12 @@ pub(super) fn validate(state: &State) -> Result<()> {
             || (record.phase == LoginPhase::Succeeded) != record.account_identity.is_some()
             || (matches!(record.phase, LoginPhase::Completing | LoginPhase::Succeeded)
                 && !record.authentication_may_have_occurred)
+            || record.lan_approval_requested != record.lan_deadline_at_ms.is_some()
+            || record
+                .lan_deadline_at_ms
+                .is_some_and(|deadline| deadline <= record.started_at_ms)
+            || record.phase == LoginPhase::LanVerifying && !record.lan_approval_requested
+            || record.phase == LoginPhase::LanAwaitingConsent && record.lan_approval_requested
             || record
                 .account_identity
                 .as_ref()
@@ -156,6 +173,8 @@ impl Store {
                 started_at_ms: timestamp,
                 updated_at_ms: timestamp,
                 authentication_may_have_occurred: false,
+                lan_approval_requested: false,
+                lan_deadline_at_ms: None,
             };
             let ticket = LoginTicket {
                 id: record.id.clone(),
@@ -189,6 +208,12 @@ impl Store {
                     matches!(record.phase, LoginPhase::Pending | LoginPhase::Scanned)
                 }
                 LoginPhase::Completing => {
+                    matches!(
+                        record.phase,
+                        LoginPhase::Pending | LoginPhase::Scanned | LoginPhase::LanVerifying
+                    )
+                }
+                LoginPhase::LanAwaitingConsent => {
                     matches!(record.phase, LoginPhase::Pending | LoginPhase::Scanned)
                 }
                 LoginPhase::Cancelled
@@ -217,6 +242,32 @@ impl Store {
                 record.phase = LoginPhase::Cancelled;
                 record.updated_at_ms = now_ms()?.max(record.updated_at_ms);
             }
+            Ok(record.clone())
+        })
+    }
+    pub fn allow_login_lan(
+        &self,
+        ticket: &LoginTicket,
+        deadline_at_ms: u64,
+    ) -> Result<LoginRecord> {
+        self.update(|state| {
+            current(state, ticket)?;
+            let record = state
+                .logins
+                .get_mut(&ticket.id)
+                .ok_or(StoreError::UnknownLogin)?;
+            let timestamp = now_ms()?;
+            if record.phase != LoginPhase::LanAwaitingConsent
+                || record.lan_approval_requested
+                || deadline_at_ms <= timestamp
+                || deadline_at_ms > timestamp.saturating_add(120000)
+            {
+                return Err(StoreError::PermissionDenied);
+            }
+            record.lan_approval_requested = true;
+            record.lan_deadline_at_ms = Some(deadline_at_ms);
+            record.phase = LoginPhase::LanVerifying;
+            record.updated_at_ms = timestamp.max(record.updated_at_ms);
             Ok(record.clone())
         })
     }
@@ -324,5 +375,47 @@ mod tests {
         restored.logout(generation).unwrap();
         assert!(restored.accept_login_ticket(&ticket, account()).is_err());
         assert!(restored.account().unwrap().is_none());
+    }
+    #[test]
+    fn lan_permission_is_durable_bounded_once_and_restart_never_revives_a_listener() {
+        let root = Root::new();
+        let keys = Keys::default();
+        let store = Store::initialize(Vault::create(&root.0, &keys, b"").unwrap()).unwrap();
+        let ticket = match store.begin_login("lan-intent").unwrap() {
+            LoginAdmission::New(ticket) => ticket,
+            _ => panic!(),
+        };
+        store.advance_login(&ticket, LoginPhase::Pending).unwrap();
+        store
+            .advance_login(&ticket, LoginPhase::LanAwaitingConsent)
+            .unwrap();
+        assert!(store.begin_login("another").is_err());
+        assert!(store
+            .allow_login_lan(&ticket, now_ms().unwrap() + 121000)
+            .is_err());
+        let deadline = now_ms().unwrap() + 60000;
+        let admitted = store.allow_login_lan(&ticket, deadline).unwrap();
+        assert_eq!(admitted.phase, LoginPhase::LanVerifying);
+        assert!(admitted.lan_approval_requested);
+        assert_eq!(admitted.lan_deadline_at_ms, Some(deadline));
+        assert!(store.allow_login_lan(&ticket, deadline).is_err());
+        drop(store);
+        let restored = Store::open(Vault::open(&root.0, &keys).unwrap()).unwrap();
+        let record = restored.login_record("lan-intent").unwrap();
+        assert_eq!(record.phase, LoginPhase::Interrupted);
+        assert!(record.lan_approval_requested);
+        assert_eq!(record.lan_deadline_at_ms, Some(deadline));
+        assert!(
+            !LoginPhase::LanRequired.active(),
+            "old terminal records retain their original meaning"
+        );
+        let mut old = serde_json::to_value(&record).unwrap();
+        old["phase"] = serde_json::json!("lan_required");
+        old.as_object_mut().unwrap().remove("lanApprovalRequested");
+        old.as_object_mut().unwrap().remove("lanDeadlineAtMs");
+        let legacy: LoginRecord = serde_json::from_value(old).unwrap();
+        assert!(!legacy.phase.active());
+        assert!(!legacy.lan_approval_requested);
+        assert_eq!(legacy.lan_deadline_at_ms, None);
     }
 }

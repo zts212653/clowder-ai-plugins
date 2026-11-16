@@ -69,6 +69,18 @@ test('owner login retries stay on the original durable operation and never grant
   assert.equal((await f.runtime.status()).policies.length, 0);
   assert.equal(f.sends.length, 0);
 });
+test('LAN disclosure confirmation is separate from login and never grants model conversation access',async t=>{
+  const f=await fixture(t);let uploads=0;
+  f.client.identity=async()=>({serverId:'server',nativeStoreId:'synthetic-store',accountGeneration:0,accountIdentity:null,credentialsAvailable:false,connected:false});
+  const record=id=>({id,generation:1,accountGeneration:0,accountIdentity:null,phase:'lan_awaiting_consent',startedAtMs:1,updatedAtMs:2,authenticationMayHaveOccurred:false,lanApprovalRequested:false,lanDeadlineAtMs:null});
+  f.client.startLogin=async id=>({operation:record(id),qr:null});
+  f.client.allowLoginLan=async id=>{uploads++;return{operation:{...record(id),phase:'lan_verifying',lanApprovalRequested:true,lanDeadlineAtMs:Date.now()+120000},qr:null};};
+  await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
+  const login=await f.runtime.dispatch({action:'login'},owner());await f.runtime.drain();
+  await assert.rejects(f.runtime.dispatch({action:'login_allow_lan',operationId:login.operationId},owner()),/确认/);assert.equal(uploads,0);
+  await f.runtime.dispatch({action:'login_allow_lan',operationId:login.operationId,confirm:true},owner());await f.runtime.drain();
+  assert.equal(uploads,1);assert.equal((await f.runtime.status()).auth.state,'lan_verifying');assert.equal((await f.runtime.service.snapshot()).policies.length,0);
+});
 
 test('cat selection is independent of reminder lookup and reminder pages respect the real Host limit', async t => {
   const f = await fixture(t);
