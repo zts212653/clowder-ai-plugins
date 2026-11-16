@@ -8,7 +8,7 @@ try{
  const page=await browser.newPage({viewport:{width:1280,height:1000}}),reads=[],errors=[];
  page.on('pageerror',error=>errors.push(error.message));
  page.on('request',r=>{if(r.url().endsWith('/fixture-control')){try{if(r.postDataJSON()?.action==='chats')reads.push(r.postDataJSON());}catch{}}});
- await page.goto('http://127.0.0.1:5188/');
+ await page.goto(process.env.WECHAT_PREVIEW_URL ?? 'http://127.0.0.1:5188/');
  const f=page.frameLocator('#panel');
  await f.getByLabel('我了解将准备基于 Agent WeChat 2.4.1 的 Clowder 通讯录修复构建；组件会连接微信服务器，登录可能同步更广范围消息到本机。猫只处理我另行授权的会话。').check();
  await f.getByRole('button',{name:'准备账号连接组件',exact:true}).click();
@@ -29,6 +29,9 @@ try{
  assert.equal(await list.isVisible(),false);
  await picker.click();
  await f.getByRole('tab',{name:'群',exact:true}).click();
+ await f.getByRole('searchbox',{name:'搜索好友或群'}).fill('tom');
+ await f.getByText('没有找到匹配对象，可换个关键词。',{exact:false}).waitFor();
+ assert.equal(await list.getByRole('option').count(),0,'technical @chatroom suffix must not match a name query');
  await f.getByRole('searchbox',{name:'搜索好友或群'}).fill('周书');
  await list.getByRole('option',{name:/周末读书群/}).waitFor();
  assert.equal(await f.getByRole('tab',{name:'群',exact:true}).innerText(),'群 1');
