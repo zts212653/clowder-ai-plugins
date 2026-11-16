@@ -13,3 +13,13 @@ Native Store保留原操作及本次许可/期限，无TTL；重启中断，不�
 面板常显本次范围确认：短时端口、私网地址向微信上报、同子网设备可得到验证数据、系统可能不另弹网络许可、最长120秒/结束即关闭、仍需手机确认。初次遇到挑战时没有监听；按钮和checkbox只针对原操作，取消或换意图不沿用确认。
 
 精准检查先覆盖：拒绝/未许可零监听与零上报；旧terminal记录不复活；准入排队后取消；上报只一次/ACK丢失无重试；两种LAN活动态重启中断；来源/掩码/接口过滤；真实loopback受控listener的frame、取消/期限与连接上限；许可后依然需要服务器批准；Host刷新/未知/旧取消与秘密canary。自动化仅loopback和合成私网数据，不绑定实际局域网地址。协议派生SHA与完整patch同步，重新逐文件重构、编译/打包并独立审最终HEAD。真实许可和兼容验证留到具体候选就绪、本人明确授权后。
+
+## 本轮自证
+
+源码提交b0f9920。Rust workspace的73项主检查、3项真实进程、100项协议及6项compile-fail均通过；2个ignored入口分别由父测试及Node显式启动。Node携带本次Rust libtest目标全包112/112通过。私有stdio真实reader在LAN上传阻塞时先返回取消，迟到上传不能认证；重复许可只读原记录，ACK丢失只query。拒绝状态优先于同包LAN标志。
+
+loopback取消、截止和32连接后实际端口拒绝；截止/连接上限检查另重复20次全过。原固定休眠不能充当并发线程退出屏障；改等自有done信号，保留1秒上限及实际connect拒绝。生产逻辑不依赖测试延时。
+
+真实Host Runtime/MemberRunner经Node typed client和Rust stdio/AccountService/加密Store走通好友主动/接话、canonical精确核对、切猫、接管后旧lease拒绝、群发送未知不重发及秘密canary。微信远端与成员端口仍为合成替身，不代表实际宿主安装或真实账号验收。浏览器合成面板走通扫码、LAN确认及原意图继续认证；确认前许可计数0、最终1，desktop/mobile/dark和无横溢出检查通过。Hub实际投递此前为unconfirmed，不据此声称本人已看到。
+
+固定MIT上游和完整patch逐字节重构27文件；新增纯LAN codec注明改编源及原文件SHA。打包脚本同步刷新实际source/patch/lock摘要。日志在meow-talk/output/wechat-delegation-security-rewrite/login/的lan-tests.log、lan-node-tests.log、lan-browser.log、lan-close-repeat.log、lan-release-build.log和native-host-journey.log。准确最终HEAD及归档自证待制品就绪记录；Task仍doing，真实系统交互和微信收发验收未完成。
