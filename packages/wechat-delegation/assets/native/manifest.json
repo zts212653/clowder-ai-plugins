@@ -2,7 +2,7 @@
   "product": "clowder-wechat-link",
   "version": "0.1.0",
   "protocolVersion": 1,
-  "sourceCommit": "4a44fbfd59db2e5506c9f88c98d73607a65f8354",
+  "sourceCommit": "249374f3240af2db88ec7bd839ae0dd689676a24",
   "upstream": "thisnick/agent-wechat",
   "upstreamCommit": "ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
   "sourceManifestSha256": "c4004995ec02680108f2c205c90f854bc036abb10a08aa96b13783289ef14f6f",
@@ -11,9 +11,9 @@
   "artifacts": {
     "darwin-arm64": {
       "fileName": "clowder-wechat-link-0.1.0-darwin-arm64",
-      "size": 5776368,
-      "sha256": "5784e05af5110cc69fb96e9f2faa3279cb25fb49ed9de064cb25363907f6b895",
-      "compressedSha256": "1fc702d93c36bfb3b622a61a8c6f0e02ce55883a61db8765eb41f9bada825502",
+      "size": 5794304,
+      "sha256": "96fe820aca654e070b2144b3c9db20b7cc555784963687bff62864a61d5857a1",
+      "compressedSha256": "601091390075f074f9383fb59679aecad96ae605e630d104200f3cc4d3cfd71f",
       "minimumMacOS": "26.5",
       "testedMacOS": "26.5",
       "signing": "linker-ad-hoc",
