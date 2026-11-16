@@ -1,6 +1,6 @@
 # 微信文字协议子集（实施中）
 
-这是账号安全重写的内部实施代码，尚未接入用户正在运行的插件。无参启动只开放hello/status；显式私有目录模式已接入扫码登录、查询、取消和本地断开，仍以accountServiceReady=false报告完整服务未就绪。钥匙串保险库、账号持久化及发送门禁已实现；当前目录枚举、入站同步、完整Node接线及真实验收仍缺，不能将此进程当成完成的账号连接服务。内部入口契约见[IPC.md](IPC.md)。
+这是账号安全重写的内部实施代码，尚未接入用户正在运行的插件。无参启动只开放hello/status；显式私有目录模式已接入扫码登录、查询、取消和本地断开，仍以accountServiceReady=false报告完整服务未就绪。钥匙串保险库、账号持久化及发送门禁已实现；当前目录枚举、显式会话恢复、完整Node接线及真实验收仍缺，不能将此进程当成完成的账号连接服务。内部入口契约见[IPC.md](IPC.md)。
 
 来源与授权：本人 `thread_mwg7kandcxztqeab#0001794847733075-000352-bf448701`；架构来源为宪宪 `000355` / `000362`，独立威胁稿为小多子 `000356`。完整产品与安全终态要求见 `docs/plans/2026-11-17-wechat-native-security-rewrite.md`。`b3028a9`的内部持久层与依赖更新已获小多子`000397`准确HEAD独立批准，未覆盖尚缺的执行器/真实旅程。
 
@@ -73,3 +73,9 @@ stdio只将login.start/poll、conversation.authorize和text.send交给最多两�
 结果只有通过目的地/client id与业务code验证、带规范非零u64 serverId才为accepted；匹配的明确拒绝为failed，其余在途结果为needs_review。accepted不宣称对方已读或canonical同步回显。完整方法和字段见IPC.md。生产路径采用NativeTextPeer；组合测试用替身控制远端回执，不能冒充真实微信网络发送检查。
 
 应用层身份判定来源为同一固定MIT上游wechat-core/src/metadata.rs（完整mask及字段控制）、peer_classification.rs（系统/公众号排除）及本包既有current-directory.patch（群成员正向证明）。只复用这些小范围解释，无core/profile/SQLite依赖；许可仍保留于proto/LICENSE，协议26文件来源checker不覆盖新应用代码的语义正确性。
+
+## 入站同步接线（实施中）
+
+`inbox.rs`在同一Vault State中新增默认空的inboxes字段，保留按账号代次隔离的私有游标/命令、文字投影和有序事件。cursor、全部收到的command和可读投影同事务提交；失败时均不发布，未知命令加密保留且披露未投影数，没有TTL/删除。消息摘要去重、冲突不覆盖旧正文，无变化轮询不增加checkpoint或改写Vault；32MiB快照上限及显式恢复需求继续保留。
+
+`sync_service.rs`用相同NativeClient account owner调用真实sync，私有ticket核账号与checkpoint，网络不持control锁；断开/EOF后迟到结果不能提交。只投影受限message/event字段，群发言人保持未解析，非文字与不支持正文不交给模型。明确session rejection通过同一处理入口暂停授权/停止client但保留凭据，文字核验与发送路径一并采用；无自动重试/续期。生产入口已经接线，自动化远端仍是替身，不声称真实微信同步或手机断网/接管实测。

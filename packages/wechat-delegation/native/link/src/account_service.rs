@@ -9,6 +9,9 @@ use wechat_protocol::{
 #[path = "messaging.rs"]
 mod messaging;
 use messaging::{NativeTextPeer, TextPeer};
+#[path = "sync_service.rs"]
+mod sync_service;
+use sync_service::{NativeSyncPeer, SyncPeer};
 
 #[derive(Debug)]
 pub enum ServiceError {
@@ -17,6 +20,16 @@ pub enum ServiceError {
     Busy,
     InvalidOperation,
     PermissionDenied,
+    SessionRejected,
+}
+impl ServiceError {
+    fn network(error: &anyhow::Error) -> Self {
+        if wechat_protocol::is_session_rejected(error) {
+            Self::SessionRejected
+        } else {
+            Self::Unavailable
+        }
+    }
 }
 impl From<StoreError> for ServiceError {
     fn from(error: StoreError) -> Self {
@@ -27,6 +40,7 @@ impl From<StoreError> for ServiceError {
             | StoreError::StaleGeneration
             | StoreError::IdempotencyConflict
             | StoreError::AlreadySubmitted => Self::InvalidOperation,
+            StoreError::StaleSync | StoreError::UnknownMessage => Self::InvalidOperation,
             StoreError::PermissionDenied => Self::PermissionDenied,
             _ => Self::PrivateState,
         }
@@ -140,8 +154,25 @@ pub struct AccountService {
     peer: Mutex<Box<dyn LoginPeer>>,
     control: Mutex<Control>,
     text_peer: Box<dyn TextPeer>,
+    sync_peer: Box<dyn SyncPeer>,
+    sync_gate: Mutex<()>,
 }
 impl AccountService {
+    fn observe_network_failure(&self, generation: u64, problem: &ServiceError) -> Result<()> {
+        if !matches!(problem, ServiceError::SessionRejected) {
+            return Ok(());
+        }
+        let mut control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+        if generation != self.store.generation()? {
+            return Ok(());
+        }
+        control.online = false;
+        if let Some(client) = &control.client {
+            client.stop().map_err(|_| ServiceError::Unavailable)?;
+        }
+        self.store.pause(generation, None)?;
+        Ok(())
+    }
     pub fn new(store: Arc<Store>) -> Result<Self> {
         Self::with_peer(store, Box::new(NativeLoginPeer::new()?))
     }
@@ -162,6 +193,8 @@ impl AccountService {
             store,
             peer: Mutex::new(peer),
             text_peer: Box::new(NativeTextPeer),
+            sync_peer: Box::new(NativeSyncPeer),
+            sync_gate: Mutex::new(()),
             control: Mutex::new(Control {
                 attempt: None,
                 client,

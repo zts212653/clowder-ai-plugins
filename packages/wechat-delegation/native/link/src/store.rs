@@ -10,6 +10,10 @@ pub use outbox::{ConversationLease, PreparedSend, SendOutcome, SendPhase, SendRe
 #[path = "login.rs"]
 mod login;
 pub use login::{LoginAdmission, LoginPhase, LoginRecord, LoginTicket};
+#[path = "inbox.rs"]
+mod inbox;
+pub(crate) use inbox::SyncTicket;
+pub use inbox::{EventPage, EventProjection, MessageProjection, SyncProjection};
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -22,6 +26,8 @@ pub enum StoreError {
     UnknownSend,
     LoginBusy,
     UnknownLogin,
+    StaleSync,
+    UnknownMessage,
 }
 impl std::fmt::Display for StoreError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -49,6 +55,8 @@ struct State {
     login_generation: u64,
     #[serde(default)]
     logins: std::collections::BTreeMap<String, LoginRecord>,
+    #[serde(default)]
+    inboxes: std::collections::BTreeMap<u64, inbox::Inbox>,
 }
 fn validate_account(account: &AccountState) -> Result<()> {
     account.validate().map_err(|_| StoreError::InvalidState)?;
@@ -81,6 +89,7 @@ impl State {
         }
         outbox::validate(self)?;
         login::validate(self)?;
+        inbox::validate(self)?;
         Ok(())
     }
 }
@@ -107,6 +116,7 @@ impl Store {
             account: None,
             login_generation: 0,
             logins: std::collections::BTreeMap::new(),
+            inboxes: std::collections::BTreeMap::new(),
             outbox,
             grants,
             next_message_id: (u32::from_be_bytes(

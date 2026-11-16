@@ -74,12 +74,33 @@ struct SendParams {
     operation_id: String,
     text: String,
 }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct SyncParams {
+    account_generation: u64,
+    account_identity: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct EventParams {
+    account_generation: u64,
+    after: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct MessageParams {
+    account_generation: u64,
+    message_id: String,
+}
 enum ParsedParams {
     Empty,
     Operation(String),
     Authorize(AuthorizationParams),
     Pause(PauseParams),
     Send(SendParams),
+    Sync(SyncParams),
+    Events(EventParams),
+    Message(MessageParams),
 }
 fn params<T: DeserializeOwned>(request: &Request) -> Result<T, ()> {
     serde_json::from_str(request.params.as_ref().map_or("{}", |p| p.get())).map_err(|_| ())
@@ -108,7 +129,7 @@ pub fn is_blocking(frame: &[u8]) -> bool {
     parse(frame).is_ok_and(|r| {
         matches!(
             r.method.as_str(),
-            "login.start" | "login.poll" | "conversation.authorize" | "text.send"
+            "login.start" | "login.poll" | "conversation.authorize" | "text.send" | "sync.pull"
         )
     })
 }
@@ -135,6 +156,9 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                 | "text.send"
                 | "send.receipt"
                 | "send.cancel"
+                | "sync.pull"
+                | "events.page"
+                | "message.get"
         )
     {
         return error(Some(request.id), "unsupported_method");
@@ -170,6 +194,30 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
             }
             _ => return error(Some(request.id), "invalid_params"),
         }
+    } else if request.method == "sync.pull" {
+        match params::<SyncParams>(&request) {
+            Ok(value) if value.account_identity.len() <= 256 => ParsedParams::Sync(value),
+            _ => return error(Some(request.id), "invalid_params"),
+        }
+    } else if request.method == "events.page" {
+        match params::<EventParams>(&request) {
+            Ok(value)
+                if value.after.len() <= 16
+                    && value.after.parse::<u64>().is_ok_and(|n| {
+                        n <= 9_007_199_254_740_991 && n.to_string() == value.after
+                    }) =>
+            {
+                ParsedParams::Events(value)
+            }
+            _ => return error(Some(request.id), "invalid_params"),
+        }
+    } else if request.method == "message.get" {
+        match params::<MessageParams>(&request) {
+            Ok(value) if !value.message_id.is_empty() && value.message_id.len() <= 128 => {
+                ParsedParams::Message(value)
+            }
+            _ => return error(Some(request.id), "invalid_params"),
+        }
     } else {
         if params::<EmptyParams>(&request).is_err() {
             return error(Some(request.id), "invalid_params");
@@ -185,7 +233,9 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                     ServiceError::Busy => "operation_busy",
                     ServiceError::PrivateState => "private_state_unavailable",
                     ServiceError::InvalidOperation => "invalid_operation",
-                    ServiceError::Unavailable => "account_service_unavailable",
+                    ServiceError::Unavailable | ServiceError::SessionRejected => {
+                        "account_service_unavailable"
+                    }
                     ServiceError::PermissionDenied => "permission_denied",
                 },
             ),
@@ -197,11 +247,12 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
             if service.is_some() {
                 capabilities.push("account-login-v1");
                 capabilities.push("durable-text-send-v1");
+                capabilities.push("durable-text-sync-v1");
             }
             json!({"product":"clowder-wechat-link","version":env!("CARGO_PKG_VERSION"),
             "pid":std::process::id(),"protocolVersion":1,
             "upstreamCommit":"ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
-            // Current directory, sync and the Host replacement remain pending.
+            // Current directory and the Host replacement remain pending.
             "capabilities":capabilities,"accountServiceReady":false})
         }
         "status" => {
@@ -263,6 +314,15 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 ("send.cancel", ParsedParams::Operation(id)) => service
                     .cancel_send(&id)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("sync.pull", ParsedParams::Sync(p)) => service
+                    .pull_sync(p.account_generation, &p.account_identity)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("events.page", ParsedParams::Events(p)) => service
+                    .events(p.account_generation, &p.after)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("message.get", ParsedParams::Message(p)) => service
+                    .message(p.account_generation, &p.message_id)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 _ => return error(Some(request.id), "unsupported_method"),
             };

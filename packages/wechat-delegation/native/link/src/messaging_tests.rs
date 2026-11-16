@@ -37,9 +37,14 @@ struct Peer {
     unknown: bool,
     valid_target: bool,
     reply: Option<TextSendResult>,
+    session_rejected: bool,
+    verification_rejected: bool,
 }
 impl TextPeer for Peer {
     fn verify(&self, _: &NativeClient, _: &str) -> Result<()> {
+        if self.verification_rejected {
+            return Err(ServiceError::SessionRejected);
+        }
         if let Some(gate) = self.verifying.lock().unwrap().take() {
             gate.wait();
         }
@@ -68,6 +73,13 @@ impl TextPeer for Peer {
         if self.unknown {
             anyhow::bail!("SENTINEL_TRANSPORT_SECRET");
         }
+        if self.session_rejected {
+            return Err(wechat_protocol::ServiceRejected::new(
+                wechat_protocol::Service::NativeEnvelope,
+                -13,
+            )
+            .into());
+        }
         if let Some(reply) = &self.reply {
             return Ok(reply.clone());
         }
@@ -90,6 +102,8 @@ fn peer(sends: Arc<AtomicUsize>) -> Peer {
         unknown: false,
         valid_target: true,
         reply: None,
+        session_rejected: false,
+        verification_rejected: false,
     }
 }
 fn setup(root: &Root, keys: &Keys, peer: Peer) -> Arc<AccountService> {
@@ -457,4 +471,46 @@ fn group_proof_needs_positive_current_membership_and_the_exact_room() {
     assert!(roster_proof(&roster, "room@chatroom", "synthetic-user"));
     assert!(!roster_proof(&roster, "other@chatroom", "synthetic-user"));
     assert!(!roster_proof(&roster, "room@chatroom", "different-user"));
+}
+
+#[test]
+fn session_rejection_during_verification_or_send_stops_every_grant_without_erasing_credentials() {
+    for stage in ["authorize", "verify", "send"] {
+        let root = Root::new();
+        let keys = Keys::default();
+        let sends = Arc::new(AtomicUsize::new(0));
+        let mut fake = peer(sends.clone());
+        fake.verification_rejected = stage != "send";
+        fake.session_rejected = stage == "send";
+        let service = setup(&root, &keys, fake);
+        let lease = service.store.authorize(1, "friend").unwrap();
+        if stage == "authorize" {
+            assert!(service
+                .authorize_conversation(1, "synthetic-user", "another-friend")
+                .is_err());
+        } else {
+            let result = service
+                .send_text(&lease, "expired-session", "synthetic text")
+                .unwrap();
+            assert_eq!(
+                result.state,
+                if stage == "send" {
+                    SendPhase::NeedsReview
+                } else {
+                    SendPhase::Cancelled
+                }
+            );
+        }
+        let status = service.status().unwrap();
+        assert!(!status.authenticated);
+        assert!(status.credentials_available);
+        assert!(service
+            .store
+            .queue_send(&lease, "later", "must not send")
+            .is_err());
+        assert_eq!(
+            sends.load(Ordering::SeqCst),
+            if stage == "send" { 1 } else { 0 }
+        );
+    }
 }

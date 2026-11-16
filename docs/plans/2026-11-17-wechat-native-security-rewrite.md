@@ -146,3 +146,13 @@ Node transport b6a61ec已获小多子000409 typed approved，no open items，仅
 Architecture cell仍为原自有连接服务；Map delta为同一AccountService新增文字执行和窄授权/暂停/发送/查询/取消RPC，持久outbox仅补提交前终止及明确拒绝结果，不建第二队列。五轴：behavior=新文字发送入口/接管，data=原加密outbox与合成旅程，无迁移删除，security=新鲜身份/双generation/最终提交，contract=封闭stdio扩5方法及permission_denied，irreversible=无。
 
 accountServiceReady仍false：当前目录枚举、入站sync/消息及canonical回显、新NativeClient/Supervisor/Host完整替换仍缺。正式签名升级、LAN路径、业务key来源和本人授权真实验收沿原范围继续。没有修改安装版、真实profile或默认Keychain条目，也未发布/merge或关闭Task。
+
+### 入站同步与状态诚实续做
+
+文字执行5ee58a3已获小多子000413准确HEAD typed approved，no open items。本轮继续同一账号/Store的sync：inbox按账号代次加密保留命令、游标、投影和有序事件，游标与数据同一次commit；迟到ticket、旧账号及失败提交不发布数据。未知/冲突命令保留私有原件并计数，不当完整解析成功；消息id去重，群senderId保持未知、非文字body为null、不触发下载。空白无变化poll不改写Vault，避免每次查询重写整个快照。
+
+实际观察RED：初始Store ticket未实现的2项失败、sync RPC未接线checkpoint为空、会话被明确拒绝后仍authenticated=true、空白poll错误推进checkpoint；均在相同检查修绿。补充真实rename失败的文件旅程验证游标/消息不发布、101+条事件分页、群/发出/外部账号及冲突保留、并发sync忙与断开迟到拒绝。38项link主检查（含新建隔离私有Keychain及父测跨进程restart）、2项编译进程、97项协议、6项compile-fail；Node73、fmt/locked构建/26来源重建检查证据见login/sync-*。网络远端替身及真实无参进程边界保持诚实。
+
+会话拒绝问题按同一根因覆盖sync、好友/群核验、会话授权及文字发送：停止client、持久暂停grants、保留凭据，已在途的回执继续needs_review，不重发；一般网络超时不冒充明确失效。新schema字段默认空，原合成快照兼容、无生产迁移。Architecture cell仍是自有连接服务，Map delta为同一Store的inboxes和同一AccountService的sync执行，未新增账号writer/守护进程；五轴为入站行为、加法私有数据、账号/游标fence及秘密投影、stdio扩三方法，无不可逆操作。
+
+完整旅程仍未完成：当前目录枚举、显式已保存会话恢复、Node NativeClient/Supervisor/Host组合及最终制品仍缺。accountServiceReady仍false，未替换运行版本、真实登录或发送、merge/发布或关闭Task。原正式签名升级/LAN/业务key来源/本人授权真实验收要求不变。

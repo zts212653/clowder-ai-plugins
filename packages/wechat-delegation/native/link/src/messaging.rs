@@ -92,7 +92,7 @@ impl TextPeer for NativeTextPeer {
         }
         let reply = client
             .request_blocking(|request| request.lookup_contacts(&[destination.to_owned()]))
-            .map_err(|_| ServiceError::Unavailable)?;
+            .map_err(|error| ServiceError::network(&error))?;
         if reply.results != [0]
             || reply.contacts.len() != 1
             || reply.contacts[0].username != destination
@@ -106,7 +106,7 @@ impl TextPeer for NativeTextPeer {
                 None => {
                     let roster = client
                         .request_blocking(|request| request.lookup_room(destination, 0))
-                        .map_err(|_| ServiceError::Unavailable)?;
+                        .map_err(|error| ServiceError::network(&error))?;
                     roster_proof(&roster, destination, &own)
                 }
             }
@@ -165,7 +165,10 @@ impl AccountService {
             }
             (client, control.authorization_epoch)
         };
-        self.text_peer.verify(&client, destination)?;
+        if let Err(problem) = self.text_peer.verify(&client, destination) {
+            self.observe_network_failure(generation, &problem)?;
+            return Err(problem);
+        }
         let control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
         Self::text_client(&control, generation, self.store.generation()?)?;
         if control.authorization_epoch != epoch {
@@ -207,7 +210,8 @@ impl AccountService {
             let receipt = self.store.queue_send(lease, key, text)?;
             (client, receipt)
         };
-        if self.text_peer.verify(&client, &lease.destination).is_err() {
+        if let Err(problem) = self.text_peer.verify(&client, &lease.destination) {
+            self.observe_network_failure(lease.account_generation, &problem)?;
             return Ok(self.store.stop_queued_send(key, false)?);
         }
         let mut started = false;
@@ -233,6 +237,9 @@ impl AccountService {
             },
             &mut before_submit,
         );
+        if let Err(error) = &result {
+            self.observe_network_failure(lease.account_generation, &ServiceError::network(error))?;
+        }
         if !started {
             return Ok(self.store.stop_queued_send(key, false)?);
         }
