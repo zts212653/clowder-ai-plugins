@@ -1,10 +1,11 @@
 // Private pipes for an owned child. The supervisor verifies binary identity;
 // protocol failure terminates this child and never selects another backend.
 const MAX_FRAME = 1024 * 1024;
-const METHODS = new Set(['hello', 'status', 'login.start', 'login.poll', 'login.operation', 'login.cancel', 'account.disconnect']);
+const METHODS = new Set(['hello', 'status', 'login.start', 'login.poll', 'login.operation', 'login.cancel', 'account.disconnect',
+  'conversation.authorize', 'conversation.pause', 'text.send', 'send.receipt', 'send.cancel']);
 const ERRORS = new Set(['invalid_request', 'invalid_params', 'unsupported_method', 'not_ready', 'operation_busy', 'invalid_operation',
-  'private_state_unavailable', 'account_service_unavailable', 'observation_unavailable', 'invalid_frame', 'internal_error']);
-const REFUSED = new Set(['invalid_request', 'invalid_params', 'unsupported_method', 'not_ready', 'operation_busy', 'invalid_operation']);
+  'private_state_unavailable', 'account_service_unavailable', 'observation_unavailable', 'invalid_frame', 'internal_error', 'permission_denied']);
+const REFUSED = new Set(['invalid_request', 'invalid_params', 'unsupported_method', 'not_ready', 'operation_busy', 'invalid_operation', 'permission_denied']);
 export class NativeRequestError extends Error {
   constructor(code, mayHaveCommitted = false) {
     super('账号连接组件请求未完成'); this.name = 'NativeRequestError'; this.code = code; this.mayHaveCommitted = mayHaveCommitted;

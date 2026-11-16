@@ -60,7 +60,7 @@ pub fn serve(
                     let service = service.clone();
                     let writer = writer.clone();
                     std::thread::Builder::new()
-                        .name("wechat-login".into())
+                        .name("wechat-network".into())
                         .spawn(move || {
                             let _permit = permit;
                             let reply = ipc::respond_with(&frame, service.as_deref());

@@ -1,6 +1,6 @@
 # 微信文字协议子集（实施中）
 
-这是账号安全重写的内部实施代码，尚未接入用户正在运行的插件。无参启动只开放hello/status；显式私有目录模式已接入扫码登录、查询、取消和本地断开，仍以accountServiceReady=false报告完整服务未就绪。钥匙串保险库、账号持久化及发送门禁已实现；目录、同步和发送执行器、Node接线及真实验收仍缺，不能将此进程当成完成的账号连接服务。内部入口契约见[IPC.md](IPC.md)。
+这是账号安全重写的内部实施代码，尚未接入用户正在运行的插件。无参启动只开放hello/status；显式私有目录模式已接入扫码登录、查询、取消和本地断开，仍以accountServiceReady=false报告完整服务未就绪。钥匙串保险库、账号持久化及发送门禁已实现；当前目录枚举、入站同步、完整Node接线及真实验收仍缺，不能将此进程当成完成的账号连接服务。内部入口契约见[IPC.md](IPC.md)。
 
 来源与授权：本人 `thread_mwg7kandcxztqeab#0001794847733075-000352-bf448701`；架构来源为宪宪 `000355` / `000362`，独立威胁稿为小多子 `000356`。完整产品与安全终态要求见 `docs/plans/2026-11-17-wechat-native-security-rewrite.md`。`b3028a9`的内部持久层与依赖更新已获小多子`000397`准确HEAD独立批准，未覆盖尚缺的执行器/真实旅程。
 
@@ -52,7 +52,7 @@ stdio入口的2项局部检查及实际编译进程的组合检查已通过：�
 
 `store.rs`是账号凭据和发送状态的唯一事务owner，向协议库提供数据型AccountPersistence回调：先加密持久化再发布状态，比较previous和账号generation，拒绝旧回调在退出后重新激活账号。未使用的数据库密码及原认证快照禁止落入此store。`outbox.rs`是同一store内的发送记录与会话授权，无第二套独立队列/凭据writer。
 
-显式授权后的会话generation和账号generation共同保护发送；接管持久化后取消queued，已进入submitting的保留真实在途状态。最终before-submit guard必须调用begin_submission，不能在握手或await前调用并把它当网络提交证明。重启把submitting标为needs_review、取消未发队列并暂停全部会话，不重发未知结果。此库尚不执行网络发送、不核当前好友/群关系，也不证明运行中的接管已经接线。
+显式授权后的会话generation和账号generation共同保护发送；接管持久化后取消queued，已进入submitting的保留真实在途状态。最终before-submit guard必须调用begin_submission，不能在握手或await前调用并把它当网络提交证明。重启把submitting标为needs_review、取消未发队列并暂停全部会话，不重发未知结果。持久库本身不执行网络。当前AccountService的messaging模块已将此guard接到真实协议文字入口，并新鲜核好友/群关系；宿主运行版本仍未替换。
 
 本次检查覆盖真实后端跨进程恢复、用同一C后端的异身份程序拒读、钥匙串锁定保持密文、重复项不覆盖和搜索列表不变；隔离文件测试覆盖篡改/缺失/替换、权限、hardlink/FIFO、互斥、失败提交与不确定提交；账号和好友/群发送门禁覆盖更新、退出、接管、幂等与重启。测试及RED摘录见`meow-talk/output/wechat-delegation-security-rewrite/vault/`。这些检查不替代完整秘密投影、Host→新进程接线、实际网络观察或本人授权后的真实账号验收。
 
@@ -62,6 +62,14 @@ stdio入口的2项局部检查及实际编译进程的组合检查已通过：�
 
 协议层新增LoginGuard，扫码创建、轮询与认证交换在业务提交前检查取消和期限，包括认证redirect后的下一请求。服务只允许明确分类的QR轮询暂时失败继续查询；认证交换不自动重放。已进入认证阶段再取消/掉线时，`authenticationMayHaveOccurred`如实保留可能已有服务端授权，不冒充已撤销手机上的设备登录。
 
-stdio只将login.start/poll交给最多两个工作线程，状态/取消/断开由入口线程执行；实际流测试已复现串行长轮询阻塞取消，改动后取消先返回，迟到认证结果被丢弃。关闭stdin使进行中的操作中断。RawValue保留params原文后按窄结构解码，拒绝重复键、未知字段及凭据导入；错误不回显输入或底层诊断。
+stdio只将login.start/poll、conversation.authorize和text.send交给最多两个工作线程，状态/取消/断开由入口线程执行；实际流测试已复现串行长轮询阻塞取消，改动后取消先返回，迟到认证结果被丢弃。关闭stdin使进行中的操作中断。RawValue保留params原文后按窄结构解码，拒绝重复键、未知字段及凭据导入；错误不回显输入或底层诊断。
 
 本轮生产NativeLoginPeer已调用真实协议方法；自动化登录旅程中的远端由测试专用LoginPeer替身提供合成响应，用于验证真实Store/AccountService/RPC/stdio组合。协议取消checkpoint另有直接检查。没有运行真实微信登录或声称已实测网络中途取消。真实子进程仅跑无参离线入口和启动参数/目录拒绝，不读取默认钥匙串条目；钥匙串回归仍用新建私有合成库。日志与RED边界在共享`meow-talk/output/wechat-delegation-security-rewrite/login/`。
+
+## 文字执行接线（实施中）
+
+`link/src/messaging.rs`调用同一NativeClient账号owner的scoped request；未创建第二份凭据或并行发送队列。意图先落盘，最终协议提交点持control锁后进入Store的begin_submission，与pause共用顺序；身份核验/握手/网络期间不持control锁。暂停也推进本进程授权epoch，禁止核验途中的旧授权迟到复活；重启继续用持久grants暂停和unknown不重发。
+
+结果只有通过目的地/client id与业务code验证、带规范非零u64 serverId才为accepted；匹配的明确拒绝为failed，其余在途结果为needs_review。accepted不宣称对方已读或canonical同步回显。完整方法和字段见IPC.md。生产路径采用NativeTextPeer；组合测试用替身控制远端回执，不能冒充真实微信网络发送检查。
+
+应用层身份判定来源为同一固定MIT上游wechat-core/src/metadata.rs（完整mask及字段控制）、peer_classification.rs（系统/公众号排除）及本包既有current-directory.patch（群成员正向证明）。只复用这些小范围解释，无core/profile/SQLite依赖；许可仍保留于proto/LICENSE，协议26文件来源checker不覆盖新应用代码的语义正确性。

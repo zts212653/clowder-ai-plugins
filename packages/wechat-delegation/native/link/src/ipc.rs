@@ -1,5 +1,6 @@
 //! Closed, bounded stdio frames. Underlying parser errors never leave here.
 use crate::account_service::{AccountService, ServiceError};
+use crate::store::ConversationLease;
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::value::RawValue;
 use serde_json::{json, Value};
@@ -53,6 +54,33 @@ struct EmptyParams {}
 struct OperationParams {
     operation_id: String,
 }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct AuthorizationParams {
+    account_generation: u64,
+    account_identity: String,
+    destination: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct PauseParams {
+    account_generation: u64,
+    destination: Option<String>,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct SendParams {
+    lease: ConversationLease,
+    operation_id: String,
+    text: String,
+}
+enum ParsedParams {
+    Empty,
+    Operation(String),
+    Authorize(AuthorizationParams),
+    Pause(PauseParams),
+    Send(SendParams),
+}
 fn params<T: DeserializeOwned>(request: &Request) -> Result<T, ()> {
     serde_json::from_str(request.params.as_ref().map_or("{}", |p| p.get())).map_err(|_| ())
 }
@@ -77,7 +105,12 @@ pub fn respond(frame: &[u8]) -> Value {
     respond_with(frame, None)
 }
 pub fn is_blocking(frame: &[u8]) -> bool {
-    parse(frame).is_ok_and(|r| matches!(r.method.as_str(), "login.start" | "login.poll"))
+    parse(frame).is_ok_and(|r| {
+        matches!(
+            r.method.as_str(),
+            "login.start" | "login.poll" | "conversation.authorize" | "text.send"
+        )
+    })
 }
 pub fn busy_response(frame: &[u8]) -> Value {
     error(parse(frame).ok().map(|r| r.id), "operation_busy")
@@ -97,20 +130,51 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                 | "login.operation"
                 | "login.cancel"
                 | "account.disconnect"
+                | "conversation.authorize"
+                | "conversation.pause"
+                | "text.send"
+                | "send.receipt"
+                | "send.cancel"
         )
     {
         return error(Some(request.id), "unsupported_method");
     }
-    let operation = if request.method.starts_with("login.") {
+    let parsed = if request.method.starts_with("login.")
+        || matches!(request.method.as_str(), "send.receipt" | "send.cancel")
+    {
         match params::<OperationParams>(&request) {
-            Ok(value) if valid_operation_id(&value.operation_id) => Some(value.operation_id),
+            Ok(value) if valid_operation_id(&value.operation_id) => {
+                ParsedParams::Operation(value.operation_id)
+            }
+            _ => return error(Some(request.id), "invalid_params"),
+        }
+    } else if request.method == "conversation.authorize" {
+        match params::<AuthorizationParams>(&request) {
+            Ok(value) => ParsedParams::Authorize(value),
+            _ => return error(Some(request.id), "invalid_params"),
+        }
+    } else if request.method == "conversation.pause" {
+        match params::<PauseParams>(&request) {
+            Ok(value) => ParsedParams::Pause(value),
+            _ => return error(Some(request.id), "invalid_params"),
+        }
+    } else if request.method == "text.send" {
+        match params::<SendParams>(&request) {
+            Ok(value)
+                if valid_operation_id(&value.operation_id)
+                    && !value.text.trim().is_empty()
+                    && value.text.len() <= 65536
+                    && !value.text.contains('\0') =>
+            {
+                ParsedParams::Send(value)
+            }
             _ => return error(Some(request.id), "invalid_params"),
         }
     } else {
         if params::<EmptyParams>(&request).is_err() {
             return error(Some(request.id), "invalid_params");
         }
-        None
+        ParsedParams::Empty
     };
     let project = |value: Result<Value, ServiceError>| -> Value {
         match value {
@@ -122,6 +186,7 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                     ServiceError::PrivateState => "private_state_unavailable",
                     ServiceError::InvalidOperation => "invalid_operation",
                     ServiceError::Unavailable => "account_service_unavailable",
+                    ServiceError::PermissionDenied => "permission_denied",
                 },
             ),
         }
@@ -131,11 +196,12 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
             let mut capabilities = vec!["stdio-v1", "text-protocol-subset"];
             if service.is_some() {
                 capabilities.push("account-login-v1");
+                capabilities.push("durable-text-send-v1");
             }
             json!({"product":"clowder-wechat-link","version":env!("CARGO_PKG_VERSION"),
             "pid":std::process::id(),"protocolVersion":1,
             "upstreamCommit":"ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
-            // Directory/sync/send execution is not yet wired to this entry.
+            // Current directory, sync and the Host replacement remain pending.
             "capabilities":capabilities,"accountServiceReady":false})
         }
         "status" => {
@@ -163,22 +229,40 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
             let Some(service) = service else {
                 return error(Some(request.id), "not_ready");
             };
-            let id = operation.as_deref().unwrap_or("");
-            let value = match request.method.as_str() {
-                "login.start" => service
-                    .start_login(id)
+            let value = match (&*request.method, parsed) {
+                ("login.start", ParsedParams::Operation(id)) => service
+                    .start_login(&id)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
-                "login.poll" => service
-                    .poll_login(id)
+                ("login.poll", ParsedParams::Operation(id)) => service
+                    .poll_login(&id)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
-                "login.operation" => service
-                    .login_operation(id)
+                ("login.operation", ParsedParams::Operation(id)) => service
+                    .login_operation(&id)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
-                "login.cancel" => service
-                    .cancel_login(id)
+                ("login.cancel", ParsedParams::Operation(id)) => service
+                    .cancel_login(&id)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
-                "account.disconnect" => service
+                ("account.disconnect", ParsedParams::Empty) => service
                     .disconnect()
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("conversation.authorize", ParsedParams::Authorize(p)) => service
+                    .authorize_conversation(
+                        p.account_generation,
+                        &p.account_identity,
+                        &p.destination,
+                    )
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("conversation.pause", ParsedParams::Pause(p)) => service
+                    .pause_conversation(p.account_generation, p.destination.as_deref())
+                    .map(|_| json!({"paused":true})),
+                ("text.send", ParsedParams::Send(p)) => service
+                    .send_text(&p.lease, &p.operation_id, &p.text)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("send.receipt", ParsedParams::Operation(id)) => service
+                    .send_receipt(&id)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("send.cancel", ParsedParams::Operation(id)) => service
+                    .cancel_send(&id)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 _ => return error(Some(request.id), "unsupported_method"),
             };

@@ -14,7 +14,7 @@ clowder-wechat-link --data-dir /absolute/private/vault --initialize
 
 `--initialize`是明确的新库初始化，已经有身份或密文时拒绝，不能把它当修复/覆盖参数。钥匙串失败和中断的原件保留；本轮尚未交付其恢复UI，不可删除标记静默重试。没有旧profile导入/迁移或自动开新数据目录的fallback。
 
-成功加载账号目录后，hello增加`account-login-v1`能力；完整`accountServiceReady`仍为false，缺目录/sync/发送执行器及Node consumer。已保存凭据重开后仅为`stored`，不谎报已和服务器验证在线；新二维码成功完成协议认证才报告online。尚未添加自动重连/凭据重认证策略。
+成功加载账号目录后，hello增加`account-login-v1`能力；完整`accountServiceReady`仍为false，缺目录/sync及完整Node consumer。已保存凭据重开后仅为`stored`，不谎报已和服务器验证在线；新二维码成功完成协议认证才报告online。尚未添加自动重连/凭据重认证策略。
 
 ## 请求与响应
 
@@ -22,7 +22,7 @@ clowder-wechat-link --data-dir /absolute/private/vault --initialize
 {"id":1,"method":"login.start","params":{"operationId":"owner-generated-unique-id"}}
 ```
 
-id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、数字或`-_.:`。每种params拒绝未知字段和重复键，信封也拒绝重复键。只有下列方法：
+id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、数字或`-_.:`。每种params拒绝未知字段和重复键，信封也拒绝重复键。方法集合封闭；当前包括：
 
 | 方法 | params | 结果 |
 | --- | --- | --- |
@@ -32,6 +32,11 @@ id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、�
 | login.poll | operationId | 查询一个已创建挑战；同一意图不并发轮询。批准后认证交换一次，提交账号和成功回执 |
 | login.operation | operationId | 读取持久回执；仅当前待扫/待批准挑战附加易失QR投影 |
 | login.cancel | operationId | 持久取消；清除当前QR与取消guard；网络已在途时不声称可以追回授权 |
+| conversation.authorize | accountGeneration、accountIdentity、destination | 新鲜核当前好友/群身份后，返回账号/会话双generation的租约；不会使用缓存证明关系 |
+| conversation.pause | accountGeneration，可省略destination表示全部 | 先持久暂停及取消未提交消息，拒绝并发迟到授权；保留Submitting |
+| text.send | lease、operationId、text | 同一Store先记意图；在协议最终before-submit持久化Submitting；只回受限SendReceipt |
+| send.receipt | operationId | 查询原发送回执，不触发网络发送 |
+| send.cancel | operationId | 仅Queued可改为Cancelled；Submitting和终态保持原状 |
 | account.disconnect | 空对象或省略/null | 停止本地账号、清除已接受凭据并持久取消活动登录/未发意图；不承诺撤销远端设备信任 |
 
 登录结果投影：`operation {id,generation,accountGeneration,phase,accountIdentity,startedAtMs,updatedAtMs,authenticationMayHaveOccurred}`，可有`qr {pngBase64,expiresAt}`。二维码只给授权面板，不进模型消息或通用诊断；图片最多512KiB。phase为starting/pending/scanned/completing/succeeded/cancelled/interrupted/failed/expired/rejected/lan_required。完成认证前已取消或中断不能变成succeeded。
@@ -40,7 +45,9 @@ id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、�
 
 凭据和成功回执在同一事务提交；存储失败不发布账号，不回退明文/易失登录。二维码创建、认证交换、已结束意图不自动重放；只有QR轮询中协议明确分类的暂时故障可以继续查询。不同operationId是本人明确发起的新意图，不用于组件内部悄悄重试。
 
-固定错误码：invalid_request、invalid_params、unsupported_method、not_ready、operation_busy、invalid_operation、private_state_unavailable、account_service_unavailable、observation_unavailable、invalid_frame及internal_error。不会回显传入URL、字段、密钥、JSON解析异常或底层网络诊断。profile/account导入、秘密导出、通用URL、任意路径和shell方法均不存在。
+固定错误码：invalid_request、invalid_params、unsupported_method、not_ready、operation_busy、invalid_operation、private_state_unavailable、account_service_unavailable、observation_unavailable、invalid_frame、internal_error及permission_denied。不会回显传入URL、字段、密钥、JSON解析异常或底层网络诊断。profile/account导入、秘密导出、通用URL、任意路径和shell方法均不存在。
+
+文字发送回执包含id、destination、accountGeneration、conversationGeneration、state、createdAt、clientMessageId、serverId。成功须目的地/客户端id匹配、业务双code成功及非零u64 serverId；仅匹配的显式拒绝为failed，其余已提交错误为needs_review。accepted只证明协议受理，不是收件人已读或同步回显核验。未知/终态不会再次发送，同id不同正文或租约拒绝。好友须新回复的全mask好友位且非官方/系统对象；群须当前成员字段或精确群的正向本人roster证明，字段稀疏不复用旧状态。
 
 Node侧还未接线；上述是受控开发入口，不是对最终用户新增配置命令。真实账号、正式签名与升级、LAN显式路径和完整好友/群代聊接管验收仍保持开放。
 

@@ -49,6 +49,7 @@ pub struct PreparedSend {
 }
 pub enum SendOutcome {
     Accepted(String),
+    Rejected,
     Unknown,
 }
 
@@ -311,6 +312,7 @@ impl Store {
                     entry.receipt.server_id = Some(remote);
                 }
                 SendOutcome::Unknown => entry.receipt.state = SendPhase::NeedsReview,
+                SendOutcome::Rejected => entry.receipt.state = SendPhase::Failed,
             }
             Ok(entry.receipt.clone())
         })
@@ -322,6 +324,21 @@ impl Store {
             .get(id)
             .map(|e| e.receipt.clone())
             .ok_or(StoreError::UnknownSend)
+    }
+    /// Only a pre-submission failure/cancel may change Queued. In-flight or
+    /// terminal receipts are immutable here, including after takeover.
+    pub fn stop_queued_send(&self, id: &str, cancelled: bool) -> Result<SendReceipt> {
+        self.update(|state| {
+            let entry = state.outbox.get_mut(id).ok_or(StoreError::UnknownSend)?;
+            if entry.receipt.state == SendPhase::Queued {
+                entry.receipt.state = if cancelled {
+                    SendPhase::Cancelled
+                } else {
+                    SendPhase::Failed
+                };
+            }
+            Ok(entry.receipt.clone())
+        })
     }
 }
 

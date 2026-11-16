@@ -6,6 +6,9 @@ use std::time::{Duration, Instant};
 use wechat_protocol::{
     AccountState, DeviceProfile, LoginAttempt, LoginGuard, LoginStatus, NativeClient, NativeOptions,
 };
+#[path = "messaging.rs"]
+mod messaging;
+use messaging::{NativeTextPeer, TextPeer};
 
 #[derive(Debug)]
 pub enum ServiceError {
@@ -13,12 +16,18 @@ pub enum ServiceError {
     Unavailable,
     Busy,
     InvalidOperation,
+    PermissionDenied,
 }
 impl From<StoreError> for ServiceError {
     fn from(error: StoreError) -> Self {
         match error {
             StoreError::LoginBusy => Self::Busy,
-            StoreError::UnknownLogin | StoreError::StaleGeneration => Self::InvalidOperation,
+            StoreError::UnknownLogin
+            | StoreError::UnknownSend
+            | StoreError::StaleGeneration
+            | StoreError::IdempotencyConflict
+            | StoreError::AlreadySubmitted => Self::InvalidOperation,
+            StoreError::PermissionDenied => Self::PermissionDenied,
             _ => Self::PrivateState,
         }
     }
@@ -124,11 +133,13 @@ struct Control {
     client: Option<NativeClient>,
     online: bool,
     closed: bool,
+    authorization_epoch: u64,
 }
 pub struct AccountService {
     store: Arc<Store>,
     peer: Mutex<Box<dyn LoginPeer>>,
     control: Mutex<Control>,
+    text_peer: Box<dyn TextPeer>,
 }
 impl AccountService {
     pub fn new(store: Arc<Store>) -> Result<Self> {
@@ -150,11 +161,13 @@ impl AccountService {
         Ok(Self {
             store,
             peer: Mutex::new(peer),
+            text_peer: Box::new(NativeTextPeer),
             control: Mutex::new(Control {
                 attempt: None,
                 client,
                 online: false,
                 closed: false,
+                authorization_epoch: 0,
             }),
         })
     }

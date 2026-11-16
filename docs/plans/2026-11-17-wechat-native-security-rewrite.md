@@ -136,3 +136,13 @@ Rust/Cargo/标准库1.93.1现已安装在任务临时目录，官方组件摘要
 重要未决：宪宪只读核官方mac应用包后，未能独立匹配上游8把公钥（`000375`；证据 `meow-talk/output/wechat-delegation-alpha10/key-provenance/结论.md`）。这不是非官方的证明；当前最多可声称‘对端通过内置公钥验签，公钥官方来源未确认’，不能声称‘只向微信官方发送凭据’。已路由她继续只读追应用层默认配置（`000378`），不读运行中内存或真实profile。新workspace首次无锁解析还发现本机registry将tokio1.54.0标为yanked；保持原锁可构建，最终制品前须核撤回原因与替换策略，不把当前依赖集合描述为已完成安全审计。
 
 Architecture cell：微信插件自有连接服务及其协议子集。Map delta：已新增 native Rust workspace、proto库与有界stdio进程入口；尚未切换任何运行consumer。Why：把登录秘密的可达代码面与网络出口从通用第三方daemon收回到可审查的专用实现。此处是内部实现与审查记录，不是分批验收、Feature close或发布许可；整体Task继续开放。
+
+### 发送执行续做：最终提交与接管共用同一Store
+
+Node transport b6a61ec已获小多子000409 typed approved，no open items，仅对应内部传输层。本轮继续AccountService内文字执行，NativeTextPeer调用同一账号owner的request_blocking与send_text_guarded，不另建账号writer。会话显式授权及每次新发送均新鲜核好友全mask/群成员身份；未验证身份不进入文字提交。conversation.pause与最终before-submit均持control锁后单向进Store，接管先落盘；网络期间不持control锁。授权也记录进程内epoch，核验途中接管/退出后，迟到授权不能复活。
+
+已观察4项RED：未实现服务拒绝授权/发送、核验gate未进入、RPC没有conversation.authorize接线；最小实现后修绿。另补实际字节stdio发送等待期间pause先回执、好友稀疏mask/群正向证明、回执关联错配与负向拒绝、重复在途请求、重启后查原回执等组合验证。网络文字与身份服务端用测试替身，生产适配调用真实协议；未冒称真实账号发送或协议服务器故障注入。完整Cargo通过30项link主检查（另有父测实际拉起的restart子进程）、2项编译进程、97项协议、6项compile-fail；Node73项通过，26文件来源重建与fmt/locked build通过。证据login/text-{tests.log,node-tests.log,tdd-evidence.md}。
+
+Architecture cell仍为原自有连接服务；Map delta为同一AccountService新增文字执行和窄授权/暂停/发送/查询/取消RPC，持久outbox仅补提交前终止及明确拒绝结果，不建第二队列。五轴：behavior=新文字发送入口/接管，data=原加密outbox与合成旅程，无迁移删除，security=新鲜身份/双generation/最终提交，contract=封闭stdio扩5方法及permission_denied，irreversible=无。
+
+accountServiceReady仍false：当前目录枚举、入站sync/消息及canonical回显、新NativeClient/Supervisor/Host完整替换仍缺。正式签名升级、LAN路径、业务key来源和本人授权真实验收沿原范围继续。没有修改安装版、真实profile或默认Keychain条目，也未发布/merge或关闭Task。
