@@ -43,3 +43,11 @@ id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、�
 固定错误码：invalid_request、invalid_params、unsupported_method、not_ready、operation_busy、invalid_operation、private_state_unavailable、account_service_unavailable、observation_unavailable、invalid_frame及internal_error。不会回显传入URL、字段、密钥、JSON解析异常或底层网络诊断。profile/account导入、秘密导出、通用URL、任意路径和shell方法均不存在。
 
 Node侧还未接线；上述是受控开发入口，不是对最终用户新增配置命令。真实账号、正式签名与升级、LAN显式路径和完整好友/群代聊接管验收仍保持开放。
+
+## Node字节传输层
+
+`src/native-stdio.mjs`已有私有管道transport，尚未替换NativeSupervisor/原HTTP NativeClient。它只允许上表方法，信封按安全整数id关联，允许乱序，最多16个待回请求；输入/输出每帧上限1MiB，UTF-8严格解码。后端错误只接受固定code白名单，JSON异常、未知字段/诊断和stderr不转发。协议故障/关闭会拒绝待回请求并终止传入的自有子进程，不查询外部PID或回退另一后端。
+
+未写出前取消为`request_cancelled`；已写出的请求超时/取消为`request_unknown`且mayHaveCommitted=true，之后的晚回包不会占据另一id。超时不自动重发、不谎报远端取消；宿主应沿同一operationId核回执。明确的副作用前拒绝码不冒充已提交。二进制身份、运行代次及账号DTO校验由后续Supervisor/NativeClient消费端承担，裸字节transport不是独立身份认证或完整Node接线。
+
+子进程exit后立即拒绝新请求，但保留待读响应直到stdout读尽或close，避免丢失退出前已经写出的最终回执。真实Node子进程检查覆盖这一退出顺序、乱序、超时晚回包、关闭、超长/坏JSON及含秘密诊断拒绝；另已让该transport连接真正编译的Rust无参进程核PID、hello/status及离线登录拒绝。该组合没有默认钥匙串条目/账号访问，也不是真实扫码或Host安装验收。

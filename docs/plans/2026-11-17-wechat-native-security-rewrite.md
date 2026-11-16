@@ -98,6 +98,8 @@ Architecture cell不变；Map delta为同一Store内login记录和同一native�
 
 原始完整旅程仍没走通，断点在新Node consumer、当前好友/群目录、sync及实际文字发送执行器；正式制品签名/升级授权、LAN显式验证、业务层key来源及本人授权的真实验收仍待。此为实现内审，不能作为分批发布或Task关闭。内部dogfood由真实文件/钥匙串/协议checkpoint/字节流组合与受影响检查支撑；网络登录成功旅程使用替身，不能冒充真实账号验证。
 
+登录/stdio实现`174b96c488faa240b437476d2844caa5b15c85e9`已获小多子`0001794854775528-000405-5440e437`的typed approved、no open items，范围仅该内部实现。随后继续了Node字节transport，使用真实Node子进程验证乱序、超时/取消后的未知状态、错误/超长响应拒绝；也连接实际Rust无参进程验证PID与离线拒绝。另复现exit先于stdout读尽导致最终回执丢失的RED，改为exit拒新请求、stdout读尽/close收尾后修绿。全包73项Node检查通过。transport还未被Supervisor/NativeClient接入，不能把字节层实物称完整Host替换；新Node代码需独立review，旧174b96c批准不覆盖它。
+
 ### 首轮已落地：启动端凭据目录和环境边界
 
 `NativeSupervisor` 在启动任何组件前，以 `O_DIRECTORY | O_NOFOLLOW` 打开实例根、凭据目录和配置目录，检查当前 UID 并通过该文件句柄设置0700；拒绝末级符号链接，避免 chmod 修改链接目标。配置根和凭据目录不能指向另一个目录。原账号资料不删除，缓存修复仍保留原资料。
