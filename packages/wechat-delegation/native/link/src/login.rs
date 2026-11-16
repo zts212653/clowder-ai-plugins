@@ -239,6 +239,7 @@ impl Store {
             record.account_identity = Some(account.own_username.clone());
             record.updated_at_ms = now_ms()?.max(record.updated_at_ms);
             state.account = Some(account);
+            super::directory::recover(state);
             outbox::inhibit(state);
             Ok(state.generation)
         })

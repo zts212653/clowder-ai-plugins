@@ -67,3 +67,11 @@ Node侧还未接线；上述是受控开发入口，不是对最终用户新增�
 群消息的senderId保持null，尚未推导发言人；正文保留协议原文字，不捏造昵称或成员身份。非文字/过大/不能解码的正文为null；原命令仍加密保留。消息不会触发任何媒体、链接或预览下载。这里只完成本机持久消息入口，完整模型消费及真实群收发验收仍待。
 
 对协议明确分类的会话拒绝，停止当前client并持久暂停全部grants；凭据保留、authenticated=false，不自动续期/扫码，也不将一般网络故障直接当凭据失效。显式重新验证保存会话尚待实现。
+
+## 当前目录
+
+新增directory.start（operationId/accountGeneration/accountIdentity）、directory.advance和directory.operation（operationId）、directory.page（operationId/offset）。start持久创建从零刷新意图；advance每次推进一个目录页、群页或身份核验，网络期间不持control锁；operation只读，page仅返回当前账号已完成快照、最多100项及nextOffset。重复终态id不重新请求，参数仍拒绝未知/重复字段。
+
+候选来自从零联系人ID目录、独立群目录和已同步群id，均用发送入口同一verified_target新鲜核关系和受限名字字段。无法核验计入unverifiedCount；群发现失败继续核验已知候选并标groupDiscoveryIncomplete=true。stalled cursor/超限记failed；服务端wait投影为retryAfterMs，等待时不发新查询。原始metadata/cursor不出RPC。
+
+意图及终态快照落同一Vault；中间外部缓存和进度只在进程内，避免每个联系人后重写整个账号库。断开/EOF/重启记interrupted，不自动续跑或假造完成计数。新刷新可替换当前目录缓存，旧意图保留且snapshotAvailable=false；没有删除聊天、发送或控制历史，也没有为它们增加TTL。完整Host消费端及显式会话恢复仍待，accountServiceReady=false。

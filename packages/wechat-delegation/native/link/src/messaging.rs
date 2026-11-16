@@ -81,43 +81,72 @@ fn roster_proof(roster: &wechat_protocol::RoomRoster, room: &str, own: &str) -> 
                 .as_ref()
                 .is_some_and(|ids| ids.iter().any(|id| id == own)))
 }
+pub(super) fn verified_target(
+    client: &NativeClient,
+    destination: &str,
+) -> Result<crate::store::TargetProjection> {
+    let own = client
+        .account_identity()
+        .map_err(|_| ServiceError::Unavailable)?
+        .own_username;
+    if !ordinary_destination(destination) || destination == own {
+        return Err(ServiceError::PermissionDenied);
+    }
+    let reply = client
+        .request_blocking(|request| request.lookup_contacts(&[destination.to_owned()]))
+        .map_err(|error| ServiceError::network(&error))?;
+    if reply.results != [0]
+        || reply.contacts.len() != 1
+        || reply.contacts[0].username != destination
+    {
+        return Err(ServiceError::PermissionDenied);
+    }
+    let record = &reply.contacts[0];
+    let member = if destination.ends_with("@chatroom") {
+        match membership(record).map_err(|_| ServiceError::Unavailable)? {
+            Some(member) => member,
+            None => {
+                let roster = client
+                    .request_blocking(|request| request.lookup_room(destination, 0))
+                    .map_err(|error| ServiceError::network(&error))?;
+                roster_proof(&roster, destination, &own)
+            }
+        }
+    } else {
+        direct_proof(record).map_err(|_| ServiceError::Unavailable)?
+    };
+    if !member {
+        return Err(ServiceError::PermissionDenied);
+    }
+    let clean = |value: &Option<String>| {
+        value
+            .as_ref()
+            .filter(|v| !v.is_empty() && v.len() <= 512 && !v.contains('\0'))
+            .cloned()
+    };
+    let nickname = clean(&record.nickname);
+    let remark = clean(&record.remark);
+    let alias = clean(&record.alias);
+    Ok(crate::store::TargetProjection {
+        id: destination.into(),
+        kind: if destination.ends_with("@chatroom") {
+            "group".into()
+        } else {
+            "direct".into()
+        },
+        display_name: remark
+            .as_ref()
+            .or(nickname.as_ref())
+            .cloned()
+            .unwrap_or_else(|| destination.into()),
+        nickname,
+        remark,
+        alias,
+    })
+}
 impl TextPeer for NativeTextPeer {
     fn verify(&self, client: &NativeClient, destination: &str) -> Result<()> {
-        let own = client
-            .account_identity()
-            .map_err(|_| ServiceError::Unavailable)?
-            .own_username;
-        if !ordinary_destination(destination) || destination == own {
-            return Err(ServiceError::PermissionDenied);
-        }
-        let reply = client
-            .request_blocking(|request| request.lookup_contacts(&[destination.to_owned()]))
-            .map_err(|error| ServiceError::network(&error))?;
-        if reply.results != [0]
-            || reply.contacts.len() != 1
-            || reply.contacts[0].username != destination
-        {
-            return Err(ServiceError::PermissionDenied);
-        }
-        let record = &reply.contacts[0];
-        let member = if destination.ends_with("@chatroom") {
-            match membership(record).map_err(|_| ServiceError::Unavailable)? {
-                Some(member) => member,
-                None => {
-                    let roster = client
-                        .request_blocking(|request| request.lookup_room(destination, 0))
-                        .map_err(|error| ServiceError::network(&error))?;
-                    roster_proof(&roster, destination, &own)
-                }
-            }
-        } else {
-            direct_proof(record).map_err(|_| ServiceError::Unavailable)?
-        };
-        if member {
-            Ok(())
-        } else {
-            Err(ServiceError::PermissionDenied)
-        }
+        verified_target(client, destination).map(|_| ())
     }
     fn send(
         &self,

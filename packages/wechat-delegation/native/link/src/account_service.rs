@@ -12,6 +12,9 @@ use messaging::{NativeTextPeer, TextPeer};
 #[path = "sync_service.rs"]
 mod sync_service;
 use sync_service::{NativeSyncPeer, SyncPeer};
+#[path = "directory_service.rs"]
+mod directory_service;
+use directory_service::{DirectoryPeer, NativeDirectoryPeer};
 
 #[derive(Debug)]
 pub enum ServiceError {
@@ -156,6 +159,9 @@ pub struct AccountService {
     text_peer: Box<dyn TextPeer>,
     sync_peer: Box<dyn SyncPeer>,
     sync_gate: Mutex<()>,
+    directory_peer: Box<dyn DirectoryPeer>,
+    directory_gate: Mutex<()>,
+    directory_work: Mutex<Option<crate::store::DirectoryTicket>>,
 }
 impl AccountService {
     fn observe_network_failure(&self, generation: u64, problem: &ServiceError) -> Result<()> {
@@ -171,6 +177,7 @@ impl AccountService {
             client.stop().map_err(|_| ServiceError::Unavailable)?;
         }
         self.store.pause(generation, None)?;
+        self.store.interrupt_directory()?;
         Ok(())
     }
     pub fn new(store: Arc<Store>) -> Result<Self> {
@@ -195,6 +202,9 @@ impl AccountService {
             text_peer: Box::new(NativeTextPeer),
             sync_peer: Box::new(NativeSyncPeer),
             sync_gate: Mutex::new(()),
+            directory_peer: Box::new(NativeDirectoryPeer),
+            directory_gate: Mutex::new(()),
+            directory_work: Mutex::new(None),
             control: Mutex::new(Control {
                 attempt: None,
                 client,
@@ -490,6 +500,7 @@ impl AccountService {
             if let Ok(generation) = self.store.generation() {
                 let _ = self.store.pause(generation, None);
             }
+            let _ = self.store.interrupt_directory();
             if let Ok(mut peer) = self.peer.try_lock() {
                 peer.clear();
             }

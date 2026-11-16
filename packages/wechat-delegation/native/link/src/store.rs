@@ -13,6 +13,10 @@ pub use login::{LoginAdmission, LoginPhase, LoginRecord, LoginTicket};
 #[path = "inbox.rs"]
 mod inbox;
 pub(crate) use inbox::SyncTicket;
+#[path = "directory.rs"]
+mod directory;
+pub(crate) use directory::{DirectoryChange, DirectoryStep, DirectoryTicket};
+pub use directory::{DirectoryPage, DirectoryProjection, TargetProjection};
 pub use inbox::{EventPage, EventProjection, MessageProjection, SyncProjection};
 
 #[derive(Debug)]
@@ -57,6 +61,10 @@ struct State {
     logins: std::collections::BTreeMap<String, LoginRecord>,
     #[serde(default)]
     inboxes: std::collections::BTreeMap<u64, inbox::Inbox>,
+    #[serde(default)]
+    directory: Option<directory::Work>,
+    #[serde(default)]
+    directory_history: std::collections::BTreeMap<String, DirectoryProjection>,
 }
 fn validate_account(account: &AccountState) -> Result<()> {
     account.validate().map_err(|_| StoreError::InvalidState)?;
@@ -90,6 +98,7 @@ impl State {
         outbox::validate(self)?;
         login::validate(self)?;
         inbox::validate(self)?;
+        directory::validate(self)?;
         Ok(())
     }
 }
@@ -117,6 +126,8 @@ impl Store {
             login_generation: 0,
             logins: std::collections::BTreeMap::new(),
             inboxes: std::collections::BTreeMap::new(),
+            directory: None,
+            directory_history: std::collections::BTreeMap::new(),
             outbox,
             grants,
             next_message_id: (u32::from_be_bytes(
@@ -135,7 +146,8 @@ impl Store {
             serde_json::from_slice(&plaintext).map_err(|_| StoreError::InvalidState)?;
         state.validate()?;
         let login_changed = login::recover(&mut state);
-        if outbox::recover(&mut state) || login_changed {
+        let directory_changed = directory::recover(&mut state);
+        if outbox::recover(&mut state) || login_changed || directory_changed {
             vault.commit(&encode(&state)?)?;
         }
         Ok(Self {
@@ -173,6 +185,7 @@ impl Store {
                 .checked_add(1)
                 .ok_or(StoreError::InvalidState)?;
             state.account = Some(account);
+            directory::recover(state);
             login::inhibit(state);
             outbox::inhibit(state);
             Ok(state.generation)
@@ -192,6 +205,7 @@ impl Store {
                 .checked_add(1)
                 .ok_or(StoreError::InvalidState)?;
             state.account = None;
+            directory::recover(state);
             login::inhibit(state);
             outbox::inhibit(state);
             Ok(state.generation)

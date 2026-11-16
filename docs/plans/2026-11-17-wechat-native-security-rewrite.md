@@ -156,3 +156,13 @@ accountServiceReady仍false：当前目录枚举、入站sync/消息及canonical
 会话拒绝问题按同一根因覆盖sync、好友/群核验、会话授权及文字发送：停止client、持久暂停grants、保留凭据，已在途的回执继续needs_review，不重发；一般网络超时不冒充明确失效。新schema字段默认空，原合成快照兼容、无生产迁移。Architecture cell仍是自有连接服务，Map delta为同一Store的inboxes和同一AccountService的sync执行，未新增账号writer/守护进程；五轴为入站行为、加法私有数据、账号/游标fence及秘密投影、stdio扩三方法，无不可逆操作。
 
 完整旅程仍未完成：当前目录枚举、显式已保存会话恢复、Node NativeClient/Supervisor/Host组合及最终制品仍缺。accountServiceReady仍false，未替换运行版本、真实登录或发送、merge/发布或关闭Task。原正式签名升级/LAN/业务key来源/本人授权真实验收要求不变。
+
+### 当前目录续做
+
+入站同步9e09689已获小多子000420准确HEAD typed approved，no open items；首次网络错误000416未当review结果。续做directory.start/advance/operation/page：从零init_contacts、独立group_inventory及已同步群id提供候选，复用同一verified_target新鲜核好友/群关系与受限名字字段。候选不是可选对象；只有核验成功才入快照。未核实计数、群发现不完整、服务端wait、stalled cursor失败均如实披露。
+
+Store持久意图和最终快照，中间外部目录缓存只在进程内推进。初版每项metadata重写完整Vault被实际文件比对RED抓到，改为开始/终态持久化，同一免写判据GREEN；该调整的测试路径改为连续私有ticket，不再承诺旧的逐步持久恢复。断开/EOF/重启变interrupted、终态id不重新请求，新刷新替换当前缓存但保留旧回执，不删除聊天/发送/控制历史或引入TTL。
+
+另观察两个Store stub失败、RPC phase为空再修绿；补充旧账号迟到拒绝、metadata网络阻塞期间断开立即生效、替换快照、相同终态id不重新请求、wait期间不请求、群部分发现与重启中断。完整Cargo45项link主检查（父测另调restart子进程）、2编译进程、97协议、6compile_fail，Node73；fmt/locked build/26来源重建通过，原始日志与无参Rust四方法拒绝探针为login/directory-*。真实协议适配已接，自动化远端为替身，未冒充真实微信关系或收发验证。
+
+Architecture cell不变；Map delta为同一Store的当前目录缓存/持久意图和同一AccountService执行，不新增账号writer。五轴：目录行为、默认空加法字段/可替换外部缓存而无真实迁移删除、现有关系证明与账号fence、stdio扩四方法、无不可逆操作。完整旅程仍缺保存会话显式恢复、Node NativeClient/Supervisor/Host组合与正式候选；accountServiceReady=false，原签名升级/LAN/业务key/本人授权实测要求未变。

@@ -92,6 +92,19 @@ struct MessageParams {
     account_generation: u64,
     message_id: String,
 }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct DirectoryStartParams {
+    operation_id: String,
+    account_generation: u64,
+    account_identity: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct DirectoryPageParams {
+    operation_id: String,
+    offset: usize,
+}
 enum ParsedParams {
     Empty,
     Operation(String),
@@ -101,6 +114,8 @@ enum ParsedParams {
     Sync(SyncParams),
     Events(EventParams),
     Message(MessageParams),
+    DirectoryStart(DirectoryStartParams),
+    DirectoryPage(DirectoryPageParams),
 }
 fn params<T: DeserializeOwned>(request: &Request) -> Result<T, ()> {
     serde_json::from_str(request.params.as_ref().map_or("{}", |p| p.get())).map_err(|_| ())
@@ -129,7 +144,12 @@ pub fn is_blocking(frame: &[u8]) -> bool {
     parse(frame).is_ok_and(|r| {
         matches!(
             r.method.as_str(),
-            "login.start" | "login.poll" | "conversation.authorize" | "text.send" | "sync.pull"
+            "login.start"
+                | "login.poll"
+                | "conversation.authorize"
+                | "text.send"
+                | "sync.pull"
+                | "directory.advance"
         )
     })
 }
@@ -159,13 +179,19 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                 | "sync.pull"
                 | "events.page"
                 | "message.get"
+                | "directory.start"
+                | "directory.advance"
+                | "directory.operation"
+                | "directory.page"
         )
     {
         return error(Some(request.id), "unsupported_method");
     }
     let parsed = if request.method.starts_with("login.")
-        || matches!(request.method.as_str(), "send.receipt" | "send.cancel")
-    {
+        || matches!(
+            request.method.as_str(),
+            "send.receipt" | "send.cancel" | "directory.advance" | "directory.operation"
+        ) {
         match params::<OperationParams>(&request) {
             Ok(value) if valid_operation_id(&value.operation_id) => {
                 ParsedParams::Operation(value.operation_id)
@@ -191,6 +217,20 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                     && !value.text.contains('\0') =>
             {
                 ParsedParams::Send(value)
+            }
+            _ => return error(Some(request.id), "invalid_params"),
+        }
+    } else if request.method == "directory.start" {
+        match params::<DirectoryStartParams>(&request) {
+            Ok(p) if valid_operation_id(&p.operation_id) && p.account_identity.len() <= 256 => {
+                ParsedParams::DirectoryStart(p)
+            }
+            _ => return error(Some(request.id), "invalid_params"),
+        }
+    } else if request.method == "directory.page" {
+        match params::<DirectoryPageParams>(&request) {
+            Ok(p) if valid_operation_id(&p.operation_id) && p.offset <= 10000 => {
+                ParsedParams::DirectoryPage(p)
             }
             _ => return error(Some(request.id), "invalid_params"),
         }
@@ -248,11 +288,12 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                 capabilities.push("account-login-v1");
                 capabilities.push("durable-text-send-v1");
                 capabilities.push("durable-text-sync-v1");
+                capabilities.push("current-directory-v1");
             }
             json!({"product":"clowder-wechat-link","version":env!("CARGO_PKG_VERSION"),
             "pid":std::process::id(),"protocolVersion":1,
             "upstreamCommit":"ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
-            // Current directory and the Host replacement remain pending.
+            // Explicit session recovery and the Host replacement remain pending.
             "capabilities":capabilities,"accountServiceReady":false})
         }
         "status" => {
@@ -323,6 +364,18 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 ("message.get", ParsedParams::Message(p)) => service
                     .message(p.account_generation, &p.message_id)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("directory.start", ParsedParams::DirectoryStart(p)) => service
+                    .start_directory(&p.operation_id, p.account_generation, &p.account_identity)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("directory.advance", ParsedParams::Operation(id)) => service
+                    .advance_directory(&id)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("directory.operation", ParsedParams::Operation(id)) => service
+                    .directory_operation(&id)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("directory.page", ParsedParams::DirectoryPage(p)) => service
+                    .directory_page(&p.operation_id, p.offset)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 _ => return error(Some(request.id), "unsupported_method"),
             };

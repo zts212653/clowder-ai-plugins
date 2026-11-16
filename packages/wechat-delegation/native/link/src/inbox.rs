@@ -165,6 +165,25 @@ pub(super) fn validate(state: &State) -> Result<()> {
     Ok(())
 }
 impl Store {
+    pub(crate) fn current_group_hints(&self, generation: u64) -> Result<Vec<String>> {
+        let data = self.lock()?;
+        account(&data.state, generation)?;
+        Ok(data
+            .state
+            .inboxes
+            .get(&generation)
+            .map(|inbox| {
+                inbox
+                    .messages
+                    .values()
+                    .filter(|m| m.thread_id.ends_with("@chatroom"))
+                    .map(|m| m.thread_id.clone())
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .into_iter()
+                    .collect()
+            })
+            .unwrap_or_default())
+    }
     pub(crate) fn sync_ticket(&self, generation: u64) -> Result<SyncTicket> {
         let data = self.lock()?;
         let owner = account(&data.state, generation)?;
