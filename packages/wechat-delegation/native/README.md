@@ -32,6 +32,18 @@ node packages/wechat-delegation/native/scripts/verify-source.mjs /path/to/agent-
 
 依赖缓存齐备时可加 `--offline`。初次构建复用原Cargo.lock，曾遇tokio 1.54.0 yanked；本轮已核上游安全公告并将直接pin和锁文件升级至1.54.1，下载包摘要与官方registry一致，其他包版本未变。适用范围和复跑证据见[DEPENDENCY-NOTES.md](DEPENDENCY-NOTES.md)。这仅处置了已识别的问题，不代表整个依赖集合已完成安全验收。
 
+### macOS发布制品签名
+
+原始Rust linker的ad-hoc签名没有hardened runtime，不能直接打包。`scripts/package-release.mjs`只接受已提交的native源码，将已编译二进制复制到私有临时目录，再以固定identifier、`--options runtime`和无例外entitlements的ad-hoc签名重签；验证后才压缩并更新manifest的源码/字节摘要。运行：
+
+```sh
+MACOSX_DEPLOYMENT_TARGET=26.5 cargo build --locked --release --manifest-path packages/wechat-delegation/native/Cargo.toml -p clowder-wechat-link
+node packages/wechat-delegation/native/scripts/package-release.mjs /absolute/cargo-target/release/clowder-wechat-link
+node --test packages/wechat-delegation/test/native-artifact.test.mjs
+```
+
+产物仍没有Apple Team或公证，不将ad-hoc runtime签名冒称正式分发身份。每次升级cdhash会变，既有文件钥匙串授权仍须本人通过系统入口续信任；这条恢复旅程尚未验收。离线实物检查向解压后的真实发布二进制设置`DYLD_INSERT_LIBRARIES`，无参只请求hello：不允许探针动态库执行，且不打开默认钥匙串。此检查保护的是已观察到的加载路径，不代表同UID进程隔离或完整端到端密钥泄漏测试。Apple说明见[Hardened Runtime](https://developer.apple.com/documentation/security/hardened-runtime)。
+
 可信 RED：原版接口探针可以编译头像/CDN API；原版通用路径校验仍放行 `mmemojiupload`，新负向检查明确失败。当前派生库以编译失败文档检查拒绝媒体、通话、原始快照出口及扫码尝试序列化。
 
 伪服务端测试运行真正的握手实现：成功进行 ECDH 并发送有效加密记录，但使用非内置私钥签名，客户端必须在 `MMTLS signature verification` 终止；除无凭据 ClientHello 外不发送字节。隔离副本忽略验签失败时，同一测试因没有在验签阶段终止而失败；这验证了检查的检测力，不表示观察过真实账号泄漏。
