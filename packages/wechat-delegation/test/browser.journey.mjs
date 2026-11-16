@@ -8,7 +8,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   page.setDefaultTimeout(10000);
   const errors = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('http://127.0.0.1:5188/');
+  await page.goto(process.env.WECHAT_PREVIEW_URL ?? 'http://127.0.0.1:5188/');
   const frame = page.frameLocator('#panel');
   await frame.getByRole('heading', { name: '连接微信账号', exact: true }).waitFor();
   assert.equal(await frame.getByRole('heading', { name: '配置代聊会话', exact: true }).isVisible(), false);

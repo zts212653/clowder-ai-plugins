@@ -128,3 +128,13 @@ alpha.4 最终固定工具链 `pnpm gate:ci` 全42阶段通过，716秒，exit0�
 作者检查：最终56/56包测试、`git diff --check`；5190隔离预览中实际完成打开后加载、20→40分页、`tom`零群匹配、`周书`找到目标群、轮询保留确认、模型不可用提示、目录复核后显式重试开启。最终36文件归档逐一与当前包字节相同，实际Host源码临时inventory/内存storage安装并准备空白profile的随包native、读取成员与提醒目录、暂停/停启保留均通过。未登录、未读取真实账号、未调用模型或外发。日志及包摘要在 `meow-talk/output/wechat-delegation-alpha7/`；本次没有重跑整仓42阶段或native编译，alpha.6的相关证据只沿用其原范围。
 
 本轮补修仍需非作者审查准确提交，PR232保持draft。真实好友/群覆盖、开启与实收/接管仍待本人更新后的授权验收，整体Task不关闭。
+
+## 宿主沙箱中的开启点击修复（alpha.8，2026-11-16）
+
+来源 `thread_mwg7kandcxztqeab#0001794804344424-000271-970c0fac`：本人报告仍无法点击开启代聊。实时Host投影确认安装并运行alpha.7，排除未升级的解释。实际宿主页面只读取证记录到按钮click=1、form submit=0，浏览器报 `Blocked form submission`，原因是插件iframe没有allow-forms。实际sandbox为 `allow-scripts allow-downloads allow-popups allow-popups-to-escape-sandbox`，与当前Host `PluginUiEntries.tsx` 一致。插件原先将开启逻辑绑定form submit，故按钮可点击却完全不执行处理函数；预览夹具未设sandbox，导致前轮模拟测试漏检。
+
+修复仅在插件中将开启按钮改为普通button，在click中执行原有校验与activate流程，保留提交中互斥、显式确认、身份fence和发送/接管规则；不申请allow-forms、不修改Host。预览现在采用真实sandbox，chooser旅程先确认缺项点击执行校验，最终用Enter触发按钮开启。首次RED在旧产品代码、真实sandbox下因点击后仍为muted而失败；修复后同一旅程通过。中途复用已登录的内存fixture导致一次准备框不可见超时，此环境失败不算产品RED；新fixture复跑通过。
+
+本轮56项包测试通过；真实sandbox下的chooser和完整主动开口/未知结果/接管/全局暂停及手机暗色旅程通过。另在实际3003宿主壳中，仅浏览器内替换候选面板与全部插件control为隔离内存fixture，使用真实iframe属性和postMessage桥接，验证缺项反馈、鼠标开启、目录复核保留确认和Enter显式重试；2次activate均只进入fixture，0 pageerror、0表单sandbox报错。未改真实插件、未创建真实授权或外发。独立只读诊断曾因实际候选目录等待超时而未走到填表阶段，不把它冒称真实账号完整开启成功。
+
+alpha.8最终归档及Host隔离安装证据、摘要、准确提交的独立审查状态见 `meow-talk/output/wechat-delegation-alpha8/安装与验收.md`。本次不重编native、不重跑无关整仓42阶段；真实好友/群实收和接管仍未验收，PR保持draft，Task继续开放。

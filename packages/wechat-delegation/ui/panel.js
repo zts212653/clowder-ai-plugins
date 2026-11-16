@@ -137,7 +137,7 @@
   };
   const minute = value => { const [hours, minutes] = value.split(':').map(Number); return hours * 60 + minutes; };
   let submitting = false, formError = '';
-  const submit = el('button', { type: 'submit', text: '开启代聊', class: 'primary' });
+  const submit = el('button', { type: 'button', text: '开启代聊', class: 'primary' });
   const authorizationHint = el('p', { class: 'muted', role: 'status' });
   function authorizationReason() {
     return !target.value ? '请选择一个好友或群。' : !cat.value ? '请选择值班猫。' : !selectedPreview?.available || previewCat !== cat.value ? '所选猫的受限模型尚未就绪，请等待核验或换一只猫。' : !persona.value.trim() || !goal.value.trim() ? '请填写人设和聊天目标。' : !confirm.input.checked ? '请先勾选上面的模型与会话授权确认。' : '';
@@ -150,8 +150,7 @@
     authorizationHint.textContent = formError || authorizationReason(); authorizationHint.className = formError ? 'error' : 'muted';
   }
   for (const input of [persona, goal, confirm.input]) input.addEventListener('input', () => { formError = ''; updateAuthorization(); });
-  const form = el('form', { noValidate: true, onsubmit: async event => {
-    event.preventDefault();
+  const activate = async () => {
     const reason = authorizationReason();
     if (reason || !form.checkValidity()) {
       formError = reason || '请核对表单中的时间和频率设置。'; updateAuthorization();
@@ -176,7 +175,9 @@
     if (result) { render(result); show('代聊已开启。可随时由你接管。'); }
     if (result) { confirm.input.checked = false; showEditor = false; render(state); policies.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     updateAuthorization();
-  } }, [
+  };
+  submit.addEventListener('click', activate);
+  const form = el('form', { noValidate: true, onsubmit: event => event.preventDefault() }, [
     el('div', { class: 'grid' }, [targetField, catField, label('人设与交流边界', persona), label('这次要聊什么', goal)]),
     el('p', { class: 'muted', text: '群授权仅限本群，不扩展到群成员私聊或其他群。涉及资金、验证码、账号安全或对方找本人时暂停并交还你。' }),
     el('div', { class: 'toolbar' }, [proactive.node, replies.node]), scheduled.node,

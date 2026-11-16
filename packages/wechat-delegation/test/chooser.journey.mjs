@@ -13,6 +13,9 @@ try{
  await f.getByLabel('我了解将准备基于 Agent WeChat 2.4.1 的 Clowder 通讯录修复构建；组件会连接微信服务器，登录可能同步更广范围消息到本机。猫只处理我另行授权的会话。').check();
  await f.getByRole('button',{name:'准备账号连接组件',exact:true}).click();
  await f.getByRole('button',{name:'微信扫码登录',exact:true}).click();
+ assert.equal(await page.locator('#panel').getAttribute('sandbox'),'allow-scripts allow-downloads allow-popups allow-popups-to-escape-sandbox');
+ await f.getByRole('button',{name:'开启代聊',exact:true}).click();
+ assert.equal(await f.locator('form > p[role="status"]').getAttribute('class'),'error','click must execute validation inside the actual Host sandbox without allow-forms');
  await f.getByLabel('值班猫',{exact:true}).selectOption('review-cat');
  await page.waitForTimeout(200);
  assert.equal(reads.length,0,'recipient directory must be loaded only after opening the chooser');
@@ -59,7 +62,7 @@ try{
  assert.match(await picker.innerText(),/周末读书群/);
  await page.waitForTimeout(3500);
  assert.equal(await consent.isChecked(),true);
- await f.getByRole('button',{name:'开启代聊',exact:true}).click();
+ await f.getByRole('button',{name:'开启代聊',exact:true}).press('Enter');
  await f.getByText('猫代聊中 · 可随时接管',{exact:true}).waitFor();
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({passed:true,boundary:'isolated model and account',reads:reads.length}));
