@@ -17,6 +17,7 @@ impl AccountService {
         id: &str,
         generation: u64,
         identity: &str,
+        admission: &Admission,
     ) -> Result<ResumeRecord> {
         match self.store.resume_record(id) {
             Ok(record) => {
@@ -30,6 +31,7 @@ impl AccountService {
         }
         let (client, ticket) = {
             let mut control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+            self.check_admission(&control, admission)?;
             if control.closed || control.online {
                 return Err(ServiceError::PermissionDenied);
             }
@@ -90,6 +92,7 @@ impl AccountService {
     }
     pub fn cancel_resume(&self, id: &str) -> Result<ResumeRecord> {
         let mut control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+        control.invalidate_admissions()?;
         if control.resume.as_ref().is_some_and(|r| r.id == id) {
             control.resume = None;
             control.online = false;

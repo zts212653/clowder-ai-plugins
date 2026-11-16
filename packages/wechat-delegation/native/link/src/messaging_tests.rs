@@ -125,7 +125,13 @@ fn real_service_text_submission_is_idempotent_and_takeover_fences_the_last_check
         *fake.before.lock().unwrap() = Some(gate);
         let service = setup(&root, &keys, fake);
         let lease = service
-            .authorize_conversation(1, "synthetic-user", destination, None)
+            .authorize_conversation(
+                1,
+                "synthetic-user",
+                destination,
+                None,
+                &service.admission().unwrap(),
+            )
             .expect("service must admit verified explicit authorization");
         let worker = service.clone();
         let copy = lease.clone();
@@ -164,7 +170,13 @@ fn in_flight_results_stay_truthful_and_unknown_never_resubmits_after_restart() {
         *fake.after.lock().unwrap() = Some(gate);
         let service = setup(&root, &keys, fake);
         let lease = service
-            .authorize_conversation(1, "synthetic-user", "friend", None)
+            .authorize_conversation(
+                1,
+                "synthetic-user",
+                "friend",
+                None,
+                &service.admission().unwrap(),
+            )
             .unwrap();
         let worker = service.clone();
         let copy = lease.clone();
@@ -230,7 +242,13 @@ fn concurrent_takeover_or_account_change_prevents_a_late_authorization() {
         let service = setup(&root, &keys, fake);
         let worker = service.clone();
         let thread = std::thread::spawn(move || {
-            worker.authorize_conversation(1, "synthetic-user", "friend", None)
+            worker.authorize_conversation(
+                1,
+                "synthetic-user",
+                "friend",
+                None,
+                &worker.admission().unwrap(),
+            )
         });
         entered.recv_timeout(Duration::from_secs(2)).unwrap();
         if disconnect {
@@ -341,7 +359,13 @@ fn only_a_correlated_acceptance_or_rejection_can_resolve_submission() {
         });
         let service = setup(&root, &keys, fake);
         let lease = service
-            .authorize_conversation(1, "synthetic-user", "friend", None)
+            .authorize_conversation(
+                1,
+                "synthetic-user",
+                "friend",
+                None,
+                &service.admission().unwrap(),
+            )
             .unwrap();
         let receipt = service
             .send_text(&lease, "correlation", "synthetic text")
@@ -373,7 +397,13 @@ fn a_target_that_cannot_be_verified_never_reaches_the_send_operation() {
     fake.valid_target = false;
     let service = setup(&root, &keys, fake);
     assert!(service
-        .authorize_conversation(1, "synthetic-user", "friend", None)
+        .authorize_conversation(
+            1,
+            "synthetic-user",
+            "friend",
+            None,
+            &service.admission().unwrap()
+        )
         .is_err());
     let lease = service.store.authorize(1, "friend").unwrap(); // synthetic existing policy
     assert_eq!(
@@ -385,10 +415,22 @@ fn a_target_that_cannot_be_verified_never_reaches_the_send_operation() {
     );
     assert_eq!(sends.load(Ordering::SeqCst), 0);
     assert!(service
-        .authorize_conversation(2, "synthetic-user", "friend", None)
+        .authorize_conversation(
+            2,
+            "synthetic-user",
+            "friend",
+            None,
+            &service.admission().unwrap()
+        )
         .is_err());
     assert!(service
-        .authorize_conversation(1, "different-user", "friend", None)
+        .authorize_conversation(
+            1,
+            "different-user",
+            "friend",
+            None,
+            &service.admission().unwrap()
+        )
         .is_err());
 }
 
@@ -404,7 +446,13 @@ fn actual_stdio_pause_remains_responsive_while_a_text_send_waits_at_submission()
     *fake.before.lock().unwrap() = Some(gate);
     let service = setup(&root, &keys, fake);
     let lease = service
-        .authorize_conversation(1, "synthetic-user", "room@chatroom", None)
+        .authorize_conversation(
+            1,
+            "synthetic-user",
+            "room@chatroom",
+            None,
+            &service.admission().unwrap(),
+        )
         .unwrap();
     let (client, server) = UnixStream::pair().unwrap();
     client
@@ -486,7 +534,13 @@ fn session_rejection_during_verification_or_send_stops_every_grant_without_erasi
         let lease = service.store.authorize(1, "friend").unwrap();
         if stage == "authorize" {
             assert!(service
-                .authorize_conversation(1, "synthetic-user", "another-friend", None)
+                .authorize_conversation(
+                    1,
+                    "synthetic-user",
+                    "another-friend",
+                    None,
+                    &service.admission().unwrap()
+                )
                 .is_err());
         } else {
             let result = service
@@ -513,4 +567,19 @@ fn session_rejection_during_verification_or_send_stops_every_grant_without_erasi
             if stage == "send" { 1 } else { 0 }
         );
     }
+}
+
+#[test]
+fn queued_authorization_cannot_capture_a_new_epoch_after_takeover() {
+    let root = Root::new();
+    let keys = Keys::default();
+    let service = setup(&root, &keys, peer(Arc::new(AtomicUsize::new(0))));
+    let admission = service.admission().unwrap();
+    service.pause_conversation(1, Some("friend")).unwrap();
+    assert!(
+        service
+            .authorize_conversation(1, "synthetic-user", "friend", None, &admission)
+            .is_err(),
+        "the reader admission must fence a delayed worker, before verification starts"
+    );
 }

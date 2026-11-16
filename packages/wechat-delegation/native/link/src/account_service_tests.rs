@@ -57,11 +57,13 @@ fn completed_login_is_idempotent_persistent_and_projects_no_account_secrets() {
         },
     );
     let started = service
-        .start_login("synthetic-login")
+        .start_login("synthetic-login", &service.admission().unwrap())
         .expect("login start must use the account service");
     assert_eq!(started.operation.phase, LoginPhase::Pending);
     assert!(started.qr.is_some());
-    service.start_login("synthetic-login").unwrap();
+    service
+        .start_login("synthetic-login", &service.admission().unwrap())
+        .unwrap();
     assert_eq!(starts.load(Ordering::SeqCst), 1);
     let done = service.poll_login("synthetic-login").unwrap();
     assert_eq!(done.operation.phase, LoginPhase::Succeeded);
@@ -104,7 +106,9 @@ fn cancel_and_disconnect_do_not_wait_for_network_and_late_authentication_cannot_
                 entered: Some(entered_tx),
             },
         );
-        service.start_login("racing-login").unwrap();
+        service
+            .start_login("racing-login", &service.admission().unwrap())
+            .unwrap();
         let worker = service.clone();
         let thread = std::thread::spawn(move || worker.poll_login("racing-login"));
         entered_rx.recv_timeout(Duration::from_secs(3)).unwrap();
@@ -352,7 +356,9 @@ fn only_qr_poll_is_repeatable_and_an_uncertain_authentication_is_never_replayed(
         }),
     )
     .unwrap();
-    service.start_login("uncertain-login").unwrap();
+    service
+        .start_login("uncertain-login", &service.admission().unwrap())
+        .unwrap();
     assert_eq!(
         service
             .poll_login("uncertain-login")
@@ -374,7 +380,7 @@ fn only_qr_poll_is_repeatable_and_an_uncertain_authentication_is_never_replayed(
     );
     assert_eq!(
         service
-            .start_login("uncertain-login")
+            .start_login("uncertain-login", &service.admission().unwrap())
             .unwrap()
             .operation
             .phase,
@@ -382,4 +388,40 @@ fn only_qr_poll_is_repeatable_and_an_uncertain_authentication_is_never_replayed(
     );
     assert_eq!(completes.load(Ordering::SeqCst), 1);
     assert!(!service.status().unwrap().credentials_available);
+}
+
+#[test]
+fn queued_login_admission_cannot_start_after_cancel_disconnect_pause_or_close() {
+    for stop in ["cancel", "disconnect", "pause", "close"] {
+        let root = Root::new();
+        let keys = Keys::default();
+        let starts = Arc::new(AtomicUsize::new(0));
+        let service = setup(
+            &root,
+            &keys,
+            FakePeer {
+                starts: starts.clone(),
+                release: None,
+                entered: None,
+            },
+        );
+        let admission = service.admission().unwrap();
+        match stop {
+            "cancel" => {
+                let _ = service.cancel_login("queued-auth");
+            }
+            "disconnect" => {
+                service.disconnect().unwrap();
+            }
+            "pause" => {
+                service.pause_conversation(0, None).unwrap();
+            }
+            _ => service.close(),
+        }
+        assert!(
+            service.start_login("queued-auth", &admission).is_err(),
+            "a worker admitted before {stop} must not create a late login intent"
+        );
+        assert_eq!(starts.load(Ordering::SeqCst), 0);
+    }
 }

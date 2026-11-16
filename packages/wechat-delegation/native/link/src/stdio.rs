@@ -41,6 +41,9 @@ pub fn serve(
         match ipc::read_frame(reader) {
             Ok(Some(frame)) => {
                 if ipc::is_blocking(&frame) && service.is_some() {
+                    let admission = service
+                        .as_ref()
+                        .and_then(|service| service.admission().ok());
                     // Only network operations use worker slots. Cancellation,
                     // status and disconnect stay on the admission thread.
                     if running
@@ -63,7 +66,11 @@ pub fn serve(
                         .name("wechat-network".into())
                         .spawn(move || {
                             let _permit = permit;
-                            let reply = ipc::respond_with(&frame, service.as_deref());
+                            let reply = ipc::respond_admitted(
+                                &frame,
+                                service.as_deref(),
+                                admission.as_ref(),
+                            );
                             if write(&writer, &reply).is_err() {
                                 if let Some(service) = service {
                                     service.close();

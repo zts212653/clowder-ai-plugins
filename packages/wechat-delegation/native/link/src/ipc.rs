@@ -1,5 +1,5 @@
 //! Closed, bounded stdio frames. Underlying parser errors never leave here.
-use crate::account_service::{AccountService, ServiceError};
+use crate::account_service::{AccountService, Admission, ServiceError};
 use crate::store::ConversationLease;
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::value::RawValue;
@@ -159,6 +159,14 @@ pub fn busy_response(frame: &[u8]) -> Value {
     error(parse(frame).ok().map(|r| r.id), "operation_busy")
 }
 pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
+    let admission = service.and_then(|service| service.admission().ok());
+    respond_admitted(frame, service, admission.as_ref())
+}
+pub fn respond_admitted(
+    frame: &[u8],
+    service: Option<&AccountService>,
+    admission: Option<&Admission>,
+) -> Value {
     let request = match parse(frame) {
         Ok(value) => value,
         _ => return error(None, "invalid_request"),
@@ -344,7 +352,13 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
             };
             let value = match (&*request.method, parsed) {
                 ("login.start", ParsedParams::Operation(id)) => service
-                    .start_login(&id)
+                    .start_login(
+                        &id,
+                        match admission {
+                            Some(a) => a,
+                            None => return project(Err(ServiceError::Unavailable)),
+                        },
+                    )
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 ("login.poll", ParsedParams::Operation(id)) => service
                     .poll_login(&id)
@@ -364,6 +378,10 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                         &p.account_identity,
                         &p.destination,
                         p.expires_at_ms,
+                        match admission {
+                            Some(a) => a,
+                            None => return project(Err(ServiceError::Unavailable)),
+                        },
                     )
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 ("conversation.pause", ParsedParams::Pause(p)) => service
@@ -400,7 +418,15 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                     .directory_page(&p.operation_id, p.offset)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 ("session.resume", ParsedParams::DirectoryStart(p)) => service
-                    .resume_session(&p.operation_id, p.account_generation, &p.account_identity)
+                    .resume_session(
+                        &p.operation_id,
+                        p.account_generation,
+                        &p.account_identity,
+                        match admission {
+                            Some(a) => a,
+                            None => return project(Err(ServiceError::Unavailable)),
+                        },
+                    )
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 ("session.operation", ParsedParams::Operation(id)) => service
                     .resume_operation(&id)

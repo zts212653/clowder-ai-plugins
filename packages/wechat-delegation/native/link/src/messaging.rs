@@ -178,12 +178,14 @@ impl AccountService {
         identity: &str,
         destination: &str,
         expires_at_ms: Option<u64>,
+        admission: &Admission,
     ) -> Result<ConversationLease> {
         if !ordinary_destination(destination) {
             return Err(ServiceError::PermissionDenied);
         }
         let (client, epoch) = {
             let control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+            self.check_admission(&control, admission)?;
             let client = Self::text_client(&control, generation, self.store.generation()?)?;
             if client
                 .account_identity()

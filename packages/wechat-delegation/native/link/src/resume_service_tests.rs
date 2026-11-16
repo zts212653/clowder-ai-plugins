@@ -93,8 +93,14 @@ fn cancellation_does_not_wait_for_authentication_and_late_acceptance_cannot_reac
     let (release, rx) = mpsc::channel();
     let (service, calls) = setup(&root, &keys, Some(tx), Some(rx));
     let worker = service.clone();
-    let thread =
-        std::thread::spawn(move || worker.resume_session("racing-resume", 1, "synthetic-user"));
+    let thread = std::thread::spawn(move || {
+        worker.resume_session(
+            "racing-resume",
+            1,
+            "synthetic-user",
+            &worker.admission().unwrap(),
+        )
+    });
     observe.recv_timeout(Duration::from_secs(2)).unwrap();
     let cancelled = service.cancel_resume("racing-resume").unwrap();
     assert_eq!(cancelled.phase, ResumePhase::Cancelled);
@@ -107,7 +113,12 @@ fn cancellation_does_not_wait_for_authentication_and_late_acceptance_cannot_reac
     assert!(service.status().unwrap().credentials_available);
     assert_eq!(
         service
-            .resume_session("racing-resume", 1, "synthetic-user")
+            .resume_session(
+                "racing-resume",
+                1,
+                "synthetic-user",
+                &service.admission().unwrap()
+            )
             .unwrap()
             .phase,
         ResumePhase::Cancelled
@@ -131,7 +142,12 @@ fn an_auth_adapter_returning_success_without_durable_acceptance_cannot_mark_onli
     service.resume_peer = Box::new(NoAcceptance);
     assert_eq!(
         service
-            .resume_session("missing-acceptance", 1, "synthetic-user")
+            .resume_session(
+                "missing-acceptance",
+                1,
+                "synthetic-user",
+                &service.admission().unwrap()
+            )
             .unwrap()
             .phase,
         ResumePhase::Failed
@@ -147,7 +163,12 @@ fn service_close_interrupts_pending_resume_and_the_late_callback_cannot_publish(
     let (service, _) = setup(&root, &keys, Some(tx), Some(rx));
     let worker = service.clone();
     let thread = std::thread::spawn(move || {
-        worker.resume_session("interrupted-resume", 1, "synthetic-user")
+        worker.resume_session(
+            "interrupted-resume",
+            1,
+            "synthetic-user",
+            &worker.admission().unwrap(),
+        )
     });
     observe.recv_timeout(Duration::from_secs(2)).unwrap();
     service.close();
@@ -201,4 +222,17 @@ fn actual_stdio_accepts_session_cancel_while_resume_authentication_is_blocked() 
     assert_eq!(read(&mut reader)["result"]["phase"], "cancelled");
     input.shutdown(std::net::Shutdown::Write).unwrap();
     thread.join().unwrap().unwrap();
+}
+
+#[test]
+fn queued_resume_cannot_begin_authentication_after_its_cancel() {
+    let root = Root::new();
+    let keys = Keys::default();
+    let (service, calls) = setup(&root, &keys, None, None);
+    let admission = service.admission().unwrap();
+    let _ = service.cancel_resume("queued-resume");
+    assert!(service
+        .resume_session("queued-resume", 1, "synthetic-user", &admission)
+        .is_err());
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
 }

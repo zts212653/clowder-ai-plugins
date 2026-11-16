@@ -156,6 +156,15 @@ struct Control {
     authorization_epoch: u64,
     resume: Option<crate::store::ResumeTicket>,
 }
+impl Control {
+    fn invalidate_admissions(&mut self) -> Result<()> {
+        self.authorization_epoch = self
+            .authorization_epoch
+            .checked_add(1)
+            .ok_or(ServiceError::Unavailable)?;
+        Ok(())
+    }
+}
 pub struct AccountService {
     store: Arc<Store>,
     peer: Mutex<Box<dyn LoginPeer>>,
@@ -168,7 +177,32 @@ pub struct AccountService {
     directory_work: Mutex<Option<crate::store::DirectoryTicket>>,
     resume_peer: Box<dyn ResumePeer>,
 }
+/// Process-local evidence captured by the stdio reader before dispatching a
+/// worker. It is never deserialized, accepted from IPC, or a second owner.
+pub struct Admission {
+    store: Arc<Store>,
+    generation: u64,
+    epoch: u64,
+}
 impl AccountService {
+    pub fn admission(&self) -> Result<Admission> {
+        let control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+        Ok(Admission {
+            store: self.store.clone(),
+            generation: self.store.generation()?,
+            epoch: control.authorization_epoch,
+        })
+    }
+    fn check_admission(&self, control: &Control, admission: &Admission) -> Result<()> {
+        if control.closed
+            || !Arc::ptr_eq(&self.store, &admission.store)
+            || admission.generation != self.store.generation()?
+            || admission.epoch != control.authorization_epoch
+        {
+            return Err(ServiceError::PermissionDenied);
+        }
+        Ok(())
+    }
     fn observe_network_failure(&self, generation: u64, problem: &ServiceError) -> Result<()> {
         if !matches!(problem, ServiceError::SessionRejected) {
             return Ok(());
@@ -277,7 +311,7 @@ impl AccountService {
         }
         self.projection(&control, &ticket.id)
     }
-    pub fn start_login(&self, id: &str) -> Result<LoginProjection> {
+    pub fn start_login(&self, id: &str, admission: &Admission) -> Result<LoginProjection> {
         match self.store.login_record(id) {
             Ok(_) => return self.login_operation(id),
             Err(StoreError::UnknownLogin) => {}
@@ -290,6 +324,7 @@ impl AccountService {
         };
         let (ticket, guard) = {
             let mut control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+            self.check_admission(&control, admission)?;
             if control.closed {
                 return Err(ServiceError::Unavailable);
             }
@@ -464,6 +499,9 @@ impl AccountService {
     }
     pub fn cancel_login(&self, id: &str) -> Result<LoginProjection> {
         let mut control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+        // Even an intent not yet persisted by its queued worker loses its old
+        // reader admission. Unknown lookup remains unknown, never a fake ACK.
+        control.invalidate_admissions()?;
         if control.attempt.as_ref().is_some_and(|a| a.ticket.id == id) {
             if let Some(attempt) = control.attempt.take() {
                 attempt.guard.cancel();
@@ -477,6 +515,7 @@ impl AccountService {
     }
     pub fn disconnect(&self) -> Result<AccountProjection> {
         let mut control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+        control.invalidate_admissions()?;
         control.resume = None;
         if let Some(attempt) = control.attempt.take() {
             attempt.guard.cancel();
