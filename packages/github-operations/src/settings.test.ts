@@ -114,6 +114,7 @@ test('loaded settings test gh auth without starting runtime or changing saved va
   const settings = await definition.settings!({
     pluginInstanceId: 'isolated-settings',
     dataPath: '/unused-isolated-settings',
+    external: { endpoint: 'https://host.invalid/api/plugins/external', token: 'fixture-external-token' },
     config: { get: async (key) => values[key as keyof typeof values] },
     secrets: { get: async (key) => secrets[key as keyof typeof secrets] },
     log() {},
