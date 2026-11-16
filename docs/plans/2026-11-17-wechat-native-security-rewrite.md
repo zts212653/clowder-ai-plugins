@@ -74,6 +74,10 @@ Architecture cell：微信插件 native 连接服务。Map delta：将通用上�
 
 日志及可信RED摘录：`meow-talk/output/wechat-delegation-security-rewrite/vault/{tests.log,tdd-evidence.md}`。当前Cargo全workspace验证通过11项持久层主测试（另有1项ignored子测试由父测试实际拉起）、2项IPC、1项实际stdio进程、96项协议、6项compile-fail；rustfmt和26文件上游补丁逐字节重建通过，官方key核验仍false。没有新增产品界面/用户能力，因此内部dogfood以真实Keychain/文件/子进程合成旅程验证，不能替代未走通的产品验收。仓库根无新增媒体工件。
 
+### 继承的Tokio撤回项已定向处置
+
+原锁1.54.0撤回原因已回读维护者安全公告及修复源码，不再作为‘原因待核’。已精确固定1.54.1，仅改变该包版本/摘要；实际下载摘要与官方registry一致，完整Cargo检查和offline/locked构建通过。source-audit的范围、适用性未知及原始来源见`packages/wechat-delegation/native/DEPENDENCY-NOTES.md`，不能把版本更新说成已经复现/排除所有内存缺陷或整个账号安全已通过。小多子的000391仍是2a967c3持久层内部审查；新依赖delta须一并交准确最终HEAD核验。当前安装未替换。
+
 ### 首轮已落地：启动端凭据目录和环境边界
 
 `NativeSupervisor` 在启动任何组件前，以 `O_DIRECTORY | O_NOFOLLOW` 打开实例根、凭据目录和配置目录，检查当前 UID 并通过该文件句柄设置0700；拒绝末级符号链接，避免 chmod 修改链接目标。配置根和凭据目录不能指向另一个目录。原账号资料不删除，缓存修复仍保留原资料。

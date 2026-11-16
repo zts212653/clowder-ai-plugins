@@ -30,7 +30,7 @@ node packages/wechat-delegation/native/scripts/verify-source.mjs
 node packages/wechat-delegation/native/scripts/verify-source.mjs /path/to/agent-wechat/packages/native-client-rust/crates/wechat-protocol
 ```
 
-依赖缓存齐备时可加 `--offline`。复用原 Cargo.lock 中已有版本；首次无锁解析曾因本机 registry 将 tokio 1.54.0 标为 yanked 而拒绝解析，复制并保留原锁后可构建。此事不证明恶意；最终制品前仍需核查撤回原因和替换策略，不能将当前依赖集合声称为已完成安全验收。
+依赖缓存齐备时可加 `--offline`。初次构建复用原Cargo.lock，曾遇tokio 1.54.0 yanked；本轮已核上游安全公告并将直接pin和锁文件升级至1.54.1，下载包摘要与官方registry一致，其他包版本未变。适用范围和复跑证据见[DEPENDENCY-NOTES.md](DEPENDENCY-NOTES.md)。这仅处置了已识别的问题，不代表整个依赖集合已完成安全验收。
 
 可信 RED：原版接口探针可以编译头像/CDN API；原版通用路径校验仍放行 `mmemojiupload`，新负向检查明确失败。当前派生库以编译失败文档检查拒绝媒体、通话、原始快照出口及扫码尝试序列化。
 
