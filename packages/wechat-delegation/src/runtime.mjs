@@ -1,11 +1,12 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { DelegationService } from './service.mjs';
 import { MemberRunner } from './member-runner.mjs';
 import { NativeSupervisor } from './native-supervisor.mjs';
+import { AuthFlow } from './auth-flow.mjs';
+import { SyncState } from './sync-state.mjs';
 
 const ACCOUNT = 'clowder';
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-const terminalLogin = new Set(['succeeded', 'failed', 'cancelled', 'expired', 'rejected', 'needs_login']);
 const fields = new Set(['action', 'acceptThirdParty', 'target', 'catId', 'persona', 'goal', 'proactive', 'replies', 'scheduleEnabled',
   'intervalMinutes', 'maxTurns', 'expiresAt', 'confirm', 'policyId', 'operationId', 'runId', 'cursor', 'notificationThreadId', 'expectedEpoch', 'modelFingerprint',
   'timeZone', 'windowStart', 'windowEnd', 'maxProactivePerDay', 'refreshDirectory', 'query', 'kind', 'accountIdentity', 'serverId']);
@@ -13,9 +14,11 @@ const fields = new Set(['action', 'acceptThirdParty', 'target', 'catId', 'person
 export class DelegationRuntime {
   static async open(host, { supervisor = new NativeSupervisor({ dataPath: host.dataPath }), model = new MemberRunner(host), startTimer = true } = {}) {
     const runtime = new DelegationRuntime();
-    Object.assign(runtime, { host, supervisor, model, jobs: new Set(), incomingJobs: new Map(), activationQueues: new Map(), barriers: new Map(), running: true, lastError: null });
+    Object.assign(runtime, { host, supervisor, model, sync: new SyncState(), jobs: new Set(), incomingJobs: new Map(), activationQueues: new Map(), barriers: new Map(), running: true, lastError: null });
     const channel = Object.fromEntries(['prepare', 'submit', 'inspect', 'cancel'].map(method => [method, (...args) => runtime.client()[method](...args)]));
     runtime.service = await DelegationService.open({ storage: host.storage, channel, model, onStop: event => runtime.observeStop(event) });
+    runtime.auth = new AuthFlow({ storage: host.storage, getClient: () => runtime.client(), assertOwner: context => runtime.requireOwner(context),
+      beforeStart: () => runtime.service.takeover(null) });
     supervisor.onExit = () => {
       if (!runtime.running) return;
       runtime.lastError = '账号连接组件已退出，代聊已停止；重新准备连接后仍需本人明确交回。';
@@ -44,7 +47,7 @@ export class DelegationRuntime {
     const job = promise.catch(() => { this.lastError = '本轮代聊未完成，请查看持久记录；不会自动重发。'; }).finally(() => this.jobs.delete(job));
     this.jobs.add(job); return job;
   }
-  async drain() { await Promise.all([...this.jobs]); }
+  async drain() { await Promise.all([...this.jobs]); await this.auth.drain(); }
   activationQueue(key, operation) {
     const next = (this.activationQueues.get(key) ?? Promise.resolve()).catch(() => {}).then(operation);
     this.activationQueues.set(key, next);
@@ -91,7 +94,7 @@ export class DelegationRuntime {
       } catch { accountProbeFailed = true; }
 
     }
-    return { ...snapshot, runtime: this.supervisor.client ? 'running' : 'dormant', account, accountIsLive, accountProbeFailed, accountObservedAt: this.accountObservedAt ?? null, storagePath: this.host.dataPath,
+    return { ...snapshot, auth: await this.auth.status(), messageSync: this.sync.snapshot(account), runtime: this.supervisor.client ? 'running' : 'dormant', account, accountIsLive, accountProbeFailed, accountObservedAt: this.accountObservedAt ?? null, storagePath: this.host.dataPath,
       memberRuntimeAvailable: this.model.available(), lastError: this.lastError,
       // Credentials and provider session data are never part of the page projection.
       policies: snapshot.policies.map(({ session, ...policy }) => ({ ...policy,
@@ -109,6 +112,7 @@ export class DelegationRuntime {
       if (input.acceptThirdParty !== true) throw Error('请先确认第三方组件与客户端同步范围说明');
       await this.service.takeover(null);
       await this.supervisor.prepare(context);
+      this.track(this.cycle());
       this.lastError = null;
       return this.status();
     }
@@ -131,39 +135,9 @@ export class DelegationRuntime {
       return { items: all.slice(begin, end).reverse(), nextCursor: begin > 0 ? String(begin) : null, total: all.length };
     }
     const client = this.client();
-    if (action === 'login' || action === 'login_poll') {
-      // A persisted request key precedes the POST. If its ACK is lost, a retry
-      // uses exactly that key and the daemon returns the original operation.
-      const key = 'wechat-login.v1';
-      let row = await this.host.storage.get(key);
-      let record = row?.value;
-      if (!record || terminalLogin.has(record.state)) {
-        if (action === 'login_poll') return { state: record?.state ?? 'idle' };
-        await this.service.takeover(null);
-        const accounts = await client.json('v1/accounts');
-        if (!accounts.items.some(item => item.id === ACCOUNT)) await client.createAccount(ACCOUNT);
-        record = { nonce: randomUUID(), accountId: ACCOUNT, ownerUserId: context.userId, state: 'requesting', expiresAt: Date.now() + 300000 };
-        await context.assertCurrent();
-        const saved = await this.host.storage.compareAndSet(key, row?.revision ?? null, record);
-        if (!saved.applied) throw Error('已有登录操作，请刷新并继续');
-        row = await this.host.storage.get(key);
-      }
-      if (record.ownerUserId !== context.userId || record.accountId !== ACCOUNT) throw Error('登录操作归属不符');
-      let operation;
-      if (record.operationId) operation = await client.operation(ACCOUNT, record.operationId);
-      else {
-        if (record.expiresAt <= Date.now()) throw Error('原登录请求结果待核对，请先检查原账号状态');
-        await context.assertCurrent(); operation = await client.login(ACCOUNT, record.nonce);
-      }
-      if (operation.accountId !== ACCOUNT || operation.kind !== 'login' || typeof operation.id !== 'string' ||
-          record.operationId && record.operationId !== operation.id) throw Error('二维码与账号登录操作不匹配');
-      const next = { ...record, operationId: operation.id, state: operation.state };
-      await context.assertCurrent();
-      const saved = await this.host.storage.compareAndSet(key, row.revision, next);
-      if (!saved.applied) throw Error('登录状态已变化，请继续原操作');
-      return { state: operation.state, ...(operation.result?.qrAvailable === true ? { qr: await client.qr(ACCOUNT, operation.id) } : {}),
-        ...(operation.state === 'succeeded' ? { account: await client.identity(ACCOUNT) } : {}) };
-    }
+    if (action === 'login' || action === 'resume') return this.auth.begin(action, context);
+    if (action === 'login_poll') return this.auth.poll(context);
+    if (action === 'login_cancel') return this.auth.cancel(context, input.operationId);
     if (action === 'chats') {
       if (input.refreshDirectory === true) { if (input.cursor) throw Error('请从第一页刷新当前通讯录'); client.refreshTargets(ACCOUNT); }
       const page = await client.targets(ACCOUNT, input.cursor ?? '', { query: input.query ?? '', kind: input.kind ?? 'all', limit: 20 });
@@ -197,6 +171,7 @@ export class DelegationRuntime {
         const identity = await client.identity(ACCOUNT);
         if (!identity.connected || !identity.accountIdentity) throw Error('微信账号身份尚未核验');
         if (input.accountIdentity !== identity.accountIdentity || input.serverId !== identity.serverId) throw Error('微信账号或连接进程已变化，请刷新状态后重新选择会话并确认。');
+        if (!this.sync.snapshot(identity).ready) throw Error('消息历史正在同步，本次尚未开启代聊；同步完成后即可确认。');
         const members = await this.host.members.list();
         if (!members.some(member => member.catId === input.catId && member.available)) throw Error('所选猫当前不可用');
         const preview = await this.model.describe(input.catId);
@@ -214,7 +189,7 @@ export class DelegationRuntime {
           return (async () => { await barrier; await context.assertCurrent(); return this.model.prepare(input.catId, `wechat:${policyId}:${input.catId}`); })();
         });
         const session = await preparing.promise;
-        let nativeLease, grantStarted = false;
+        let nativeLease, grantStream, grantStarted = false;
         try {
           if (session.runtime && (session.runtime.clientId !== preview.runtime?.clientId || session.runtime.model !== preview.runtime?.model ||
               preview.defaultAccountRef && session.runtime.account.accountRef !== preview.defaultAccountRef)) {
@@ -225,10 +200,11 @@ export class DelegationRuntime {
           const granting = await this.service.beginActivationStep(coordinates, fence, () => {
             grantStarted = true; return client.authorize(ACCOUNT, identity, target.id, input.expiresAt ?? null);
           });
-          nativeLease = await granting.promise;
+          const authorization = await granting.promise; nativeLease = authorization.lease; grantStream = authorization.stream;
           await context.assertCurrent();
           await this.service.activate({ serverId: identity.serverId, accountIdentity: identity.accountIdentity, accountId: ACCOUNT, conversationId: target.id, kind: target.kind,
             nativeLease, nativeStoreId: identity.nativeStoreId,
+            streamSourceRef: grantStream.sourceRef, syncEpoch: grantStream.resetEpoch, incomingBaselineEventCursor: grantStream.eventCursor,
             displayName: chosen.displayName ?? target.id, catId: input.catId, catDisplayName: members.find(member => member.catId === input.catId).displayName, ownerUserId: context.userId,
             persona: input.persona, goal: input.goal, proactive: input.proactive, replies: input.replies,
             scheduleEnabled: input.scheduleEnabled === true, intervalMinutes: input.intervalMinutes, maxTurns: input.maxTurns,
@@ -263,52 +239,72 @@ export class DelegationRuntime {
       return { accepted: true, message: '已接收主动开口请求，请查看本会话实际结果。' };
     }
     if (action === 'disconnect') {
-      await this.service.takeover(null);
+      await this.service.takeover(null, policies => this.ownerRevocations(policies));
       const result = await client.disconnect(ACCOUNT);
       return { locallyStopped: true, remoteResult: result };
     }
     throw Error('不支持的插件操作');
   }
-  async cycle() {
-    const client = this.client();
-    await this.service.expire();
-    await this.service.reconcile();
-    await this.notify();
-    const snapshot = await this.service.snapshot();
-    const active = snapshot.policies.filter(p => p.mode === 'active' && (p.expiresAt === null || p.expiresAt > Date.now()));
-    if (!active.length) return;
+  cycle() {
+    if (this.cycleJob) return this.cycleJob;
+    const job = this.doCycle().finally(() => { if (this.cycleJob === job) this.cycleJob = null; });
+    this.cycleJob = job; return job;
+  }
+  async doCycle() {
+    const client = this.client(), owned = () => this.running && this.supervisor.client === client;
+    await this.service.expire(); await this.service.reconcile(); await this.notify();
+    let snapshot = await this.service.snapshot();
+    const observed = snapshot.policies.filter(p => p.mode === 'active');
+    let identity, stream;
+    try {
+      identity = await client.identity(ACCOUNT); if (!owned()) return;
+      if (!identity.connected) { await this.service.pauseObserved(observed); return; }
+      stream = await this.sync.pull(client, identity); if (!owned()) return;
+    } catch {
+      if (owned()) { await this.service.pauseObserved(observed); this.lastError = '消息同步未完成，已暂停受影响的代聊；请核对连接和原发送记录。'; }
+      return;
+    }
+    const matches = policy => policy.serverId === identity.serverId && policy.accountIdentity === identity.accountIdentity &&
+      policy.streamSourceRef === stream.sourceRef && policy.syncEpoch === stream.resetEpoch;
+    await this.service.pauseObserved(observed.filter(policy => !matches(policy) || stream.reset));
+    if (!stream.initialized || !owned()) return;
+    snapshot = await this.service.snapshot();
+    const active = snapshot.policies.filter(p => p.mode === 'active' && matches(p) && (p.expiresAt === null || p.expiresAt > Date.now()));
+    if (!active.length) { await this.service.cursor(stream.sourceRef, stream.eventCursor); return; }
     try { for (const policy of active) await client.prepare(policy); }
-    catch { for (const policy of active) await this.service.takeover(policy.id); this.lastError = '账号状态或身份已变化，代聊已停止；请重新核验。'; return; }
-    const page = await client.events(ACCOUNT, snapshot.cursors[ACCOUNT] ?? '0');
+    catch { if (owned()) await this.service.pauseObserved(active); this.lastError = '账号状态或身份已变化，代聊已暂停；请重新核验。'; return; }
+    if (!owned()) return;
+    const page = await client.events(ACCOUNT, snapshot.cursors[stream.sourceRef] ?? '0', stream);
+    if (!owned()) return;
     if (!Array.isArray(page.items)) throw Error('事件通道不可用');
+    let cursor = snapshot.cursors[stream.sourceRef] ?? '0';
     for (const event of page.items) {
-      if (!event || typeof event.cursor !== 'string' || !/^\d+$/.test(event.cursor)) throw Error('事件游标不可用');
+      if (!event || typeof event.cursor !== 'string' || !/^[1-9]\d{0,19}$/.test(event.cursor) || BigInt(event.cursor) <= BigInt(cursor)) throw Error('事件游标不可用');
       const policy = active.find(p => p.conversationId === event.data?.threadId);
-      if (policy && event.kind === 'message.committed' && Date.parse(event.createdAt) >= policy.activatedAt) {
-        const reading = await this.service.beginIncomingRead(policy, () => client.message(ACCOUNT, event.data.messageId));
+      if (policy && event.kind === 'message.committed' && BigInt(event.cursor) > BigInt(policy.incomingBaselineEventCursor)) {
+        const reading = await this.service.beginIncomingRead(policy, () => client.message(ACCOUNT, event.data.messageId, stream));
         if (reading) {
-          const message = await reading.promise;
+          const message = await reading.promise; if (!owned()) return;
           if (message.accountId !== ACCOUNT || message.threadId !== policy.conversationId || message.id !== event.data.messageId) throw Error('入站会话身份不符');
-          // Persist before advancing the account cursor. One slow/busy target
-          // cannot block another target, and admitted messages are not discarded.
-          await this.service.enqueueIncoming(ACCOUNT, { ...message, createdAt: Date.parse(message.createdAt) }, policy);
+          await this.service.enqueueIncoming(ACCOUNT, { ...message, createdAt: Date.parse(message.createdAt),
+            streamSourceRef: stream.sourceRef, syncEpoch: stream.resetEpoch, eventCursor: event.cursor }, policy);
         }
       }
-      await this.service.cursor(ACCOUNT, event.cursor);
+      await this.service.cursor(stream.sourceRef, event.cursor); cursor = event.cursor;
     }
     for (const policy of active) if (!this.incomingJobs.has(policy.id)) {
-      const job = this.track(this.service.processIncoming(policy.id));
-      this.incomingJobs.set(policy.id, job);
+      const job = this.track(this.service.processIncoming(policy.id)); this.incomingJobs.set(policy.id, job);
       job.finally(() => { if (this.incomingJobs.get(policy.id) === job) this.incomingJobs.delete(policy.id); });
     }
-    this.track(this.service.tick());
-    await this.notify();
+    this.track(this.service.tick()); await this.notify();
   }
   async notify() {
-    const state = await this.service.snapshot();
+    if (!this.running) return;
+    const state = await this.service.snapshot(); if (!this.running) return;
     for (const run of state.runs.filter(item => item.phase === 'needs_owner' && !item.notified)) {
       const policy = state.policies.find(item => item.id === run.policyId);
       if (!policy?.notificationThreadId) continue;
+      if (!this.running) return;
       await this.host.messaging.send({ threadId: policy.notificationThreadId, identity: 'wechat-delegation', idempotencyKey: `wechat-owner:${run.id}`,
         payload: { provenance: { origin: { kind: 'plugin', instanceId: this.host.pluginInstanceId }, epistemicStatus: 'observation' },
           elements: [{ elementId: 'handoff', kind: 'text', payload: { text: `微信会话「${policy.displayName}」需要本人处理，猫已暂停代聊。请在微信代聊插件中查看并接管。` } }] } });
@@ -341,7 +337,7 @@ export class DelegationRuntime {
     clearInterval(this.timer);
     if (!this.running) return;
     this.running = false;
-    this.service.deactivate();
+    this.service.deactivate(); this.auth.deactivate();
     await this.supervisor.stop();
     // Host model ports can still have an unresolved external execution. Local
     // resources are released now; aborted work cannot read revoked storage or

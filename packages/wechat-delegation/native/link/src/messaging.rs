@@ -2,7 +2,9 @@
 //! Flag/roster interpretation follows fixed upstream metadata.rs and the prior
 //! reviewed current-directory.patch, without profile/cache or raw DTO export.
 use super::*;
-use crate::store::{ConversationLease, SendOutcome, SendPhase, SendReceipt};
+use crate::store::{
+    ConversationAuthorization, ConversationLease, SendOutcome, SendPhase, SendReceipt,
+};
 use wechat_protocol::{protobuf as p, TextSendOptions, TextSendResult};
 
 pub(super) trait TextPeer: Send + Sync {
@@ -178,8 +180,9 @@ impl AccountService {
         identity: &str,
         destination: &str,
         expires_at_ms: Option<u64>,
+        stream_epoch: u64,
         admission: &Admission,
-    ) -> Result<ConversationLease> {
+    ) -> Result<ConversationAuthorization> {
         if !ordinary_destination(destination) {
             return Err(ServiceError::PermissionDenied);
         }
@@ -208,7 +211,7 @@ impl AccountService {
         }
         Ok(self
             .store
-            .authorize_until(generation, destination, expires_at_ms)?)
+            .authorize_until(generation, destination, expires_at_ms, stream_epoch)?)
     }
     pub fn pause_conversation(&self, generation: u64, destination: Option<&str>) -> Result<()> {
         let mut control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;

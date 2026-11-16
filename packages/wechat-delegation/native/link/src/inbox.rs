@@ -11,6 +11,18 @@ pub(super) struct Inbox {
     messages: BTreeMap<String, MessageProjection>,
     events: Vec<EventProjection>,
     unprojected: u64,
+    #[serde(default)]
+    caught_up: bool,
+    #[serde(default)]
+    reset_epoch: u64,
+}
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StreamProjection {
+    pub source_ref: String,
+    pub reset_epoch: u64,
+    pub event_cursor: String,
+    pub caught_up: bool,
 }
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -49,6 +61,8 @@ pub struct SyncProjection {
     pub event_cursor: String,
     pub more: bool,
     pub retained_unprojected: u64,
+    pub reset: bool,
+    pub stream: StreamProjection,
 }
 pub(crate) struct SyncTicket {
     pub generation: u64,
@@ -80,6 +94,46 @@ fn selected_inbox(state: &State, generation: u64) -> Result<(u64, Option<&Inbox>
         return Err(StoreError::StaleGeneration);
     }
     Ok((root, inbox))
+}
+pub(super) fn stream_projection(state: &State, generation: u64) -> Result<StreamProjection> {
+    let (root, inbox) = selected_inbox(state, generation)?;
+    let mut hash = openssl::sha::Sha256::new();
+    hash.update(b"CW-STREAM-v1\0");
+    hash.update(&(state.server_id.len() as u64).to_be_bytes());
+    hash.update(state.server_id.as_bytes());
+    hash.update(&root.to_be_bytes());
+    hash.update(account(state, generation)?.own_username.as_bytes());
+    Ok(StreamProjection {
+        source_ref: format!(
+            "wechat-stream-v1:{}",
+            hash.finish()
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect::<String>()
+        ),
+        reset_epoch: inbox.map_or(0, |i| i.reset_epoch),
+        event_cursor: inbox.map_or(0, |i| i.events.len()).to_string(),
+        caught_up: inbox.is_some_and(|i| i.caught_up),
+    })
+}
+pub(super) fn require_fresh(state: &mut State, generation: u64) -> Result<()> {
+    let (root, _) = selected_inbox(state, generation)?;
+    if let Some(inbox) = state.inboxes.get_mut(&root) {
+        inbox.caught_up = false;
+    }
+    Ok(())
+}
+fn projection(state: &State, generation: u64, more: bool, reset: bool) -> Result<SyncProjection> {
+    let (_, inbox) = selected_inbox(state, generation)?;
+    Ok(SyncProjection {
+        account_generation: generation,
+        checkpoint: inbox.map_or(0, |i| i.revision),
+        event_cursor: inbox.map_or(0, |i| i.events.len()).to_string(),
+        more,
+        retained_unprojected: inbox.map_or(0, |i| i.unprojected),
+        reset,
+        stream: stream_projection(state, generation)?,
+    })
 }
 fn command_key(command: &wechat_protocol::SyncCommand) -> String {
     let mut hash = openssl::sha::Sha256::new();
@@ -175,6 +229,13 @@ pub(super) fn validate(state: &State) -> Result<()> {
     Ok(())
 }
 impl Store {
+    pub fn stream(&self) -> Result<Option<StreamProjection>> {
+        let data = self.lock()?;
+        if data.state.account.is_none() {
+            return Ok(None);
+        }
+        Ok(Some(stream_projection(&data.state, data.state.generation)?))
+    }
     pub(crate) fn current_group_hints(&self, generation: u64) -> Result<Vec<String>> {
         let data = self.lock()?;
         let (_, inbox) = selected_inbox(&data.state, generation)?;
@@ -232,19 +293,20 @@ impl Store {
                 if inbox.revision != ticket.revision || inbox.cursor != ticket.cursor {
                     return Err(StoreError::StaleSync);
                 }
-                if batch.cursor == inbox.cursor
+                if batch.code == 0
+                    && inbox.caught_up == !batch.continuation
+                    && batch.cursor == inbox.cursor
                     && batch
                         .commands
                         .iter()
                         .all(|command| inbox.commands.contains_key(&command_key(command)))
                 {
-                    return Ok(SyncProjection {
-                        account_generation: ticket.generation,
-                        checkpoint: inbox.revision,
-                        event_cursor: inbox.events.len().to_string(),
-                        more: batch.continuation,
-                        retained_unprojected: inbox.unprojected,
-                    });
+                    return projection(
+                        &data.state,
+                        ticket.generation,
+                        batch.continuation,
+                        batch.code == -2006,
+                    );
                 }
             }
         }
@@ -256,6 +318,9 @@ impl Store {
             if root != ticket.data_generation {
                 return Err(StoreError::StaleGeneration);
             }
+            if batch.code == -2006 {
+                outbox::inhibit(state);
+            }
             let inbox = state.inboxes.entry(root).or_insert_with(|| Inbox {
                 identity: ticket.identity.clone(),
                 ..Inbox::default()
@@ -263,6 +328,13 @@ impl Store {
             if inbox.revision != ticket.revision || inbox.cursor != ticket.cursor {
                 return Err(StoreError::StaleSync);
             }
+            if batch.code == -2006 {
+                inbox.reset_epoch = inbox
+                    .reset_epoch
+                    .checked_add(1)
+                    .ok_or(StoreError::InvalidState)?;
+            }
+            inbox.caught_up = batch.code == 0 && !batch.continuation;
             for command in batch.commands {
                 let key = command_key(&command);
                 if inbox.commands.contains_key(&key) {
@@ -296,16 +368,15 @@ impl Store {
                 .revision
                 .checked_add(1)
                 .ok_or(StoreError::InvalidState)?;
-            Ok(SyncProjection {
-                account_generation: ticket.generation,
-                checkpoint: inbox.revision,
-                event_cursor: inbox.events.len().to_string(),
-                more: batch.continuation,
-                retained_unprojected: inbox.unprojected,
-            })
+            projection(
+                state,
+                ticket.generation,
+                batch.continuation,
+                batch.code == -2006,
+            )
         })
     }
-    pub fn events(&self, generation: u64, after: &str) -> Result<EventPage> {
+    pub fn events(&self, generation: u64, after: &str, epoch: u64) -> Result<EventPage> {
         let offset = after
             .parse::<usize>()
             .ok()
@@ -313,6 +384,9 @@ impl Store {
             .ok_or(StoreError::InvalidState)?;
         let data = self.lock()?;
         let (_, inbox) = selected_inbox(&data.state, generation)?;
+        if inbox.map_or(0, |i| i.reset_epoch) != epoch {
+            return Err(StoreError::StaleSync);
+        }
         let events = inbox.map_or(&[][..], |inbox| inbox.events.as_slice());
         if offset > events.len() {
             return Err(StoreError::InvalidState);
@@ -324,11 +398,26 @@ impl Store {
             more: end < events.len(),
         })
     }
-    pub fn message(&self, generation: u64, id: &str) -> Result<MessageProjection> {
+    pub fn message(&self, generation: u64, id: &str, epoch: u64) -> Result<MessageProjection> {
         let data = self.lock()?;
         let (_, inbox) = selected_inbox(&data.state, generation)?;
+        if inbox.map_or(0, |i| i.reset_epoch) != epoch {
+            return Err(StoreError::StaleSync);
+        }
         inbox
             .and_then(|i| i.messages.get(id))
+            .cloned()
+            .ok_or(StoreError::UnknownMessage)
+    }
+    pub fn message_by_server(&self, generation: u64, server_id: &str) -> Result<MessageProjection> {
+        if !super::outbox::valid_server_id(server_id) {
+            return Err(StoreError::UnknownMessage);
+        }
+        let data = self.lock()?;
+        let (root, inbox) = selected_inbox(&data.state, generation)?;
+        inbox
+            .and_then(|inbox| inbox.messages.get(&format!("{root}:{server_id}")))
+            .filter(|message| message.server_id.as_deref() == Some(server_id))
             .cloned()
             .ok_or(StoreError::UnknownMessage)
     }

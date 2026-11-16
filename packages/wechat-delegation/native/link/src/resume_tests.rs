@@ -141,10 +141,10 @@ fn same_account_resume_keeps_sync_cursor_message_ids_and_events_without_copying_
         "changing authority generation must not reset the same account's sync cursor"
     );
     assert_eq!(
-        store.message(2, "1:91").unwrap().body.as_deref(),
+        store.message(2, "1:91", 0).unwrap().body.as_deref(),
         Some("saved text")
     );
-    assert_eq!(store.events(2, "0").unwrap().items.len(), 1);
+    assert_eq!(store.events(2, "0", 0).unwrap().items.len(), 1);
     store.cancel_resume("restore-history").unwrap();
     store
         .begin_resume("restore-again", 2, "synthetic-user")
@@ -156,6 +156,6 @@ fn same_account_resume_keeps_sync_cursor_message_ids_and_events_without_copying_
     foreign.uin = 321;
     foreign.own_username = "foreign-user".into();
     store.accept_login(4, foreign).unwrap();
-    assert!(store.events(5, "0").unwrap().items.is_empty());
-    assert!(store.message(5, "1:91").is_err());
+    assert!(store.events(5, "0", 0).unwrap().items.is_empty());
+    assert!(store.message(5, "1:91", 0).is_err());
 }

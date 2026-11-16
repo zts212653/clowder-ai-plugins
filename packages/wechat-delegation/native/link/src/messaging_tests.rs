@@ -109,6 +109,18 @@ fn peer(sends: Arc<AtomicUsize>) -> Peer {
 fn setup(root: &Root, keys: &Keys, peer: Peer) -> Arc<AccountService> {
     let store = Arc::new(Store::initialize(Vault::create(&root.0, keys, b"").unwrap()).unwrap());
     store.accept_login(0, account()).unwrap();
+    store
+        .commit_sync(
+            &store.sync_ticket(1).unwrap(),
+            wechat_protocol::SyncBatch {
+                code: 0,
+                flags: 0,
+                cursor: vec![],
+                commands: vec![],
+                continuation: false,
+            },
+        )
+        .unwrap();
     let mut service = AccountService::new(store).unwrap();
     service.text_peer = Box::new(peer);
     service.control.lock().unwrap().online = true;
@@ -130,9 +142,11 @@ fn real_service_text_submission_is_idempotent_and_takeover_fences_the_last_check
                 "synthetic-user",
                 destination,
                 None,
+                0,
                 &service.admission().unwrap(),
             )
-            .expect("service must admit verified explicit authorization");
+            .expect("service must admit verified explicit authorization")
+            .lease;
         let worker = service.clone();
         let copy = lease.clone();
         let thread = std::thread::spawn(move || {
@@ -175,9 +189,11 @@ fn in_flight_results_stay_truthful_and_unknown_never_resubmits_after_restart() {
                 "synthetic-user",
                 "friend",
                 None,
+                0,
                 &service.admission().unwrap(),
             )
-            .unwrap();
+            .unwrap()
+            .lease;
         let worker = service.clone();
         let copy = lease.clone();
         let thread =
@@ -247,6 +263,7 @@ fn concurrent_takeover_or_account_change_prevents_a_late_authorization() {
                 "synthetic-user",
                 "friend",
                 None,
+                0,
                 &worker.admission().unwrap(),
             )
         });
@@ -270,9 +287,9 @@ fn actual_text_rpc_has_narrow_parameters_and_receipts() {
         crate::ipc::respond_with(&serde_json::to_vec(&v).unwrap(), Some(&service))
     };
     let granted = call(
-        serde_json::json!({"id":1,"method":"conversation.authorize","params":{"accountGeneration":1,"accountIdentity":"synthetic-user","destination":"friend"}}),
+        serde_json::json!({"id":1,"method":"conversation.authorize","params":{"accountGeneration":1,"accountIdentity":"synthetic-user","destination":"friend","syncEpoch":0}}),
     );
-    let lease = granted["result"].clone();
+    let lease = granted["result"]["lease"].clone();
     assert_eq!(
         lease["destination"], "friend",
         "RPC must call the real service"
@@ -364,9 +381,11 @@ fn only_a_correlated_acceptance_or_rejection_can_resolve_submission() {
                 "synthetic-user",
                 "friend",
                 None,
+                0,
                 &service.admission().unwrap(),
             )
-            .unwrap();
+            .unwrap()
+            .lease;
         let receipt = service
             .send_text(&lease, "correlation", "synthetic text")
             .unwrap();
@@ -402,6 +421,7 @@ fn a_target_that_cannot_be_verified_never_reaches_the_send_operation() {
             "synthetic-user",
             "friend",
             None,
+            0,
             &service.admission().unwrap()
         )
         .is_err());
@@ -420,6 +440,7 @@ fn a_target_that_cannot_be_verified_never_reaches_the_send_operation() {
             "synthetic-user",
             "friend",
             None,
+            0,
             &service.admission().unwrap()
         )
         .is_err());
@@ -429,6 +450,7 @@ fn a_target_that_cannot_be_verified_never_reaches_the_send_operation() {
             "different-user",
             "friend",
             None,
+            0,
             &service.admission().unwrap()
         )
         .is_err());
@@ -451,9 +473,11 @@ fn actual_stdio_pause_remains_responsive_while_a_text_send_waits_at_submission()
             "synthetic-user",
             "room@chatroom",
             None,
+            0,
             &service.admission().unwrap(),
         )
-        .unwrap();
+        .unwrap()
+        .lease;
     let (client, server) = UnixStream::pair().unwrap();
     client
         .set_read_timeout(Some(Duration::from_secs(2)))
@@ -539,6 +563,7 @@ fn session_rejection_during_verification_or_send_stops_every_grant_without_erasi
                     "synthetic-user",
                     "another-friend",
                     None,
+                    0,
                     &service.admission().unwrap()
                 )
                 .is_err());
@@ -578,7 +603,7 @@ fn queued_authorization_cannot_capture_a_new_epoch_after_takeover() {
     service.pause_conversation(1, Some("friend")).unwrap();
     assert!(
         service
-            .authorize_conversation(1, "synthetic-user", "friend", None, &admission)
+            .authorize_conversation(1, "synthetic-user", "friend", None, 0, &admission)
             .is_err(),
         "the reader admission must fence a delayed worker, before verification starts"
     );

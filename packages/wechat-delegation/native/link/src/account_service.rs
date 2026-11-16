@@ -74,6 +74,7 @@ pub struct AccountProjection {
     pub credentials_available: bool,
     pub authenticated: bool,
     pub connection: &'static str,
+    pub stream: Option<crate::store::StreamProjection>,
 }
 enum PeerError {
     Unavailable,
@@ -275,6 +276,7 @@ impl AccountService {
             .transpose()
             .map_err(|_| ServiceError::Unavailable)?;
         Ok(AccountProjection {
+            stream: self.store.stream()?,
             server_id: self.store.server_id()?,
             account_generation: self.store.generation()?,
             credentials_available: control.client.is_some(),

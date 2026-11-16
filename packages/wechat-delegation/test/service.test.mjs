@@ -283,3 +283,19 @@ test('repeating revoke advances its fence without reopening a revoked policy or 
   await assert.rejects(f.service.beginActivationStep(input,fence,()=>Promise.resolve()),/接管|变化/);
   assert.equal((await f.service.snapshot()).policies[0].mode,'revoked');
 });
+
+test('stream baseline excludes future-dated history and a different source, while fresh events do not depend on sender clock',async()=>{
+ const f=await fixture({policy:{streamSourceRef:'source-a',syncEpoch:2,incomingBaselineEventCursor:'5'}});
+ await f.service.incoming('account',{id:'history',threadId:'friend',direction:'incoming',body:'old history',createdAt:999999999,streamSourceRef:'source-a',syncEpoch:2,eventCursor:'4'});
+ assert.equal(f.calls.length,0,'future sender timestamps cannot bypass the admitted event baseline');
+ await f.service.incoming('account',{id:'wrong-source',threadId:'friend',direction:'incoming',body:'unrelated',createdAt:10001,streamSourceRef:'source-b',syncEpoch:2,eventCursor:'6'});assert.equal(f.calls.length,0);
+ await f.service.incoming('account',{id:'current',threadId:'friend',direction:'incoming',body:'new event',createdAt:1,streamSourceRef:'source-a',syncEpoch:2,eventCursor:'6'});
+ assert.equal(f.calls.length,1,'a newly observed event is eligible even when its sender clock is behind');
+});
+
+test('a late background failure can pause only the policy epoch it actually observed',async()=>{
+ const f=await fixture();const old=f.binding;
+ const current=await f.service.activate(policy());await f.service.pauseObserved([old]);
+ assert.equal((await f.service.snapshot()).policies[0].mode,'active','a stale observation must not take over a later explicit renewal');
+ await f.service.pauseObserved([current]);assert.equal((await f.service.snapshot()).policies[0].mode,'owner');
+});

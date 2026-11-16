@@ -3,7 +3,7 @@ import { NativeRequestError } from './native-stdio.mjs';
 import { CurrentDirectory } from './current-directory.mjs';
 
 const UPSTREAM = 'ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e';
-const CAPABILITIES = ['stdio-v1', 'text-protocol-subset', 'account-login-v1', 'durable-text-send-v1', 'durable-text-sync-v1', 'current-directory-v1', 'explicit-session-resume-v1'];
+const CAPABILITIES = ['stdio-v1', 'text-protocol-subset', 'account-login-v1', 'durable-text-send-v1', 'durable-text-sync-v1', 'current-directory-v1', 'explicit-session-resume-v1', 'canonical-message-lookup-v1', 'stable-text-stream-v1'];
 const bool = value => typeof value === 'boolean';
 const uint = (min = 0, max = Number.MAX_SAFE_INTEGER) => value => Number.isSafeInteger(value) && value >= min && value <= max;
 const text = (max, empty = false) => value => typeof value === 'string' && (empty || value.length > 0) && value.isWellFormed() && !value.includes('\0') && Buffer.byteLength(value) <= max;
@@ -21,8 +21,9 @@ const receiptShape = record({ id: key, destination: coordinate, accountGeneratio
   state: oneOf(['queued', 'submitting', 'accepted', 'failed', 'needs_review', 'cancelled']), createdAt: uint(1, 0xffffffff), clientMessageId: uint(1, 0xffffffff), serverId: nullable(serverId) });
 const egressShape = record({ host: coordinate, port: uint(1, 65535), resolvedIps: list(text(64), 64), longConnections: uint(), longBytesWritten: uint(), longBytesRead: uint(),
   shortRequests: uint(), shortBodyBytesPrepared: uint(), shortResponseBodyBytesRead: uint(), systemFakeIpObserved: bool, verifiedPinVersions: list(uint(1, 0xffffffff), 64), verifiedRegions: list(uint(0, 0xffffffff), 64) });
+const streamShape = record({ sourceRef: coordinate, resetEpoch: uint(), eventCursor: cursor, caughtUp: bool });
 const accountShape = record({ serverId: coordinate, accountGeneration: uint(), accountIdentity: nullable(coordinate), credentialsAvailable: bool,
-  authenticated: bool, connection: oneOf(['online', 'stored', 'offline', 'closed']), egress: list(egressShape, 64) });
+  authenticated: bool, connection: oneOf(['online', 'stored', 'offline', 'closed']), stream: nullable(streamShape), egress: list(egressShape, 64) });
 const loginRecord = record({ id: key, generation: uint(1), accountGeneration: uint(), phase: oneOf(['starting', 'pending', 'scanned', 'completing', 'succeeded', 'cancelled', 'interrupted', 'failed', 'expired', 'rejected', 'lan_required']),
   accountIdentity: nullable(coordinate), startedAtMs: uint(1), updatedAtMs: uint(1), authenticationMayHaveOccurred: bool });
 const png = value => {
@@ -69,13 +70,13 @@ export class NativeLinkClient {
   async status() {
     const account = await this.request('status', {}, accountShape);
     if (account.authenticated !== (account.connection === 'online') || account.authenticated && (!account.credentialsAvailable || !account.accountIdentity || account.accountGeneration < 1) ||
-        account.credentialsAvailable !== (account.accountIdentity !== null) || this.storeId && this.storeId !== account.serverId) this.invalid();
+        account.credentialsAvailable !== (account.accountIdentity !== null) || account.credentialsAvailable !== (account.stream !== null) || this.storeId && this.storeId !== account.serverId) this.invalid();
     this.storeId = account.serverId; this.account = account; return account;
   }
   async identity(accountId) {
     this.accountId(accountId); const account = await this.status();
     return { accountId, serverId: this.instanceId, nativeStoreId: this.storeId, accountGeneration: account.accountGeneration,
-      accountIdentity: account.accountIdentity, credentialsAvailable: account.credentialsAvailable, connected: account.authenticated && account.connection === 'online' };
+      accountIdentity: account.accountIdentity, stream: structuredClone(account.stream), credentialsAvailable: account.credentialsAvailable, connected: account.authenticated && account.connection === 'online' };
   }
   accountId(value) { if (value !== 'clowder') throw new NativeRequestError('invalid_request'); }
   admitted(run, { current = true } = {}) {
@@ -89,9 +90,10 @@ export class NativeLinkClient {
   async authorize(accountId, identity, destination, expiresAt = null) {
     this.accountId(accountId);
     if (!this.ready || identity.serverId !== this.instanceId || identity.nativeStoreId !== this.storeId || !identity.connected || !coordinate(destination) || identity.accountIdentity !== this.account?.accountIdentity ||
-        !uint(1)(identity.accountGeneration) || expiresAt !== null && !uint(1)(expiresAt)) throw new NativeRequestError('permission_denied');
-    const value = await this.request('conversation.authorize', { accountGeneration: identity.accountGeneration, accountIdentity: identity.accountIdentity, destination, expiresAtMs: expiresAt }, leaseShape);
-    if (value.accountGeneration !== identity.accountGeneration || value.destination !== destination) this.invalid(true);
+        !uint(1)(identity.accountGeneration) || !identity.stream?.caughtUp || identity.stream.sourceRef !== this.account?.stream?.sourceRef ||
+        identity.stream.resetEpoch !== this.account?.stream?.resetEpoch || expiresAt !== null && !uint(1)(expiresAt)) throw new NativeRequestError('permission_denied');
+    const value = await this.request('conversation.authorize', { accountGeneration: identity.accountGeneration, accountIdentity: identity.accountIdentity, destination, expiresAtMs: expiresAt, syncEpoch: identity.stream.resetEpoch }, record({ lease: leaseShape, stream: streamShape }));
+    if (value.lease.accountGeneration !== identity.accountGeneration || value.lease.destination !== destination || !value.stream.caughtUp || value.stream.sourceRef !== identity.stream.sourceRef || value.stream.resetEpoch !== identity.stream.resetEpoch) this.invalid(true);
     return value;
   }
   async pause(accountGeneration = this.account?.accountGeneration, destination = null) {
@@ -111,7 +113,13 @@ export class NativeLinkClient {
   }
   async inspect(run) {
     this.admitted(run, { current: false });
-    return this.normalize(run, await this.request('send.receipt', { operationId: run.id }, receiptShape));
+    const receipt = this.normalize(run, await this.request('send.receipt', { operationId: run.id }, receiptShape));
+    if (receipt.state === 'accepted') {
+      const message = await this.messageByServer(run.accountId, receipt.serverId);
+      if (message.threadId !== run.conversationId || message.accountIdentity !== run.accountIdentity || message.direction !== 'outgoing' || message.body !== run.text) this.invalid();
+      return { ...receipt, verified: true, messageId: message.id };
+    }
+    return receipt;
   }
   async cancel(run) {
     this.admitted(run, { current: false });
@@ -144,7 +152,7 @@ export class NativeLinkClient {
   async disconnect(accountId) {
     this.accountId(accountId);
     const value = await this.request('account.disconnect', {}, record({ serverId: value => value === this.storeId, accountGeneration: uint(), accountIdentity: value => value === null, credentialsAvailable: value => value === false,
-      authenticated: value => value === false, connection: value => value === 'offline' }));
+      authenticated: value => value === false, connection: value => value === 'offline', stream: value => value === null }));
     this.account = { ...value, egress: [] }; return value;
   }
   async directoryStart(operationId, identity) { return this.directoryRequest('directory.start', { operationId, accountGeneration: identity.accountGeneration, accountIdentity: identity.accountIdentity }); }
@@ -167,21 +175,34 @@ export class NativeLinkClient {
   async pull(identity) {
     if (!this.ready || !uint(1)(identity.accountGeneration) || !coordinate(identity.accountIdentity)) throw new NativeRequestError('invalid_request');
     const value = await this.request('sync.pull', { accountGeneration: identity.accountGeneration, accountIdentity: identity.accountIdentity },
-      record({ accountGeneration: uint(1), checkpoint: uint(), eventCursor: cursor, more: bool, retainedUnprojected: uint() }));
-    if (value.accountGeneration !== identity.accountGeneration) this.invalid(); return value;
+      record({ accountGeneration: uint(1), checkpoint: uint(), eventCursor: cursor, more: bool, retainedUnprojected: uint(), reset: bool, stream: streamShape }));
+    if (value.accountGeneration !== identity.accountGeneration || value.stream.sourceRef !== identity.stream?.sourceRef || value.stream.eventCursor !== value.eventCursor ||
+        value.stream.caughtUp && (value.more || value.reset)) this.invalid(); return value;
   }
-  async events(accountId, after = '0') {
-    this.accountId(accountId); if (!this.ready || !cursor(after)) throw new NativeRequestError('invalid_request');
-    const value = await this.request('events.page', { accountGeneration: this.account.accountGeneration, after }, record({ items: list(eventShape, 100), nextCursor: cursor, more: bool }));
+  incomingSource(source) {
+    if (!source || !uint(1)(source.accountGeneration) || !uint()(source.resetEpoch) || source.sourceRef !== this.account?.stream?.sourceRef)
+      throw new NativeRequestError('permission_denied');
+  }
+  async events(accountId, after = '0', source) {
+    this.accountId(accountId); if (!this.ready || !cursor(after)) throw new NativeRequestError('invalid_request'); this.incomingSource(source);
+    const value = await this.request('events.page', { accountGeneration: source.accountGeneration, after, syncEpoch: source.resetEpoch }, record({ items: list(eventShape, 100), nextCursor: cursor, more: bool }));
     let previous = BigInt(after);
     for (const item of value.items) { if (BigInt(item.cursor) <= previous) this.invalid(); previous = BigInt(item.cursor); }
     if (BigInt(value.nextCursor) !== previous || value.more && !value.items.length) this.invalid();
     return { ...value, items: value.items.map(event => ({ cursor: event.cursor, kind: 'message.committed', createdAt: new Date(event.createdAt * 1000).toISOString(), data: { messageId: event.messageId, threadId: event.threadId } })) };
   }
-  async message(accountId, messageId) {
-    this.accountId(accountId); if (!this.ready || !coordinate(messageId)) throw new NativeRequestError('invalid_request');
-    const value = await this.request('message.get', { accountGeneration: this.account.accountGeneration, messageId }, messageShape);
-    if (value.id !== messageId || value.accountIdentity !== this.account.accountIdentity) this.invalid();
+  async message(accountId, messageId, source) {
+    this.accountId(accountId); if (!this.ready || !coordinate(messageId)) throw new NativeRequestError('invalid_request'); this.incomingSource(source);
+    const value = await this.request('message.get', { accountGeneration: source.accountGeneration, messageId, syncEpoch: source.resetEpoch }, messageShape);
+    if (value.id !== messageId) this.invalid(); return this.projectMessage(accountId, value);
+  }
+  async messageByServer(accountId, id) {
+    this.accountId(accountId); if (!this.ready || !serverId(id)) throw new NativeRequestError('invalid_request');
+    const value = await this.request('message.by_server', { accountGeneration: this.account.accountGeneration, serverId: id }, messageShape);
+    if (value.serverId !== id) this.invalid(); return this.projectMessage(accountId, value);
+  }
+  projectMessage(accountId, value) {
+    if (value.accountIdentity !== this.account.accountIdentity) this.invalid();
     return { id: value.id, accountId, accountIdentity: value.accountIdentity, threadId: value.threadId, senderId: value.senderId, direction: value.direction,
       serverId: value.serverId, body: value.body, createdAt: new Date(value.createdAt * 1000).toISOString() };
   }

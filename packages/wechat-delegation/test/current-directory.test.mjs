@@ -24,3 +24,17 @@ test('concurrent first-page reads create a single directory intent while identit
   resolveIdentity({accountGeneration:1,accountIdentity:'owner',connected:true});await Promise.all([first,second]);await turn();
   assert.equal(starts,1);
 });
+
+test('bounded native pages cover the complete directory and UI cursors stay with their query and snapshot',async()=>{
+ const identity={accountGeneration:1,accountIdentity:'owner',connected:true};let pages=0;
+ const items=[...Array.from({length:145},(_,i)=>({id:`club-${i}@chatroom`,kind:'group',displayName:`周末读书群 ${i}`})),{id:'book-lover',kind:'direct',displayName:'读书好友'}];
+ const record=id=>({operationId:id,accountGeneration:1,accountIdentity:'owner',phase:'ready',verifiedCount:items.length,retryAfterMs:0,unverifiedCount:0,groupDiscoveryIncomplete:false,observedAt:Date.now()});
+ const client={accountId:id=>{if(id!=='clowder')throw Error('invalid account');},identity:async()=>identity,directoryStart:async id=>record(id),directoryPage:async(id,offset)=>{pages++;return{directory:record(id),items:items.slice(offset,offset+100),nextOffset:offset+100<items.length?offset+100:null};},invalid:()=>{throw Error('invalid');}};
+ const directory=new CurrentDirectory(client);await directory.page('clowder');await turn();assert.equal(pages,2);
+ const query={query:'周书群',kind:'group',limit:20};const first=await directory.page('clowder','',query),second=await directory.page('clowder',first.nextCursor,query);
+ assert.equal(first.total,145);assert.equal(first.items.length,20);assert.equal(new Set([...first.items,...second.items].map(item=>item.id)).size,40);
+ await assert.rejects(directory.page('clowder',first.nextCursor,{...query,query:'other'}),/cursor/);
+ await assert.rejects(directory.page('foreign',first.nextCursor,query),/account/);
+ assert.deepEqual((await directory.page('clowder','',{query:'book-love',kind:'direct',limit:20})).items.map(item=>item.id),['book-lover']);
+ directory.refresh();await assert.rejects(directory.page('clowder',first.nextCursor,query),/expired/);
+});

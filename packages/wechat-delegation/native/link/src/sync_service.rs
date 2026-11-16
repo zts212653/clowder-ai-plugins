@@ -46,17 +46,32 @@ impl AccountService {
                 return Err(problem);
             }
         };
-        let control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+        let mut control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
         if control.closed || !control.online {
             return Err(ServiceError::PermissionDenied);
         }
-        Ok(self.store.commit_sync(&ticket, batch)?)
+        if batch.code == -2006 {
+            control.invalidate_admissions()?;
+        }
+        match self.store.commit_sync(&ticket, batch) {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                // A failed durable reset cannot leave the old sender alive.
+                // Preserve the store; do not publish an in-memory checkpoint.
+                control.online = false;
+                client.stop().map_err(|_| ServiceError::Unavailable)?;
+                Err(error.into())
+            }
+        }
     }
-    pub fn events(&self, generation: u64, after: &str) -> Result<EventPage> {
-        Ok(self.store.events(generation, after)?)
+    pub fn events(&self, generation: u64, after: &str, epoch: u64) -> Result<EventPage> {
+        Ok(self.store.events(generation, after, epoch)?)
     }
-    pub fn message(&self, generation: u64, id: &str) -> Result<MessageProjection> {
-        Ok(self.store.message(generation, id)?)
+    pub fn message(&self, generation: u64, id: &str, epoch: u64) -> Result<MessageProjection> {
+        Ok(self.store.message(generation, id, epoch)?)
+    }
+    pub fn message_by_server(&self, generation: u64, id: &str) -> Result<MessageProjection> {
+        Ok(self.store.message_by_server(generation, id)?)
     }
 }
 #[cfg(test)]

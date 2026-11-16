@@ -12,16 +12,20 @@ export const owner = overrides => ({ kind: 'owner-http-request', userId: 'owner'
   requestIdentity: { requestId: 'request' }, signal: new AbortController().signal, assertCurrent: async () => {}, ...overrides });
 async function fixture(t) {
   const sends = [], logins = []; let prepared = 0;
+  const stream = {sourceRef:'fixture-stream',resetEpoch:0,eventCursor:'0',caughtUp:true};
+  const authRecord = id => ({id,generation:1,accountGeneration:0,accountIdentity:null,phase:'pending',authenticationMayHaveOccurred:false,startedAtMs:1,updatedAtMs:2});
   const client = {
-    json: async () => ({ items: [{ id: 'clowder' }] }),
-    identity: async () => ({ serverId: 'server', accountId: 'clowder', accountIdentity: 'wxid_owner', nativeStoreId: 'synthetic-store', accountGeneration: 1, connected: true }),
-    account: async () => ({ id: 'clowder', authenticated: true, ownUsername: 'wxid_owner', connection: 'online' }),
-    createAccount: async () => ({}),
+    storeId:'synthetic-store',instanceId:'server',
+    startLogin:async id=>{logins.push(id);return{operation:authRecord(id),qr:null};},
+    loginOperation:async id=>({operation:authRecord(id),qr:{pngBase64:'iVBORw0KGgo=',expiresAt:123}}),
+    pollLogin:async id=>({operation:authRecord(id),qr:{pngBase64:'iVBORw0KGgo=',expiresAt:123}}),
+    cancelLogin:async id=>({operation:{...authRecord(id),phase:'cancelled'},qr:null}),
+    identity: async () => ({ serverId: 'server', accountId: 'clowder', accountIdentity: 'wxid_owner', nativeStoreId: 'synthetic-store', accountGeneration: 1, credentialsAvailable: true, connected: true, stream:structuredClone(stream) }),
     targets: async () => ({ items: [{ id: 'room@chatroom', accountId: 'clowder', kind: 'group', displayName: '测试群' }], nextCursor: null }),
-    login: async (_id, key) => { logins.push(key); return { id: 'login', kind: 'login', accountId: 'clowder', state: 'awaiting_scan' }; },
-    operation: async () => ({ id: 'login', kind: 'login', accountId: 'clowder', state: 'awaiting_scan', result: { qrAvailable: true } }),
-    qr: async () => 'data:image/png;base64,aGVsbG8=', prepare: async () => {},
-    authorize: async (_account, _identity, destination) => ({accountGeneration:1,conversationGeneration:1,destination}), pause: async () => ({paused:true}),
+    prepare: async () => {},
+    pull: async identity => ({accountGeneration:identity.accountGeneration,checkpoint:1,eventCursor:identity.stream.eventCursor,more:false,retainedUnprojected:0,reset:false,stream:structuredClone(identity.stream)}),
+    events:async(_account,after)=>({items:[],nextCursor:after,more:false}),
+    authorize: async (_account, identity, destination) => ({lease:{accountGeneration:1,conversationGeneration:1,destination},stream:structuredClone(identity.stream)}), pause: async () => ({paused:true}),
     submit: async run => { sends.push(run); return { sendId: 'send', state: 'queued' }; },
     inspect: async () => ({ sendId: 'send', state: 'cancelled' }), cancel: async () => ({ sendId: 'send', state: 'cancelled' }),
   };
@@ -47,6 +51,7 @@ test('activation is dormant and actions reject forged or stale owner contexts', 
 });
 test('owner login retries stay on the original durable operation and never grant conversation access', async t => {
   const f = await fixture(t);
+  f.client.identity=async()=>({serverId:'server',nativeStoreId:'synthetic-store',accountGeneration:0,accountIdentity:null,credentialsAvailable:false,connected:false});
   await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
   await f.runtime.dispatch({ action: 'login' }, owner());
   await f.runtime.dispatch({ action: 'login' }, owner());
@@ -175,7 +180,7 @@ test('a busy conversation retains incoming work without blocking the account cur
   f.client.events=async(_account,cursor)=>({items:cursor==='0'?['room@chatroom','friend'].map((threadId,index)=>({cursor:String(index+1),kind:'message.committed',createdAt,data:{threadId,messageId:`message-${index}`}})):[]});
   f.client.message=async(_account,id)=>({id,accountId:'clowder',threadId:id==='message-0'?'room@chatroom':'friend',direction:'incoming',body:'周末读书',createdAt});
   await f.runtime.cycle(); await f.runtime.drain();
-  let state=await f.runtime.service.snapshot(); assert.equal(state.cursors.clowder,'2');
+  let state=await f.runtime.service.snapshot(); assert.equal(state.cursors['fixture-stream'],'2');
   assert.equal(f.sends.filter(run=>run.conversationId==='friend').length,1);
   assert.equal(state.runs.filter(run=>run.phase==='waiting').length,1);
   settled=true; await f.runtime.cycle(); await f.runtime.drain();
@@ -208,7 +213,7 @@ test('older audit records remain reachable through bounded history pages after t
   await f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
     goal: '读书', proactive: false, replies: true, intervalMinutes: 180, maxTurns: 200, confirm: true, modelFingerprint: 'preview' }, owner());
   f.client.submit = async run => ({ sendId: run.id, state: 'accepted' });
-  for (let n = 0; n < 105; n++) await f.runtime.service.incoming('clowder', { id: `history-${n}`, threadId: 'room@chatroom', direction: 'incoming', body: '聊读书', createdAt: Date.now() + 1000 });
+  for (let n = 0; n < 105; n++) await f.runtime.service.incoming('clowder', { id: `history-${n}`, threadId: 'room@chatroom', direction: 'incoming', body: '聊读书', createdAt: Date.now() + 1000, streamSourceRef:'fixture-stream',syncEpoch:0,eventCursor:String(n+1) });
   const seen = new Set(); let cursor;
   do {
     const page = await f.runtime.dispatch({ action: 'history', ...(cursor === undefined ? {} : { cursor }) }, owner());
@@ -268,7 +273,7 @@ test('directory verification remains asynchronous, does not block owner status a
   assert.equal(pending.pending, true);
   assert.equal(resets, 1);
   await assert.rejects(f.runtime.dispatch({ action: 'chats', refreshDirectory: true, cursor: 'old' }, owner()), /第一页/);
-  f.client.identity = async () => ({ serverId: 'server', accountId: 'clowder', accountIdentity: 'wxid_owner', nativeStoreId: 'synthetic-store', accountGeneration: 1, connected: true });
+  f.client.identity = async () => ({ serverId: 'server', accountId: 'clowder', accountIdentity: 'wxid_owner', nativeStoreId: 'synthetic-store', accountGeneration: 1, credentialsAvailable: true, connected: true, stream:structuredClone(stream) });
   await assert.rejects(f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', confirm: true }, owner()), /正在核对/);
   assert.equal((await f.runtime.status()).policies.length, 0);
   assert.equal(f.sends.length, 0);
@@ -299,7 +304,7 @@ test('activation refuses an account change hidden behind a failed status probe',
 
 test('an owner stop returns locally before native pause ACK; explicit restore waits for pause and old model revocation',async t=>{
   const f=await fixture(t);await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
-  let generation=0;const grants=[];f.client.authorize=async()=>{grants.push(++generation);return{accountGeneration:1,conversationGeneration:generation,destination:'room@chatroom'};};
+  let generation=0;const grants=[];f.client.authorize=async()=>{grants.push(++generation);return{lease:{accountGeneration:1,conversationGeneration:generation,destination:'room@chatroom'},stream:{sourceRef:'fixture-stream',resetEpoch:0,eventCursor:'0',caughtUp:true}};};
   f.client.pause=async()=>({paused:true});
   const input={action:'activate',accountIdentity:'wxid_owner',serverId:'server',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'自然',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'};
   await f.runtime.dispatch(input,owner());assert.equal(grants.length,1);
@@ -323,7 +328,7 @@ test('two same-epoch activations cannot grant twice or revoke a winning session;
   const first=f.runtime.dispatch(input,owner());await entered;
   const second=f.runtime.dispatch(input,owner());
   await f.runtime.dispatch({action:'pause_all'},owner());
-  finish({accountGeneration:1,conversationGeneration:1,destination:'room@chatroom'});
+  finish({lease:{accountGeneration:1,conversationGeneration:1,destination:'room@chatroom'},stream:{sourceRef:'fixture-stream',resetEpoch:0,eventCursor:'0',caughtUp:true}});
   const results=await Promise.allSettled([first,second]);
   assert.equal(results.every(r=>r.status==='rejected'),true);assert.equal(grants,1);
   assert.equal((await f.runtime.service.snapshot()).policies.filter(p=>p.mode==='active').length,0);
@@ -335,7 +340,7 @@ test('two concurrent confirmed starts yield one grant and no cleanup against the
   f.client.authorize=async()=>{grants++;enter();return grant;};f.host.memberSessions={revoke:async id=>revoked.push(id)};
   const input={action:'activate',accountIdentity:'wxid_owner',serverId:'server',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'自然',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'};
   const first=f.runtime.dispatch(input,owner());await entered;const second=f.runtime.dispatch(input,owner());await new Promise(r=>setImmediate(r));
-  finish({accountGeneration:1,conversationGeneration:1,destination:'room@chatroom'});
+  finish({lease:{accountGeneration:1,conversationGeneration:1,destination:'room@chatroom'},stream:{sourceRef:'fixture-stream',resetEpoch:0,eventCursor:'0',caughtUp:true}});
   const results=await Promise.allSettled([first,second]);assert.equal(results[0].status,'fulfilled');assert.equal(results[1].status,'rejected');assert.equal(grants,1);assert.deepEqual(revoked,[]);
 });
 
@@ -357,4 +362,28 @@ test('teardown releases local resources while a model port is unresolved and lat
   let revokedAccess=0;f.host.storage.get=async()=>{revokedAccess++;throw Error('revoked');};f.host.storage.compareAndSet=f.host.storage.get;
   finish({kind:'message',text:'late'});await stopping;await f.runtime.drain();
   assert.equal(released,true);assert.equal(revokedAccess,0);assert.equal(f.sends.length,0);
+});
+
+test('saved account recovery is an explicit persisted native intent and status never starts or repeats it',async t=>{
+ const f=await fixture(t);await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());let resumes=0,live=false;
+ f.client.storeId='synthetic-store';f.client.instanceId='server';f.client.identity=async()=>({serverId:'server',nativeStoreId:'synthetic-store',accountGeneration:1,accountIdentity:'wxid_owner',credentialsAvailable:true,connected:live});
+ f.client.resume=async(id,identity)=>{resumes++;assert.equal(identity.accountGeneration,1);live=true;return{id,sourceGeneration:1,accountGeneration:2,accountIdentity:'wxid_owner',phase:'succeeded',authenticationMayHaveOccurred:true,startedAtMs:1,updatedAtMs:2};};
+ await f.runtime.status();assert.equal(resumes,0);
+ const operation=await f.runtime.dispatch({action:'resume'},owner());assert.equal(operation.kind,'resume');await f.runtime.drain();
+ const status=await f.runtime.status();assert.equal(status.auth.state,'succeeded');assert.equal(resumes,1);
+ await f.runtime.dispatch({action:'login_poll'},owner());assert.equal(resumes,1);
+});
+
+test('a connected account catches up before activation and a sync reset pauses before fetching any historical body',async t=>{
+ const f=await fixture(t);let pulls=0,bodyReads=0;let stream={sourceRef:'stream-real',resetEpoch:0,eventCursor:'5',caughtUp:true},reset=false;
+ f.client.identity=async()=>({serverId:'server',nativeStoreId:'synthetic-store',accountGeneration:1,accountIdentity:'wxid_owner',credentialsAvailable:true,connected:true,stream:structuredClone(stream)});
+ f.client.pull=async()=>{pulls++;return{accountGeneration:1,checkpoint:pulls,eventCursor:stream.eventCursor,more:false,retainedUnprojected:0,reset,stream:structuredClone(stream)};};
+ f.client.authorize=async(_account,_identity,destination)=>({lease:{accountGeneration:1,conversationGeneration:1,destination},stream:structuredClone(stream)});
+ await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());await f.runtime.cycle();assert.ok(pulls>0,'connection sync must run even before any delegation exists');
+ await f.runtime.dispatch({action:'activate',accountIdentity:'wxid_owner',serverId:'server',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'自然',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'},owner());
+ const policy=(await f.runtime.service.snapshot()).policies[0];assert.equal(policy.incomingBaselineEventCursor,'5');
+ stream={...stream,resetEpoch:1,eventCursor:'6',caughtUp:false};reset=true;
+ f.client.events=async()=>({items:[{cursor:'6',kind:'message.committed',createdAt:new Date(Date.now()+100000).toISOString(),data:{threadId:'room@chatroom',messageId:'backfill'}}]});
+ f.client.message=async()=>{bodyReads++;throw Error('historical body must not be read');};await f.runtime.cycle();
+ assert.equal((await f.runtime.service.snapshot()).policies[0].mode,'owner');assert.equal(bodyReads,0);assert.equal(f.sends.length,0);
 });

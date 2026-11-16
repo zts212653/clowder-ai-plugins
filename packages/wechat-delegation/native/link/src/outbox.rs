@@ -19,6 +19,12 @@ pub struct ConversationLease {
     pub conversation_generation: u64,
     pub destination: String,
 }
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationAuthorization {
+    pub lease: ConversationLease,
+    pub stream: super::StreamProjection,
+}
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SendReceipt {
@@ -72,7 +78,7 @@ fn valid_key(value: &str) -> bool {
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || b"-_.:".contains(&b))
 }
-fn valid_server_id(value: &str) -> bool {
+pub(super) fn valid_server_id(value: &str) -> bool {
     !value.starts_with('0')
         && value.len() <= 20
         && value.bytes().all(|b| b.is_ascii_digit())
@@ -173,18 +179,56 @@ fn check_lease(state: &State, lease: &ConversationLease) -> Result<()> {
     }
     Ok(())
 }
+fn issue_grant(
+    state: &mut State,
+    generation: u64,
+    destination: &str,
+    expires_at_ms: Option<u64>,
+) -> Result<ConversationLease> {
+    if state.account.is_none() || state.generation != generation {
+        return Err(StoreError::StaleGeneration);
+    }
+    let next = state
+        .grants
+        .get(destination)
+        .map_or(Some(1), |g| g.generation.checked_add(1))
+        .ok_or(StoreError::InvalidState)?;
+    state.grants.insert(
+        destination.to_owned(),
+        Grant {
+            generation: next,
+            active: true,
+            expires_at_ms,
+        },
+    );
+    for entry in state.outbox.values_mut() {
+        if entry.receipt.destination == destination && entry.receipt.state == SendPhase::Queued {
+            entry.receipt.state = SendPhase::Cancelled;
+        }
+    }
+    Ok(ConversationLease {
+        account_generation: generation,
+        conversation_generation: next,
+        destination: destination.to_owned(),
+    })
+}
 impl Store {
     /// Called after the service verifies account and current friend/group identity
     /// and consumes an explicit host authorization. This is not a directory check.
+    #[cfg(test)]
     pub fn authorize(&self, generation: u64, destination: &str) -> Result<ConversationLease> {
-        self.authorize_until(generation, destination, None)
+        if !valid_destination(destination) {
+            return Err(StoreError::InvalidState);
+        }
+        self.update(|state| issue_grant(state, generation, destination, None))
     }
     pub fn authorize_until(
         &self,
         generation: u64,
         destination: &str,
         expires_at_ms: Option<u64>,
-    ) -> Result<ConversationLease> {
+        stream_epoch: u64,
+    ) -> Result<ConversationAuthorization> {
         if !valid_destination(destination) || expires_at_ms.is_some_and(|v| !valid_deadline(v)) {
             return Err(StoreError::InvalidState);
         }
@@ -195,31 +239,12 @@ impl Store {
             if state.account.is_none() || state.generation != generation {
                 return Err(StoreError::StaleGeneration);
             }
-            let next = state
-                .grants
-                .get(destination)
-                .map_or(Some(1), |g| g.generation.checked_add(1))
-                .ok_or(StoreError::InvalidState)?;
-            state.grants.insert(
-                destination.to_owned(),
-                Grant {
-                    generation: next,
-                    active: true,
-                    expires_at_ms,
-                },
-            );
-            for entry in state.outbox.values_mut() {
-                if entry.receipt.destination == destination
-                    && entry.receipt.state == SendPhase::Queued
-                {
-                    entry.receipt.state = SendPhase::Cancelled;
-                }
+            let stream = super::inbox::stream_projection(state, generation)?;
+            if !stream.caught_up || stream.reset_epoch != stream_epoch {
+                return Err(StoreError::PermissionDenied);
             }
-            Ok(ConversationLease {
-                account_generation: generation,
-                conversation_generation: next,
-                destination: destination.to_owned(),
-            })
+            let lease = issue_grant(state, generation, destination, expires_at_ms)?;
+            Ok(ConversationAuthorization { lease, stream })
         })
     }
     pub fn pause(&self, generation: u64, destination: Option<&str>) -> Result<()> {

@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import test from 'node:test';
 import { MemberRunner } from '../src/member-runner.mjs';
-import { NativeClient } from '../src/native-client.mjs';
+import { NativeLinkClient } from '../src/link-client.mjs';
+import { NativeStdioTransport } from '../src/native-stdio.mjs';
 import { DelegationService } from '../src/service.mjs';
 
 const text = '周末一起读书吗？\n书名是《{未来}》，有空再聊。';
@@ -22,25 +24,16 @@ async function fixture(t, { kind = 'direct', content = signed, foreign = false }
     messaging: { get: async () => ({ id: 'canonical', threadId: foreign ? 'other-thread' : session.threadId,
       catId: session.catId, userId: session.ownerUserId, content }) },
   });
-  const server = createServer(async (request, response) => {
-    response.setHeader('content-type', 'application/json');
-    const reply = value => response.end(JSON.stringify(value));
-    if (request.url === '/v1/status') return reply({ serverId: 'server', version: { product: 'agent-wechat', backend: 'native', apiVersion: 1 } });
-    if (request.url === '/v1/accounts/account') return reply({ id: 'account', ownUsername: 'owner', authenticated: true, connection: 'online' });
-    const receipt = { id: 'send', accountId: 'account', destination: conversationId, state: 'accepted', localMessageId: 'local', serverId: '123' };
-    if (request.url === '/v1/accounts/account/sends' && request.method === 'POST') {
-      let raw = ''; for await (const chunk of request) raw += chunk;
-      sends.push({ body: JSON.parse(raw), key: request.headers['idempotency-key'] });
-      return reply(receipt);
-    }
-    if (request.url === '/v1/accounts/account/sends/send') return reply(receipt);
-    if (request.url === '/v1/accounts/account/messages/local') return reply({ id: 'local', accountId: 'account', threadId: conversationId,
-      direction: 'outgoing', serverId: '123', body: sends.at(-1).body.text });
-    response.writeHead(404).end();
-  });
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(() => new Promise(resolve => server.close(resolve)));
-  const client = new NativeClient({ baseUrl: `http://127.0.0.1:${server.address().port}/`, token: 'a'.repeat(64) });
+  const child=spawn(process.execPath,[new URL('./fixtures/link-peer.mjs',import.meta.url).pathname,'delivery'],{env:{},stdio:['pipe','pipe','pipe'],shell:false});
+  const write=child.stdin.write.bind(child.stdin);
+  child.stdin.write=(bytes,...args)=>{
+    const request=JSON.parse(bytes.toString('utf8'));
+    if(request.method==='text.send')sends.push({body:{threadId:request.params.lease.destination,text:request.params.text},key:request.params.operationId,lease:request.params.lease});
+    return write(bytes,...args);
+  };
+  const transport=new NativeStdioTransport(child);const client=new NativeLinkClient({transport,pid:child.pid,version:'0.1.0'});
+  t.after(async()=>{transport.close();if(child.exitCode===null&&child.signalCode===null)await once(child,'exit');});
+  await client.handshake();const identity=await client.identity('clowder');
   let row;
   const storage = {
     get: async () => structuredClone(row),
@@ -52,20 +45,20 @@ async function fixture(t, { kind = 'direct', content = signed, foreign = false }
   };
   const channel = Object.fromEntries(['prepare', 'submit', 'inspect', 'cancel'].map(method => [method, client[method].bind(client)]));
   const service = await DelegationService.open({ storage, channel, model, now: () => 10000 });
-  const policy = await service.activate({ accountId: 'account', accountIdentity: 'owner', serverId: 'server', conversationId, kind,
+  const policy = await service.activate({ accountId: 'clowder', accountIdentity: identity.accountIdentity, serverId: identity.serverId, nativeStoreId:identity.nativeStoreId, nativeLease:{accountGeneration:1,conversationGeneration:1,destination:conversationId}, conversationId, kind,
     catId: 'cat', persona: '自然友好', goal: '聊读书', proactive: true, replies: true, intervalMinutes: 60, maxTurns: 10, session });
   return { service, policy, sends, conversationId };
 }
 
-for (const kind of ['direct', 'group']) test(`signed canonical ${kind} responses reach the native HTTP send contract for proactive and reply turns`, async t => {
+for (const kind of ['direct', 'group']) test(`signed canonical ${kind} responses reach the private stdio send contract for proactive and reply turns`, async t => {
   const f = await fixture(t, { kind });
   await f.service.initiate(f.policy.id, 'owner-request');
-  assert.equal(f.sends.length, 1, 'the real MemberRunner must pass its canonical response into NativeClient.submit');
+  assert.equal(f.sends.length, 1, 'the real MemberRunner must pass its canonical response into NativeLinkClient.submit');
   assert.deepEqual(f.sends[0].body, { threadId: f.conversationId, text });
   assert.equal((await f.service.snapshot()).runs[0].phase, 'accepted');
   await f.service.reconcile();
   assert.equal((await f.service.snapshot()).runs[0].phase, 'sent');
-  await f.service.incoming('account', { id: 'inbound', threadId: f.conversationId, direction: 'incoming', body: '我也想读书', createdAt: 10001 });
+  await f.service.incoming('clowder', { id: 'inbound', threadId: f.conversationId, direction: 'incoming', body: '我也想读书', createdAt: 10001 });
   assert.equal(f.sends.length, 2);
   assert.deepEqual(f.sends[1].body, { threadId: f.conversationId, text });
   await f.service.reconcile();

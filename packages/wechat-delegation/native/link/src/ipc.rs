@@ -61,6 +61,7 @@ struct AuthorizationParams {
     account_identity: String,
     destination: String,
     expires_at_ms: Option<u64>,
+    sync_epoch: u64,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -86,12 +87,20 @@ struct SyncParams {
 struct EventParams {
     account_generation: u64,
     after: String,
+    sync_epoch: u64,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct MessageParams {
     account_generation: u64,
     message_id: String,
+    sync_epoch: u64,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct ServerMessageParams {
+    account_generation: u64,
+    server_id: String,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -115,6 +124,7 @@ enum ParsedParams {
     Sync(SyncParams),
     Events(EventParams),
     Message(MessageParams),
+    ServerMessage(ServerMessageParams),
     DirectoryStart(DirectoryStartParams),
     DirectoryPage(DirectoryPageParams),
 }
@@ -189,6 +199,7 @@ pub fn respond_admitted(
                 | "sync.pull"
                 | "events.page"
                 | "message.get"
+                | "message.by_server"
                 | "directory.start"
                 | "directory.advance"
                 | "directory.operation"
@@ -278,6 +289,18 @@ pub fn respond_admitted(
             }
             _ => return error(Some(request.id), "invalid_params"),
         }
+    } else if request.method == "message.by_server" {
+        match params::<ServerMessageParams>(&request) {
+            Ok(p)
+                if p.server_id.len() <= 20
+                    && p.server_id
+                        .parse::<u64>()
+                        .is_ok_and(|n| n > 0 && n.to_string() == p.server_id) =>
+            {
+                ParsedParams::ServerMessage(p)
+            }
+            _ => return error(Some(request.id), "invalid_params"),
+        }
     } else if request.method == "message.get" {
         match params::<MessageParams>(&request) {
             Ok(value) if !value.message_id.is_empty() && value.message_id.len() <= 128 => {
@@ -317,6 +340,8 @@ pub fn respond_admitted(
                 capabilities.push("durable-text-sync-v1");
                 capabilities.push("current-directory-v1");
                 capabilities.push("explicit-session-resume-v1");
+                capabilities.push("canonical-message-lookup-v1");
+                capabilities.push("stable-text-stream-v1");
             }
             json!({"product":"clowder-wechat-link","version":env!("CARGO_PKG_VERSION"),
             "pid":std::process::id(),"protocolVersion":1,
@@ -378,6 +403,7 @@ pub fn respond_admitted(
                         &p.account_identity,
                         &p.destination,
                         p.expires_at_ms,
+                        p.sync_epoch,
                         match admission {
                             Some(a) => a,
                             None => return project(Err(ServiceError::Unavailable)),
@@ -400,10 +426,13 @@ pub fn respond_admitted(
                     .pull_sync(p.account_generation, &p.account_identity)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 ("events.page", ParsedParams::Events(p)) => service
-                    .events(p.account_generation, &p.after)
+                    .events(p.account_generation, &p.after, p.sync_epoch)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 ("message.get", ParsedParams::Message(p)) => service
-                    .message(p.account_generation, &p.message_id)
+                    .message(p.account_generation, &p.message_id, p.sync_epoch)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("message.by_server", ParsedParams::ServerMessage(p)) => service
+                    .message_by_server(p.account_generation, &p.server_id)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 ("directory.start", ParsedParams::DirectoryStart(p)) => service
                     .start_directory(&p.operation_id, p.account_generation, &p.account_identity)

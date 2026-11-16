@@ -15,10 +15,10 @@ const fs=require('node:fs'),path=require('node:path'),readline=require('node:rea
 const dir=process.argv[process.argv.indexOf('--data-dir')+1];
 fs.writeFileSync(path.join(dir,'started.json'),JSON.stringify({args:process.argv.slice(2),environment:Object.keys(process.env)}),{mode:0o600});
 if(process.argv.includes('--initialize')) for(const name of ['vault.id','state.vault'])fs.writeFileSync(path.join(dir,name),'synthetic',{mode:0o600});
-const caps=['stdio-v1','text-protocol-subset','account-login-v1','durable-text-send-v1','durable-text-sync-v1','current-directory-v1','explicit-session-resume-v1'];
+const caps=['stdio-v1','text-protocol-subset','account-login-v1','durable-text-send-v1','durable-text-sync-v1','current-directory-v1','explicit-session-resume-v1','canonical-message-lookup-v1','stable-text-stream-v1'];
 readline.createInterface({input:process.stdin}).on('line',line=>{
 const {id,method}=JSON.parse(line);
-const result=method==='hello'?{product:'clowder-wechat-link',version:'test',pid:process.pid,protocolVersion:1,upstreamCommit:'ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e',capabilities:caps,nativeApiAvailable:true,accountServiceReady:false}:{serverId:'synthetic-store',accountGeneration:0,accountIdentity:null,credentialsAvailable:false,authenticated:false,connection:'offline',egress:[]};
+const result=method==='hello'?{product:'clowder-wechat-link',version:'test',pid:process.pid,protocolVersion:1,upstreamCommit:'ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e',capabilities:caps,nativeApiAvailable:true,accountServiceReady:false}:{serverId:'synthetic-store',accountGeneration:0,accountIdentity:null,credentialsAvailable:false,authenticated:false,connection:'offline',stream:null,egress:[]};
 process.stdout.write(JSON.stringify({id,result})+'\\n');
 });
 `);

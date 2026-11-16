@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { NativeLinkClient } from '../src/link-client.mjs';
-const caps=['stdio-v1','text-protocol-subset','account-login-v1','durable-text-send-v1','durable-text-sync-v1','current-directory-v1','explicit-session-resume-v1'];
+const caps=['stdio-v1','text-protocol-subset','account-login-v1','durable-text-send-v1','durable-text-sync-v1','current-directory-v1','explicit-session-resume-v1','canonical-message-lookup-v1','stable-text-stream-v1'];
 const hello=()=>({product:'clowder-wechat-link',version:'0.1.0',pid:123,protocolVersion:1,upstreamCommit:'ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e',capabilities:[...caps],nativeApiAvailable:true,accountServiceReady:false});
-const status=()=>({serverId:'stable-vault-id',accountGeneration:1,accountIdentity:'synthetic-user',credentialsAvailable:true,authenticated:true,connection:'online',egress:[]});
+const status=()=>({serverId:'stable-vault-id',accountGeneration:1,accountIdentity:'synthetic-user',credentialsAvailable:true,authenticated:true,connection:'online',stream:{sourceRef:'stream-one',resetEpoch:0,eventCursor:'0',caughtUp:true},egress:[]});
 function fixture() {
   const calls=[];const replies={hello:hello(),status:status()};let closed=false;
   const transport={request:(method,params)=>{calls.push({method,params});return Promise.resolve(structuredClone(replies[method]));},close:()=>{closed=true;}};
@@ -58,9 +58,9 @@ test('physical child handshake, closed authentication DTO, loss of ACK and exit 
 });
 
 test('fresh offline and disconnected projections match the Rust account service and permit no submission',async()=>{
-  const f=fixture();f.replies.status={...status(),accountGeneration:0,accountIdentity:null,credentialsAvailable:false,authenticated:false,connection:'offline'};
+  const f=fixture();f.replies.status={...status(),accountGeneration:0,accountIdentity:null,credentialsAvailable:false,authenticated:false,connection:'offline',stream:null};
   await f.client.handshake();assert.equal((await f.client.identity('clowder')).connected,false);
-  f.replies['account.disconnect']={serverId:'stable-vault-id',accountGeneration:1,accountIdentity:null,credentialsAvailable:false,authenticated:false,connection:'offline'};
+  f.replies['account.disconnect']={serverId:'stable-vault-id',accountGeneration:1,accountIdentity:null,credentialsAvailable:false,authenticated:false,connection:'offline',stream:null};
   await f.client.disconnect('clowder');assert.equal(f.client.account.authenticated,false);
 });
 
@@ -73,9 +73,9 @@ test('authentication, directory, sync and message contracts reject extra secret 
     ['login.operation',login,c=>c.loginOperation('auth'),v=>v.operation],
     ['directory.operation',directory,c=>c.directoryOperation('directory'),v=>v],
     ['directory.page',{directory,items:[target],nextOffset:null},c=>c.directoryPage('directory'),v=>v.items[0]],
-    ['sync.pull',{accountGeneration:1,checkpoint:1,eventCursor:'1',more:false,retainedUnprojected:0},c=>c.pull({accountGeneration:1,accountIdentity:'synthetic-user'}),v=>v],
-    ['message.get',message,c=>c.message('clowder','1:99'),v=>v],
-    ['events.page',{items:[{cursor:'1',messageId:'1:99',threadId:'friend',createdAt:1}],nextCursor:'1',more:false},c=>c.events('clowder'),v=>v.items[0]],
+    ['sync.pull',{accountGeneration:1,checkpoint:1,eventCursor:'1',more:false,retainedUnprojected:0,reset:false,stream:{sourceRef:'stream-one',resetEpoch:0,eventCursor:'1',caughtUp:true}},c=>c.pull({accountGeneration:1,accountIdentity:'synthetic-user',stream:status().stream}),v=>v],
+    ['message.get',message,c=>c.message('clowder','1:99',{accountGeneration:1,...status().stream}),v=>v],
+    ['events.page',{items:[{cursor:'1',messageId:'1:99',threadId:'friend',createdAt:1}],nextCursor:'1',more:false},c=>c.events('clowder','0',{accountGeneration:1,...status().stream}),v=>v.items[0]],
     ['session.operation',{id:'resume',sourceGeneration:1,accountGeneration:2,accountIdentity:'synthetic-user',phase:'succeeded',authenticationMayHaveOccurred:true,startedAtMs:1,updatedAtMs:2},c=>c.resumeOperation('resume'),v=>v],
   ];
   for(const [method,valid,call,nested]of cases){
@@ -97,4 +97,19 @@ test('the typed consumer exposes asynchronous native directory polling without a
   assert.equal((await f.client.targets('clowder')).pending,true);
   await new Promise(r=>setImmediate(r));
   const page=await f.client.targets('clowder');assert.equal(page.pending,false);assert.equal(page.items[0].accountId,'clowder');
+});
+
+test('accepted delivery needs the exact canonical server id, account, destination, direction and body; unknown never searches by text',async()=>{
+ const base=fixture();await base.client.handshake();const identity=await base.client.identity('clowder');
+ const run={id:'canonical-send',accountId:'clowder',accountIdentity:identity.accountIdentity,serverId:identity.serverId,nativeStoreId:identity.nativeStoreId,conversationId:'friend',nativeLease:{accountGeneration:1,conversationGeneration:2,destination:'friend'},text:'canonical text'};
+ const receipt={id:run.id,...run.nativeLease,state:'accepted',createdAt:1,clientMessageId:1,serverId:'18446744073709551615'};
+ const message={id:'1:18446744073709551615',accountGeneration:1,accountIdentity:'synthetic-user',threadId:'friend',senderId:null,direction:'outgoing',serverId:receipt.serverId,messageType:1,body:run.text,createdAt:1};
+ base.replies['send.receipt']=receipt;base.replies['message.by_server']=message;
+ assert.equal((await base.client.inspect(run)).verified,true);assert.equal(base.calls.at(-1).params.serverId,receipt.serverId);
+ for(const mutate of [m=>m.serverId='7',m=>m.threadId='other',m=>m.direction='incoming',m=>m.body='other text',m=>m.accountIdentity='other-owner']){
+  const f=fixture();await f.client.handshake();f.replies['send.receipt']=receipt;f.replies['message.by_server']=structuredClone(message);mutate(f.replies['message.by_server']);
+  await assert.rejects(f.client.inspect({...run,serverId:f.client.instanceId}));assert.equal(f.closed(),true);
+ }
+ base.replies['send.receipt']={...receipt,state:'needs_review',serverId:null};const count=base.calls.length;
+ assert.equal((await base.client.inspect(run)).state,'needs_review');assert.equal(base.calls.length,count+1);
 });

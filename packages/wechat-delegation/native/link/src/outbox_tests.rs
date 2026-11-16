@@ -147,10 +147,27 @@ fn deadline_grants_are_bounded_durable_and_never_delete_send_history() {
     let store = Store::initialize(Vault::create(&root.0, &keys, b"").unwrap()).unwrap();
     store.accept_login(0, account()).unwrap();
     for deadline in [0, 1, 9_007_199_254_740_992] {
-        assert!(store.authorize_until(1, "friend", Some(deadline)).is_err());
+        assert!(store
+            .authorize_until(1, "friend", Some(deadline), 0)
+            .is_err());
     }
+    store
+        .commit_sync(
+            &store.sync_ticket(1).unwrap(),
+            wechat_protocol::SyncBatch {
+                code: 0,
+                flags: 0,
+                cursor: vec![],
+                commands: vec![],
+                continuation: false,
+            },
+        )
+        .unwrap();
     let deadline = now_ms().unwrap() + 60_000;
-    let lease = store.authorize_until(1, "friend", Some(deadline)).unwrap();
+    let lease = store
+        .authorize_until(1, "friend", Some(deadline), 0)
+        .unwrap()
+        .lease;
     store
         .queue_send(&lease, "retained", "synthetic text")
         .unwrap();

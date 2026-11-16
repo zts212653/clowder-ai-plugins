@@ -6,7 +6,9 @@ use wechat_protocol::{AccountPersistence, AccountState};
 use zeroize::Zeroizing;
 #[path = "outbox.rs"]
 mod outbox;
-pub use outbox::{ConversationLease, PreparedSend, SendOutcome, SendPhase, SendReceipt};
+pub use outbox::{
+    ConversationAuthorization, ConversationLease, PreparedSend, SendOutcome, SendPhase, SendReceipt,
+};
 #[path = "login.rs"]
 mod login;
 pub use login::{LoginAdmission, LoginPhase, LoginRecord, LoginTicket};
@@ -19,7 +21,7 @@ pub(crate) use directory::{DirectoryChange, DirectoryStep, DirectoryTicket};
 #[path = "resume.rs"]
 mod resume;
 pub use directory::{DirectoryPage, DirectoryProjection, TargetProjection};
-pub use inbox::{EventPage, EventProjection, MessageProjection, SyncProjection};
+pub use inbox::{EventPage, EventProjection, MessageProjection, StreamProjection, SyncProjection};
 pub(crate) use resume::{ResumeAdmission, ResumeTicket};
 pub use resume::{ResumePhase, ResumeRecord};
 

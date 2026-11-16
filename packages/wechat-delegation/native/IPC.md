@@ -29,19 +29,20 @@ id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、�
 | 方法 | params | 结果 |
 | --- | --- | --- |
 | hello | 空对象或省略/null | 固定产品、协议、能力和本进程PID；没有内部状态 |
-| status | 空对象或省略/null | serverId、accountGeneration、accountIdentity、credentialsAvailable、authenticated、connection、受限egress观测；没有AccountState |
+| status | 空对象或省略/null | serverId、accountGeneration、accountIdentity、credentialsAvailable、authenticated、connection、stream、受限egress观测；没有AccountState |
 | login.start | operationId | 新意图先持久化，再获取一个二维码；重复id只查原意图，终态不会重试 |
 | login.poll | operationId | 查询一个已创建挑战；同一意图不并发轮询。批准后认证交换一次，提交账号和成功回执 |
 | login.operation | operationId | 读取持久回执；仅当前待扫/待批准挑战附加易失QR投影 |
 | login.cancel | operationId | 持久取消；清除当前QR与取消guard；网络已在途时不声称可以追回授权 |
-| conversation.authorize | accountGeneration、accountIdentity、destination，可省略/null的expiresAtMs | 新鲜核当前好友/群身份后持久授权期限，返回账号/会话双generation租约；最终提交点再次检查期限 |
+| conversation.authorize | accountGeneration、accountIdentity、destination、syncEpoch，可省略/null的expiresAtMs | 当前stream已同步完成且epoch吻合才可新鲜核当前好友/群身份；同一事务返回lease及stream基线；最终提交点再次检查期限 |
 | conversation.pause | accountGeneration，可省略destination表示全部 | 先持久暂停及取消未提交消息，拒绝并发迟到授权；保留Submitting |
 | text.send | lease、operationId、text | 同一Store先记意图；在协议最终before-submit持久化Submitting；只回受限SendReceipt |
 | send.receipt | operationId | 查询原发送回执，不触发网络发送 |
 | send.cancel | operationId | 仅Queued可改为Cancelled；Submitting和终态保持原状 |
 | sync.pull | accountGeneration、accountIdentity | 拉一页真实协议同步，在同一个私有事务保留命令、消息、事件和游标，只回受限进度 |
-| events.page | accountGeneration、after（规范十进制字符串） | 每页最多100个事件，只含消息id/会话id/时间，不含协议payload |
-| message.get | accountGeneration、messageId | 当前账号代次的消息投影；正文只投影最多64KiB的UTF-8文字 |
+| events.page | accountGeneration、after（规范十进制字符串）、syncEpoch | 在同一Store锁内核对reset epoch；每页最多100个事件，只含消息id/会话id/时间，不含协议payload |
+| message.get | accountGeneration、messageId、syncEpoch | 在同一Store锁内核对reset epoch；正文只投影最多64KiB的UTF-8文字 |
+| message.by_server | accountGeneration、serverId（规范非零u64十进制字符串） | 精确服务端id查当前账号消息流；不按正文猜测；仅供发送结果核对 |
 | account.disconnect | 空对象或省略/null | 停止本地账号、清除已接受凭据并持久取消活动登录/未发意图；不承诺撤销远端设备信任 |
 
 登录结果投影：`operation {id,generation,accountGeneration,phase,accountIdentity,startedAtMs,updatedAtMs,authenticationMayHaveOccurred}`，可有`qr {pngBase64,expiresAt}`。二维码只给授权面板，不进模型消息或通用诊断；图片最多512KiB。phase为starting/pending/scanned/completing/succeeded/cancelled/interrupted/failed/expired/rejected/lan_required。完成认证前已取消或中断不能变成succeeded。
@@ -54,7 +55,7 @@ id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、�
 
 文字发送回执包含id、destination、accountGeneration、conversationGeneration、state、createdAt、clientMessageId、serverId。成功须目的地/客户端id匹配、业务双code成功及非零u64 serverId；仅匹配的显式拒绝为failed，其余已提交错误为needs_review。accepted只证明协议受理，不是收件人已读或同步回显核验。未知/终态不会再次发送，同id不同正文或租约拒绝。好友须新回复的全mask好友位且非官方/系统对象；群须当前成员字段或精确群的正向本人roster证明，字段稀疏不复用旧状态。
 
-Node侧已部分接入私有流、Supervisor、目录与发送控制；认证编排、消息流基线与完整旅程尚缺。上述仍是开发入口，不是对最终用户新增配置命令。真实账号、正式签名与升级、LAN显式路径和完整好友/群代聊接管验收仍保持开放。
+Node侧已接入私有流、Supervisor、目录、认证编排及消息流基线。Host认证日志只保留意图与受限状态，提交前持久化原operationId；未知时只查询原意图，不自动认证或换nonce。恢复保存会话必须由本人明确触发；取消携带原operationId，迟到取消不能伤及新意图。二维码只在内存中留给原面板。旧HTTP认证记录保留并标为无法由新组件验证，不重放旧操作。上述仍是开发入口，不是最终用户配置命令；完整修复UI、真实账号、正式签名与升级、LAN显式路径和完整好友/群代聊接管验收仍保持开放。
 
 ## Node字节传输层
 
@@ -64,9 +65,11 @@ Node侧已部分接入私有流、Supervisor、目录与发送控制；认证编
 
 子进程exit后立即拒绝新请求，但保留待读响应直到stdout读尽或close，避免丢失退出前已经写出的最终回执。真实Node子进程检查覆盖这一退出顺序、乱序、超时晚回包、关闭、超长/坏JSON及含秘密诊断拒绝；另已让该transport连接真正编译的Rust无参进程核PID、hello/status及离线登录拒绝。该组合没有默认钥匙串条目/账号访问，也不是真实扫码或Host安装验收。
 
-`src/link-client.mjs`是上述私有管道的窄类型消费端，逐层拒绝未知字段，核当前PID/精确版本/能力，账号、租约与发送回执身份须匹配。每个adapter只绑定一个owned child，运行instance id每次新建；持久Store.serverId单独保存，不冒充新进程身份。提交直接使用run中的lease，写前没有await；未知/无效回包不重发，已明确副作用前拒绝与写后未知区分。认证/目录/同步/消息DTO及QR仅按封闭结构返回，不导出AccountState。Supervisor及内置资产已替换，Runtime部分消费控制与目录；仍缺完整认证、消息基线/查证和实际插件旅程，不能视为完整产品就绪。
+`src/link-client.mjs`是上述私有管道的窄类型消费端，逐层拒绝未知字段，核当前PID/精确版本/9项能力，账号、租约与发送回执身份须匹配。每个adapter只绑定一个owned child，运行instance id每次新建；持久Store.serverId单独保存，不冒充新进程身份。提交直接使用run中的lease，写前没有await；未知/无效回包不重发，已明确副作用前拒绝与写后未知区分。认证/目录/同步/消息DTO及QR仅按封闭结构返回，不导出AccountState。accepted只有精确服务端id、账号、目的地、方向及全文都匹配的同步记录才可升为verified；没有serverId的未知发送不按正文搜索。实际插件旅程尚待，不能视为完整产品就绪。
 
 同步使用账号generation和私有checkpoint ticket拒绝迟到/重复提交；网络不持control锁，同一账号最多一个sync.pull在途，stdio总网络线程仍最多两个。未知或不能投影的命令保留在同一个加密Vault且计数披露，不进RPC；不因新游标删除它们。相同命令去重，无变化轮询不改写Vault。消息id绑定账号代次和服务端id（缺id时用命令摘要）；同id冲突保留原投影及原始新命令，增加未投影计数，不覆盖已保存正文。
+
+`stream {sourceRef,resetEpoch,eventCursor,caughtUp}`与账号历史流绑定；同账号显式恢复保留sourceRef和原消息id，但清除caughtUp，重新完成同步后才可授权。新库/新扫码账号有独立sourceRef。授权事务返回的eventCursor是该次处理权限的历史分界；只有同sourceRef/epoch且游标严格在分界之后的来信可交模型，不信任发送方时钟。-2006同步重置在同一事务暂停会话、取消Queued并推进resetEpoch；保留原消息/发送/原始命令。读取事件和正文各自再次核epoch，拒绝pull之后发生重置的旧读请求。若同步提交失败则停止当前网络owner，不能用内存游标继续发。Host后台失败只暂停自己观察到的policy epoch，不误伤后来明确恢复的新授权。
 
 群消息的senderId保持null，尚未推导发言人；正文保留协议原文字，不捏造昵称或成员身份。非文字/过大/不能解码的正文为null；原命令仍加密保留。消息不会触发任何媒体、链接或预览下载。这里只完成本机持久消息入口，完整模型消费及真实群收发验收仍待。
 
@@ -88,4 +91,4 @@ resume先持久化意图、推进账号授权generation并暂停所有会话，�
 
 ResumeRecord包含id、sourceGeneration、accountGeneration、accountIdentity、phase、authenticationMayHaveOccurred、startedAtMs、updatedAtMs。phase为authenticating/succeeded/failed/cancelled/interrupted；failed或interrupted也可能已有远端授权。若接受回调已提交，太晚的取消不改写成功历史，但本地不会因迟到结果重新上线。
 
-账号授权代次与历史流分开：同一已保存账号的resume沿持久意图追溯原消息流，不复制历史或重置游标/事件序号；新账号登录不合流。message.id及其中accountGeneration是原消息流的稳定代次，当前读取仍要求最新账号授权代次和身份一致。旧发送租约/凭据writer已被新代次拒绝，恢复连接也不恢复代聊授权。完整Node/Host消费及真实恢复兼容性仍待，accountServiceReady=false。
+账号授权代次与历史流分开：同一已保存账号的resume沿持久意图追溯原消息流，不复制历史或重置游标/事件序号；新账号登录不合流。message.id及其中accountGeneration是原消息流的稳定代次，当前读取仍要求最新账号授权代次和身份一致。旧发送租约/凭据writer已被新代次拒绝，恢复连接也不恢复代聊授权。Node/Host消费已接入；真实恢复兼容性仍待，accountServiceReady=false。

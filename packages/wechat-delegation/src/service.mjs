@@ -4,6 +4,7 @@ import { NativeRequestError } from './native-stdio.mjs';
 const KEY = 'wechat-delegation.v1';
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const pending = new Set(['generating', 'prepared', 'submitting', 'queued', 'needs_review']);
+const eventCursor = value => typeof value === 'string' && /^(0|[1-9]\d{0,19})$/.test(value) && BigInt(value) <= 18446744073709551615n;
 const id = value => {
   if (typeof value !== 'string' || !value || value.length > 256 || /[\u0000-\u001f]/.test(value)) throw Error('invalid coordinate');
   return value;
@@ -128,6 +129,10 @@ export class DelegationService {
   }
   async activate(input, fence) {
     for (const key of ['accountId', 'accountIdentity', 'serverId', 'conversationId', 'catId']) id(input[key]);
+    if (input.streamSourceRef !== undefined || input.syncEpoch !== undefined || input.incomingBaselineEventCursor !== undefined) {
+      id(input.streamSourceRef);
+      if (!Number.isSafeInteger(input.syncEpoch) || input.syncEpoch < 0 || !eventCursor(input.incomingBaselineEventCursor)) throw Error('invalid incoming baseline');
+    }
     if (!['direct', 'group'].includes(input.kind) || (input.kind === 'group') !== input.conversationId.endsWith('@chatroom')) throw Error('conversation kind mismatch');
     if (!input.session?.sessionId || !Number.isSafeInteger(input.session.generation) || input.session.generation < 1) throw Error('isolated member session required');
     if (typeof input.proactive !== 'boolean' || typeof input.replies !== 'boolean' || (!input.proactive && !input.replies)) throw Error('choose delegation behavior');
@@ -176,6 +181,15 @@ export class DelegationService {
     // stop does not wait for the network and does not invent a remote receipt.
     return this.snapshot();
   }
+  async pauseObserved(policies) {
+    if (!policies.length) return [];
+    const affected = await this.serial(() => this.change(state => {
+      const ids = policies.filter(observed => state.policies[observed.id]?.mode === 'active' && state.policies[observed.id].epoch === observed.epoch).map(policy => policy.id);
+      return stopInState(state, ids);
+    }));
+    for (const entry of this.controllers.values()) if (affected.includes(entry.policyId)) entry.controller.abort();
+    return affected;
+  }
   async initiate(policyId, operationId) { return this.run(policyId, 'proactive', id(operationId), null); }
   async incoming(accountId, message) {
     const received = await this.enqueueIncoming(accountId, message);
@@ -199,19 +213,23 @@ export class DelegationService {
     id(message.id);
     const received = await this.serial(() => this.change(state => {
       const policy = Object.values(state.policies).find(p => p.accountId === accountId && p.conversationId === message.threadId && p.mode === 'active');
-      if (!policy || message.createdAt < policy.activatedAt) return null;
+      if (!policy) return null;
+      const scoped = policy.incomingBaselineEventCursor !== undefined;
+      if (scoped ? message.streamSourceRef !== policy.streamSourceRef || message.syncEpoch !== policy.syncEpoch || !eventCursor(message.eventCursor) ||
+          BigInt(message.eventCursor) <= BigInt(policy.incomingBaselineEventCursor) : message.createdAt < policy.activatedAt) return null;
       if (admittedPolicy && (policy.id !== admittedPolicy.id || policy.epoch !== admittedPolicy.epoch)) return null;
       if (policy.expiresAt !== null && policy.expiresAt <= this.now()) { policy.mode = 'expired'; policy.epoch++; return null; }
       const trigger = policy.replies ? 'reply' : 'inbound';
       const runId = hash([policy.id, trigger, message.id]);
       if (state.runs[runId]) return {policyId:policy.id,runId};
       const awaiting = state.runs[policy.awaitingReplyRunId];
-      if (!awaiting || message.createdAt >= awaiting.handoffAt) { policy.unanswered = 0; policy.awaitingReplyRunId = null; }
+      if (scoped || !awaiting || message.createdAt >= awaiting.handoffAt) { policy.unanswered = 0; policy.awaitingReplyRunId = null; }
       const boundary = sensitive(message.body);
       state.runs[runId] = {id:runId,policyId:policy.id,epoch:policy.epoch,catId:policy.catId,
         accountId:policy.accountId,accountIdentity:policy.accountIdentity,serverId:policy.serverId,conversationId:policy.conversationId,
         ...(policy.nativeLease === undefined ? {} : {nativeLease:structuredClone(policy.nativeLease),nativeStoreId:policy.nativeStoreId}),
         trigger,operationId:message.id,incomingText:message.body,incomingAt:message.createdAt,createdAt:this.now(),submitted:false,
+        ...(scoped ? {streamSourceRef:message.streamSourceRef,syncEpoch:message.syncEpoch,incomingEventCursor:message.eventCursor,incomingObservedAt:this.now()} : {}),
         phase:boundary?'needs_owner':policy.replies?'waiting':'observed'};
       if (boundary) { stopInState(state,[policy.id]); policy.ownerReason='boundary'; }
       return {policyId:policy.id,runId,boundary};

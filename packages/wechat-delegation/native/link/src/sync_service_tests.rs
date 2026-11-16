@@ -57,12 +57,12 @@ fn sync_rpc_returns_only_the_committed_projection_and_old_account_responses_are_
     assert!(!result.to_string().contains("SENTINEL"));
     assert!(!result.to_string().contains("cursor\""));
     let page = crate::ipc::respond_with(
-        br#"{"id":2,"method":"events.page","params":{"accountGeneration":1,"after":"0"}}"#,
+        br#"{"id":2,"method":"events.page","params":{"accountGeneration":1,"after":"0","syncEpoch":0}}"#,
         Some(&service),
     );
     assert_eq!(page["result"]["items"], serde_json::json!([]));
     for frame in [br#"{"id":3,"method":"sync.pull","params":{"accountGeneration":1,"accountIdentity":"synthetic-user","secret":"SENTINEL_IMPORT"}}"#.as_slice(),
-        br#"{"id":3,"method":"events.page","params":{"accountGeneration":1,"after":"0","after":"1"}}"#.as_slice()] {
+        br#"{"id":3,"method":"events.page","params":{"accountGeneration":1,"after":"0","syncEpoch":0,"after":"1"}}"#.as_slice()] {
         let rejected=crate::ipc::respond_with(frame,Some(&service));assert_eq!(rejected["error"]["code"],"invalid_params");assert!(!rejected.to_string().contains("SENTINEL"));
     }
     let (entered, observe) = mpsc::channel();

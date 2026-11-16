@@ -150,6 +150,7 @@ impl Store {
             {
                 return Err(StoreError::LoginBusy);
             }
+            inbox::require_fresh(state, generation)?;
             state.generation = state
                 .generation
                 .checked_add(1)
