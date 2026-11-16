@@ -2,7 +2,7 @@
   "product": "clowder-wechat-link",
   "version": "0.1.0",
   "protocolVersion": 1,
-  "sourceCommit": "249374f3240af2db88ec7bd839ae0dd689676a24",
+  "sourceCommit": "68321be9019362d91b115e0134be0307d780c625",
   "upstream": "thisnick/agent-wechat",
   "upstreamCommit": "ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
   "sourceManifestSha256": "c4004995ec02680108f2c205c90f854bc036abb10a08aa96b13783289ef14f6f",
@@ -11,12 +11,12 @@
   "artifacts": {
     "darwin-arm64": {
       "fileName": "clowder-wechat-link-0.1.0-darwin-arm64",
-      "size": 5794304,
-      "sha256": "96fe820aca654e070b2144b3c9db20b7cc555784963687bff62864a61d5857a1",
-      "compressedSha256": "601091390075f074f9383fb59679aecad96ae605e630d104200f3cc4d3cfd71f",
+      "size": 5778688,
+      "sha256": "404385f5a4d1eaeba1419993c5397ce958ec9308a8f27e5b2ce1b63cbd363aa8",
+      "compressedSha256": "3591207ef5961f93b3afb51158e36025f7d172fe7608199dc27ce0dc160d2253",
       "minimumMacOS": "26.5",
       "testedMacOS": "26.5",
-      "signing": "linker-ad-hoc",
+      "signing": "ad-hoc-hardened-runtime",
       "teamIdentifier": null
     }
   },
@@ -28,5 +28,6 @@
   },
   "status": "internal-consumer-integration-in-progress",
   "licenseInventorySha256": "d2f7eb2c927b735cd3fa1c7dc694b376646cd9f8bff0a8dfec19288ac90812a3",
-  "noticesSha256": "d34cd11a3318927bd5679e0303f0774cbc98ba5d96fa6e55216408fdb4f83dc0"
+  "noticesSha256": "d34cd11a3318927bd5679e0303f0774cbc98ba5d96fa6e55216408fdb4f83dc0",
+  "signingCommand": "codesign --force --sign - --options runtime --identifier ai.clowder.wechat-link --timestamp=none"
 }
