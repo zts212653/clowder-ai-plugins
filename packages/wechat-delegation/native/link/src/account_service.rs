@@ -15,6 +15,9 @@ use sync_service::{NativeSyncPeer, SyncPeer};
 #[path = "directory_service.rs"]
 mod directory_service;
 use directory_service::{DirectoryPeer, NativeDirectoryPeer};
+#[path = "resume_service.rs"]
+mod resume_service;
+use resume_service::{NativeResumePeer, ResumePeer};
 
 #[derive(Debug)]
 pub enum ServiceError {
@@ -151,6 +154,7 @@ struct Control {
     online: bool,
     closed: bool,
     authorization_epoch: u64,
+    resume: Option<crate::store::ResumeTicket>,
 }
 pub struct AccountService {
     store: Arc<Store>,
@@ -162,6 +166,7 @@ pub struct AccountService {
     directory_peer: Box<dyn DirectoryPeer>,
     directory_gate: Mutex<()>,
     directory_work: Mutex<Option<crate::store::DirectoryTicket>>,
+    resume_peer: Box<dyn ResumePeer>,
 }
 impl AccountService {
     fn observe_network_failure(&self, generation: u64, problem: &ServiceError) -> Result<()> {
@@ -205,12 +210,14 @@ impl AccountService {
             directory_peer: Box::new(NativeDirectoryPeer),
             directory_gate: Mutex::new(()),
             directory_work: Mutex::new(None),
+            resume_peer: Box::new(NativeResumePeer),
             control: Mutex::new(Control {
                 attempt: None,
                 client,
                 online: false,
                 closed: false,
                 authorization_epoch: 0,
+                resume: None,
             }),
         })
     }
@@ -470,6 +477,7 @@ impl AccountService {
     }
     pub fn disconnect(&self) -> Result<AccountProjection> {
         let mut control = self.control.lock().map_err(|_| ServiceError::Unavailable)?;
+        control.resume = None;
         if let Some(attempt) = control.attempt.take() {
             attempt.guard.cancel();
         }
@@ -488,6 +496,8 @@ impl AccountService {
         if let Ok(mut control) = self.control.lock() {
             control.closed = true;
             control.online = false;
+            control.resume = None;
+            let _ = self.store.interrupt_resume();
             if let Some(attempt) = control.attempt.take() {
                 attempt.guard.cancel();
                 let _ = self

@@ -16,8 +16,12 @@ pub(crate) use inbox::SyncTicket;
 #[path = "directory.rs"]
 mod directory;
 pub(crate) use directory::{DirectoryChange, DirectoryStep, DirectoryTicket};
+#[path = "resume.rs"]
+mod resume;
 pub use directory::{DirectoryPage, DirectoryProjection, TargetProjection};
 pub use inbox::{EventPage, EventProjection, MessageProjection, SyncProjection};
+pub(crate) use resume::{ResumeAdmission, ResumeTicket};
+pub use resume::{ResumePhase, ResumeRecord};
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -65,6 +69,8 @@ struct State {
     directory: Option<directory::Work>,
     #[serde(default)]
     directory_history: std::collections::BTreeMap<String, DirectoryProjection>,
+    #[serde(default)]
+    resumes: std::collections::BTreeMap<String, ResumeRecord>,
 }
 fn validate_account(account: &AccountState) -> Result<()> {
     account.validate().map_err(|_| StoreError::InvalidState)?;
@@ -76,6 +82,28 @@ fn validate_account(account: &AccountState) -> Result<()> {
         || !account.auth_snapshot.ax_auth.is_empty()
     {
         return Err(StoreError::InvalidState);
+    }
+    Ok(())
+}
+fn validate_update(
+    state: &State,
+    generation: u64,
+    previous: &AccountState,
+    accepted: &AccountState,
+) -> Result<()> {
+    validate_account(accepted)?;
+    if state.generation != generation {
+        return Err(StoreError::StaleGeneration);
+    }
+    let current = state.account.as_ref().ok_or(StoreError::StaleGeneration)?;
+    let stored = encode(current)?;
+    let expected = encode(previous)?;
+    if current.uin != accepted.uin
+        || current.own_username != accepted.own_username
+        || stored.len() != expected.len()
+        || !openssl::memcmp::eq(&stored, &expected)
+    {
+        return Err(StoreError::StaleGeneration);
     }
     Ok(())
 }
@@ -99,6 +127,7 @@ impl State {
         login::validate(self)?;
         inbox::validate(self)?;
         directory::validate(self)?;
+        resume::validate(self)?;
         Ok(())
     }
 }
@@ -128,6 +157,7 @@ impl Store {
             inboxes: std::collections::BTreeMap::new(),
             directory: None,
             directory_history: std::collections::BTreeMap::new(),
+            resumes: std::collections::BTreeMap::new(),
             outbox,
             grants,
             next_message_id: (u32::from_be_bytes(
@@ -147,7 +177,8 @@ impl Store {
         state.validate()?;
         let login_changed = login::recover(&mut state);
         let directory_changed = directory::recover(&mut state);
-        if outbox::recover(&mut state) || login_changed || directory_changed {
+        let resume_changed = resume::recover(&mut state);
+        if outbox::recover(&mut state) || login_changed || directory_changed || resume_changed {
             vault.commit(&encode(&state)?)?;
         }
         Ok(Self {
@@ -185,6 +216,7 @@ impl Store {
                 .checked_add(1)
                 .ok_or(StoreError::InvalidState)?;
             state.account = Some(account);
+            resume::inhibit(state);
             directory::recover(state);
             login::inhibit(state);
             outbox::inhibit(state);
@@ -205,6 +237,7 @@ impl Store {
                 .checked_add(1)
                 .ok_or(StoreError::InvalidState)?;
             state.account = None;
+            resume::inhibit(state);
             directory::recover(state);
             login::inhibit(state);
             outbox::inhibit(state);
@@ -224,21 +257,8 @@ struct Persistence {
 }
 impl AccountPersistence for Persistence {
     fn persist(&self, previous: &AccountState, accepted: &AccountState) -> anyhow::Result<()> {
-        validate_account(accepted)?;
         self.store.update(|state| {
-            if state.generation != self.generation {
-                return Err(StoreError::StaleGeneration);
-            }
-            let current = state.account.as_ref().ok_or(StoreError::StaleGeneration)?;
-            let stored = encode(current)?;
-            let expected = encode(previous)?;
-            if current.uin != accepted.uin
-                || current.own_username != accepted.own_username
-                || stored.len() != expected.len()
-                || !openssl::memcmp::eq(&stored, &expected)
-            {
-                return Err(StoreError::StaleGeneration);
-            }
+            validate_update(state, self.generation, previous, accepted)?;
             state.account = Some(accepted.clone());
             Ok(())
         })?;

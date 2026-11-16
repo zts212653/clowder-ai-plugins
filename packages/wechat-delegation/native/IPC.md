@@ -75,3 +75,13 @@ Node侧还未接线；上述是受控开发入口，不是对最终用户新增�
 候选来自从零联系人ID目录、独立群目录和已同步群id，均用发送入口同一verified_target新鲜核关系和受限名字字段。无法核验计入unverifiedCount；群发现失败继续核验已知候选并标groupDiscoveryIncomplete=true。stalled cursor/超限记failed；服务端wait投影为retryAfterMs，等待时不发新查询。原始metadata/cursor不出RPC。
 
 意图及终态快照落同一Vault；中间外部缓存和进度只在进程内，避免每个联系人后重写整个账号库。断开/EOF/重启记interrupted，不自动续跑或假造完成计数。新刷新可替换当前目录缓存，旧意图保留且snapshotAvailable=false；没有删除聊天、发送或控制历史，也没有为它们增加TTL。完整Host消费端及显式会话恢复仍待，accountServiceReady=false。
+
+## 显式保存会话恢复
+
+新增session.resume（operationId/accountGeneration/accountIdentity）、session.operation和session.cancel（operationId），仍为封闭参数，未知或重复字段拒绝。只有明确调用resume才认证；重启、status和查询不会认证或扫码。同id返回原回执，终态/不确定认证不会重放；没有自动QR回退。
+
+resume先持久化意图、推进账号授权generation并暂停所有会话，再停止旧owner。临时认证owner的单次Persistence回调将已验证凭据和succeeded回执原子提交；随后停止临时owner，从已接受Store创建普通owner，不导出协议快照或同时保留两个活动writer。适配器仅返回Ok不能冒充持久接受。取消/断开/close与迟到回调相互隔离；回执保留authenticationMayHaveOccurred=true，不承诺撤销服务端设备信任。
+
+ResumeRecord包含id、sourceGeneration、accountGeneration、accountIdentity、phase、authenticationMayHaveOccurred、startedAtMs、updatedAtMs。phase为authenticating/succeeded/failed/cancelled/interrupted；failed或interrupted也可能已有远端授权。若接受回调已提交，太晚的取消不改写成功历史，但本地不会因迟到结果重新上线。
+
+账号授权代次与历史流分开：同一已保存账号的resume沿持久意图追溯原消息流，不复制历史或重置游标/事件序号；新账号登录不合流。message.id及其中accountGeneration是原消息流的稳定代次，当前读取仍要求最新账号授权代次和身份一致。旧发送租约/凭据writer已被新代次拒绝，恢复连接也不恢复代聊授权。完整Node/Host消费及真实恢复兼容性仍待，accountServiceReady=false。

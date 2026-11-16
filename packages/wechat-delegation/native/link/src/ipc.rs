@@ -150,6 +150,7 @@ pub fn is_blocking(frame: &[u8]) -> bool {
                 | "text.send"
                 | "sync.pull"
                 | "directory.advance"
+                | "session.resume"
         )
     })
 }
@@ -183,6 +184,9 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                 | "directory.advance"
                 | "directory.operation"
                 | "directory.page"
+                | "session.resume"
+                | "session.operation"
+                | "session.cancel"
         )
     {
         return error(Some(request.id), "unsupported_method");
@@ -190,7 +194,12 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
     let parsed = if request.method.starts_with("login.")
         || matches!(
             request.method.as_str(),
-            "send.receipt" | "send.cancel" | "directory.advance" | "directory.operation"
+            "send.receipt"
+                | "send.cancel"
+                | "directory.advance"
+                | "directory.operation"
+                | "session.operation"
+                | "session.cancel"
         ) {
         match params::<OperationParams>(&request) {
             Ok(value) if valid_operation_id(&value.operation_id) => {
@@ -220,7 +229,10 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
             }
             _ => return error(Some(request.id), "invalid_params"),
         }
-    } else if request.method == "directory.start" {
+    } else if matches!(
+        request.method.as_str(),
+        "directory.start" | "session.resume"
+    ) {
         match params::<DirectoryStartParams>(&request) {
             Ok(p) if valid_operation_id(&p.operation_id) && p.account_identity.len() <= 256 => {
                 ParsedParams::DirectoryStart(p)
@@ -289,6 +301,7 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                 capabilities.push("durable-text-send-v1");
                 capabilities.push("durable-text-sync-v1");
                 capabilities.push("current-directory-v1");
+                capabilities.push("explicit-session-resume-v1");
             }
             json!({"product":"clowder-wechat-link","version":env!("CARGO_PKG_VERSION"),
             "pid":std::process::id(),"protocolVersion":1,
@@ -376,6 +389,15 @@ pub fn respond_with(frame: &[u8], service: Option<&AccountService>) -> Value {
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 ("directory.page", ParsedParams::DirectoryPage(p)) => service
                     .directory_page(&p.operation_id, p.offset)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("session.resume", ParsedParams::DirectoryStart(p)) => service
+                    .resume_session(&p.operation_id, p.account_generation, &p.account_identity)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("session.operation", ParsedParams::Operation(id)) => service
+                    .resume_operation(&id)
+                    .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
+                ("session.cancel", ParsedParams::Operation(id)) => service
+                    .cancel_resume(&id)
                     .and_then(|v| serde_json::to_value(v).map_err(|_| ServiceError::Unavailable)),
                 _ => return error(Some(request.id), "unsupported_method"),
             };

@@ -166,3 +166,13 @@ Store持久意图和最终快照，中间外部目录缓存只在进程内推进
 另观察两个Store stub失败、RPC phase为空再修绿；补充旧账号迟到拒绝、metadata网络阻塞期间断开立即生效、替换快照、相同终态id不重新请求、wait期间不请求、群部分发现与重启中断。完整Cargo45项link主检查（父测另调restart子进程）、2编译进程、97协议、6compile_fail，Node73；fmt/locked build/26来源重建通过，原始日志与无参Rust四方法拒绝探针为login/directory-*。真实协议适配已接，自动化远端为替身，未冒充真实微信关系或收发验证。
 
 Architecture cell不变；Map delta为同一Store的当前目录缓存/持久意图和同一AccountService执行，不新增账号writer。五轴：目录行为、默认空加法字段/可替换外部缓存而无真实迁移删除、现有关系证明与账号fence、stdio扩四方法、无不可逆操作。完整旅程仍缺保存会话显式恢复、Node NativeClient/Supervisor/Host组合与正式候选；accountServiceReady=false，原签名升级/LAN/业务key/本人授权实测要求未变。
+
+### 显式保存会话恢复续做
+
+目录4fa0dc5已获小多子000424准确HEAD typed approved，no open items。本轮续做session.resume/operation/cancel：只在本人明确调用时认证，先持久意图并换账号授权代次、暂停grants，再停止旧owner并构造一次性认证owner。其Persistence回调将验证后的凭据和succeeded回执同事务接受；停止认证owner后，从已接受Store构造普通owner，绝不把适配器Ok直接当上线凭证。状态/重启/查询不认证，同一终态id不重新请求，无QR回退。
+
+观察并修绿：Store恢复入口stub两项失败、真实RPC结果为空/认证gate未进入；以及推进授权代次后同账号同步游标错误变空。后者按根因分开授权代次与数据流：直接从持久ResumeRecord追溯同账号旧流，不再新建/复制历史、事件和游标；新账号保持隔离。普通凭据更新及恢复回调复用同一previous/账号/定长比较。取消/close/断开拒绝迟到接受，回执认证可能发生标记保留。
+
+补充实际stdio认证阻塞时cancel先返回、无持久接受不能上线、close中断、不重试、恢复后普通owner确实使用已接受密钥（只在私有测试请求内断言，不输出密钥）及跨新账号历史隔离。完整Cargo53项link主检查（父测另调restart）、2进程、97协议、6compile_fail，Node73；fmt/locked build/26来源重建通过，证据login/resume-*。生产调用真实renew_session_blocking，测试远端/接受由替身驱动，未声称真实微信重新认证或手机撤销信任已实测。
+
+Architecture cell仍同一Store/AccountService；Map delta是恢复意图与顺序owner交接，不新增并发凭据writer或另一个alias真相表。五轴：显式认证行为、默认空resumes加法字段且保留历史、generation及单次接受fence、stdio扩三方法，无生产迁移/删除/不可逆操作。完整旅程仍缺新NativeClient/Supervisor/Host组合及正式候选；accountServiceReady=false，原业务key、签名升级、LAN及本人授权真实验收要求不变。

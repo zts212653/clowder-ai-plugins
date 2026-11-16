@@ -3,7 +3,7 @@
 const MAX_FRAME = 1024 * 1024;
 const METHODS = new Set(['hello', 'status', 'login.start', 'login.poll', 'login.operation', 'login.cancel', 'account.disconnect',
   'conversation.authorize', 'conversation.pause', 'text.send', 'send.receipt', 'send.cancel', 'sync.pull', 'events.page', 'message.get',
-  'directory.start', 'directory.advance', 'directory.operation', 'directory.page']);
+  'directory.start', 'directory.advance', 'directory.operation', 'directory.page', 'session.resume', 'session.operation', 'session.cancel']);
 const ERRORS = new Set(['invalid_request', 'invalid_params', 'unsupported_method', 'not_ready', 'operation_busy', 'invalid_operation',
   'private_state_unavailable', 'account_service_unavailable', 'observation_unavailable', 'invalid_frame', 'internal_error', 'permission_denied']);
 const REFUSED = new Set(['invalid_request', 'invalid_params', 'unsupported_method', 'not_ready', 'operation_busy', 'invalid_operation', 'permission_denied']);

@@ -52,6 +52,7 @@ pub struct SyncProjection {
 }
 pub(crate) struct SyncTicket {
     pub generation: u64,
+    data_generation: u64,
     pub identity: String,
     pub cursor: Vec<u8>,
     revision: u64,
@@ -70,6 +71,15 @@ fn account(state: &State, generation: u64) -> Result<&AccountState> {
         return Err(StoreError::StaleGeneration);
     }
     state.account.as_ref().ok_or(StoreError::StaleGeneration)
+}
+fn selected_inbox(state: &State, generation: u64) -> Result<(u64, Option<&Inbox>)> {
+    let owner = account(state, generation)?;
+    let root = super::resume::data_generation(state, generation, &owner.own_username)?;
+    let inbox = state.inboxes.get(&root);
+    if inbox.is_some_and(|i| i.identity != owner.own_username) {
+        return Err(StoreError::StaleGeneration);
+    }
+    Ok((root, inbox))
 }
 fn command_key(command: &wechat_protocol::SyncCommand) -> String {
     let mut hash = openssl::sha::Sha256::new();
@@ -167,11 +177,8 @@ pub(super) fn validate(state: &State) -> Result<()> {
 impl Store {
     pub(crate) fn current_group_hints(&self, generation: u64) -> Result<Vec<String>> {
         let data = self.lock()?;
-        account(&data.state, generation)?;
-        Ok(data
-            .state
-            .inboxes
-            .get(&generation)
+        let (_, inbox) = selected_inbox(&data.state, generation)?;
+        Ok(inbox
             .map(|inbox| {
                 inbox
                     .messages
@@ -187,9 +194,10 @@ impl Store {
     pub(crate) fn sync_ticket(&self, generation: u64) -> Result<SyncTicket> {
         let data = self.lock()?;
         let owner = account(&data.state, generation)?;
-        let inbox = data.state.inboxes.get(&generation);
+        let (data_generation, inbox) = selected_inbox(&data.state, generation)?;
         Ok(SyncTicket {
             generation,
+            data_generation,
             identity: owner.own_username.clone(),
             cursor: inbox.map(|i| i.cursor.clone()).unwrap_or_default(),
             revision: inbox.map_or(0, |i| i.revision),
@@ -216,7 +224,11 @@ impl Store {
             if account(&data.state, ticket.generation)?.own_username != ticket.identity {
                 return Err(StoreError::StaleGeneration);
             }
-            if let Some(inbox) = data.state.inboxes.get(&ticket.generation) {
+            let (root, inbox) = selected_inbox(&data.state, ticket.generation)?;
+            if root != ticket.data_generation {
+                return Err(StoreError::StaleGeneration);
+            }
+            if let Some(inbox) = inbox {
                 if inbox.revision != ticket.revision || inbox.cursor != ticket.cursor {
                     return Err(StoreError::StaleSync);
                 }
@@ -240,13 +252,14 @@ impl Store {
             if account(state, ticket.generation)?.own_username != ticket.identity {
                 return Err(StoreError::StaleGeneration);
             }
-            let inbox = state
-                .inboxes
-                .entry(ticket.generation)
-                .or_insert_with(|| Inbox {
-                    identity: ticket.identity.clone(),
-                    ..Inbox::default()
-                });
+            let (root, _) = selected_inbox(state, ticket.generation)?;
+            if root != ticket.data_generation {
+                return Err(StoreError::StaleGeneration);
+            }
+            let inbox = state.inboxes.entry(root).or_insert_with(|| Inbox {
+                identity: ticket.identity.clone(),
+                ..Inbox::default()
+            });
             if inbox.revision != ticket.revision || inbox.cursor != ticket.cursor {
                 return Err(StoreError::StaleSync);
             }
@@ -255,7 +268,7 @@ impl Store {
                 if inbox.commands.contains_key(&key) {
                     continue;
                 }
-                let projection = project(&command, ticket.generation, &ticket.identity, &key);
+                let projection = project(&command, ticket.data_generation, &ticket.identity, &key);
                 inbox.commands.insert(key, command);
                 match projection {
                     Some(message) if !inbox.messages.contains_key(&message.id) => {
@@ -299,12 +312,8 @@ impl Store {
             .filter(|n| n.to_string() == after)
             .ok_or(StoreError::InvalidState)?;
         let data = self.lock()?;
-        account(&data.state, generation)?;
-        let events = data
-            .state
-            .inboxes
-            .get(&generation)
-            .map_or(&[][..], |inbox| inbox.events.as_slice());
+        let (_, inbox) = selected_inbox(&data.state, generation)?;
+        let events = inbox.map_or(&[][..], |inbox| inbox.events.as_slice());
         if offset > events.len() {
             return Err(StoreError::InvalidState);
         }
@@ -317,10 +326,8 @@ impl Store {
     }
     pub fn message(&self, generation: u64, id: &str) -> Result<MessageProjection> {
         let data = self.lock()?;
-        account(&data.state, generation)?;
-        data.state
-            .inboxes
-            .get(&generation)
+        let (_, inbox) = selected_inbox(&data.state, generation)?;
+        inbox
             .and_then(|i| i.messages.get(id))
             .cloned()
             .ok_or(StoreError::UnknownMessage)
