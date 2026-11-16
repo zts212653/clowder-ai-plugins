@@ -45,7 +45,7 @@
       },
       "version": "0.3.0-beta.2-candidate.14",
       "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-sdk/-/plugin-sdk-0.3.0-beta.2-candidate.14.tgz",
-      "integrity": "sha512-2+L/3eHEKp8h3lHVcOX7XMnUQz1l0Ip089eC+oVbhKKo9FTI4IMB2OocrMEB20hsQsKDRmZSyI/AXiuUcC8/ww==",
+      "integrity": "sha512-VJUEdjWSrzDZhz5Gpa+qPb+w/iMEvmll6SFzDdwICWttxMLuT1uhEICwSvvNe1nrMAzO8kA3qbWW5lIaC/GtqA==",
       "dependencies": {
         "@clowder-ai/plugin-contract": "0.4.0-candidate.0"
       }
