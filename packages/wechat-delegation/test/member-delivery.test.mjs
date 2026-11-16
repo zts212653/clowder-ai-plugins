@@ -76,6 +76,29 @@ for (const kind of ['direct', 'group']) test(`signed canonical ${kind} responses
   assert.equal(f.sends.length, 2, 'the original operation must not be resent');
 });
 
+test('a family signature inside the message text is removed before persistence, sending and receipt reconciliation', async t => {
+  for (const kind of ['direct', 'group']) {
+    const content = JSON.stringify({ kind: 'message', text: text + '\r\n\r\n[砚砚/gpt-6.1-sol🐾]\r\n' }) + '\n\n[砚砚/gpt-6.1-sol🐾]';
+    const f = await fixture(t, { kind, content });
+    await f.service.initiate(f.policy.id, 'unsigned-message');
+    assert.deepEqual(f.sends.map(send => send.body), [{ threadId: f.conversationId, text }]);
+    assert.equal((await f.service.snapshot()).runs[0].text, text);
+    await f.service.reconcile();
+    assert.equal((await f.service.snapshot()).runs[0].phase, 'sent');
+  }
+});
+
+test('signature removal keeps ordinary message content intact and refuses a signature-only message', async t => {
+  const literal = '例子是[作者/模型🐾]，这段是正文。\n[读书会]';
+  const f = await fixture(t, { content: JSON.stringify({ kind: 'message', text: literal }) });
+  await f.service.initiate(f.policy.id, 'literal-content');
+  assert.equal(f.sends[0].body.text, literal);
+  const empty = await fixture(t, { content: JSON.stringify({ kind: 'message', text: '[砚砚/gpt-6.1-sol🐾]' }) });
+  await empty.service.initiate(empty.policy.id, 'signature-only');
+  assert.equal(empty.sends.length, 0);
+  assert.equal((await empty.service.snapshot()).runs[0].errorCode, 'member_response_format');
+});
+
 test('unsupported canonical output stays unsent and exposes a bounded format failure instead of forwarding arbitrary text', async t => {
   for (const content of ['普通文字', signed + '\n另一段说明', '{"kind":"message","text":"一"}\n{"kind":"message","text":"二"}',
     '{"kind":"message","text":"正文","recipient":"other"}', '{"kind":"message","text":" "}']) {

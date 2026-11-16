@@ -94,7 +94,7 @@
   const cat = el('select', { required: true }, [el('option', { value: '', text: '选择值班猫' })]);
   const catStatus = el('small', { class: 'muted', role: 'status' });
   const targetField = target.node, catField = label('值班猫', cat); catField.append(catStatus);
-  const persona = el('textarea', { placeholder: '例如：以我的助理口吻，礼貌简短，不谈工作机密', required: true });
+  const persona = el('textarea', { placeholder: '例如：像熟人一样聊天，用短句、不用表情；只聊读书', required: true });
   const goal = el('textarea', { placeholder: '例如：在周末球局群问问今晚八点谁来，并跟进人数', required: true });
   const proactive = check('允许猫主动发起聊天', true), replies = check('允许猫自动接话', true), scheduled = check('允许按时段持续主动发起（对方未回时停止追问）');
   const windowStart = el('input', { type: 'time', value: '09:00', required: true }), windowEnd = el('input', { type: 'time', value: '21:00', required: true });
@@ -178,7 +178,8 @@
   };
   submit.addEventListener('click', activate);
   const form = el('form', { noValidate: true, onsubmit: event => event.preventDefault() }, [
-    el('div', { class: 'grid' }, [targetField, catField, label('人设与交流边界', persona), label('这次要聊什么', goal)]),
+    el('div', { class: 'grid' }, [targetField, catField, label('人设、说话风格与交流边界', persona), label('这次要聊什么', goal)]),
+    el('p', { class: 'muted', text: '微信只发送聊天正文，不附加猫名、模型名或签名。语气、长短、称呼和表情可在上面自定义。' }),
     el('p', { class: 'muted', text: '群授权仅限本群，不扩展到群成员私聊或其他群。涉及资金、验证码、账号安全或对方找本人时暂停并交还你。' }),
     el('div', { class: 'toolbar' }, [proactive.node, replies.node]), scheduled.node,
     el('details', { class: 'advanced' }, [el('summary', { text: '频率与结束条件' }), el('div', { class: 'grid' }, [label('开始时间', windowStart), label('结束时间', windowEnd), label('时区', timeZone),

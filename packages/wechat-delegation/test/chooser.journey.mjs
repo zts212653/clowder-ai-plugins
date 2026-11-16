@@ -40,7 +40,7 @@ try{
  assert.equal(await f.getByRole('tab',{name:'群',exact:true}).innerText(),'群 1');
  await page.screenshot({path:`${evidence}/chooser-group-search.png`,fullPage:true});
  await list.getByRole('option',{name:/周末读书群/}).click();
- await f.getByLabel('人设与交流边界',{exact:true}).fill('自然友好，只聊读书');
+ await f.getByLabel('人设、说话风格与交流边界',{exact:true}).fill('自然友好，只聊读书');
  await f.getByLabel('这次要聊什么',{exact:true}).fill('周末阅读');
  const consent=f.getByLabel('我允许所选会话的文字交给上述模型服务，并允许猫在约定范围内直接发送。家庭记忆、文件、命令、支付、外链和附件访问均不开放。');
  await consent.check();

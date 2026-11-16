@@ -30,7 +30,7 @@ export async function previewFixture() {
       execute: async ({ executionId }) => {
         const id = `canonical:${executionId}`;
         canonical.set(id, { id, threadId: grant.threadId, userId: grant.ownerUserId, catId: grant.catId,
-          content: JSON.stringify({ kind: 'message', text: '大家周末想读哪一本书？（隔离验收模拟，未发往微信）' }) + '\n\n[验收猫/模拟模型🐾]' });
+          content: JSON.stringify({ kind: 'message', text: '大家周末想读哪一本书？（隔离验收模拟，未发往微信）\n\n[验收猫/模拟模型🐾]' }) + '\n\n[验收猫/模拟模型🐾]' });
         return { executionId, phase: 'succeeded', responseMessageId: id };
       },
       getExecution: async () => null,

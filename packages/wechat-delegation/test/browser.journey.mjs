@@ -33,7 +33,10 @@ try {
   await frame.getByRole('searchbox', { name: '搜索好友或群' }).fill('周书');
   await frame.getByRole('option', { name: /周末读书群/ }).click();
   await frame.getByLabel('值班猫', { exact: true }).selectOption('review-cat');
-  await frame.getByLabel('人设与交流边界', { exact: true }).fill('像熟人一样自然友好，只聊读书');
+  const persona = frame.getByLabel('人设、说话风格与交流边界', { exact: true });
+  const style = '像熟人一样自然聊天，允许详细解释，不用表情，只聊读书';
+  await persona.fill(style);
+  await frame.getByText('微信只发送聊天正文，不附加猫名、模型名或签名。语气、长短、称呼和表情可在上面自定义。', { exact: true }).waitFor();
   await frame.getByLabel('这次要聊什么', { exact: true }).fill('邀请大家周末一起读科幻小说');
   await frame.getByText('实际模型：模拟模型；客户端：隔离测试。', { exact: false }).waitFor();
   await frame.getByLabel('我允许所选会话的文字交给上述模型服务，并允许猫在约定范围内直接发送。家庭记忆、文件、命令、支付、外链和附件访问均不开放。').check();
@@ -43,8 +46,16 @@ try {
   await frame.getByText('猫代聊中 · 可随时接管', { exact: true }).waitFor();
   assert.equal(await frame.getByRole('heading', { name: '配置代聊会话', exact: true }).isVisible(), false);
   await page.screenshot({ path: `${evidence}/active.png`, fullPage: true });
+  await frame.getByRole('button', { name: '换猫 / 设置', exact: true }).click();
+  await persona.waitFor();
+  assert.equal(await persona.inputValue(), style, 'custom speaking style survives save and reopening the conversation settings');
+  await page.screenshot({ path: `${evidence}/custom-style.png`, fullPage: true });
+  await frame.getByRole('button', { name: '返回会话列表', exact: true }).click();
   await frame.getByRole('button', { name: '立即主动开口', exact: true }).click();
   await frame.getByText('发送结果未知 · 不会自动重发', { exact: false }).waitFor();
+  const sentText = await frame.getByText('查看本轮正文与状态', { exact: true }).locator('..').locator('pre').allTextContents();
+  assert.ok(sentText.length > 0);
+  assert.ok(sentText.every(text => !text.includes('[验收猫/模拟模型🐾]')), 'the persisted outgoing text contains no family signature');
   await frame.getByRole('button', { name: '我来聊', exact: true }).click();
   await frame.getByText('本人接管中 · 后续代聊已停止', { exact: true }).waitFor();
   assert.equal(await frame.getByRole('button', { name: '立即主动开口', exact: true }).isDisabled(), true);

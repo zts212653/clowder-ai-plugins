@@ -148,3 +148,15 @@ alpha.8最终归档及Host隔离安装证据、摘要、准确提交的独立审
 新增member-delivery集成测试直接组合生产MemberRunner、DelegationService和NativeClient，以真实loopback HTTP模拟协议服务，覆盖好友/群的主动和接话、只发送text、稳定幂等键及canonical发送记录核验。旧实现因收到带签名回复而零发送，先红；修复后通过。外线程回复仍拒绝，异常正文零POST，交还本人/静默不发送。预览取消对model.generate的替身，改由真正MemberRunner消费模拟Host的带签名canonical回复，浏览器旅程也覆盖此接线。
 
 本轮验证与最终归档摘要、非作者审查记录见 `meow-talk/output/wechat-delegation-alpha9/安装与验收.md`；不自动恢复旧策略或重发已失败的历史轮次。包按本人要求滚动仅保留最新两轮；真实微信送达和接管仍需本人在更新后的实际授权下验收，PR保持draft，Task继续开放。
+
+## 正文不带署名与自定义说话风格（alpha.10，2026-11-16）
+
+来源 `thread_mwg7kandcxztqeab#0001794814930495-000310-7a1a80c0`：本人要求“不要加后缀，说话风格可以自定义设置”。本轮按微信代聊正文处理；当前真实安装通过Host只读投影核对为alpha.9。发送层没有统一拼接后缀，但原MemberRunner只处理JSON外的展示签名；若模型把家猫签名写进text，原实现会将其持久保存并原样发送。新增生产MemberRunner→Service→NativeClient的HTTP组合回归，在旧实现下准确暴露正文带署名及仅署名也会发送两条失败。
+
+修复复用单一有界展示签名规则：身份核对、唯一JSON解析后，仅从message的text移除一个末尾独立家猫签名行，再检查正文非空；普通正文中的括号、行内署名示例和其他文字保留。JSON外仍只接受一个已知展示签名，外线程、未知尾部、多对象与越权字段继续拒绝，needs_owner/silent仍不发送。提示词明确text仅含聊天正文，不追加身份后缀；语气、长短、称呼与表情遵循本人设定，取消固定“自然简短”的要求。
+
+不新建配置字段或迁移已有策略。原persona入口改标“人设、说话风格与交流边界”，附一行正文和风格说明；已保存的自定义内容原样传入受限模型。浏览器实际走完配置、开启、重新打开确认自定义值、主动生成并确认持久正文无签名、未知发送、本人接管和全局暂停，覆盖桌面及手机暗色。预览由生产MemberRunner处理JSON内外都带签名的模拟回复，真实微信和模型未调用。
+
+63项包测试及相关构建、lint、HTTP组合回归通过；36文件最终归档与当前包逐字节匹配。完整浏览器/chooser和实际Host源码的临时inventory、内存storage、空profile安装检查结果及非作者准确HEAD审查见 `meow-talk/output/wechat-delegation-alpha10/安装与验收.md`。本轮未改授权、接管、native协议/二进制或外部依赖，未重跑无关整仓gate；真实微信实收、接管及实际模型风格表现仍待本人更新后验收，任务不关闭。
+
+浏览器取证中的环境失败单独保留：初稿将active会话的“换猫 / 设置”误写成暂停态按钮名称，修正后通过；5196托管预览在canonical stop后实际退出，但launcher报告“another preview generation”，其completion为commandGroupStatus=absent、cleanupOwnerStatus=unclaimed，未改动Host或清除保护记录。最终改为前台测试进程内启动隔离fixture，分别5197/5198跑完即关闭。Hub预览投递为unconfirmed/no_matching_client，不宣称本人已看到页面；上述环境失败不算产品回归RED。

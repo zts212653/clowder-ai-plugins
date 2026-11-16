@@ -15,6 +15,8 @@ This candidate uses the third-party Agent WeChat native HTTP API. It does not su
 5. Start an immediate conversation or opt into a recurring policy with a timezone, permitted hours, interval, daily limit and turn budget. Proactive follow-ups stop while the peer has not answered. Group permission never extends to members' direct messages.
 6. Use the conversation takeover button or the persistent global pause button. Local future sending stops first; already handed-off sends remain visible until cancellation or their result is known. Only an explicit owner action resumes delegation.
 
+Customize tone, length, forms of address and emoji in the persona, speaking style and boundaries field. Reopen conversation settings to edit saved preferences. WeChat receives only the conversation text, without an appended cat name, model name or signature; controlled-session presentation signatures are kept out of the outgoing text.
+
 If you select a Clowder notification thread, an exact owner-authored `/takeover` command stops its bound conversations, and `/pause-all` stops all delegation. The plugin reads canonical human sender facts; external contacts and display names cannot become the owner. This command path requires trusted sender facts from the Host. Panel takeover remains available.
 
 Not seeing a message is not proof that it was never sent. Unknown results are inspected under the original send key and are never automatically resubmitted. The owner may separately record that they checked the exact conversation and complete text and observed the message being sent.
