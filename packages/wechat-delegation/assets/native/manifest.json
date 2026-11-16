@@ -1,16 +1,32 @@
 {
-  "version": "2.4.1-clowder.2",
+  "product": "clowder-wechat-link",
+  "version": "0.1.0",
+  "protocolVersion": 1,
+  "sourceCommit": "4a44fbfd59db2e5506c9f88c98d73607a65f8354",
   "upstream": "thisnick/agent-wechat",
   "upstreamCommit": "ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
+  "sourceManifestSha256": "c4004995ec02680108f2c205c90f854bc036abb10a08aa96b13783289ef14f6f",
+  "protocolPatchSha256": "905ea680b5d3ebdad87d55b26e43ea0a4da6958dd968f3fa39b0972f546ef36c",
+  "cargoLockSha256": "7d35b3dbb773c075231a6787573b420c2902ecf8474163b9a03daa4e63031425",
   "artifacts": {
     "darwin-arm64": {
-      "fileName": "wx-v2.4.1-clowder.2-darwin-arm64",
-      "size": 37524752,
-      "sha256": "ea605bed638c7821fd4d97b690e89d611821eb9e3a2f5dcc162844536c2cbb56",
-      "compressedSha256": "27dba0ce9a03032b2d0169f2f2f8532ae34ffefe4886924d3baa90593c0c050e"
+      "fileName": "clowder-wechat-link-0.1.0-darwin-arm64",
+      "size": 5776368,
+      "sha256": "5784e05af5110cc69fb96e9f2faa3279cb25fb49ed9de064cb25363907f6b895",
+      "compressedSha256": "1fc702d93c36bfb3b622a61a8c6f0e02ce55883a61db8765eb41f9bada825502",
+      "minimumMacOS": "26.5",
+      "testedMacOS": "26.5",
+      "signing": "linker-ad-hoc",
+      "teamIdentifier": null
     }
   },
-  "patchSha256": "61be143485c5dbac33a338f25a144eb0cf16bbc054498cd602aa777b1d94a7e5",
   "rustVersion": "1.93.1",
-  "buildCommand": "cargo build --locked --release -p wx-native --bin wx"
+  "buildCommand": "MACOSX_DEPLOYMENT_TARGET=26.5 cargo build --offline --locked --release --manifest-path packages/wechat-delegation/native/Cargo.toml -p clowder-wechat-link",
+  "openssl": {
+    "version": "3.6.3",
+    "linkage": "vendored-static"
+  },
+  "status": "internal-consumer-integration-in-progress",
+  "licenseInventorySha256": "d2f7eb2c927b735cd3fa1c7dc694b376646cd9f8bff0a8dfec19288ac90812a3",
+  "noticesSha256": "d34cd11a3318927bd5679e0303f0774cbc98ba5d96fa6e55216408fdb4f83dc0"
 }

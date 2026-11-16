@@ -3,144 +3,82 @@ import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import test from 'node:test';
-import { NativeSupervisor } from '../src/native-supervisor.mjs';
+import { NativeSupervisor, nativeAsset, loadBundled } from '../src/native-supervisor.mjs';
+import { NativeStdioTransport } from '../src/native-stdio.mjs';
 
-const source = Buffer.from(`#!/usr/bin/env node
-const http = require('node:http');
-const fs = require('node:fs');
-const path = require('node:path');
-let token='';
-const arg = name => process.argv[process.argv.indexOf(name)+1];
-// The pinned native component requires a config root even with --data-dir.
-const configRoot = process.env.XDG_CONFIG_HOME;
-if (!configRoot || !path.isAbsolute(configRoot) || process.env.HOME) {
-  process.stderr.write('an isolated absolute configuration root is required');
-  process.exit(2);
-}
-fs.writeFileSync(path.join(configRoot, 'component-started'), 'ready');
-process.stdin.on('data', c => token+=c);
-process.stdin.on('end', () => {
-const [hostname, port] = arg('--listen').split(':');
-http.createServer((req,res)=> {
-  if(req.headers.authorization!=='Bearer '+token.trim()) {res.statusCode=401;return res.end();}
-  res.setHeader('content-type','application/json');
-  res.end(JSON.stringify({serverId:'test-server', dataDir:arg('--data-dir'), pid:process.pid, ownershipGeneration:'owned',
-  state:'ready',configRoot,inheritedSensitiveEnvironment:['HOME','HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','http_proxy','https_proxy','all_proxy','SSL_CERT_FILE','SSL_CERT_DIR'].filter(key=>process.env[key]!==undefined),version:{product:'agent-wechat',backend:'native',apiVersion:1,version:'test', capabilities:['serve','events','profile-read','text-send','native-login']}}));
-}).listen(Number(port),hostname);
+// Executable synthetic peer. This never opens a Keychain or contacts WeChat.
+const source = Buffer.from(`#!${process.execPath}
+const fs=require('node:fs'),path=require('node:path'),readline=require('node:readline');
+const dir=process.argv[process.argv.indexOf('--data-dir')+1];
+fs.writeFileSync(path.join(dir,'started.json'),JSON.stringify({args:process.argv.slice(2),environment:Object.keys(process.env)}),{mode:0o600});
+if(process.argv.includes('--initialize')) for(const name of ['vault.id','state.vault'])fs.writeFileSync(path.join(dir,name),'synthetic',{mode:0o600});
+const caps=['stdio-v1','text-protocol-subset','account-login-v1','durable-text-send-v1','durable-text-sync-v1','current-directory-v1','explicit-session-resume-v1'];
+readline.createInterface({input:process.stdin}).on('line',line=>{
+const {id,method}=JSON.parse(line);
+const result=method==='hello'?{product:'clowder-wechat-link',version:'test',pid:process.pid,protocolVersion:1,upstreamCommit:'ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e',capabilities:caps,nativeApiAvailable:true,accountServiceReady:false}:{serverId:'synthetic-store',accountGeneration:0,accountIdentity:null,credentialsAvailable:false,authenticated:false,connection:'offline',egress:[]};
+process.stdout.write(JSON.stringify({id,result})+'\\n');
 });
 `);
-const actor = () => ({ signal: new AbortController().signal, assertCurrent: async () => {} });
-test('owner preparation verifies exact bytes and supervises one child using a private token pipe and isolated data directory', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'wechat-supervisor-'));
-  const asset = { fileName: 'wx-test', version: 'test', sha256: createHash('sha256').update(source).digest('hex'), size: source.length,
-    url: 'https://github.com/thisnick/agent-wechat/releases/download/test/wx-test' };
-  const supervisor = new NativeSupervisor({ dataPath: root, asset, download: async () => source });
-  t.after(async () => { await supervisor.stop(); await rm(root, { recursive: true, force: true }); });
-  const client = await supervisor.prepare(actor());
-  const status = await client.status();
-  assert.equal(status.serverId, 'test-server');
-  assert.equal(status.dataDir, join(await realpath(root), 'native-profile'));
-  assert.ok(status.configRoot.startsWith(`${await realpath(root)}/`));
-  assert.equal(await readFile(join(status.configRoot, 'component-started'), 'utf8'), 'ready');
-  assert.equal((await stat(status.configRoot)).mode & 0o777, 0o700);
-  assert.equal((await supervisor.prepare(actor())), client);
-  assert.ok(supervisor.child.pid > 0);
-  assert.ok(!supervisor.child.spawnargs.some(value => value.includes(client.token)));
-  await supervisor.stop();
-  await assert.rejects(client.status());
+const actor=()=>({signal:new AbortController().signal,assertCurrent:async()=>{}});
+const asset=()=>({fileName:'clowder-link-test',version:'test',size:source.length,sha256:createHash('sha256').update(source).digest('hex')});
+async function fixture(t){
+  const root=await mkdtemp(join(tmpdir(),'wechat-owned-link-'));
+  const supervisor=new NativeSupervisor({dataPath:root,asset:asset(),download:async()=>source});
+  t.after(async()=>{await supervisor.stop();await rm(root,{recursive:true,force:true});});
+  return {root,supervisor};
+}
+test('preparation verifies owned bytes and uses only private pipes, an empty environment and the new vault',async t=>{
+  const {root,supervisor}=await fixture(t);const client=await supervisor.prepare(actor());
+  assert.equal((await client.status()).connection,'offline');assert.equal(supervisor.child.pid,client.pid);
+  assert.equal(await supervisor.prepare(actor()),client);
+  const vault=join(await realpath(root),'link-vault');const started=JSON.parse(await readFile(join(vault,'started.json'),'utf8'));
+  // macOS/Node may add this encoding variable after spawn; no owner env is passed.
+  assert.equal(started.environment.every(key=>key==='__CF_USER_TEXT_ENCODING'),true);assert.deepEqual(started.args,['--data-dir',vault,'--initialize']);
+  assert.equal((await stat(vault)).mode&0o777,0o700);
+  await supervisor.stop();await assert.rejects(client.status());
 });
-
-test('bad integrity or expired owner lifetime starts no executable', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'wechat-integrity-'));
-  t.after(() => rm(root, { recursive: true, force: true }));
-  const supervisor = new NativeSupervisor({ dataPath: root, asset: { fileName: 'wx', sha256: '0'.repeat(64), size: 1 }, download: async () => Buffer.from('x') });
-  await assert.rejects(supervisor.prepare(actor()), /integrity/);
-  assert.equal(supervisor.child, undefined);
-  const control = new AbortController(); control.abort();
-  await assert.rejects(supervisor.prepare({ signal: control.signal, assertCurrent: async () => {} }));
-  assert.equal(supervisor.child, undefined);
+test('binary cache repair preserves legacy profile data without opening it',async t=>{
+  const {root,supervisor}=await fixture(t);await writeFile(join(root,asset().fileName),'partial binary');
+  await mkdir(join(root,'native-profile'));await writeFile(join(root,'native-profile','history'),'preserve');
+  await supervisor.prepare(actor());assert.equal(await readFile(join(root,'native-profile','history'),'utf8'),'preserve');
+  await assert.rejects(stat(join(root,'native-config')),{code:'ENOENT'});
 });
-
-test('preparation repairs a corrupt owned component cache without deleting the account profile', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'wechat-repair-'));
-  const asset = { fileName: 'wx-test', version: 'test', sha256: createHash('sha256').update(source).digest('hex'), size: source.length };
-  await writeFile(join(root, asset.fileName), 'interrupted download');
-  await mkdir(join(root, 'native-profile'));
-  await writeFile(join(root, 'native-profile', 'retained-history'), 'preserve this account data');
-  const supervisor = new NativeSupervisor({ dataPath: root, asset, download: async () => source });
-  t.after(async () => { await supervisor.stop(); await rm(root, { recursive: true, force: true }); });
-  const client = await supervisor.prepare(actor());
-  assert.equal((await client.status()).serverId, 'test-server');
-  assert.equal(await readFile(join(root, 'native-profile', 'retained-history'), 'utf8'), 'preserve this account data');
+test('integrity, untrusted asset paths and an expired owner cannot start a process',async t=>{
+  const {supervisor}=await fixture(t);supervisor.asset={...asset(),sha256:'0'.repeat(64)};
+  await assert.rejects(supervisor.prepare(actor()),/integrity/);assert.equal(supervisor.child,undefined);
+  supervisor.asset={...asset(),fileName:'../outside'};await assert.rejects(supervisor.prepare(actor()));assert.equal(supervisor.child,undefined);
+  const control=new AbortController();control.abort();await assert.rejects(supervisor.prepare({signal:control.signal,assertCurrent:async()=>{}}));
 });
-
-test('the native child receives no owner proxy or CA overrides', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'wechat-environment-'));
-  const keys = ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy', 'SSL_CERT_FILE', 'SSL_CERT_DIR'];
-  const saved = new Map(keys.map(key => [key, process.env[key]]));
-  for (const key of keys) process.env[key] = key.includes('PROXY') || key.includes('proxy') ? 'http://127.0.0.1:1' : '/synthetic-owner-certificate';
-  const asset = { fileName: 'wx-test', version: 'test', sha256: createHash('sha256').update(source).digest('hex'), size: source.length };
-  const supervisor = new NativeSupervisor({ dataPath: root, asset, download: async () => source });
-  t.after(async () => {
-    for (const [key, value] of saved) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
-    await supervisor.stop(); await rm(root, { recursive: true, force: true });
+test('state paths cannot follow symlinks; incomplete initialization is retained and never reinitialized',async t=>{
+  for(const target of ['instance','link-vault'])await t.test(target,async t=>{
+    const root=await mkdtemp(join(tmpdir(),'wechat-vault-path-'));const outside=join(root,'outside');await mkdir(outside,{mode:0o700});
+    const instance=join(root,'instance');if(target==='instance')await symlink(outside,instance);else{await mkdir(instance,{mode:0o700});await symlink(outside,join(instance,target));}
+    const supervisor=new NativeSupervisor({dataPath:instance,asset:asset(),download:async()=>source});
+    t.after(async()=>{await supervisor.stop();await rm(root,{recursive:true,force:true});});
+    await assert.rejects(supervisor.prepare(actor()),/private directory/);assert.equal(supervisor.child,undefined);
   });
-  const client = await supervisor.prepare(actor());
-  assert.deepEqual((await client.status()).inheritedSensitiveEnvironment, []);
+  const {root,supervisor}=await fixture(t);await mkdir(join(root,'link-vault'),{mode:0o700});
+  await writeFile(join(root,'link-vault','vault.id'),'original marker',{mode:0o600});
+  await assert.rejects(supervisor.prepare(actor()),error=>error.code==='vault_repair_required');assert.equal(supervisor.child,undefined);
+  assert.equal(await readFile(join(root,'link-vault','vault.id'),'utf8'),'original marker');
 });
-
-test('credential, configuration and instance directories cannot redirect through symlinks', async t => {
-  for (const target of ['instance', 'native-profile', 'native-config']) {
-    await t.test(target, async t => {
-      const root = await mkdtemp(join(tmpdir(), 'wechat-private-directory-'));
-      const outside = join(root, 'outside'); await mkdir(outside, { mode: 0o700 });
-      const instance = join(root, 'instance');
-      if (target === 'instance') await symlink(outside, instance);
-      else { await mkdir(instance, { mode: 0o700 }); await symlink(outside, join(instance, target)); }
-      const asset = { fileName: 'wx-test', version: 'test', sha256: createHash('sha256').update(source).digest('hex'), size: source.length };
-      const supervisor = new NativeSupervisor({ dataPath: instance, asset, download: async () => source });
-      t.after(async () => { await supervisor.stop(); await rm(root, { recursive: true, force: true }); });
-      await assert.rejects(supervisor.prepare(actor()), /private directory/);
-      assert.equal(supervisor.child, undefined);
-      await assert.rejects(stat(join(outside, 'component-started')), { code: 'ENOENT' });
-    });
-  }
+test('reopening uses the same vault but a new process identity; an old stop cannot kill the new child',async t=>{
+  const {root,supervisor}=await fixture(t);const first=await supervisor.prepare(actor());
+  const firstIdentity=await first.identity('clowder');await supervisor.stop();const second=await supervisor.prepare(actor());
+  assert.notEqual((await second.identity('clowder')).serverId,firstIdentity.serverId);
+  const started=JSON.parse(await readFile(join(root,'link-vault','started.json'),'utf8'));assert.deepEqual(started.args,['--data-dir',join(await realpath(root),'link-vault')]);
+  await supervisor.stopOwned(first);assert.equal((await second.status()).serverId,'synthetic-store');
 });
-
-test('the bundled directory repair component has exact pinned bytes and declares its own provenance', async () => {
-  const { nativeAsset, loadBundled } = await import('../src/native-supervisor.mjs');
-  const asset = nativeAsset('darwin', 'arm64');
-  const binary = await loadBundled(asset, new AbortController().signal);
-  assert.equal(binary.length, asset.size);
-  assert.equal(createHash('sha256').update(binary).digest('hex'), asset.sha256);
-  assert.equal(asset.version, '2.4.1-clowder.2');
-  assert.ok(asset.capabilities.includes('current-contact-directory'));
-  assert.throws(() => nativeAsset('linux', 'x64'), /暂只提供/);
-});
-
-test('the actual bundled component starts in an empty isolated profile and exposes the extended directory route', { skip: process.platform !== 'darwin' || process.arch !== 'arm64' }, async t => {
-  const root = await mkdtemp(join(tmpdir(), 'wechat-native-bundle-'));
-  const supervisor = new NativeSupervisor({ dataPath: root });
-  t.after(async () => { await supervisor.stop(); await rm(root, { recursive: true, force: true }); });
-  const client = await supervisor.prepare(actor());
-  const status = await client.status();
-  assert.equal(status.version.version, '2.4.1-clowder.2');
-  assert.ok(status.version.capabilities.includes('current-contact-directory'));
-  await client.createAccount('isolated');
-  // An unregistered directory route would return 404, whereas this handler
-  // recognizes the request and rejects it because the synthetic account has no login.
-  const response = await fetch(new URL('v1/accounts/isolated/contact-sync?directory=true', client.base), {
-    method: 'POST', headers: { Authorization: `Bearer ${client.token}` },
-  });
-  assert.notEqual(response.status, 404);
-  assert.equal(response.ok, false);
-  const account = await client.account('isolated');
-  assert.equal(account.authenticated, false);
-});
-
-test('the packaged source patch is bound to the component provenance manifest', async () => {
-  const manifest = JSON.parse(await readFile(new URL('../assets/native/manifest.json', import.meta.url), 'utf8'));
-  const patch = await readFile(new URL('../assets/native/current-directory.patch', import.meta.url));
-  assert.equal(createHash('sha256').update(patch).digest('hex'), manifest.patchSha256);
+test('bundled rewritten component has exact source-pinned bytes; offline physical probe touches no Keychain', {skip:process.platform!=='darwin'||process.arch!=='arm64'},async t=>{
+  const descriptor=nativeAsset('darwin','arm64');assert.equal(descriptor.product,'clowder-wechat-link');
+  const bytes=await loadBundled(descriptor,new AbortController().signal);assert.equal(bytes.length,descriptor.size);assert.equal(createHash('sha256').update(bytes).digest('hex'),descriptor.sha256);
+  const root=await mkdtemp(join(tmpdir(),'wechat-link-offline-'));const binary=join(root,descriptor.fileName);await writeFile(binary,bytes,{mode:0o700});
+  const child=spawn(binary,[],{env:{},stdio:['pipe','pipe','pipe'],shell:false});const transport=new NativeStdioTransport(child);
+  t.after(async()=>{transport.close();if(child.exitCode===null&&child.signalCode===null)await once(child,'exit');await rm(root,{recursive:true,force:true});});
+  const hello=await transport.request('hello');assert.equal(hello.pid,child.pid);assert.equal(hello.version,descriptor.version);assert.equal(hello.nativeApiAvailable,false);assert.equal(hello.accountServiceReady,false);
+  await assert.rejects(transport.request('login.start',{operationId:'offline-only'}),error=>error.code==='not_ready'&&!error.mayHaveCommitted);
+  assert.deepEqual((await transport.request('status')).egress,[]);
 });

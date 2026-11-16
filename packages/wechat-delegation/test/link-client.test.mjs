@@ -84,3 +84,17 @@ test('authentication, directory, sync and message contracts reject extra secret 
     await assert.rejects(call(bad.client),e=>e.code==='invalid_response'&&!String(e).includes('SENTINEL'));assert.equal(bad.closed(),true);
   }
 });
+
+test('the typed consumer exposes asynchronous native directory polling without an HTTP adapter',async()=>{
+  const f=fixture();await f.client.handshake();
+  f.transport.request=(method,params)=>{
+    if(method==='status')return Promise.resolve(status());
+    const directory={operationId:params.operationId,accountGeneration:1,accountIdentity:'synthetic-user',phase:'ready',catalogComplete:true,verifiedCount:1,unverifiedCount:0,groupDiscoveryIncomplete:false,snapshotAvailable:true,observedAt:Date.now(),retryAfterMs:0};
+    if(method==='directory.start')return Promise.resolve(directory);
+    if(method==='directory.page')return Promise.resolve({directory,items:[{id:'friend',kind:'direct',displayName:'Friend',nickname:null,remark:null,alias:null}],nextOffset:null});
+    throw Error('unexpected method');
+  };
+  assert.equal((await f.client.targets('clowder')).pending,true);
+  await new Promise(r=>setImmediate(r));
+  const page=await f.client.targets('clowder');assert.equal(page.pending,false);assert.equal(page.items[0].accountId,'clowder');
+});

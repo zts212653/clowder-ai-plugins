@@ -14,13 +14,14 @@ async function fixture(t) {
   const sends = [], logins = []; let prepared = 0;
   const client = {
     json: async () => ({ items: [{ id: 'clowder' }] }),
-    identity: async () => ({ serverId: 'server', accountId: 'clowder', accountIdentity: 'wxid_owner', connected: true }),
+    identity: async () => ({ serverId: 'server', accountId: 'clowder', accountIdentity: 'wxid_owner', nativeStoreId: 'synthetic-store', accountGeneration: 1, connected: true }),
     account: async () => ({ id: 'clowder', authenticated: true, ownUsername: 'wxid_owner', connection: 'online' }),
     createAccount: async () => ({}),
     targets: async () => ({ items: [{ id: 'room@chatroom', accountId: 'clowder', kind: 'group', displayName: '测试群' }], nextCursor: null }),
     login: async (_id, key) => { logins.push(key); return { id: 'login', kind: 'login', accountId: 'clowder', state: 'awaiting_scan' }; },
     operation: async () => ({ id: 'login', kind: 'login', accountId: 'clowder', state: 'awaiting_scan', result: { qrAvailable: true } }),
     qr: async () => 'data:image/png;base64,aGVsbG8=', prepare: async () => {},
+    authorize: async (_account, _identity, destination) => ({accountGeneration:1,conversationGeneration:1,destination}), pause: async () => ({paused:true}),
     submit: async run => { sends.push(run); return { sendId: 'send', state: 'queued' }; },
     inspect: async () => ({ sendId: 'send', state: 'cancelled' }), cancel: async () => ({ sendId: 'send', state: 'cancelled' }),
   };
@@ -32,7 +33,7 @@ async function fixture(t) {
   const model = { available: () => true, describe: async () => ({ available: true, fingerprint: 'preview', runtime: { clientId: 'test', model: 'test' } }),
     prepare: async () => ({ sessionId: 's', generation: 1, threadId: 'isolated', consumedCursor: 0 }),
     generate: async () => ({ kind: 'message', text: '今晚有人一起读书吗？' }) };
-  const supervisor = { client: null, prepare: async () => { prepared++; supervisor.client = client; return client; }, stop: async () => { supervisor.client = null; } };
+  const supervisor = { client: null, prepare: async () => { prepared++; supervisor.client = client; return client; }, stopOwned: async current => { if(supervisor.client===current) supervisor.client=null; }, stop: async () => { supervisor.client = null; } };
   const runtime = await DelegationRuntime.open(host, { supervisor, model, startTimer: false });
   t.after(() => runtime.stop());
   return { runtime, sends, logins, host, client, prepared: () => prepared };
@@ -126,7 +127,7 @@ test('Host teardown persists stop before revocation, then releases local resourc
   // The real Host calls preStop while its ports are current, then revokes them
   // before stop. A second durable takeover during stop must not call the Host.
   await f.runtime.preStop();
-  assert.equal((await f.runtime.service.snapshot()).globalPause, true);
+  assert.equal((await f.host.storage.get('wechat-delegation.v1')).value.globalPause, true);
   let revokedAccesses = 0;
   f.host.storage.get = async () => { revokedAccesses++; throw Error('Host activation revoked'); };
   f.host.storage.compareAndSet = async () => { revokedAccesses++; throw Error('Host activation revoked'); };
@@ -267,7 +268,7 @@ test('directory verification remains asynchronous, does not block owner status a
   assert.equal(pending.pending, true);
   assert.equal(resets, 1);
   await assert.rejects(f.runtime.dispatch({ action: 'chats', refreshDirectory: true, cursor: 'old' }, owner()), /第一页/);
-  f.client.identity = async () => ({ serverId: 'server', accountId: 'clowder', accountIdentity: 'wxid_owner', connected: true });
+  f.client.identity = async () => ({ serverId: 'server', accountId: 'clowder', accountIdentity: 'wxid_owner', nativeStoreId: 'synthetic-store', accountGeneration: 1, connected: true });
   await assert.rejects(f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', confirm: true }, owner()), /正在核对/);
   assert.equal((await f.runtime.status()).policies.length, 0);
   assert.equal(f.sends.length, 0);
@@ -294,4 +295,66 @@ test('activation refuses an account change hidden behind a failed status probe',
   await assert.rejects(f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然友好', goal: '读书', proactive: true, replies: true, confirm: true, modelFingerprint: 'preview', intervalMinutes: 180, maxTurns: 10 }, owner()), /账号.*变化/);
   assert.equal((await f.runtime.status()).policies.length, 0);
   assert.equal(f.sends.length, 0);
+});
+
+test('an owner stop returns locally before native pause ACK; explicit restore waits for pause and old model revocation',async t=>{
+  const f=await fixture(t);await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
+  let generation=0;const grants=[];f.client.authorize=async()=>{grants.push(++generation);return{accountGeneration:1,conversationGeneration:generation,destination:'room@chatroom'};};
+  f.client.pause=async()=>({paused:true});
+  const input={action:'activate',accountIdentity:'wxid_owner',serverId:'server',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'自然',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'};
+  await f.runtime.dispatch(input,owner());assert.equal(grants.length,1);
+  const id=(await f.runtime.service.snapshot()).policies[0].id;
+  let pauseDone,revokeDone;const pause=new Promise(r=>pauseDone=r),revoke=new Promise(r=>revokeDone=r);let revocations=0;
+  f.client.pause=()=>pause;f.host.memberSessions={revoke:()=>{revocations++;return revoke;}};
+  await f.runtime.dispatch({action:'takeover',policyId:id},owner());
+  assert.equal((await f.runtime.service.snapshot()).policies[0].mode,'owner');assert.equal(revocations,1);
+  const epoch=(await f.runtime.service.snapshot()).policies[0].epoch;
+  const restoring=f.runtime.dispatch({...input,expectedEpoch:epoch},owner());
+  await new Promise(r=>setImmediate(r));assert.equal(grants.length,1);
+  pauseDone({paused:true});await new Promise(r=>setImmediate(r));assert.equal(grants.length,1);
+  revokeDone({revoked:true});await restoring;assert.equal(grants.length,2);
+});
+
+test('two same-epoch activations cannot grant twice or revoke a winning session; takeover during grant rejects late activation',async t=>{
+  const f=await fixture(t);await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
+  let enter,finish;const entered=new Promise(r=>enter=r),grant=new Promise(r=>finish=r);let grants=0;
+  f.client.authorize=async()=>{grants++;enter();return grant;};f.client.pause=async()=>({paused:true});
+  const input={action:'activate',accountIdentity:'wxid_owner',serverId:'server',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'自然',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'};
+  const first=f.runtime.dispatch(input,owner());await entered;
+  const second=f.runtime.dispatch(input,owner());
+  await f.runtime.dispatch({action:'pause_all'},owner());
+  finish({accountGeneration:1,conversationGeneration:1,destination:'room@chatroom'});
+  const results=await Promise.allSettled([first,second]);
+  assert.equal(results.every(r=>r.status==='rejected'),true);assert.equal(grants,1);
+  assert.equal((await f.runtime.service.snapshot()).policies.filter(p=>p.mode==='active').length,0);
+});
+
+test('two concurrent confirmed starts yield one grant and no cleanup against the winner',async t=>{
+  const f=await fixture(t);await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
+  let enter,finish;const entered=new Promise(r=>enter=r),grant=new Promise(r=>finish=r);let grants=0;const revoked=[];
+  f.client.authorize=async()=>{grants++;enter();return grant;};f.host.memberSessions={revoke:async id=>revoked.push(id)};
+  const input={action:'activate',accountIdentity:'wxid_owner',serverId:'server',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'自然',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'};
+  const first=f.runtime.dispatch(input,owner());await entered;const second=f.runtime.dispatch(input,owner());await new Promise(r=>setImmediate(r));
+  finish({accountGeneration:1,conversationGeneration:1,destination:'room@chatroom'});
+  const results=await Promise.allSettled([first,second]);assert.equal(results[0].status,'fulfilled');assert.equal(results[1].status,'rejected');assert.equal(grants,1);assert.deepEqual(revoked,[]);
+});
+
+test('an implicit model handoff pauses the native sender without invoking owner-only member revocation',async t=>{
+  const f=await fixture(t);await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
+  const input={action:'activate',accountIdentity:'wxid_owner',serverId:'server',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'自然',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'};
+  await f.runtime.dispatch(input,owner());let pauses=0,revokes=0;f.client.pause=async()=>{pauses++;return{paused:true};};f.host.memberSessions={revoke:async()=>{revokes++;}};
+  f.runtime.model.generate=async()=>({kind:'silent',text:''});const policy=(await f.runtime.service.snapshot()).policies[0];
+  await f.runtime.dispatch({action:'initiate',policyId:policy.id,operationId:'silent'},owner());await f.runtime.drain();
+  assert.equal(pauses,1);assert.equal(revokes,0);assert.equal((await f.runtime.service.snapshot()).policies[0].mode,'paused');
+});
+
+test('teardown releases local resources while a model port is unresolved and late completion cannot access revoked Host storage',async t=>{
+  const f=await fixture(t);await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
+  await f.runtime.dispatch({action:'activate',accountIdentity:'wxid_owner',serverId:'server',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'自然',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'},owner());
+  let enter,finish;const entered=new Promise(r=>enter=r),model=new Promise(r=>finish=r);f.runtime.model.generate=async()=>{enter();return model;};
+  const policy=(await f.runtime.service.snapshot()).policies[0];await f.runtime.dispatch({action:'initiate',policyId:policy.id,operationId:'shutdown'},owner());await entered;
+  const stopping=f.runtime.preStop();const released=await Promise.race([stopping.then(()=>true),new Promise(r=>setImmediate(()=>r(false)))]);
+  let revokedAccess=0;f.host.storage.get=async()=>{revokedAccess++;throw Error('revoked');};f.host.storage.compareAndSet=f.host.storage.get;
+  finish({kind:'message',text:'late'});await stopping;await f.runtime.drain();
+  assert.equal(released,true);assert.equal(revokedAccess,0);assert.equal(f.sends.length,0);
 });

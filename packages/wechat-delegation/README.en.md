@@ -1,53 +1,13 @@
-# WeChat delegation (development candidate)
+# WeChat delegation and human takeover — security rewrite in progress
 
-[Simplified Chinese](README.md) · English
+The intended product lets the authenticated owner select a normal WeChat friend or group, choose a cat and speaking style, authorize proactive messages/replies, and take over at any time. It does not substitute a bot or desktop OCR for that journey.
 
-An installable Clowder AI plugin for proactive conversations with explicitly selected WeChat friends or groups. Choose a real cat, define the persona and purpose, enable delegation, and take over at any time. Ordinary messages within the approved scope do not require individual approval.
+This branch is an internal development candidate, not an accepted installation. The restricted native service, private stdio client, final sender deadlines and Host stop/renewal ordering are implemented. Authentication orchestration, sync baseline/reset handling, canonical delivery inspection, repair UI and final real-account acceptance remain open. `accountServiceReady=false`. The running plugin has not been replaced; no real account login/send, merge or publication is claimed.
 
-This candidate uses the third-party Agent WeChat native HTTP API. It does not substitute iLink bot conversations or desktop OCR for personal friend and group messaging. It remains a private development package to prevent premature npm/catalog publication. Verified local archives can still be installed; public distribution requires the repository's release process.
+The bundled `clowder-wechat-link` replaces the general Agent WeChat HTTP daemon. Its fixed MIT protocol subset has no generic URL/shell, secret export or old desktop-profile import. Credentials/messages persist in an encrypted Vault; the key uses a macOS file Keychain application ACL, not a claim of Secure Enclave protection. The owned child receives private pipes and no owner environment. Model sessions receive only authorized persona/goal/chat text, with no account secrets, QR or direct sender tools. The Host owns policy and model selection; the native service owns account transactions, current relationship verification and final submission. Durable takeover/expiry fences queued and in-flight work; unknown outcomes retain their original key and are never automatically resent. User chat/control/send history has no default TTL.
 
-## Setup and use
+Tests use isolated synthetic remote peers and stores. Actual Keychain checks use newly created private synthetic Keychains. The actual bundled executable is physically probed only in no-argument offline mode, without opening default Keychain entries. This does not prove real account compatibility or message delivery. Current native bytes target macOS Apple Silicon, minimum/tested macOS 26.5, with a linker ad-hoc signature. Distribution signing, upgrade reauthorization and product repair are still pending.
 
-1. Install the archive into a compatible Host and enable it. Close the introduction and click the WeChat delegation speech-bubble icon near the bottom of the far-left navigation rail. The introduction contains documentation and lifecycle management; account connection, authorization and takeover live in the panel. Enabling the plugin does not start the native client or authorize conversations.
-2. Read and accept the third-party component and synchronization disclosure. Prepare the account component through the panel. The plugin unpacks the bundled repair build, checks its SHA-256 and supervises a dedicated process. There are no token-copying or terminal setup steps.
-3. Scan the actual login QR with your phone and confirm the account. Saved login trust may reconnect and synchronize when the component starts. Login alone grants cats no conversation access.
-4. Select a real friend or group, an available cat, a persona and purpose. Review the actual model service and explicitly authorize automatic replies and/or proactive messages.
-5. Start an immediate conversation or opt into a recurring policy with a timezone, permitted hours, interval, daily limit and turn budget. Proactive follow-ups stop while the peer has not answered. Group permission never extends to members' direct messages.
-6. Use the conversation takeover button or the persistent global pause button. Local future sending stops first; already handed-off sends remain visible until cancellation or their result is known. Only an explicit owner action resumes delegation.
+See [Chinese status and development commands](README.md), [native source](native/README.md), [IPC contract](native/IPC.md), [artifact provenance and licenses](assets/native/README.md), and the [remaining Host integration plan](../../docs/plans/2026-11-17-wechat-native-host-integration.md). Native source provenance distinguishes two MMTLS pins matched in a Tencent-signed local artifact from six business keys whose origin is still unverified. Neither this partial provenance nor green tests constitutes overall security acceptance.
 
-Customize tone, length, forms of address and emoji in the persona, speaking style and boundaries field. Reopen conversation settings to edit saved preferences. WeChat receives only the conversation text, without an appended cat name, model name or signature; controlled-session presentation signatures are kept out of the outgoing text.
-
-If you select a Clowder notification thread, an exact owner-authored `/takeover` command stops its bound conversations, and `/pause-all` stops all delegation. The plugin reads canonical human sender facts; external contacts and display names cannot become the owner. This command path requires trusted sender facts from the Host. Panel takeover remains available.
-
-Not seeing a message is not proof that it was never sent. Unknown results are inspected under the original send key and are never automatically resubmitted. The owner may separately record that they checked the exact conversation and complete text and observed the message being sent.
-
-## Boundaries and persistence
-
-- Requires a Host with builtin modules, owner HTTP panels, storage CAS and controlled member sessions. Missing controlled execution is reported as unavailable; there is no fallback to an unrestricted household cat.
-- Controlled sessions use no household memory and an MCP server exposing no tools, resources or prompts. Model output is structured text; it cannot grant permissions, change recipients or execute payments, files, commands, attachments or links.
-- Alpha.6 bundles a Clowder directory repair build, `2.4.1-clowder.2`, based on Agent WeChat v2.4.1 at `ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e` (MIT). This candidate supports macOS Apple Silicon only. It is a modified build, not the upstream release binary. Source patch, build instructions, licenses and exact digests are in `assets/native/`. No latest or older binary fallback is used.
-- The native client starts only after an owner preparation action. Its profile and startup configuration live in the Host's dedicated `dataPath/native-profile` and `dataPath/native-config` directories. It inherits no household HOME and does not import the official desktop application's profile. The local API credential travels over a private stdin pipe, not through model context, chat, URLs, process arguments or logs.
-- The underlying client may synchronize data beyond selected conversations. The plugin sends text to a model and posts messages only within explicitly approved account and stable conversation bindings.
-- Login, connection maintenance and synchronization communicate with WeChat servers. Once delegation is explicitly enabled, selected text also reaches the approved model service; a cloud model receives that text. The pinned component declares `UnifiedPCLinux x86_64` as its protocol device type, so the phone may display Linux even when the component runs on macOS. The plugin runs the component on the Host machine and does not deploy another Linux server. This describes the implementation, not a complete traffic or supplier security audit.
-- Targets come from a fresh complete server inventory and current friend-flag verification, independently of cached chat history or group-member rows. Cat selection, directory verification and the optional reminder directory load independently. Unverified entries are excluded and counted; incomplete synchronization can be retried with Refresh status.
-- The HTTP adapter only accesses its owned loopback daemon, refuses redirects and oversized responses, and verifies server/account identity before sending.
-- Conversation settings, policies and audit records persist without automatic deletion. An optional execution expiry limits future behavior while retaining configuration and history. Restart, disable and configuration changes pause delegation and preserve unknown outcomes. New grants do not revive old permits or late drafts.
-
-Explicit financial, credential, account-security or owner-contact requests pause delegation. Text rules and models are not proof of complete scam detection. This version sends text only. Choose a Clowder thread for owner handoff notifications; historical audit records remain available through bounded pages.
-
-## Verification
-
-```sh
-node --test test/*.test.mjs
-npm run build
-```
-
-Transport tests use a real loopback HTTP fixture. Process supervision tests execute a synthetic isolated program; on macOS ARM64 they also start the final bundled repair build with an empty account profile. Other checks cover takeover races, canonical owner control, group isolation, restart, durable acknowledgements and recovery without duplicate sends. The packed artifact is installed into an empty offline consumer and its real panel is served without starting the native client.
-
-The browser journey uses the real panel with an explicitly labeled isolated fake platform/model. It does not connect an account or send messages to WeChat. Vendor binary execution, owner login, real friend/group receipt and takeover acceptance require separate evidence and are not claimed by simulation tests.
-
-Protocol source reviewed: `thisnick/agent-wechat@1e7dec817ca2ff893b8365b768058b6c0274563d`, including the shared HTTP client/generated contracts, core account status, and managed-host implementation. Release metadata was read on 2026-11-14. The project publishes both its code and artifacts; neither is independent proof of account safety or official platform endorsement.
-
-The current direct-recipient directory is a fresh complete initcontact walk from (0,0), followed by fresh getcontact friend flags. Group-only peers, stale cached contacts, service accounts and foreign namespaces do not expand it. Unverified entries are excluded with a visible count. The list displays complete stable IDs, refreshes after five minutes or an explicit refresh, and refuses old snapshots after account changes. No fixed contact-count cutoff is used.
-
-Alpha.6 verifies groups independently from the friend inventory. Synced group IDs and partial group discovery supply hints; only fresh membership details or a fresh roster explicitly containing the current owner establish eligibility. The chooser opens lazily, searches all verified candidates, pages by 20 and preserves selection/consent across ordinary polling and pending-directory rejection. Errors appear beside the action; retry never automatically activates delegation. Temporary status-probe failure preserves the last verified display, while activation must match the confirmed account and server identity.
+No instructions to replace the owner's currently running plugin are offered until the full candidate and explicit real-account/release authority are available.

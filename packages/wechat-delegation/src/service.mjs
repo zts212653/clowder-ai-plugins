@@ -19,7 +19,7 @@ function inWindow(policy, at) {
     : minute >= policy.windowStart || minute < policy.windowEnd;
 }
 function stopInState(state, ids) {
-  for (const policyId of ids) { const policy = state.policies[policyId]; if (policy.mode !== 'revoked') { policy.mode = 'owner'; policy.ownerReason = 'manual'; policy.epoch++; } }
+  for (const policyId of ids) { const policy = state.policies[policyId]; policy.epoch++; if (policy.mode !== 'revoked') { policy.mode = 'owner'; policy.ownerReason = 'manual'; } }
   for (const run of Object.values(state.runs)) if (ids.includes(run.policyId)) {
     if (['waiting', 'generating', 'prepared'].includes(run.phase)) run.phase = 'cancelled';
     if (run.submitted && pending.has(run.phase)) run.cancelRequested = true;
@@ -61,6 +61,7 @@ export class DelegationService {
     return result;
   }
   async load() {
+    if (this.closed) throw Error('activation expired');
     const row = await this.storage.get(KEY);
     if (!row || row.value.activation !== this.activation) throw Error('activation expired');
     return row;
@@ -95,6 +96,36 @@ export class DelegationService {
     return policy?.mode === 'active' && policy.epoch === run.epoch &&
       (policy.expiresAt === null || policy.expiresAt > this.now());
   }
+  activationFence(state, input, fence) {
+    const policyId = hash([input.serverId, input.accountId, input.accountIdentity, input.conversationId]);
+    const old = state.policies[policyId];
+    if (fence && ((old?.epoch ?? 0) !== fence.policyEpoch || state.globalControlEpoch !== fence.globalControlEpoch))
+      throw Error('授权准备期间发生接管或配置变化，请重新确认');
+    if (Object.values(state.runs).some(run => run.accountId === input.accountId && run.accountIdentity === input.accountIdentity &&
+        run.conversationId === input.conversationId && run.submitted && ['submitting', 'queued', 'needs_review'].includes(run.phase)))
+      throw Error('请先核对该会话尚未确定的发送结果');
+    return policyId;
+  }
+  async prepareActivation(input, fence) {
+    return this.serial(async () => {
+      const { value: state } = await this.load();
+      const policyId = this.activationFence(state, input, fence);
+      if (state.policies[policyId]?.mode !== 'active') return { policyEpoch: state.policies[policyId]?.epoch ?? 0, globalControlEpoch: state.globalControlEpoch };
+      // Retire the old Host epoch before replacing its native grant. Late old
+      // work then cannot pause or otherwise change the new activation.
+      return this.change(next => {
+        this.activationFence(next, input, fence);
+        stopInState(next, [policyId]); next.policies[policyId].mode = 'paused';
+        return { policyEpoch: next.policies[policyId].epoch, globalControlEpoch: next.globalControlEpoch };
+      });
+    });
+  }
+  async beginActivationStep(input, fence, start) {
+    return this.serial(async () => {
+      const { value: state } = await this.load(); this.activationFence(state, input, fence);
+      return { promise: start() };
+    });
+  }
   async activate(input, fence) {
     for (const key of ['accountId', 'accountIdentity', 'serverId', 'conversationId', 'catId']) id(input[key]);
     if (!['direct', 'group'].includes(input.kind) || (input.kind === 'group') !== input.conversationId.endsWith('@chatroom')) throw Error('conversation kind mismatch');
@@ -112,11 +143,7 @@ export class DelegationService {
     const policyId = hash([input.serverId, input.accountId, input.accountIdentity, input.conversationId]);
     const policy = await this.serial(() => this.change(state => {
       const old = state.policies[policyId];
-      if (fence && ((old?.epoch ?? 0) !== fence.policyEpoch || state.globalControlEpoch !== fence.globalControlEpoch))
-        throw Error('授权准备期间发生接管或配置变化，请重新确认');
-      if (Object.values(state.runs).some(run => run.accountId === input.accountId && run.accountIdentity === input.accountIdentity &&
-          run.conversationId === input.conversationId && run.submitted && ['submitting', 'queued', 'needs_review'].includes(run.phase)))
-        throw Error('请先核对该会话尚未确定的发送结果');
+      this.activationFence(state, input, fence);
       for (const run of Object.values(state.runs)) if (run.policyId === policyId) {
         if (['waiting', 'generating', 'prepared'].includes(run.phase)) run.phase = 'cancelled';
         if (run.submitted && pending.has(run.phase)) run.cancelRequested = true;
@@ -132,12 +159,18 @@ export class DelegationService {
     for (const [runId, entry] of this.controllers) if (entry.policyId === policyId) { entry.controller.abort(); this.controllers.delete(runId); }
     return policy;
   }
-  async takeover(policyId = null) {
-    const affected = await this.serial(() => this.change(state => {
-      if (policyId !== null && !state.policies[policyId]) throw Error('unknown conversation');
-      if (policyId === null) { state.globalPause = true; state.globalControlEpoch++; }
-      return stopInState(state, Object.values(state.policies).filter(p => policyId === null || p.id === policyId).map(p => p.id));
-    }));
+  async takeover(policyId = null, onStopped, mode = 'owner') {
+    const affected = await this.serial(async () => {
+      let policies;
+      const ids = await this.change(state => {
+        if (policyId !== null && !state.policies[policyId]) throw Error('unknown conversation');
+        if (policyId === null) { state.globalPause = true; state.globalControlEpoch++; }
+        const ids = stopInState(state, Object.values(state.policies).filter(p => policyId === null || p.id === policyId).map(p => p.id));
+        if (mode === 'revoked') for (const id of ids) state.policies[id].mode = 'revoked';
+        policies = ids.map(id => state.policies[id]); return ids;
+      });
+      onStopped?.(structuredClone(policies)); return ids;
+    });
     for (const entry of this.controllers.values()) if (affected.includes(entry.policyId)) entry.controller.abort();
     // Cancellation/inspection is reconciled independently; the durable local
     // stop does not wait for the network and does not invent a remote receipt.
@@ -324,13 +357,20 @@ export class DelegationService {
       } catch { /* No new POST: absence or network failure is not permission to resend. */ }
     }
   }
-  async tick(at = this.now()) {
-    await this.serial(() => this.change(state => {
+  async expire(at = this.now()) {
+    return this.serial(async () => {
+      const { value: state } = await this.load();
+      if (!Object.values(state.policies).some(policy => policy.mode === 'active' && policy.expiresAt !== null && policy.expiresAt <= at)) return;
+      return this.change(state => {
       for (const policy of Object.values(state.policies)) if (policy.mode === 'active' && policy.expiresAt !== null && policy.expiresAt <= at) {
         policy.mode = 'expired'; policy.epoch++;
         for (const run of Object.values(state.runs)) if (run.policyId === policy.id && ['waiting', 'generating', 'prepared'].includes(run.phase)) run.phase = 'cancelled';
       }
-    }));
+      });
+    });
+  }
+  async tick(at = this.now()) {
+    await this.expire(at);
     for (const policy of (await this.snapshot()).policies) {
       if (policy.mode !== 'active' || !policy.proactive || policy.scheduleEnabled !== true || policy.nextAt > at || policy.turns >= policy.maxTurns ||
           policy.expiresAt !== null && policy.expiresAt <= at) continue;
@@ -357,13 +397,12 @@ export class DelegationService {
   async markNotified(runId) {
     return this.serial(() => this.change(state => { state.runs[runId].notified = true; }));
   }
-  interruptLocal() {
-    for (const entry of this.controllers.values()) entry.controller.abort();
-    this.controllers.clear();
+  interruptLocal(policyIds = null) {
+    for (const [id, entry] of this.controllers) if (policyIds === null || policyIds.includes(entry.policyId)) { entry.controller.abort(); this.controllers.delete(id); }
   }
-  async revoke(policyId) {
-    await this.takeover(policyId);
-    return this.serial(() => this.change(state => { state.policies[policyId].mode = 'revoked'; }));
+  deactivate() { this.closed = true; this.interruptLocal(); }
+  async revoke(policyId, onStopped) {
+    return this.takeover(policyId, onStopped, 'revoked');
   }
   async ownerStop(source) {
     const affected = await this.serial(() => this.change(state => {

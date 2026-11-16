@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { NativeRequestError } from './native-stdio.mjs';
+import { CurrentDirectory } from './current-directory.mjs';
 
 const UPSTREAM = 'ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e';
 const CAPABILITIES = ['stdio-v1', 'text-protocol-subset', 'account-login-v1', 'durable-text-send-v1', 'durable-text-sync-v1', 'current-directory-v1', 'explicit-session-resume-v1'];
@@ -47,7 +48,11 @@ export class NativeLinkClient {
   constructor({ transport, pid, version }) {
     if (!transport || !uint(1)(pid) || !text(64)(version)) throw new NativeRequestError('invalid_request');
     Object.assign(this, { transport, pid, version }); this.instanceId = randomUUID(); this.ready = false;
+    this.directory = new CurrentDirectory(this);
   }
+  targets(accountId, cursor, options) { return this.directory.page(accountId, cursor, options); }
+  refreshTargets(accountId) { this.accountId(accountId); this.directory.refresh(); }
+  directoryPending(accountId) { this.accountId(accountId); return this.directory.pending(); }
   invalid(mayHaveCommitted = false) { this.ready = false; this.transport.close(); throw new NativeRequestError('invalid_response', mayHaveCommitted); }
   async request(method, params, check) {
     const value = await this.transport.request(method, params);
@@ -89,7 +94,7 @@ export class NativeLinkClient {
     if (value.accountGeneration !== identity.accountGeneration || value.destination !== destination) this.invalid(true);
     return value;
   }
-  async pause(accountGeneration, destination = null) {
+  async pause(accountGeneration = this.account?.accountGeneration, destination = null) {
     if (!uint()(accountGeneration) || destination !== null && !coordinate(destination)) throw new NativeRequestError('invalid_request');
     return this.request('conversation.pause', { accountGeneration, destination }, record({ paused: value => value === true }));
   }
@@ -154,7 +159,8 @@ export class NativeLinkClient {
   async directoryPage(operationId, offset = 0) {
     if (!this.ready || !key(operationId) || !uint(0, 10000)(offset)) throw new NativeRequestError('invalid_request');
     const value = await this.request('directory.page', { operationId, offset }, record({ directory: directoryShape, items: list(targetShape, 100), nextOffset: nullable(uint(0, 10000)) }));
-    if (value.directory.operationId !== operationId || value.directory.phase !== 'ready' || !value.directory.snapshotAvailable || value.nextOffset !== null && value.nextOffset !== offset + value.items.length ||
+    if (value.directory.operationId !== operationId || value.directory.phase !== 'ready' || !value.directory.snapshotAvailable || !value.directory.catalogComplete || value.directory.observedAt === null ||
+        offset + value.items.length > value.directory.verifiedCount || value.nextOffset !== null && (value.nextOffset !== offset + value.items.length || !value.items.length) ||
         value.items.some(item => (item.kind === 'group') !== item.id.endsWith('@chatroom')) || new Set(value.items.map(item => item.id)).size !== value.items.length) this.invalid();
     return value;
   }

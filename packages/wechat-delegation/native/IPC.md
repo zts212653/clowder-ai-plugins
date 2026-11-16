@@ -54,17 +54,17 @@ id是1到JavaScript最大安全整数；operationId为1–128个ASCII字母、�
 
 文字发送回执包含id、destination、accountGeneration、conversationGeneration、state、createdAt、clientMessageId、serverId。成功须目的地/客户端id匹配、业务双code成功及非零u64 serverId；仅匹配的显式拒绝为failed，其余已提交错误为needs_review。accepted只证明协议受理，不是收件人已读或同步回显核验。未知/终态不会再次发送，同id不同正文或租约拒绝。好友须新回复的全mask好友位且非官方/系统对象；群须当前成员字段或精确群的正向本人roster证明，字段稀疏不复用旧状态。
 
-Node侧还未接线；上述是受控开发入口，不是对最终用户新增配置命令。真实账号、正式签名与升级、LAN显式路径和完整好友/群代聊接管验收仍保持开放。
+Node侧已部分接入私有流、Supervisor、目录与发送控制；认证编排、消息流基线与完整旅程尚缺。上述仍是开发入口，不是对最终用户新增配置命令。真实账号、正式签名与升级、LAN显式路径和完整好友/群代聊接管验收仍保持开放。
 
 ## Node字节传输层
 
-`src/native-stdio.mjs`已有私有管道transport，尚未替换NativeSupervisor/原HTTP NativeClient。它只允许上表方法，信封按安全整数id关联，允许乱序，最多16个待回请求；输入/输出每帧上限1MiB，UTF-8严格解码。后端错误只接受固定code白名单，JSON异常、未知字段/诊断和stderr不转发。协议故障/关闭会拒绝待回请求并终止传入的自有子进程，不查询外部PID或回退另一后端。
+`src/native-stdio.mjs`提供私有管道transport，新的NativeSupervisor已消费它和NativeLinkClient。它只允许上表方法，信封按安全整数id关联，允许乱序，最多16个待回请求；输入/输出每帧上限1MiB，UTF-8严格解码。后端错误只接受固定code白名单，JSON异常、未知字段/诊断和stderr不转发。协议故障/关闭会拒绝待回请求并终止传入的自有子进程，不查询外部PID或回退另一后端。
 
 未写出前取消为`request_cancelled`；已写出的请求超时/取消为`request_unknown`且mayHaveCommitted=true，之后的晚回包不会占据另一id。超时不自动重发、不谎报远端取消；宿主应沿同一operationId核回执。明确的副作用前拒绝码不冒充已提交。二进制身份、运行代次及账号DTO校验由后续Supervisor/NativeClient消费端承担，裸字节transport不是独立身份认证或完整Node接线。
 
 子进程exit后立即拒绝新请求，但保留待读响应直到stdout读尽或close，避免丢失退出前已经写出的最终回执。真实Node子进程检查覆盖这一退出顺序、乱序、超时晚回包、关闭、超长/坏JSON及含秘密诊断拒绝；另已让该transport连接真正编译的Rust无参进程核PID、hello/status及离线登录拒绝。该组合没有默认钥匙串条目/账号访问，也不是真实扫码或Host安装验收。
 
-`src/link-client.mjs`新增上述私有管道的窄类型消费端，逐层拒绝未知字段，核当前PID/精确版本/能力，账号、租约与发送回执身份须匹配。每个adapter只绑定一个owned child，运行instance id每次新建；持久Store.serverId单独保存，不冒充新进程身份。提交直接使用run中的lease，写前没有await；未知/无效回包不重发，已明确副作用前拒绝与写后未知区分。认证/目录/同步/消息DTO及QR仅按封闭结构返回，不导出AccountState。尚未替换Supervisor/Runtime及旧资产，亦未完成流基线/查证和实际插件旅程，不能把这层视为完整产品就绪。
+`src/link-client.mjs`是上述私有管道的窄类型消费端，逐层拒绝未知字段，核当前PID/精确版本/能力，账号、租约与发送回执身份须匹配。每个adapter只绑定一个owned child，运行instance id每次新建；持久Store.serverId单独保存，不冒充新进程身份。提交直接使用run中的lease，写前没有await；未知/无效回包不重发，已明确副作用前拒绝与写后未知区分。认证/目录/同步/消息DTO及QR仅按封闭结构返回，不导出AccountState。Supervisor及内置资产已替换，Runtime部分消费控制与目录；仍缺完整认证、消息基线/查证和实际插件旅程，不能视为完整产品就绪。
 
 同步使用账号generation和私有checkpoint ticket拒绝迟到/重复提交；网络不持control锁，同一账号最多一个sync.pull在途，stdio总网络线程仍最多两个。未知或不能投影的命令保留在同一个加密Vault且计数披露，不进RPC；不因新游标删除它们。相同命令去重，无变化轮询不改写Vault。消息id绑定账号代次和服务端id（缺id时用命令摘要）；同id冲突保留原投影及原始新命令，增加未投影计数，不覆盖已保存正文。
 

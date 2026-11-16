@@ -1,41 +1,30 @@
 import { spawn } from 'node:child_process';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { chmod, lstat, mkdir, open, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
-import { createServer } from 'node:net';
+import { createHash, randomUUID } from 'node:crypto';
+import { chmod, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { constants, readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import { NativeClient } from './native-client.mjs';
+import { NativeStdioTransport } from './native-stdio.mjs';
+import { NativeLinkClient } from './link-client.mjs';
 
-// A source-pinned Clowder repair build, bundled for offline installation.
 const pins = JSON.parse(readFileSync(new URL('../assets/native/manifest.json', import.meta.url), 'utf8'));
 export function nativeAsset(platform = process.platform, arch = process.arch) {
   const pin = pins.artifacts[`${platform}-${arch}`];
-  if (!pin) throw Error('本次通讯录修复构建暂只提供 macOS Apple Silicon 版本');
-  return { ...pin, version: pins.version, capabilities: ['current-contact-directory', 'current-group-directory'] };
+  if (!pin || pins.product !== 'clowder-wechat-link') throw Error('当前安装包尚未包含适用于本机的安全重写连接组件');
+  return { ...pin, product: pins.product, version: pins.version };
 }
 export async function loadBundled(asset, signal) {
   signal.throwIfAborted();
   const compressed = await readFile(new URL(`../assets/native/${asset.fileName}.gz`, import.meta.url));
+  signal.throwIfAborted();
   if (createHash('sha256').update(compressed).digest('hex') !== asset.compressedSha256) throw Error('native bundle integrity mismatch');
   return gunzipSync(compressed, { maxOutputLength: asset.size });
-}
-async function port() {
-  const listener = createServer();
-  await new Promise((resolve, reject) => { listener.once('error', reject); listener.listen(0, '127.0.0.1', resolve); });
-  const number = listener.address().port;
-  await new Promise((resolve, reject) => listener.close(error => error ? reject(error) : resolve()));
-  return number;
 }
 async function privateDirectory(path, recursive = false) {
   let directory;
   try {
-    try { await mkdir(path, { recursive, mode: 0o700 }); }
-    catch (error) { if (error.code !== 'EEXIST') throw error; }
-    // Inspect and tighten the opened directory itself, without following a
-    // final symlink or chmod'ing an unrelated target. Same-UID OS compromise
-    // is outside this boundary; the native service must also guard its files.
+    try { await mkdir(path, { recursive, mode: 0o700 }); } catch (error) { if (error.code !== 'EEXIST') throw error; }
     directory = await open(path, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
     const stat = await directory.stat();
     if (!stat.isDirectory() || typeof process.getuid === 'function' && stat.uid !== process.getuid()) throw Error('directory ownership mismatch');
@@ -43,86 +32,109 @@ async function privateDirectory(path, recursive = false) {
   } catch { throw Error('native private directory must be an owned directory, not a symbolic link'); }
   finally { await directory?.close(); }
 }
+async function initializeVault(path) {
+  const names = await readdir(path);
+  if (!names.length) return true;
+  if (names.includes('vault.id') && names.includes('state.vault')) return false;
+  // A marker without complete state could represent an interrupted creation
+  // or missing user data. Preserve everything; never guess and start over.
+  throw Object.assign(Error('账号保险库初始化未完成或文件缺失；原件已保留，请进入修复。'), { code: 'vault_repair_required' });
+}
+function validAsset(asset) {
+  return asset && typeof asset.fileName === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(asset.fileName) &&
+    Number.isSafeInteger(asset.size) && asset.size > 0 && asset.size <= 128 * 1024 * 1024 && /^[a-f0-9]{64}$/.test(asset.sha256) &&
+    typeof asset.version === 'string' && /^[A-Za-z0-9][A-Za-z0-9.+-]{0,63}$/.test(asset.version);
+}
+/** Own exactly one private-pipe process. There is no port/token, external PID
+ * lookup, generic configuration root, legacy profile import or backend fallback. */
 export class NativeSupervisor {
   constructor({ dataPath, asset, download = loadBundled }) {
-    this.dataPath = dataPath; this.asset = asset; this.download = download; this.client = null;
+    Object.assign(this, { dataPath, asset, download }); this.client = null; this.clients = new WeakMap();
   }
   async prepare(owner) {
     owner.signal.throwIfAborted(); await owner.assertCurrent();
+    if (this.record?.stopping) await this.record.stopping;
     if (this.client) { await this.client.status(); return this.client; }
     if (this.preparing) return this.preparing;
-    this.preparing = this.start(owner).finally(() => { this.preparing = null; });
-    return this.preparing;
+    const record = { controller: new AbortController(), child: null, client: null, exited: null, stopping: null };
+    this.record = record;
+    const pending = this.start(record, owner).finally(() => { if (this.preparing === pending) this.preparing = null; });
+    record.pending = pending; this.preparing = pending; return pending;
   }
-  async start(owner) {
-    const asset = this.asset ?? nativeAsset();
-    await privateDirectory(this.dataPath, true);
-    const root = await realpath(this.dataPath);
-    const binary = join(root, asset.fileName);
-    let bytes;
+  async start(record, owner) {
+    const signal = AbortSignal.any([owner.signal, record.controller.signal]);
+    const current = async () => { signal.throwIfAborted(); await owner.assertCurrent(); signal.throwIfAborted(); };
+    const abort = () => { void this.stopRecord(record); };
+    signal.addEventListener('abort', abort, { once: true });
     try {
-      const stat = await lstat(binary);
-      if (!stat.isFile() || stat.isSymbolicLink()) throw Error('native integrity mismatch');
-      if (stat.size === asset.size) bytes = await readFile(binary);
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
-    if (!bytes || createHash('sha256').update(bytes).digest('hex') !== asset.sha256) {
-      bytes = await this.download(asset, owner.signal);
-      if (bytes.length !== asset.size || createHash('sha256').update(bytes).digest('hex') !== asset.sha256) throw Error('native integrity mismatch');
-      owner.signal.throwIfAborted(); await owner.assertCurrent();
-      const temporary = join(root, `.download-${randomUUID()}`);
-      try { await writeFile(temporary, bytes, { mode: 0o700, flag: 'wx' }); await rename(temporary, binary); }
-      finally { await rm(temporary, { force: true }); }
-    }
-    if (createHash('sha256').update(bytes).digest('hex') !== asset.sha256) throw Error('native integrity mismatch');
-    await chmod(binary, 0o700);
-    const dataDir = join(root, 'native-profile');
-    await privateDirectory(dataDir);
-    // The native CLI resolves global config before serving, even with --data-dir.
-    // Keep it in this plugin instance rather than inheriting the owner's HOME.
-    const configDir = join(root, 'native-config');
-    await privateDirectory(configDir);
-    const listen = await port(); const token = randomBytes(32).toString('hex');
-    const environment = Object.fromEntries(['PATH', 'TMPDIR', 'TMP', 'TEMP', 'SystemRoot', 'WINDIR', 'LANG', 'LC_ALL', 'TZ']
-      .filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]]));
-    environment.XDG_CONFIG_HOME = configDir;
-    owner.signal.throwIfAborted(); await owner.assertCurrent(); owner.signal.throwIfAborted();
-    const child = spawn(binary, ['serve', '--data-dir', dataDir, '--token-stdin', '--listen', `127.0.0.1:${listen}`],
-      { env: environment, stdio: ['pipe', 'ignore', 'pipe'], shell: false });
-    this.child = child; let exited = false;
-    this.exited = new Promise(resolve => {
-      const finish = () => { if (exited) return; exited = true; this.client = null; this.onExit?.(); resolve(); };
-      child.once('exit', finish); child.once('error', finish);
-    });
-    child.stderr.on('data', () => {}); // Never copy provider/account diagnostics to chats or logs.
-    child.stdin.on('error', () => {}); child.stdin.end(`${token}\n`);
-    const client = new NativeClient({ baseUrl: `http://127.0.0.1:${listen}/`, token, timeoutMs: 1000 });
-    try {
-      const deadline = Date.now() + 15000;
-      while (Date.now() < deadline) {
-        owner.signal.throwIfAborted(); await owner.assertCurrent();
-        if (exited) throw Error('账号连接组件已退出');
-        let status;
-        try { status = await client.status(); } catch { await delay(100, undefined, { signal: owner.signal }); continue; }
-        if (status.pid !== child.pid || status.dataDir !== dataDir || status.version?.product !== 'agent-wechat' ||
-            status.version?.backend !== 'native' || status.version?.apiVersion !== 1 || status.version?.version !== asset.version || !status.serverId || !status.ownershipGeneration ||
-            !Array.isArray(status.version.capabilities) || ['serve', 'events', 'profile-read', 'text-send', 'native-login', ...(asset.capabilities ?? [])].some(capability => !status.version.capabilities.includes(capability)))
-          throw Error('账号连接组件身份与本次进程不符');
-        await owner.assertCurrent(); owner.signal.throwIfAborted();
-        this.client = new NativeClient({ baseUrl: client.base.href, token }); this.status = status;
-        return this.client;
+      const asset = this.asset ?? nativeAsset();
+      if (!validAsset(asset)) throw Error('native integrity descriptor invalid');
+      await privateDirectory(this.dataPath, true);
+      const root = await realpath(this.dataPath), binary = join(root, asset.fileName);
+      let bytes;
+      try {
+        const stat = await lstat(binary);
+        if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || typeof process.getuid === 'function' && stat.uid !== process.getuid()) throw Error('native integrity mismatch');
+        if (stat.size === asset.size) bytes = await readFile(binary);
+      } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      if (!bytes || createHash('sha256').update(bytes).digest('hex') !== asset.sha256) {
+        bytes = await this.download(asset, signal);
+        if (!Buffer.isBuffer(bytes) || bytes.length !== asset.size || createHash('sha256').update(bytes).digest('hex') !== asset.sha256) throw Error('native integrity mismatch');
+        await current();
+        const temporary = join(root, `.component-${randomUUID()}`);
+        try { await writeFile(temporary, bytes, { mode: 0o700, flag: 'wx' }); await rename(temporary, binary); }
+        finally { await rm(temporary, { force: true }); }
       }
-      throw Error('账号连接组件未能启动，请重试准备连接');
-    } catch (error) { await this.stop(); throw error; }
+      await chmod(binary, 0o700);
+      const vault = join(root, 'link-vault'); await privateDirectory(vault);
+      const initialize = await initializeVault(vault);
+      await current();
+      const child = spawn(binary, ['--data-dir', vault, ...(initialize ? ['--initialize'] : [])], { env: {}, stdio: ['pipe', 'pipe', 'pipe'], shell: false });
+      record.child = child; this.child = child;
+      record.exited = new Promise(resolve => {
+        let done = false;
+        const finish = () => {
+          if (done) return; done = true;
+          if (this.record === record) { this.client = null; this.child = undefined; this.onExit?.(); }
+          resolve();
+        };
+        child.once('exit', finish); child.once('error', finish);
+      });
+      const transport = new NativeStdioTransport(child, { timeoutMs: 45000 });
+      const client = new NativeLinkClient({ transport, pid: child.pid, version: asset.version });
+      record.client = client; this.clients.set(client, record);
+      await client.handshake(); await current();
+      if (child.exitCode !== null || child.signalCode !== null || transport.closed || transport.exited) throw Error('账号连接组件已退出');
+      this.client = client; return client;
+    } catch (error) { await this.stopRecord(record); throw error; }
+    finally { signal.removeEventListener('abort', abort); }
   }
+  stopRecord(record) {
+    if (record.stopping) return record.stopping;
+    if (this.record === record) this.client = null;
+    // Mark the stop before abort emits synchronously and re-enters this method.
+    let finish;
+    record.stopping = new Promise(resolve => { finish = resolve; });
+    record.controller.abort(); record.client?.transport.close();
+    void (async () => {
+      try {
+        const child = record.child;
+        if (child) {
+          if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+          await Promise.race([record.exited, delay(3000, undefined, { ref: false })]);
+          if (child.exitCode === null && child.signalCode === null) { child.kill('SIGKILL'); await record.exited; }
+        }
+      } finally {
+        if (this.record === record) { this.record = null; this.client = null; this.child = undefined; }
+        finish();
+      }
+    })();
+    return record.stopping;
+  }
+  async stopOwned(client) { const record = this.clients.get(client); if (record) await this.stopRecord(record); }
   async stop() {
-    const child = this.child;
-    this.client = null;
-    if (!child) return;
-    child.kill('SIGTERM');
-    await Promise.race([this.exited, delay(3000)]);
-    if (child.exitCode === null && child.signalCode === null) { child.kill('SIGKILL'); await this.exited; }
-    this.child = undefined;
+    const record = this.record;
+    if (!record) return;
+    await this.stopRecord(record); await record.pending?.catch(() => {});
   }
 }

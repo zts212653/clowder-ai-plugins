@@ -274,3 +274,12 @@ test('a typed sender refusal before commit is failed, while loss after write rem
     assert.equal((await f.service.snapshot()).runs[0].phase,uncertain?'needs_review':'failed');
   }
 });
+
+test('repeating revoke advances its fence without reopening a revoked policy or allowing pending restoration',async()=>{
+  const f=await fixture();await f.service.revoke(f.binding.id);
+  const snapshot=await f.service.snapshot();const revoked=snapshot.policies[0];
+  const input=policy();const fence=await f.service.prepareActivation(input,{policyEpoch:revoked.epoch,globalControlEpoch:snapshot.globalControlEpoch});
+  await f.service.revoke(revoked.id);
+  await assert.rejects(f.service.beginActivationStep(input,fence,()=>Promise.resolve()),/接管|变化/);
+  assert.equal((await f.service.snapshot()).policies[0].mode,'revoked');
+});

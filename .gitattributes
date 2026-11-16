@@ -1,2 +1,5 @@
 # Keep feedback publish inputs identical in Windows and CI checkouts.
 packages/feedback/** text=auto eol=lf
+# Preserve supplied dependency notices byte-for-byte, including upstream CRLF
+# and trailing whitespace. Application source keeps normal whitespace checks.
+packages/wechat-delegation/assets/native/licenses/** -text -whitespace
