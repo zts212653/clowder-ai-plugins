@@ -70,7 +70,7 @@ test('cat selection is independent of reminder lookup and reminder pages respect
 test('owner selects a real group and cat, enables delegation, proactively sends then takes over through plugin operations', async t => {
   const f = await fixture(t);
   await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
-  await f.runtime.dispatch({ action: 'activate', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然友好',
+  await f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然友好',
     goal: '今晚一起读书', proactive: true, replies: true, intervalMinutes: 180, maxTurns: 10, confirm: true, modelFingerprint: 'preview' }, owner());
   const binding = (await f.runtime.status()).policies[0];
   await f.runtime.dispatch({ action: 'initiate', policyId: binding.id, operationId: 'explicit-owner-action' }, owner());
@@ -85,7 +85,7 @@ test('owner selects a real group and cat, enables delegation, proactively sends 
 test('a changed model preview cannot silently grant a different model service', async t => {
   const f = await fixture(t);
   await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
-  await assert.rejects(f.runtime.dispatch({ action: 'activate', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
+  await assert.rejects(f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
     goal: '读书', proactive: true, replies: true, intervalMinutes: 180, maxTurns: 10, confirm: true, modelFingerprint: 'stale-preview' }, owner()), /模型|model/);
   assert.equal((await f.runtime.status()).policies.length, 0);
 });
@@ -93,7 +93,7 @@ test('a changed model preview cannot silently grant a different model service', 
 test('only a canonical human owner stop in the selected Clowder thread can interrupt delegation; redelivery is idempotent', async t => {
   const f = await fixture(t);
   await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
-  await f.runtime.dispatch({ action: 'activate', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
+  await f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
     goal: '读书', proactive: true, replies: true, intervalMinutes: 180, maxTurns: 10, confirm: true,
     modelFingerprint: 'preview', notificationThreadId: 'trusted-thread' }, owner());
   let source = { id: 'stop-message', threadId: 'trusted-thread', userId: 'owner', catId: null, content: '我来聊', timestamp: Date.now() + 1000,
@@ -152,7 +152,7 @@ test('global takeover also cancels an authorization still waiting for model prep
   const prepared = new Promise(resolve => { release = resolve; });
   const preparing = new Promise(resolve => { entered = resolve; });
   f.runtime.model.prepare = async () => { entered(); return prepared; };
-  const activation = f.runtime.dispatch({ action: 'activate', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
+  const activation = f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
     goal: '读书', proactive: true, replies: true, intervalMinutes: 180, maxTurns: 10, confirm: true, modelFingerprint: 'preview' }, owner());
   await preparing;
   await f.runtime.dispatch({ action: 'pause_all' }, owner());
@@ -165,7 +165,7 @@ test('global takeover also cancels an authorization still waiting for model prep
 test('a busy conversation retains incoming work without blocking the account cursor or another conversation', async t => {
   const f=await fixture(t); await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
   f.client.targets=async()=>({items:[{id:'room@chatroom',accountId:'clowder',kind:'group'},{id:'friend',accountId:'clowder',kind:'direct'}]});
-  for(const target of [{id:'room@chatroom',kind:'group'},{id:'friend',kind:'direct'}]) await f.runtime.dispatch({action:'activate',target,catId:'cat',persona:'友好',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'},owner());
+  for(const target of [{id:'room@chatroom',kind:'group'},{id:'friend',kind:'direct'}]) await f.runtime.dispatch({action:'activate',accountIdentity:'wxid_owner',serverId:'server',target,catId:'cat',persona:'友好',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'},owner());
   f.client.submit=async run=>{f.sends.push(run);return{sendId:run.id,state:'queued'};};
   let settled=false; f.client.inspect=async run=>({sendId:run.id,state:settled?'accepted':'queued'});
   const group=(await f.runtime.service.snapshot()).policies.find(p=>p.kind==='group');
@@ -186,13 +186,13 @@ test('an owner or subscription failure after member preparation revokes the unco
   const f=await fixture(t); await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
   const revoked=[];f.host.memberSessions={revoke:async id=>{revoked.push(id);}};
   f.host.messaging.subscribe=async()=>{throw Error('subscription unavailable');};
-  await assert.rejects(f.runtime.dispatch({action:'activate',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'友好',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview',notificationThreadId:'owner-thread'},owner()),/subscription/);
+  await assert.rejects(f.runtime.dispatch({action:'activate',accountIdentity:'wxid_owner',serverId:'server',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'友好',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview',notificationThreadId:'owner-thread'},owner()),/subscription/);
   assert.deepEqual(revoked,['s']); assert.equal((await f.runtime.service.snapshot()).policies.length,0);
 });
 
 test('takeover during an event-page request prevents subsequent message-body reads and model work', async t => {
   const f=await fixture(t); await f.runtime.dispatch({action:'prepare',acceptThirdParty:true},owner());
-  await f.runtime.dispatch({action:'activate',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'友好',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'},owner());
+  await f.runtime.dispatch({action:'activate',accountIdentity:'wxid_owner',serverId:'server',target:{id:'room@chatroom',kind:'group'},catId:'cat',persona:'友好',goal:'读书',proactive:true,replies:true,intervalMinutes:180,maxTurns:10,confirm:true,modelFingerprint:'preview'},owner());
   let entered,release;const requested=new Promise(resolve=>{entered=resolve;}),page=new Promise(resolve=>{release=resolve;});
   f.client.events=async()=>{entered();return page;};let reads=0;f.client.message=async()=>{reads++;throw Error('body read after takeover');};
   const cycle=f.runtime.cycle();await requested;
@@ -204,7 +204,7 @@ test('takeover during an event-page request prevents subsequent message-body rea
 test('older audit records remain reachable through bounded history pages after the live view fills', async t => {
   const f = await fixture(t);
   await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
-  await f.runtime.dispatch({ action: 'activate', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
+  await f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
     goal: '读书', proactive: false, replies: true, intervalMinutes: 180, maxTurns: 200, confirm: true, modelFingerprint: 'preview' }, owner());
   f.client.submit = async run => ({ sendId: run.id, state: 'accepted' });
   for (let n = 0; n < 105; n++) await f.runtime.service.incoming('clowder', { id: `history-${n}`, threadId: 'room@chatroom', direction: 'incoming', body: '聊读书', createdAt: Date.now() + 1000 });
@@ -221,7 +221,7 @@ test('older audit records remain reachable through bounded history pages after t
 test('the UI receives an initiative acknowledgement only after its durable run record exists', async t => {
   const f = await fixture(t);
   await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
-  await f.runtime.dispatch({ action: 'activate', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
+  await f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
     goal: '读书', proactive: true, replies: true, intervalMinutes: 180, maxTurns: 10, confirm: true, modelFingerprint: 'preview' }, owner());
   let release, entered;
   const gate = new Promise(resolve => { release = resolve; }), writing = new Promise(resolve => { entered = resolve; });
@@ -242,7 +242,7 @@ test('the UI receives an initiative acknowledgement only after its durable run r
 test('native process loss and re-preparation never silently resume existing conversation grants', async t => {
   const f = await fixture(t);
   await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
-  await f.runtime.dispatch({ action: 'activate', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
+  await f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然',
     goal: '读书', proactive: true, replies: true, intervalMinutes: 180, maxTurns: 10, confirm: true, modelFingerprint: 'preview' }, owner());
   f.runtime.supervisor.client = null;
   f.runtime.supervisor.onExit?.();
@@ -268,7 +268,30 @@ test('directory verification remains asynchronous, does not block owner status a
   assert.equal(resets, 1);
   await assert.rejects(f.runtime.dispatch({ action: 'chats', refreshDirectory: true, cursor: 'old' }, owner()), /第一页/);
   f.client.identity = async () => ({ serverId: 'server', accountId: 'clowder', accountIdentity: 'wxid_owner', connected: true });
-  await assert.rejects(f.runtime.dispatch({ action: 'activate', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', confirm: true }, owner()), /正在核对/);
+  await assert.rejects(f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', confirm: true }, owner()), /正在核对/);
+  assert.equal((await f.runtime.status()).policies.length, 0);
+  assert.equal(f.sends.length, 0);
+});
+
+test('a transient identity probe failure preserves the last verified account without reporting it as a live check', async t => {
+  const f = await fixture(t);
+  await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
+  const verified = await f.runtime.status();
+  f.client.identity = async () => { throw Error('temporary metadata lock timeout'); };
+  const uncertain = await f.runtime.status();
+  assert.equal(uncertain.account.accountIdentity, verified.account.accountIdentity);
+  assert.equal(uncertain.account.connected, true);
+  assert.equal(uncertain.accountIsLive, false);
+  assert.equal(uncertain.accountProbeFailed, true);
+  assert.equal(uncertain.accountObservedAt, verified.accountObservedAt);
+});
+
+
+test('activation refuses an account change hidden behind a failed status probe', async t => {
+  const f = await fixture(t);
+  await f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, owner());
+  f.client.identity = async () => ({ serverId: 'replacement-server', accountId: 'clowder', accountIdentity: 'other-owner', connected: true });
+  await assert.rejects(f.runtime.dispatch({ action: 'activate', accountIdentity: 'wxid_owner', serverId: 'server', target: { id: 'room@chatroom', kind: 'group' }, catId: 'cat', persona: '自然友好', goal: '读书', proactive: true, replies: true, confirm: true, modelFingerprint: 'preview', intervalMinutes: 180, maxTurns: 10 }, owner()), /账号.*变化/);
   assert.equal((await f.runtime.status()).policies.length, 0);
   assert.equal(f.sends.length, 0);
 });

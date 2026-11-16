@@ -8,7 +8,7 @@ const digest = value => createHash('sha256').update(JSON.stringify(value)).diges
 const terminalLogin = new Set(['succeeded', 'failed', 'cancelled', 'expired', 'rejected', 'needs_login']);
 const fields = new Set(['action', 'acceptThirdParty', 'target', 'catId', 'persona', 'goal', 'proactive', 'replies', 'scheduleEnabled',
   'intervalMinutes', 'maxTurns', 'expiresAt', 'confirm', 'policyId', 'operationId', 'runId', 'cursor', 'notificationThreadId', 'expectedEpoch', 'modelFingerprint',
-  'timeZone', 'windowStart', 'windowEnd', 'maxProactivePerDay', 'refreshDirectory']);
+  'timeZone', 'windowStart', 'windowEnd', 'maxProactivePerDay', 'refreshDirectory', 'query', 'kind', 'accountIdentity', 'serverId']);
 
 export class DelegationRuntime {
   static async open(host, { supervisor = new NativeSupervisor({ dataPath: host.dataPath }), model = new MemberRunner(host), startTimer = true } = {}) {
@@ -48,13 +48,16 @@ export class DelegationRuntime {
   async status({ probe = true } = {}) {
     const snapshot = await this.service.snapshot();
     let account = this.supervisor.client ? this.lastAccount ?? null : null;
+    let accountIsLive = false, accountProbeFailed = false;
     const directoryPending = this.supervisor.client?.directoryPending?.(ACCOUNT) === true;
     if (this.supervisor.client && probe && !directoryPending) {
-      try { account = await this.supervisor.client.identity(ACCOUNT); }
-      catch { account = { connected: false, state: 'unknown' }; }
-      this.lastAccount = account; this.accountObservedAt = Date.now();
+      try {
+        account = await this.supervisor.client.identity(ACCOUNT);
+        this.lastAccount = account; this.accountObservedAt = Date.now(); accountIsLive = true;
+      } catch { accountProbeFailed = true; }
+
     }
-    return { ...snapshot, runtime: this.supervisor.client ? 'running' : 'dormant', account, accountIsLive: Boolean(probe && this.supervisor.client && !directoryPending), accountObservedAt: this.accountObservedAt ?? null, storagePath: this.host.dataPath,
+    return { ...snapshot, runtime: this.supervisor.client ? 'running' : 'dormant', account, accountIsLive, accountProbeFailed, accountObservedAt: this.accountObservedAt ?? null, storagePath: this.host.dataPath,
       memberRuntimeAvailable: this.model.available(), lastError: this.lastError,
       // Credentials and provider session data are never part of the page projection.
       policies: snapshot.policies.map(({ session, ...policy }) => ({ ...policy,
@@ -133,9 +136,9 @@ export class DelegationRuntime {
     }
     if (action === 'chats') {
       if (input.refreshDirectory === true) { if (input.cursor) throw Error('请从第一页刷新当前通讯录'); client.refreshTargets(ACCOUNT); }
-      const page = await client.targets(ACCOUNT, input.cursor ?? '');
+      const page = await client.targets(ACCOUNT, input.cursor ?? '', { query: input.query ?? '', kind: input.kind ?? 'all', limit: 20 });
       if (!Array.isArray(page.items)) throw Error('会话列表不可用');
-      return { items: page.items.filter(chat => chat.accountId === ACCOUNT && ['direct', 'group'].includes(chat.kind)).map(chat => ({ id: chat.id, kind: chat.kind, displayName: chat.displayName ?? chat.id })), nextCursor: page.nextCursor ?? null, pending: page.pending === true, observedAt: page.observedAt ?? null, unverifiedCount: page.unverifiedCount ?? 0 };
+      return { items: page.items.filter(chat => chat.accountId === ACCOUNT && ['direct', 'group'].includes(chat.kind)).map(chat => ({ id: chat.id, kind: chat.kind, displayName: chat.displayName ?? chat.id })), nextCursor: page.nextCursor ?? null, pending: page.pending === true, observedAt: page.observedAt ?? null, unverifiedCount: page.unverifiedCount ?? 0, total: page.total ?? page.items.length, counts: page.counts ?? null, groupDiscoveryIncomplete: page.groupDiscoveryIncomplete === true };
     }
     if (action === 'cats') {
       return { items: (await this.host.members.list()).filter(member => member.available).map(member => ({ id: member.catId, label: member.displayName, model: member.defaultModel })) };
@@ -161,6 +164,7 @@ export class DelegationRuntime {
       if (!chosen) throw Error('该会话当前不在可核对的平台列表中');
       const identity = await client.identity(ACCOUNT);
       if (!identity.connected || !identity.accountIdentity) throw Error('微信账号身份尚未核验');
+      if (input.accountIdentity !== identity.accountIdentity || input.serverId !== identity.serverId) throw Error('微信账号或连接进程已变化，请刷新状态后重新选择会话并确认。');
       const members = await this.host.members.list();
       if (!members.some(member => member.catId === input.catId && member.available)) throw Error('所选猫当前不可用');
       const preview = await this.model.describe(input.catId);

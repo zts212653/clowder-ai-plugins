@@ -81,7 +81,7 @@ test('the bundled directory repair component has exact pinned bytes and declares
   const binary = await loadBundled(asset, new AbortController().signal);
   assert.equal(binary.length, asset.size);
   assert.equal(createHash('sha256').update(binary).digest('hex'), asset.sha256);
-  assert.equal(asset.version, '2.4.1-clowder.1');
+  assert.equal(asset.version, '2.4.1-clowder.2');
   assert.ok(asset.capabilities.includes('current-contact-directory'));
   assert.throws(() => nativeAsset('linux', 'x64'), /暂只提供/);
 });
@@ -92,7 +92,7 @@ test('the actual bundled component starts in an empty isolated profile and expos
   t.after(async () => { await supervisor.stop(); await rm(root, { recursive: true, force: true }); });
   const client = await supervisor.prepare(actor());
   const status = await client.status();
-  assert.equal(status.version.version, '2.4.1-clowder.1');
+  assert.equal(status.version.version, '2.4.1-clowder.2');
   assert.ok(status.version.capabilities.includes('current-contact-directory'));
   await client.createAccount('isolated');
   // An unregistered directory route would return 404, whereas this handler

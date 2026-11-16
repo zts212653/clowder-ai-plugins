@@ -13,7 +13,7 @@ const pins = JSON.parse(readFileSync(new URL('../assets/native/manifest.json', i
 export function nativeAsset(platform = process.platform, arch = process.arch) {
   const pin = pins.artifacts[`${platform}-${arch}`];
   if (!pin) throw Error('本次通讯录修复构建暂只提供 macOS Apple Silicon 版本');
-  return { ...pin, version: pins.version, capabilities: ['current-contact-directory'] };
+  return { ...pin, version: pins.version, capabilities: ['current-contact-directory', 'current-group-directory'] };
 }
 export async function loadBundled(asset, signal) {
   signal.throwIfAborted();

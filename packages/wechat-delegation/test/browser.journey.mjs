@@ -25,15 +25,20 @@ try {
   // Cats must be selectable while the new login's directory is still empty and
   // the independent reminder directory is unavailable; empty catalogs retry.
   await frame.getByLabel('值班猫', { exact: true }).selectOption('review-cat');
-  await frame.getByText('正在从微信核对完整通讯录', { exact: false }).waitFor();
+  await frame.getByRole('combobox', { name: '指定好友或群', exact: true }).click();
+  await frame.getByText('正在核对当前微信目录', { exact: false }).waitFor();
   await frame.getByText('提醒对话加载未完成', { exact: false }).waitFor();
   await page.screenshot({ path: `${evidence}/configure.png`, fullPage: true });
-  await frame.getByLabel('指定好友或群', { exact: true }).selectOption(JSON.stringify({ id: 'preview-room@chatroom', kind: 'group' }));
+  await frame.getByRole('tab', { name: '群', exact: true }).click();
+  await frame.getByRole('searchbox', { name: '搜索好友或群' }).fill('周书');
+  await frame.getByRole('option', { name: /周末读书群/ }).click();
   await frame.getByLabel('值班猫', { exact: true }).selectOption('review-cat');
   await frame.getByLabel('人设与交流边界', { exact: true }).fill('像熟人一样自然友好，只聊读书');
   await frame.getByLabel('这次要聊什么', { exact: true }).fill('邀请大家周末一起读科幻小说');
   await frame.getByText('实际模型：模拟模型；客户端：隔离测试。', { exact: false }).waitFor();
   await frame.getByLabel('我允许所选会话的文字交给上述模型服务，并允许猫在约定范围内直接发送。家庭记忆、文件、命令、支付、外链和附件访问均不开放。').check();
+  await frame.getByRole('button', { name: '开启代聊', exact: true }).click();
+  await frame.getByText('正在核对当前微信通讯录，请稍后重试开启代聊。', { exact: true }).waitFor();
   await frame.getByRole('button', { name: '开启代聊', exact: true }).click();
   await frame.getByText('猫代聊中 · 可随时接管', { exact: true }).waitFor();
   assert.equal(await frame.getByRole('heading', { name: '配置代聊会话', exact: true }).isVisible(), false);

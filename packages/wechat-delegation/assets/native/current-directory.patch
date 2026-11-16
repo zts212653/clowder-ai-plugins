@@ -35,10 +35,12 @@
                  Ok(
 --- /dev/null
 +++ b/packages/native-client-rust/crates/wechat-core/src/contact_directory.rs
-@@ -0,0 +1,318 @@
+@@ -0,0 +1,362 @@
 +//! A fresh, complete server inventory bounds the address book. Cached peer rows
 +//! may describe group members and old contacts; they never add inventory members.
 +use super::*;
++#[path = "group_directory.rs"]
++mod group_directory;
 +use std::collections::{BTreeSet, HashSet};
 +
 +#[derive(Default)]
@@ -68,7 +70,14 @@
 +        let mut selected = std::collections::BTreeMap::new();
 +        for row in rows {
 +            let id = row["id"].as_str().context("directory_identity_missing")?;
-+            if !self.ids.contains(id) || id == own || id.starts_with("gh_") {
++            let group = id.ends_with("@chatroom");
++            if (if group {
++                row["currentMember"] != true
++            } else {
++                !self.ids.contains(id)
++            }) || id == own
++                || id.starts_with("gh_")
++            {
 +                continue;
 +            }
 +            if matches!(
@@ -83,14 +92,13 @@
 +            {
 +                continue;
 +            }
-+            let group = id.ends_with("@chatroom");
 +            if !group && id.contains('@') || row["isInGroup"] == false {
 +                continue;
 +            }
 +            if !group && row["currentFriend"] != true {
 +                continue;
 +            }
-+            selected.insert(id.to_owned(),json!({"id":id,"kind":if group {"group"}else{"direct"},"displayName":row["displayName"].as_str().unwrap_or(id)}));
++            selected.insert(id.to_owned(),json!({"id":id,"kind":if group {"group"}else{"direct"},"displayName":row["displayName"].as_str().unwrap_or(id),"nickname":row["nickname"],"remark":row["remark"],"alias":row["alias"]}));
 +        }
 +        Ok(selected.into_values().collect())
 +    }
@@ -138,7 +146,7 @@
 +            .filter(|id| {
 +                *id != &owner
 +                    && !id.starts_with("gh_")
-+                    && (!id.contains('@') || id.ends_with("@chatroom"))
++                    && !id.contains('@')
 +            })
 +            .cloned()
 +            .collect();
@@ -231,9 +239,17 @@
 +            }
 +        }
 +        rows.retain(|row| !row["id"].as_str().is_some_and(|id| unverified.contains(id)));
++        let (groups, group_unverified, group_discovery_incomplete) =
++            self.current_group_rows(account, operation, &owner, deadline)?;
++        rows.extend(groups);
 +        let items = inventory.select(rows, &owner)?;
++        self.metadata_check(account, operation, deadline)?;
++        ensure!(
++            self.account_state(account)?.own_username == owner,
++            "directory_account_changed"
++        );
 +        Ok(
-+            json!({"complete":true,"directory":{"version":1,"source":"wechat.initcontact","accountId":account,"accountIdentity":owner,"catalogComplete":true,"unverifiedCount":unverified.len(),"observedAt":chrono::Utc::now().to_rfc3339(),"items":items}}),
++            json!({"complete":true,"directory":{"version":2,"source":"wechat.current-directory","accountId":account,"accountIdentity":owner,"catalogComplete":true,"unverifiedCount":unverified.len()+group_unverified,"groupDiscoveryIncomplete":group_discovery_incomplete,"groupCoverage":"synced-current-membership","observedAt":chrono::Utc::now().to_rfc3339(),"items":items}}),
 +        )
 +    }
 +}
@@ -278,6 +294,34 @@
 +                current
 +            );
 +        }
++    }
++    #[test]
++    fn independently_verified_group_is_not_lost_when_contact_catalog_has_only_friends() {
++        let mut inventory = DirectoryInventory::default();
++        inventory
++            .add(&InitContactPage {
++                contact_sequence: 1,
++                room_sequence: 1,
++                more: false,
++                usernames: vec!["friend".into()],
++            })
++            .unwrap();
++        let items = inventory
++            .select(
++                vec![
++                    json!({"id":"current-room@chatroom","currentMember":true}),
++                    json!({"id":"stale-room@chatroom","currentMember":false}),
++                    json!({"id":"unknown-room@chatroom"}),
++                ],
++                "owner",
++            )
++            .unwrap();
++        assert_eq!(
++            items,
++            vec![
++                json!({"id":"current-room@chatroom","kind":"group","displayName":"current-room@chatroom","nickname":null,"remark":null,"alias":null})
++            ]
++        );
 +    }
 +    #[test]
 +    fn sparse_or_negative_flags_never_reuse_cached_friend_status() {
@@ -346,12 +390,266 @@
 +            json!({"id":"gh_service"}),
 +            json!({"id":"filehelper","classification":{"category":"system"}}),
 +            json!({"id":"foreign@openim"}),
-+            json!({"id":"room@chatroom"}),
++            json!({"id":"room@chatroom","currentMember":true}),
 +        ];
 +        assert_eq!(
 +            inventory.select(rows, "owner").unwrap(),
-+            vec![json!({"id":"room@chatroom","kind":"group","displayName":"room@chatroom"})]
++            vec![json!({"id":"room@chatroom","kind":"group","displayName":"room@chatroom","nickname":null,"remark":null,"alias":null})]
 +        );
++    }
++}
+--- /dev/null
++++ b/packages/native-client-rust/crates/wechat-core/src/group_directory.rs
+@@ -0,0 +1,251 @@
++//! Group discovery is independent of the friend catalog. Cached group IDs are
++//! hints only; a new membership response must positively establish membership.
++use super::*;
++use std::collections::BTreeMap;
++
++fn contact_membership(record: &ContactRecord) -> Result<Option<bool>> {
++    Ok(match contact_patch(record)?.fields.get("is_in_chat_room") {
++        Some(SqlValue::Integer(value)) if value == "1" => Some(true),
++        Some(SqlValue::Integer(value)) if value == "2" => Some(false),
++        _ => None,
++    })
++}
++fn roster_membership(roster: &RoomRoster, room: &str, own: &str) -> Result<Option<bool>> {
++    ensure!(roster.room_id == room, "directory_foreign_roster");
++    if roster.members.iter().any(|member| member.username == own) {
++        return Ok(Some(true));
++    }
++    Ok(roster
++        .full_member_ids
++        .as_ref()
++        .map(|ids| ids.iter().any(|id| id == own)))
++}
++
++impl Core {
++    pub(super) fn current_group_rows(
++        &self,
++        account: &str,
++        operation: &str,
++        owner: &str,
++        deadline: Instant,
++    ) -> Result<(Vec<Value>, usize, bool)> {
++        let group_deadline = deadline.min(Instant::now() + Duration::from_secs(45));
++        let mut hints = BTreeMap::new();
++        let mut cursor = None;
++        let mut seen = HashSet::new();
++        loop {
++            self.metadata_check(account, operation, deadline)?;
++            let page = self.groups(
++                account,
++                &wechat_profile::ListQuery {
++                    limit: Some(200),
++                    cursor,
++                    search: None,
++                },
++            )?;
++            for row in page["items"]
++                .as_array()
++                .context("group_directory_cache_invalid")?
++            {
++                if let Some(id) = row["id"].as_str().filter(|id| id.ends_with("@chatroom")) {
++                    hints.insert(id.to_owned(), row.clone());
++                }
++            }
++            cursor = page["nextCursor"].as_str().map(str::to_owned);
++            match &cursor {
++                None => break,
++                Some(value) => {
++                    ensure!(seen.insert(value.clone()), "group_directory_cursor_stalled");
++                }
++            }
++        }
++        let mut discovery_incomplete = false;
++        let mut group_cursor = vec![0];
++        let mut cursors = HashSet::new();
++        let mut catalog_done = false;
++        for _ in 0..50 {
++            self.metadata_check(account, operation, deadline)?;
++            if Instant::now() >= group_deadline {
++                break;
++            }
++            let mut state = self.account_state(account)?;
++            let response = self.native_request(account, &mut state, |request| {
++                request.group_inventory(&group_cursor)
++            });
++            // This service is explicitly partial upstream. Failure to discover
++            // more IDs does not invalidate separately reverified known groups.
++            let page = match response {
++                Ok(page) => page,
++                Err(_) => {
++                    discovery_incomplete = true;
++                    break;
++                }
++            };
++            self.save_state(account, &state)?;
++            for record in &page.contacts {
++                if record.username.ends_with("@chatroom") {
++                    let label = record
++                        .remark
++                        .as_ref()
++                        .or(record.nickname.as_ref())
++                        .unwrap_or(&record.username);
++                    hints
++                        .entry(record.username.clone())
++                        .or_insert_with(|| json!({"id":record.username,"displayName":label}));
++                }
++            }
++            ensure!(hints.len() <= 10000, "group_directory_capacity_exceeded");
++            let more = page.more;
++            let wait = page.wait_seconds;
++            let next = page.next_cursor.clone();
++            let receipt = self.stage_metadata_body(account, ReceiptBody::GroupCatalog(page))?;
++            self.apply_metadata_receipt(account, &receipt, false)?;
++            if !more {
++                catalog_done = true;
++                break;
++            }
++            group_cursor = next.context("group_directory_cursor_missing")?;
++            ensure!(
++                cursors.insert(group_cursor.clone()),
++                "group_directory_cursor_stalled"
++            );
++            if wait > 10 {
++                break;
++            }
++            for _ in 0..wait * 10 {
++                self.metadata_check(account, operation, deadline)?;
++                if Instant::now() >= group_deadline {
++                    break;
++                }
++                std::thread::sleep(Duration::from_millis(100));
++            }
++        }
++        discovery_incomplete |= !catalog_done;
++        let ids: Vec<_> = hints.keys().cloned().collect();
++        let mut rows = Vec::new();
++        let mut unverified = 0;
++        let mut processed = 0;
++        for batch in ids.chunks(2) {
++            self.metadata_check(account, operation, deadline)?;
++            if Instant::now() >= group_deadline {
++                unverified += ids.len() - processed;
++                discovery_incomplete = true;
++                break;
++            }
++            processed += batch.len();
++            let reply = match self.metadata_contact_reply(account, batch) {
++                Ok(reply) => reply,
++                Err(_) => {
++                    unverified += batch.len();
++                    continue;
++                }
++            };
++            for (index, id) in batch.iter().enumerate() {
++                let record = reply
++                    .value
++                    .contacts
++                    .iter()
++                    .find(|record| &record.username == id);
++                if (!reply.value.results.is_empty() && reply.value.results.get(index) != Some(&0))
++                    || record.is_none()
++                {
++                    unverified += 1;
++                    continue;
++                }
++                let record = record.unwrap();
++                let member = match contact_membership(record)? {
++                    Some(value) => value,
++                    None => {
++                        // Sparse contact details are not negative membership.
++                        // A fresh roster containing this exact owner is positive proof.
++                        let mut state = self.account_state(account)?;
++                        let result = self
++                            .account_upstream(account)?
++                            .lookup_room_receipt(&mut state, id, 0);
++                        match result {
++                            Ok(reply) => {
++                                self.save_state(account, &state)?;
++                                match roster_membership(&reply.value, id, owner)? {
++                                    Some(value) => value,
++                                    None => {
++                                        unverified += 1;
++                                        continue;
++                                    }
++                                }
++                            }
++                            Err(_) => {
++                                unverified += 1;
++                                continue;
++                            }
++                        }
++                    }
++                };
++                if member {
++                    let mut row = hints[id].clone();
++                    if let Some(label) = record
++                        .remark
++                        .as_ref()
++                        .or(record.nickname.as_ref())
++                        .filter(|value| !value.is_empty())
++                    {
++                        row["displayName"] = json!(label);
++                    }
++                    row["nickname"] = json!(record.nickname);
++                    row["remark"] = json!(record.remark);
++                    row["alias"] = json!(record.alias);
++                    row["currentMember"] = json!(true);
++                    rows.push(row);
++                }
++            }
++            let receipt = self.stage_metadata_body(
++                account,
++                ReceiptBody::Contacts {
++                    requested: batch.to_vec(),
++                    reply,
++                },
++            )?;
++            self.apply_metadata_receipt(account, &receipt, false)?;
++        }
++        Ok((rows, unverified, discovery_incomplete))
++    }
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn record(value: Option<u64>) -> ContactRecord {
++        let mut fields = vec![p::bytes(1, &p::bytes(1, b"room@chatroom"))];
++        if let Some(value) = value {
++            fields.push(p::uint(85, value));
++        }
++        wechat_protocol::wire::decode_contact_record(&p::message(&fields).unwrap()).unwrap()
++    }
++    #[test]
++    fn group_proof_is_positive_membership_not_cached_flags_or_a_friend_catalog_entry() {
++        assert_eq!(contact_membership(&record(Some(1))).unwrap(), Some(true));
++        assert_eq!(contact_membership(&record(Some(2))).unwrap(), Some(false));
++        assert_eq!(contact_membership(&record(None)).unwrap(), None);
++        let mut roster = RoomRoster {
++            room_id: "room@chatroom".into(),
++            version: 1,
++            members: vec![],
++            full_member_ids: Some(vec!["owner".into()]),
++            owner: None,
++            administrator_ids: None,
++        };
++        assert_eq!(
++            roster_membership(&roster, "room@chatroom", "owner").unwrap(),
++            Some(true)
++        );
++        assert_eq!(
++            roster_membership(&roster, "room@chatroom", "other-owner").unwrap(),
++            Some(false)
++        );
++        roster.full_member_ids = None;
++        assert_eq!(
++            roster_membership(&roster, "room@chatroom", "owner").unwrap(),
++            None
++        );
++        roster.room_id = "foreign@chatroom".into();
++        assert!(roster_membership(&roster, "room@chatroom", "owner").is_err());
 +    }
 +}
 --- a/packages/native-client-rust/crates/wechat-api/src/actions.rs
@@ -390,18 +688,19 @@
  async fn sync_groups(
 --- a/packages/native-client-rust/crates/wechat-api/src/lib.rs
 +++ b/packages/native-client-rust/crates/wechat-api/src/lib.rs
-@@ -61,12 +61,13 @@
+@@ -61,12 +61,14 @@
      Version {
          product: "agent-wechat",
          backend: "native",
 -        version: env!("CARGO_PKG_VERSION"),
-+        version: concat!(env!("CARGO_PKG_VERSION"), "-clowder.1"),
++        version: concat!(env!("CARGO_PKG_VERSION"), "-clowder.2"),
          stage: "supported-profile",
          target: env!("WX_TARGET"),
          api_version: API_VERSION,
          capabilities: vec![
              "serve",
 +            "current-contact-directory",
++            "current-group-directory",
              "profile-attach",
              "profile-copy",
              "profile-read",

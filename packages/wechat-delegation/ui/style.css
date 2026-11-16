@@ -123,3 +123,22 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; background:
   .card .toolbar { gap: 6px; }
   .card .toolbar > button { flex-grow: 1; }
 }
+.target-picker { position: relative; min-width: 0; }
+.target-picker > button { width: 100%; justify-content: space-between; text-align: left; gap: 8px; }
+.target-picker > button > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.target-popup { position: absolute; z-index: 2; inset-inline: 0; top: calc(100% + 4px); padding: 8px; border: 1px solid var(--cafe-border); border-radius: 8px; background: var(--cafe-surface-elevated); }
+.target-popup.above { top: auto; bottom: calc(100% + 4px); }
+.target-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+.target-tabs button { flex: 1; }
+.target-tabs [aria-selected=true] { border-color: var(--cafe-accent); color: var(--cafe-accent); background: var(--cafe-surface); }
+.target-list { overflow-y: auto; overscroll-behavior: contain; margin: 6px 0; min-height: 40px; }
+.target-list button { width: 100%; display: block; text-align: left; padding: 8px; min-height: 44px; border-color: transparent; }
+.target-list button[aria-selected=true] { border-color: var(--cafe-accent); }
+.target-list span, .target-list small { display: block; overflow-wrap: anywhere; }
+.target-popup > small { display: block; }
+.target-footer { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.target-picker > small { display: block; margin-top: 4px; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .target-popup, .target-popup.above { position: static; margin-top: 6px; }
+  .target-popup input { font-size: 16px; height: 40px; }
+}

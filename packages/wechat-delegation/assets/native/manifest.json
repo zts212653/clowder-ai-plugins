@@ -1,16 +1,16 @@
 {
-  "version": "2.4.1-clowder.1",
+  "version": "2.4.1-clowder.2",
   "upstream": "thisnick/agent-wechat",
   "upstreamCommit": "ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
   "artifacts": {
     "darwin-arm64": {
-      "fileName": "wx-v2.4.1-clowder.1-darwin-arm64",
-      "size": 37502544,
-      "sha256": "7476aee6ba96852b61960ff9b72544b2cf6d484507e81cd214c37f2b3d3b2476",
-      "compressedSha256": "0890698eb862c95f95041bf0a5dc3677c3afc6586888930d6158010b6714bb59"
+      "fileName": "wx-v2.4.1-clowder.2-darwin-arm64",
+      "size": 37524752,
+      "sha256": "ea605bed638c7821fd4d97b690e89d611821eb9e3a2f5dcc162844536c2cbb56",
+      "compressedSha256": "27dba0ce9a03032b2d0169f2f2f8532ae34ffefe4886924d3baa90593c0c050e"
     }
   },
-  "patchSha256": "8f6c7c5d0e647ea3031881446d33fc007a32ae44ccbd25044238ee2a19ecf927",
+  "patchSha256": "61be143485c5dbac33a338f25a144eb0cf16bbc054498cd602aa777b1d94a7e5",
   "rustVersion": "1.93.1",
   "buildCommand": "cargo build --locked --release -p wx-native --bin wx"
 }

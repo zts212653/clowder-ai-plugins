@@ -2,6 +2,7 @@
 // 1e7dec817ca2ff893b8365b768058b6c0274563d, shared/src/native-client.ts
 // and native.generated.ts. This independent adapter has no OpenClaw dependency.
 import { randomUUID } from 'node:crypto';
+import { targetQuery, searchTargets } from './target-search.mjs';
 const segment = value => {
   if (typeof value !== 'string' || !value || value.length > 256 || value === '.' || value === '..' || /[\u0000-\u001f]/.test(value)) throw Error('invalid platform coordinate');
   return encodeURIComponent(value);
@@ -48,14 +49,15 @@ export class NativeClient {
   }
   createAccount(accountId) { return this.json('v1/accounts', { method: 'POST', body: { id: accountId } }); }
   threads(accountId, cursor = '') { return this.json(`v1/accounts/${segment(accountId)}/threads?limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`); }
-  async targets(accountId, cursor = '') {
+  async targets(accountId, cursor = '', options = {}) {
+    const search = targetQuery(options);
     let paging;
     if (cursor) {
       if (typeof cursor !== 'string' || cursor.length > 8192) throw Error('invalid target cursor');
       try { paging = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')); }
       catch { throw Error('invalid target cursor'); }
-      if (!paging || Object.keys(paging).sort().join(',') !== 'accountId,offset,operationId,version' ||
-          paging.version !== 2 || paging.accountId !== accountId || typeof paging.operationId !== 'string' ||
+      if (!paging || Object.keys(paging).sort().join(',') !== 'accountId,kind,limit,offset,operationId,query,version' ||
+          paging.version !== 3 || paging.kind !== search.kind || paging.query !== search.query || paging.limit !== search.limit || paging.accountId !== accountId || typeof paging.operationId !== 'string' ||
           !Number.isSafeInteger(paging.offset) || paging.offset < 0)
         throw Error('invalid target cursor');
     }
@@ -82,7 +84,7 @@ export class NativeClient {
         if (['queued', 'running', 'pending'].includes(operation.state)) return;
         if (operation.state !== 'succeeded') throw Error('当前通讯录同步未完成，请刷新联系人目录重试。');
         const value = operation.result?.directory;
-        if (value?.version !== 1 || value.source !== 'wechat.initcontact' || value.accountId !== accountId || value.catalogComplete !== true ||
+        if (value?.version !== 2 || value.source !== 'wechat.current-directory' || value.accountId !== accountId || value.catalogComplete !== true ||
             typeof value.accountIdentity !== 'string' || !Array.isArray(value.items) || value.items.length > 10000)
           throw Error('连接组件未提供完整当前通讯录；请更新账号连接组件。');
         const identity = await this.identity(accountId);
@@ -92,8 +94,9 @@ export class NativeClient {
           segment(item.id);
           if (!['direct', 'group'].includes(item.kind) || (item.kind === 'group' ? !item.id.endsWith('@chatroom') : item.id.includes('@')) || ids.has(item.id)) throw Error('invalid current directory identity');
           ids.add(item.id);
-          return { id: item.id, accountId, kind: item.kind, displayName: typeof item.displayName === 'string' ? item.displayName : item.id };
+          return { id: item.id, accountId, kind: item.kind, displayName: typeof item.displayName === 'string' ? item.displayName : item.id, ...Object.fromEntries(['nickname', 'remark', 'alias'].filter(key => typeof item[key] === 'string').map(key => [key, item[key]])) };
         });
+        directory.groupDiscoveryIncomplete = value.groupDiscoveryIncomplete === true;
         directory.accountIdentity = identity.accountIdentity; directory.serverId = identity.serverId;
         directory.unverifiedCount = Number.isSafeInteger(value.unverifiedCount) && value.unverifiedCount >= 0 ? value.unverifiedCount : 0;
         directory.observedAt = Date.now();
@@ -105,11 +108,16 @@ export class NativeClient {
     if (!current.connected || current.accountIdentity !== directory.accountIdentity || current.serverId !== directory.serverId) {
       this.directories.delete(accountId); throw Error('directory account identity changed');
     }
+    const allMatches = searchTargets(directory.items, { ...search, kind: 'all' });
+    const matches = search.kind === 'all' ? allMatches : allMatches.filter(item => item.kind === search.kind);
+    const counts = { direct: allMatches.filter(item => item.kind === 'direct').length, group: allMatches.filter(item => item.kind === 'group').length };
     const offset = paging?.offset ?? 0;
-    if (offset > directory.items.length) throw Error('invalid target cursor');
-    const items = directory.items.slice(offset, offset + 50), nextOffset = offset + items.length;
-    return { items, pending: false, observedAt: directory.observedAt, unverifiedCount: directory.unverifiedCount, nextCursor: nextOffset < directory.items.length ? Buffer.from(JSON.stringify({ version: 2, accountId, operationId: directory.operationId, offset: nextOffset })).toString('base64url') : null };
+    if (offset > matches.length) throw Error('invalid target cursor');
+    const items = matches.slice(offset, offset + search.limit), nextOffset = offset + items.length;
+    return { items, counts, total: matches.length, pending: false, observedAt: directory.observedAt, unverifiedCount: directory.unverifiedCount, groupDiscoveryIncomplete: directory.groupDiscoveryIncomplete,
+      nextCursor: nextOffset < matches.length ? Buffer.from(JSON.stringify({ version: 3, accountId, operationId: directory.operationId, offset: nextOffset, ...search })).toString('base64url') : null };
   }
+
   refreshTargets(accountId) { const current = this.directories.get(accountId); if (!current || current.items || current.error) this.directories.delete(accountId); }
   directoryPending(accountId) { const current = this.directories.get(accountId); return Boolean(current && !current.items && !current.error); }
   message(accountId, messageId) { return this.json(`v1/accounts/${segment(accountId)}/messages/${segment(messageId)}`); }

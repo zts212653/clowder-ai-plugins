@@ -14,7 +14,7 @@ test('targets use a complete current-account directory, never the mixed historic
       return Response.json({ id: 'directory-op', accountId: 'account', kind: 'metadata', state: 'running' });
     }
     if (url.pathname.endsWith('/operations/directory-op')) return Response.json({ id: 'directory-op', accountId: 'account', kind: 'metadata', state: 'succeeded', result: {
-      directory: { version: 1, source: 'wechat.initcontact', accountId: 'account', accountIdentity: 'owner', catalogComplete: true, items }
+      directory: { version: 2, source: 'wechat.current-directory', accountId: 'account', accountIdentity: 'owner', catalogComplete: true, items }
     } });
     if (url.pathname === '/v1/status') return Response.json({ serverId: 'server', version: { product: 'agent-wechat', backend: 'native', apiVersion: 1 } });
     if (url.pathname === '/v1/accounts/account') return Response.json({ id: 'account', ownUsername: 'owner', authenticated: true, connection: 'online' });
@@ -36,7 +36,7 @@ test('current directory pagination is complete and its continuation stays with t
     requests.push(String(url));
     if (url.pathname.endsWith('/contact-sync')) return Response.json({ id: 'directory-op', accountId: 'account', kind: 'metadata', state: 'running' });
     if (url.pathname.endsWith('/operations/directory-op')) return Response.json({ id: 'directory-op', accountId: 'account', kind: 'metadata', state: 'succeeded', result: { directory: {
-      version: 1, source: 'wechat.initcontact', accountId: 'account', accountIdentity: 'owner', catalogComplete: true, items
+      version: 2, source: 'wechat.current-directory', accountId: 'account', accountIdentity: 'owner', catalogComplete: true, items
     } } });
     if (url.pathname === '/v1/status') return Response.json({ serverId: 'server', version: { product: 'agent-wechat', backend: 'native', apiVersion: 1 } });
     if (url.pathname === '/v1/accounts/account') return Response.json({ id: 'account', ownUsername: 'owner', authenticated: true, connection: 'online' });
@@ -62,7 +62,7 @@ test('old component counts, incomplete inventories and changed accounts never be
     const client = new NativeClient({ baseUrl: 'http://127.0.0.1:1/', token: 'a'.repeat(64), fetch: async url => {
       if (url.pathname.endsWith('/contact-sync')) { starts++; return Response.json({ id: 'op', accountId: 'account', kind: 'metadata', state: 'running' }); }
       if (url.pathname.endsWith('/operations/op')) return Response.json({ id: 'op', accountId: 'account', kind: 'metadata', state: 'succeeded', result: scenario === 'old-component' ? { complete: true, recordCount: 22 } : {
-        directory: { version: 1, source: 'wechat.initcontact', accountId: 'account', accountIdentity: 'owner', catalogComplete: scenario !== 'incomplete', items: [{ id: 'person', kind: 'direct' }] }
+        directory: { version: 2, source: 'wechat.current-directory', accountId: 'account', accountIdentity: 'owner', catalogComplete: scenario !== 'incomplete', items: [{ id: 'person', kind: 'direct' }] }
       } });
       if (url.pathname.endsWith('/status')) return Response.json({ serverId: 'server', version: { product: 'agent-wechat', backend: 'native', apiVersion: 1 } });
       return Response.json({ id: 'account', ownUsername: 'different-owner', authenticated: true, connection: 'online' });
@@ -131,7 +131,7 @@ test('a cached snapshot is discarded if the same native account slot changes own
   const client = new NativeClient({ baseUrl: 'http://127.0.0.1:1/', token: 'a'.repeat(64), fetch: async url => {
     if (url.pathname.endsWith('/contact-sync')) { starts++; return Response.json({ id: 'op', accountId: 'account', kind: 'metadata' }); }
     if (url.pathname.endsWith('/operations/op')) return Response.json({ id: 'op', accountId: 'account', kind: 'metadata', state: 'succeeded', result: { directory: {
-      version: 1, source: 'wechat.initcontact', accountId: 'account', accountIdentity: 'first-owner', catalogComplete: true, unverifiedCount: 2, items: [{ id: 'first-friend', kind: 'direct' }]
+      version: 2, source: 'wechat.current-directory', accountId: 'account', accountIdentity: 'first-owner', catalogComplete: true, unverifiedCount: 2, items: [{ id: 'first-friend', kind: 'direct' }]
     } } });
     if (url.pathname.endsWith('/status')) return Response.json({ serverId: 'server', version: { product: 'agent-wechat', backend: 'native', apiVersion: 1 } });
     return Response.json({ id: 'account', ownUsername: ownerIdentity, authenticated: true, connection: 'online' });
@@ -144,4 +144,23 @@ test('a cached snapshot is discarded if the same native account slot changes own
   await assert.rejects(client.targets('account'), /identity changed/);
   assert.equal((await client.targets('account')).pending, true);
   assert.equal(starts, 2);
+});
+
+test('recipient search ranks fuzzy names and IDs, loads bounded pages and binds cursors to the search', async () => {
+  const client = new NativeClient({ baseUrl: 'http://127.0.0.1:1/', token: 'a'.repeat(64) });
+  client.identity = async () => ({ connected: true, accountIdentity: 'owner', serverId: 'server' });
+  client.directories.set('account', { operationId: 'ready-op', accountIdentity: 'owner', serverId: 'server', observedAt: Date.now(), items: [
+    ...Array.from({ length: 45 }, (_, i) => ({ id: `club-${i}@chatroom`, kind: 'group', accountId: 'account', displayName: `周末读书群 ${i}` })),
+    { id: 'book-lover', kind: 'direct', accountId: 'account', displayName: '读书好友' },
+  ] });
+  const first = await client.targets('account', '', { query: '周书群', kind: 'group', limit: 20 });
+  assert.equal(first.items.length, 20);
+  assert.equal(first.total, 45);
+  assert.ok(first.items.every(x => x.kind === 'group'));
+  const second = await client.targets('account', first.nextCursor, { query: '周书群', kind: 'group', limit: 20 });
+  assert.equal(second.items.length, 20);
+  assert.equal(new Set([...first.items, ...second.items].map(x => x.id)).size, 40);
+  await assert.rejects(client.targets('account', first.nextCursor, { query: 'other', kind: 'group', limit: 20 }), /cursor/);
+  const byId = await client.targets('account', '', { query: 'book-love', kind: 'direct', limit: 20 });
+  assert.deepEqual(byId.items.map(x => x.id), ['book-lover']);
 });

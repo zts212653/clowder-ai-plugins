@@ -34,7 +34,7 @@
     const input = el('input', { type: 'checkbox', checked });
     return { input, node: el('label', { class: 'check' }, [input, el('span', { text })]) };
   };
-  let state, choiceAccount, chatsLoaded = false, catsLoaded = false, remindersLoaded = false, choices = [], selectedPreview, previewCat, showEditor = false, refreshDirectory = false;
+  let state, choiceAccount, catsLoaded = false, remindersLoaded = false, selectedPreview, previewCat, showEditor = false;
   const app = document.querySelector('#app');
   const message = el('div', { id: 'message', role: 'status', 'aria-live': 'polite' });
   const show = (text, error = false) => { message.textContent = text; message.className = error ? 'error' : ''; };
@@ -44,7 +44,6 @@
   };
   const globalStop = button('暂停全部代聊', () => perform({ action: 'pause_all' }, '本地代聊已停止；在途消息请继续核对。'), 'stop');
   app.append(el('header', {}, [el('h1', { text: '微信代聊' }), el('div', { class: 'toolbar' }, [button('刷新状态', () => {
-    chatsLoaded = false; catsLoaded = false; remindersLoaded = false; selectedPreview = null; confirm.input.checked = false; refreshDirectory = true;
     return perform({ action: 'status' });
   }, 'ghost'), globalStop])]), message);
   const summary = el('div', { class: 'statusline' }); app.append(summary);
@@ -65,6 +64,7 @@
   const renderLogin = result => {
     if (!result) return;
     const texts = { requesting: '正在建立同一次扫码操作', awaiting_scan: '请用手机微信扫码', awaiting_approval: '请在手机微信确认', succeeded: '账号身份已核验；猫的处理权限仍需单独开启', failed: '登录未完成，请检查后重试', expired: '二维码已过期，可在原记录重新扫码' };
+    if (result.state === 'succeeded') show('微信登录已确认，请选择具体好友或群。');
     loginState.textContent = texts[result.state] ?? `登录状态：${result.state}`;
     if (result.qr) qr.replaceChildren(el('img', { src: result.qr, alt: '本次微信登录二维码' }));
     if (['succeeded', 'failed', 'expired', 'cancelled', 'rejected', 'needs_login'].includes(result.state)) { clearInterval(pollTimer); if (result.state === 'succeeded') qr.replaceChildren(); }
@@ -88,10 +88,12 @@
   connectionSection.querySelector('details').append(el('p', { text: '手机微信可能显示 Linux 登录设备：这是当前组件声明的微信协议设备类型，组件进程实际运行在当前宿主，不表示本插件另行部署了 Linux 服务器。微信登录和同步需要与微信服务器通信；开启代聊后，授权会话文字还会交给所选模型服务，云端模型会接收这些文字。' }));
   app.append(connectionSection);
 
-  const target = el('select', { required: true }, [el('option', { value: '', text: '选择真实联系人或群' })]), cat = el('select', { required: true }, [el('option', { value: '', text: '选择值班猫' })]);
-  const targetStatus = el('small', { id: 'target-status', class: 'muted', role: 'status' }), catStatus = el('small', { class: 'muted', role: 'status' });
-  const targetField = label('指定好友或群', target), catField = label('值班猫', cat);
-  targetField.append(targetStatus); catField.append(catStatus);
+  const target = window.createWechatTargetPicker({ el, button, load: body => call({ action: 'chats', ...body }), onChange: () => {
+    confirm.input.checked = false; formError = ''; updateAuthorization();
+  } });
+  const cat = el('select', { required: true }, [el('option', { value: '', text: '选择值班猫' })]);
+  const catStatus = el('small', { class: 'muted', role: 'status' });
+  const targetField = target.node, catField = label('值班猫', cat); catField.append(catStatus);
   const persona = el('textarea', { placeholder: '例如：以我的助理口吻，礼貌简短，不谈工作机密', required: true });
   const goal = el('textarea', { placeholder: '例如：在周末球局群问问今晚八点谁来，并跟进人数', required: true });
   const proactive = check('允许猫主动发起聊天', true), replies = check('允许猫自动接话', true), scheduled = check('允许按时段持续主动发起（对方未回时停止追问）');
@@ -105,8 +107,8 @@
   const modelInfo = el('div', { class: 'notice', text: '选择猫后，先核对实际模型服务。' });
   const confirm = check('我允许所选会话的文字交给上述模型服务，并允许猫在约定范围内直接发送。家庭记忆、文件、命令、支付、外链和附件访问均不开放。');
   const loadPreview = async () => {
-    selectedPreview = null; confirm.input.checked = false;
-    if (!cat.value || !state?.memberRuntimeAvailable) return;
+    selectedPreview = null; confirm.input.checked = false; updateAuthorization();
+    if (!cat.value || !state?.memberRuntimeAvailable) { modelInfo.textContent = cat.value ? '当前宿主的受限模型服务尚未就绪。' : '选择猫后，先核对实际模型服务。'; return; }
     const selected = cat.value; modelInfo.textContent = '正在核对模型服务…';
     try {
       const result = await call({ action: 'cat_details', catId: selected });
@@ -114,14 +116,14 @@
       selectedPreview = result; previewCat = selected;
       modelInfo.textContent = result.available ? `实际模型：${result.runtime?.model ?? '未知'}；客户端：${result.runtime?.clientId ?? '未知'}。所选会话文字会通过此服务处理并保存在宿主，不读取家庭记忆。` : '这只猫的受限模型服务当前不可用。';
     } catch (error) { modelInfo.textContent = error.message; }
+    updateAuthorization();
   };
-  cat.addEventListener('change', loadPreview);
+  cat.addEventListener('change', () => { formError = ''; loadPreview(); });
   const fillPolicy = async policy => {
     showEditor = true; formSection.hidden = false;
     submit.textContent = '保存并交回值班猫';
     const value = JSON.stringify({ id: policy.conversationId, kind: policy.kind });
-    if (![...target.options].some(option => option.value === value)) target.add(el('option', { value, text: policy.displayName }));
-    target.value = value; cat.value = policy.catId; persona.value = policy.persona; goal.value = policy.goal;
+    target.set(value, policy.displayName); target.lock(true); cat.value = policy.catId; persona.value = policy.persona; goal.value = policy.goal;
     proactive.input.checked = policy.proactive; replies.input.checked = policy.replies; scheduled.input.checked = policy.scheduleEnabled === true;
     interval.value = policy.intervalMinutes; turns.value = policy.maxTurns; daily.value = policy.maxProactivePerDay;
     const time = minutes => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
@@ -134,20 +136,46 @@
     render(state); await loadPreview(); form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
   const minute = value => { const [hours, minutes] = value.split(':').map(Number); return hours * 60 + minutes; };
+  let submitting = false, formError = '';
   const submit = el('button', { type: 'submit', text: '开启代聊', class: 'primary' });
-  const form = el('form', { onsubmit: async event => {
+  const authorizationHint = el('p', { class: 'muted', role: 'status' });
+  function authorizationReason() {
+    return !target.value ? '请选择一个好友或群。' : !cat.value ? '请选择值班猫。' : !selectedPreview?.available || previewCat !== cat.value ? '所选猫的受限模型尚未就绪，请等待核验或换一只猫。' : !persona.value.trim() || !goal.value.trim() ? '请填写人设和聊天目标。' : !confirm.input.checked ? '请先勾选上面的模型与会话授权确认。' : '';
+  }
+  function updateAuthorization() {
+    const modelReady = selectedPreview?.available && previewCat === cat.value;
+    confirm.node.hidden = !target.value || !modelReady;
+    confirm.input.disabled = false;
+    submit.disabled = submitting;
+    authorizationHint.textContent = formError || authorizationReason(); authorizationHint.className = formError ? 'error' : 'muted';
+  }
+  for (const input of [persona, goal, confirm.input]) input.addEventListener('input', () => { formError = ''; updateAuthorization(); });
+  const form = el('form', { noValidate: true, onsubmit: async event => {
     event.preventDefault();
-    if (!confirm.input.checked || !selectedPreview?.available || previewCat !== cat.value) return show('请先核对模型服务并确认数据范围。', true);
-    if (!target.value) return show('请选择真实好友或群。', true);
+    const reason = authorizationReason();
+    if (reason || !form.checkValidity()) {
+      formError = reason || '请核对表单中的时间和频率设置。'; updateAuthorization();
+      const invalid = form.querySelector(':invalid'); if (invalid?.closest('details')) invalid.closest('details').open = true;
+      if (!target.value) target.trigger.focus(); else if (!cat.value) cat.focus(); else if (invalid) invalid.focus(); else if (!confirm.node.hidden) confirm.input.focus();
+      return;
+    }
+    if (submitting) return; submitting = true; formError = ''; const buttonText = submit.textContent; submit.textContent = '正在开启…'; updateAuthorization();
     const chosen = JSON.parse(target.value), previous = state.policies.find(item => item.conversationId === chosen.id && item.accountIdentity === state.account?.accountIdentity);
-    const result = await perform({ action: 'activate', target: chosen, catId: cat.value, persona: persona.value, goal: goal.value,
+    let result;
+    try { result = await call({ action: 'activate', accountIdentity: state.account?.accountIdentity, serverId: state.account?.serverId, target: chosen, catId: cat.value, persona: persona.value, goal: goal.value,
       proactive: proactive.input.checked, replies: replies.input.checked, scheduleEnabled: scheduled.input.checked,
       intervalMinutes: Number(interval.value), maxTurns: Number(turns.value), maxProactivePerDay: Number(daily.value),
       timeZone: timeZone.value, windowStart: minute(windowStart.value), windowEnd: minute(windowEnd.value),
       expiresAt: expires.value ? new Date(expires.value).getTime() : null, notificationThreadId: notification.value || null,
-      confirm: true, expectedEpoch: previous?.epoch ?? 0, modelFingerprint: selectedPreview.fingerprint }, '代聊已开启。可在下方立即主动开口，或随时由你接管。');
+      confirm: true, expectedEpoch: previous?.epoch ?? 0, modelFingerprint: selectedPreview.fingerprint }); }
+    catch (error) {
+      formError = error.message;
+      if (error.message.includes('模型或账号配置已变化')) await loadPreview();
+    }
+    finally { submitting = false; submit.textContent = buttonText; }
+    if (result) { render(result); show('代聊已开启。可随时由你接管。'); }
     if (result) { confirm.input.checked = false; showEditor = false; render(state); policies.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-    else chatsLoaded = false;
+    updateAuthorization();
   } }, [
     el('div', { class: 'grid' }, [targetField, catField, label('人设与交流边界', persona), label('这次要聊什么', goal)]),
     el('p', { class: 'muted', text: '群授权仅限本群，不扩展到群成员私聊或其他群。涉及资金、验证码、账号安全或对方找本人时暂停并交还你。' }),
@@ -156,27 +184,9 @@
       label('主动间隔（分钟）', interval), label('每天最多主动次数', daily), label('本次最多聊天轮数', turns)])]),
     el('div', { class: 'grid' }, [notificationField, label('可选：代聊执行到期时间（留空长期保留配置）', expires)]),
     el('p', { class: 'muted', text: '选定提醒对话后，本人在那个 Clowder 对话中单独说“我来聊”，会停止绑定在那里的代聊；说“暂停全部代聊”则全局停止。微信群友无法通过聊天文字改变控制权。' }),
-    modelInfo, confirm.node, el('div', { class: 'form-actions' }, [submit])]);
-  let nextCursor = null;
-  const more = button('加载更多好友与群', async () => { try { await loadChats(nextCursor); } catch (error) { show(error.message, true); } }); more.hidden = true;
-  const loadChats = async (cursor = '') => {
-    const account = choiceAccount, selected = target.value;
-    if (!cursor) { choices = []; target.replaceChildren(el('option', { value: '', text: '选择真实联系人或群' })); }
-    const reload = !cursor && refreshDirectory; refreshDirectory = false;
-    const result = await call({ action: 'chats', cursor, ...(reload ? { refreshDirectory: true } : {}) });
-    if (account !== choiceAccount) return;
-    for (const item of result.items) if (!choices.some(old => old.id === item.id)) {
-      choices.push(item); target.add(el('option', { value: JSON.stringify({ id: item.id, kind: item.kind }), text: `${item.displayName} · ${item.kind === 'group' ? '群' : '好友'} · ${item.id}` }));
-    }
-    nextCursor = result.nextCursor; more.hidden = !nextCursor;
-    if ([...target.options].some(option => option.value === selected)) target.value = selected;
-    chatsLoaded = !result.pending;
-    const friends = choices.filter(item => item.kind === 'direct').length, groups = choices.filter(item => item.kind === 'group').length;
-    targetStatus.textContent = result.pending ? '正在从微信核对完整通讯录，完成后自动显示；值班猫可先选择。' : choices.length ? `已读取 ${friends} 位好友、${groups} 个群${nextCursor ? '，可继续加载更多' : ''}。` : nextCursor ? '本页没有可选对象，可继续加载下一页。' : '当前微信通讯录为空；可点击刷新状态重新核对。';
-    if (result.unverifiedCount > 0) targetStatus.textContent += ` 另有 ${result.unverifiedCount} 个对象尚未核实，暂不展示；可刷新重试。`;
-  };
+    modelInfo, confirm.node, authorizationHint, el('div', { class: 'form-actions' }, [submit])]);
   const returnToList = button('返回会话列表', () => { showEditor = false; render(state); policies.scrollIntoView({ behavior: 'smooth' }); });
-  const formSection = el('section', { class: 'stage-card' }, [el('div', { class: 'row' }, [el('h2', { text: '配置代聊会话' }), returnToList]), form, more]); app.append(formSection);
+  const formSection = el('section', { class: 'stage-card' }, [el('div', { class: 'row' }, [el('h2', { text: '配置代聊会话' }), returnToList]), form]); app.append(formSection);
   formSection.hidden = true;
   const policies = el('div', { class: 'cards' }), attempts = el('div', { class: 'cards' });
   const history = el('div'); let historyCursor;
@@ -190,7 +200,7 @@
   });
   const policiesSection = el('section', { class: 'work-section' }, [el('div', { class: 'row' }, [el('h2', { text: '代聊会话' }), button('添加会话', () => {
     if (!state?.account?.connected) return show('请先连接并核验微信账号。', true);
-    showEditor = true; formSection.hidden = false; target.value = ''; confirm.input.checked = false; submit.textContent = '开启代聊'; render(state); form.scrollIntoView({ behavior: 'smooth' });
+    showEditor = true; formSection.hidden = false; target.lock(false); target.clear(); confirm.input.checked = false; submit.textContent = '开启代聊'; render(state); form.scrollIntoView({ behavior: 'smooth' });
   })]), policies]);
   const attemptsSection = el('section', { class: 'work-section' }, [el('div', { class: 'row' }, [el('h2', { text: '发送记录' }), button('只查询原记录', () => perform({ action: 'inspect' }))]), attempts,
     el('details', {}, [el('summary', { text: '查询较早记录' }), el('p', { class: 'muted', text: '记录保留在本机。历史状态以查询时为准；未决发送始终保留在近期记录中。' }), history, historyMore])]);
@@ -201,9 +211,9 @@
     const connected = Boolean(snapshot.account?.connected);
     const accountKey = connected ? `${snapshot.account.serverId}:${snapshot.account.accountIdentity}` : null;
     if (accountKey !== choiceAccount) {
-      choiceAccount = accountKey; chatsLoaded = false; catsLoaded = false; remindersLoaded = false; choices = [];
+      choiceAccount = accountKey; catsLoaded = false; remindersLoaded = false;
       selectedPreview = null; previewCat = null; confirm.input.checked = false;
-      target.replaceChildren(el('option', { value: '', text: '选择真实联系人或群' }));
+      target.lock(false); target.reset();
       cat.replaceChildren(el('option', { value: '', text: '选择值班猫' }));
       notification.replaceChildren(el('option', { value: '', text: '仅在此控制台提醒' }));
     }
@@ -264,6 +274,7 @@
       attempts.append(card);
     }
     if (snapshot.lastError) show(snapshot.lastError, true);
+    updateAuthorization();
   };
   let refreshing = false;
   async function refresh() {
@@ -272,7 +283,6 @@
       render(await call({ action: 'status' }));
       if (state.account?.connected) {
         const account = choiceAccount, loads = [];
-        if (!chatsLoaded) loads.push(loadChats().catch(error => { if (account === choiceAccount) { chatsLoaded = true; targetStatus.textContent = `通讯录核对未完成：${error.message} 请点击刷新状态重试。`; } }));
         if (!catsLoaded) loads.push((async () => {
           const roster = await call({ action: 'cats' }); if (account !== choiceAccount) return;
           const selected = cat.value;
