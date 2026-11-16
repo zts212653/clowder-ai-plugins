@@ -9,8 +9,8 @@
       "version": "0.1.0-alpha.44",
       "license": "MIT",
       "dependencies": {
-        "@clowder-ai/plugin-contract": "0.3.3-candidate.0",
-        "@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.11",
+        "@clowder-ai/plugin-contract": "0.4.0-candidate.0",
+        "@clowder-ai/plugin-sdk": "0.3.0-beta.2-candidate.14",
         "zod": "3.25.76",
         "@modelcontextprotocol/sdk": "1.26.0",
         "fastify": "4.29.1"
@@ -26,29 +26,29 @@
       }
     },
     "node_modules/@clowder-ai/plugin-contract": {
-      "version": "0.3.3-candidate.0",
-      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-contract/-/plugin-contract-0.3.3-candidate.0.tgz",
-      "integrity": "sha512-Nf5n2PxE/eGcvsmntVxtxeaJKAdB/Gr+xOxlzjUYrCQEILJAFPjpBqcQH6GiUpIZwaWwU47GgH2Ie592rMd/kA==",
       "license": "MIT",
+      "engines": {
+        "node": ">=20.0.0"
+      },
+      "version": "0.4.0-candidate.0",
+      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-contract/-/plugin-contract-0.4.0-candidate.0.tgz",
+      "integrity": "sha512-0GJq7TAVxJfBrCB0csjRTpXgHH7RNjmOlAa0/8UwKRE0DeuNMJOxa4EhSFql9Xe6VzvA0n2dL7z7K5GP5ePbHw==",
       "dependencies": {
         "ajv": "^8.17.0",
         "ajv-formats": "^3.0.0"
-      },
-      "engines": {
-        "node": ">=20.0.0"
       }
     },
     "node_modules/@clowder-ai/plugin-sdk": {
-      "version": "0.3.0-beta.2-candidate.11",
-      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-sdk/-/plugin-sdk-0.3.0-beta.2-candidate.11.tgz",
       "license": "MIT",
-      "dependencies": {
-        "@clowder-ai/plugin-contract": "0.3.3-candidate.0"
-      },
       "engines": {
         "node": ">=20.0.0"
       },
-      "integrity": "sha512-ANor213WhGZHYg5d0MzuIOauViRZidtsqMh2Ur70loXPJOf5w0prKQC7BbHSnxqGqspwkBFgVlAFtENcGFGKUQ=="
+      "version": "0.3.0-beta.2-candidate.14",
+      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-sdk/-/plugin-sdk-0.3.0-beta.2-candidate.14.tgz",
+      "integrity": "sha512-2+L/3eHEKp8h3lHVcOX7XMnUQz1l0Ip089eC+oVbhKKo9FTI4IMB2OocrMEB20hsQsKDRmZSyI/AXiuUcC8/ww==",
+      "dependencies": {
+        "@clowder-ai/plugin-contract": "0.4.0-candidate.0"
+      }
     },
     "node_modules/@fastify/ajv-compiler": {
       "version": "3.6.0",
