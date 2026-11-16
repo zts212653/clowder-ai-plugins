@@ -8,3 +8,4 @@ prev: Previous page
 next: Next page
 page: "{0} / {1}"
 add: Add a phrase
+saveDraft: Save current input

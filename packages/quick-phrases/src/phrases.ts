@@ -88,21 +88,22 @@ export function createQuickPhrases(storage: PhraseStorage) {
     if (method === 'POST' && 'id' in body) {
       const { id } = body;
       if (typeof id !== 'string' || id.length !== 36) return json(400, { error: 'Invalid phrase id' });
+      const phrase = parsePhrases(await storage.get(key))?.find((item) => item.id === id);
+      if (!phrase) return json(404, { error: 'Phrase not found' });
+      // The text goes into the input whatever happens to the usage count (the count is a receipt, not a gate).
+      const insert = json(200, { ok: true, act: 'insert', args: { into: 'chat-input', text: phrase.text } });
       for (let attempt = 0; attempt < usageAttempts; attempt++) {
         const current = await storage.get(key);
         const phrases = parsePhrases(current);
-        if (!phrases) return json(500, { error: 'Invalid phrase data' });
-        if (!phrases.some((phrase) => phrase.id === id)) return json(404, { error: 'Phrase not found' });
-        const next = phrases.map((phrase) =>
-          phrase.id === id ? { ...phrase, useCount: (phrase.useCount ?? 0) + 1 } : phrase);
-        if (Buffer.byteLength(JSON.stringify(next), 'utf8') > 1024 * 1024)
-          return json(413, { error: 'Phrase storage is full' });
+        if (!phrases?.some((item) => item.id === id)) return insert;
+        const next = phrases.map((item) => (item.id === id ? { ...item, useCount: (item.useCount ?? 0) + 1 } : item));
+        if (Buffer.byteLength(JSON.stringify(next), 'utf8') > 1024 * 1024) return insert;
         await context.assertCurrent();
         const write = await storage.compareAndSet(key, current?.revision ?? null, next);
         // Only an unapplied CAS is safe to retry; a fresh read makes the next attempt count once.
-        if (write.applied) return json(200, { ok: true, act: 'insert', args: { into: 'chat-input', text: next.find(phrase => phrase.id === id)!.text } });
+        if (write.applied) return insert;
       }
-      return json(409, { error: 'Phrases changed, please retry' });
+      return insert;
     }
 
     const current = await storage.get(key);

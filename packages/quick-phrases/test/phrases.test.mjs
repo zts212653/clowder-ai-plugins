@@ -133,7 +133,7 @@ test('a selection re-reads a competing revision and increments only once', async
   assert.equal((await list({})).items[0].useCount, 11);
 });
 
-test('a selection reports 409 after three unapplied CAS attempts without losing data', async () => {
+test('a selection still inserts its text after three unapplied CAS attempts (the count is a receipt), without losing data', async () => {
   const id = '00000000-0000-4000-8000-000000000001';
   const { storage, list } = fixture([{ id, text: 'Existing phrase', useCount: 3 }]);
   let writes = 0;
@@ -147,7 +147,8 @@ test('a selection reports 409 after three unapplied CAS attempts without losing 
   const result = await handle({ request: { method: 'POST', body: { id } } }, {
     kind: 'owner-http-request', userId: 'owner-a', operation: 'write', async assertCurrent() {},
   });
-  assert.equal(result.status, 409);
+  assert.equal(result.status, 200);
+  assert.deepEqual(JSON.parse(result.body), { ok: true, act: 'insert', args: { into: 'chat-input', text: 'Existing phrase' } });
   assert.equal(writes, 3);
   assert.equal((await list({})).items[0].useCount, 3);
 });

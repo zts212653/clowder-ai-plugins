@@ -89,14 +89,25 @@ views:
                   k: page
                   v: $.phrases.nextPage
                 disabled: $.phrases.last
-          - type: button
-            label: t:quickPhrases.add
-            act: dialog
-            args:
-              kind: quickPhrases.add
-            disabled: $.pending
+          - type: toolbar
+            items:
+              - type: button
+                label: t:quickPhrases.add
+                act: dialog
+                args:
+                  kind: quickPhrases.add
+                disabled: $.pending
+              - type: button
+                label: t:quickPhrases.saveDraft
+                act: plugin
+                args:
+                  request: saveDraft
+                  plugin: official.quick-phrases
+                disabled: $.pending
+                when: $.composer.text
     sources:
       phrases: list
+      composer: host:composer
   dlg.quickPhrases.add:
     title: t:quickPhrases.add
     fields:
@@ -118,6 +129,11 @@ requests:
     method: POST
     body:
       text: "@text"
+  saveDraft:
+    path: phrases
+    method: POST
+    body:
+      text: host:composer.text
   pick:
     path: phrases
     method: POST

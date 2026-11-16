@@ -8,3 +8,4 @@ prev: 上一页
 next: 下一页
 page: "{0} / {1}"
 add: 新增一条用语
+saveDraft: 存当前输入
