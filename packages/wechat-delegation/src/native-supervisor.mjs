@@ -1,8 +1,8 @@
 import { spawn } from 'node:child_process';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { chmod, lstat, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdir, open, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
-import { readFileSync } from 'node:fs';
+import { constants, readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -28,6 +28,21 @@ async function port() {
   await new Promise((resolve, reject) => listener.close(error => error ? reject(error) : resolve()));
   return number;
 }
+async function privateDirectory(path, recursive = false) {
+  let directory;
+  try {
+    try { await mkdir(path, { recursive, mode: 0o700 }); }
+    catch (error) { if (error.code !== 'EEXIST') throw error; }
+    // Inspect and tighten the opened directory itself, without following a
+    // final symlink or chmod'ing an unrelated target. Same-UID OS compromise
+    // is outside this boundary; the native service must also guard its files.
+    directory = await open(path, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    const stat = await directory.stat();
+    if (!stat.isDirectory() || typeof process.getuid === 'function' && stat.uid !== process.getuid()) throw Error('directory ownership mismatch');
+    await directory.chmod(0o700);
+  } catch { throw Error('native private directory must be an owned directory, not a symbolic link'); }
+  finally { await directory?.close(); }
+}
 export class NativeSupervisor {
   constructor({ dataPath, asset, download = loadBundled }) {
     this.dataPath = dataPath; this.asset = asset; this.download = download; this.client = null;
@@ -41,7 +56,7 @@ export class NativeSupervisor {
   }
   async start(owner) {
     const asset = this.asset ?? nativeAsset();
-    await mkdir(this.dataPath, { recursive: true, mode: 0o700 });
+    await privateDirectory(this.dataPath, true);
     const root = await realpath(this.dataPath);
     const binary = join(root, asset.fileName);
     let bytes;
@@ -63,13 +78,13 @@ export class NativeSupervisor {
     if (createHash('sha256').update(bytes).digest('hex') !== asset.sha256) throw Error('native integrity mismatch');
     await chmod(binary, 0o700);
     const dataDir = join(root, 'native-profile');
-    await mkdir(dataDir, { recursive: true, mode: 0o700 });
+    await privateDirectory(dataDir);
     // The native CLI resolves global config before serving, even with --data-dir.
     // Keep it in this plugin instance rather than inheriting the owner's HOME.
     const configDir = join(root, 'native-config');
-    await mkdir(configDir, { recursive: true, mode: 0o700 });
+    await privateDirectory(configDir);
     const listen = await port(); const token = randomBytes(32).toString('hex');
-    const environment = Object.fromEntries(['PATH', 'TMPDIR', 'TMP', 'TEMP', 'SystemRoot', 'WINDIR', 'LANG', 'LC_ALL', 'TZ', 'SSL_CERT_FILE', 'SSL_CERT_DIR']
+    const environment = Object.fromEntries(['PATH', 'TMPDIR', 'TMP', 'TEMP', 'SystemRoot', 'WINDIR', 'LANG', 'LC_ALL', 'TZ']
       .filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]]));
     environment.XDG_CONFIG_HOME = configDir;
     owner.signal.throwIfAborted(); await owner.assertCurrent(); owner.signal.throwIfAborted();

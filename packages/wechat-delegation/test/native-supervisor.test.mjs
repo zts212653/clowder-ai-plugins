@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -26,7 +26,7 @@ http.createServer((req,res)=> {
   if(req.headers.authorization!=='Bearer '+token.trim()) {res.statusCode=401;return res.end();}
   res.setHeader('content-type','application/json');
   res.end(JSON.stringify({serverId:'test-server', dataDir:arg('--data-dir'), pid:process.pid, ownershipGeneration:'owned',
-  state:'ready',configRoot,version:{product:'agent-wechat',backend:'native',apiVersion:1,version:'test', capabilities:['serve','events','profile-read','text-send','native-login']}}));
+  state:'ready',configRoot,inheritedSensitiveEnvironment:['HOME','HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','http_proxy','https_proxy','all_proxy','SSL_CERT_FILE','SSL_CERT_DIR'].filter(key=>process.env[key]!==undefined),version:{product:'agent-wechat',backend:'native',apiVersion:1,version:'test', capabilities:['serve','events','profile-read','text-send','native-login']}}));
 }).listen(Number(port),hostname);
 });
 `);
@@ -73,6 +73,39 @@ test('preparation repairs a corrupt owned component cache without deleting the a
   const client = await supervisor.prepare(actor());
   assert.equal((await client.status()).serverId, 'test-server');
   assert.equal(await readFile(join(root, 'native-profile', 'retained-history'), 'utf8'), 'preserve this account data');
+});
+
+test('the native child receives no owner proxy or CA overrides', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'wechat-environment-'));
+  const keys = ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy', 'SSL_CERT_FILE', 'SSL_CERT_DIR'];
+  const saved = new Map(keys.map(key => [key, process.env[key]]));
+  for (const key of keys) process.env[key] = key.includes('PROXY') || key.includes('proxy') ? 'http://127.0.0.1:1' : '/synthetic-owner-certificate';
+  const asset = { fileName: 'wx-test', version: 'test', sha256: createHash('sha256').update(source).digest('hex'), size: source.length };
+  const supervisor = new NativeSupervisor({ dataPath: root, asset, download: async () => source });
+  t.after(async () => {
+    for (const [key, value] of saved) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
+    await supervisor.stop(); await rm(root, { recursive: true, force: true });
+  });
+  const client = await supervisor.prepare(actor());
+  assert.deepEqual((await client.status()).inheritedSensitiveEnvironment, []);
+});
+
+test('credential, configuration and instance directories cannot redirect through symlinks', async t => {
+  for (const target of ['instance', 'native-profile', 'native-config']) {
+    await t.test(target, async t => {
+      const root = await mkdtemp(join(tmpdir(), 'wechat-private-directory-'));
+      const outside = join(root, 'outside'); await mkdir(outside, { mode: 0o700 });
+      const instance = join(root, 'instance');
+      if (target === 'instance') await symlink(outside, instance);
+      else { await mkdir(instance, { mode: 0o700 }); await symlink(outside, join(instance, target)); }
+      const asset = { fileName: 'wx-test', version: 'test', sha256: createHash('sha256').update(source).digest('hex'), size: source.length };
+      const supervisor = new NativeSupervisor({ dataPath: instance, asset, download: async () => source });
+      t.after(async () => { await supervisor.stop(); await rm(root, { recursive: true, force: true }); });
+      await assert.rejects(supervisor.prepare(actor()), /private directory/);
+      assert.equal(supervisor.child, undefined);
+      await assert.rejects(stat(join(outside, 'component-started')), { code: 'ENOENT' });
+    });
+  }
 });
 
 test('the bundled directory repair component has exact pinned bytes and declares its own provenance', async () => {
