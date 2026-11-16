@@ -305,6 +305,72 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/228",
       "reason": "Exact read-only lookup is packaged for the verified home instance; public catalog activation remains separate from local adoption.",
       "condition": "Keep the same home instance and original subscriptions under existing upgrade authority. Before public discovery, verify supported public Host compatibility and canonical registry bytes."
+    },
+    {
+      "pluginId": "official.companion",
+      "version": "0.1.0-alpha.40",
+      "integrity": "sha512-+uAVkER19bgE6R+9a4QzezGoic3rdNIj0Oz8ieYp54N1qEIagjjYIDhf+ss6uYP9t8y12ZBSwuKtCQGTo9b+WQ==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
+    },
+    {
+      "pluginId": "official.companion.personal-chrome",
+      "version": "0.1.0-alpha.11",
+      "integrity": "sha512-tLvdV6ppYp5n3k3CauWizNfMCFQVXBBn9QCB70ewQjIfwNwPzYGzhGhNkbpkR42lZ9/Apsnlx6UY76rzD08oxg==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
+    },
+    {
+      "pluginId": "official.feedback",
+      "version": "0.1.0-alpha.3",
+      "integrity": "sha512-Z+wG8lBR7ff0VgnpwKXsOATKZgdFpuIrWQ1UeINfDTmpEBK/2TLsf9BTPxFBq1tuT2ZrL9GddDl/iMowfqzEHQ==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
+    },
+    {
+      "pluginId": "official.collective-connector",
+      "version": "0.1.0-alpha.27",
+      "integrity": "sha512-DDYuoi2hie2aKIZqwtuoblrxiT6PJz3v0Kc4EgABehYAhETMx/1T2IUN7KxugnqrSSKK9dw2AsfBC5KMmKAJqQ==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.46",
+      "integrity": "sha512-inEjvFrNm+cNl8Hj8CyqCWBHN+b0TLOaYKnbLTl53/nbzqIj8xcQzDdG7iULUJlaZ7Uy/sCLjgfD1OlPOLUN/Q==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
+    },
+    {
+      "pluginId": "official.quick-phrases",
+      "version": "0.1.0-alpha.4",
+      "integrity": "sha512-8grZJ5IZXJHcnuyOgNX995WoVDAuruW2rYgDcZ8tuNztkWpfLy8bma5P5BrPMfAEkbnaAfAqtb+u6/lj+AjRWw==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
     }
   ]
 }
