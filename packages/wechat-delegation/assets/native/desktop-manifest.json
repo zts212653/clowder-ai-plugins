@@ -2,5 +2,26 @@
   "product": "clowder-wechat-desktop",
   "version": "0.1.0",
   "status": "desktop-detection-development",
-  "artifacts": {}
+  "artifacts": {
+    "darwin-arm64": {
+      "fileName": "clowder-wechat-desktop-0.1.0-darwin-arm64",
+      "minimumMacOS": "26.5",
+      "testedMacOS": "26.5",
+      "teamIdentifier": null,
+      "size": 413824,
+      "sha256": "b64804b4161598a8a19421d262d5561177a95b2c0f8db09e07171a4910dda8ca",
+      "compressedSha256": "46176ec5683fc0c34bbaedba0abcaffc917184d1a69383d7864294fbdff34634",
+      "signing": "ad-hoc-hardened-runtime"
+    }
+  },
+  "sourceCommit": "4271862d1ab134612302da4484eddbdf1a19a89f",
+  "cargoLockSha256": "13011991e0c32a5d70bba346b65ef05716cb41e506ea306c63773864a318cf2c",
+  "signingCommand": "codesign --force --sign - --options runtime --identifier ai.clowder.wechat-desktop --timestamp=none",
+  "sourceFiles": {
+    "Cargo.toml": "b92ca4af7b79a7fada5e78c83860fbb721ed436c1b7b6b4ce66c51cc2c837411",
+    "build.rs": "6ff5ddbaf16cfe99436a49ea11e78d53fb97a5d1f2824fb82aca108159f74b59",
+    "src/main.rs": "2dd2b0ddf6c101d167a8850de3bd254e6fc88fa83cd3a55afc5b5ce05ec1bc9b",
+    "src/desktop.rs": "2f006fdd268a5e75785d21810bc3a387f7de28abc4db31ae27eaa72586d44ebb",
+    "src/desktop.m": "326756446b524222a01985ccef743e2eb836d9e07af6e6d346aba238bd3f07b6"
+  }
 }
