@@ -115,8 +115,9 @@ export function registerConsoleRoutes(app: FastifyInstance, scope: CommunityRequ
       entity: z.string().optional(), v: z.string().optional(), reportURL: z.string().optional(), reason: z.string().optional(), evidence: z.string().optional() }).parse(request.body);
     if (op === 'status' && b.entity === 'finding') {
       if (!['confirmed','resolved','exempted'].includes(b.v ?? '')) throw new Error('Invalid finding status');
-      // Preserve the previous confirm/resolve behavior; waiver needs its own evidence form.
-      await call('findings/' + encodeURIComponent(String(b.id)) + '/' + (b.v === 'confirmed' ? 'acknowledge' : 'resolve'), 'POST', {});
+      // An exemption is the finding's waiver; its dialog supplies the reason and evidence the waiver requires.
+      const action = b.v === 'confirmed' ? 'acknowledge' : b.v === 'resolved' ? 'resolve' : 'waive';
+      await call('findings/' + encodeURIComponent(String(b.id)) + '/' + action, 'POST', action === 'waive' ? { reason: b.reason, evidence: b.evidence } : {});
     } else {
       const i = await find(b.repo, Number(b.n ?? b.id)), path = 'issues/' + encodeURIComponent(i.id);
       if (op === 'route') await call(path + '/dispatch', 'POST', {});

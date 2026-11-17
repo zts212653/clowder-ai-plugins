@@ -542,6 +542,26 @@ views:
     okAct: plugin
     okArgs:
       request: waive
+  dlg.github.exempt:
+    title: t:github.wsCommunity.exempt
+    fields:
+      - id: dlg-r
+        label: t:github.wsCommunity.reason
+        placeholder: t:github.wsCommunity.reason
+        req: true
+        arg: reason
+      - id: dlg-e
+        label: t:github.wsCommunity.evidence
+        placeholder: t:github.wsCommunity.waiver.evidencePlaceholder
+        req: true
+        arg: evidence
+    ok: t:github.wsCommunity.submit
+    okAct: plugin
+    okArgs:
+      request: status
+      entity: finding
+      id: $.id
+      v: exempted
 rows:
   community.issue:
     layout: two
@@ -722,12 +742,10 @@ rows:
             disabled: $.pending
           - type: button
             label: t:github.wsCommunity.exempt
-            act: plugin
+            act: dialog
             args:
-              request: status
-              entity: finding
+              kind: github.exempt
               id: "@i"
-              v: exempted
             when: "@pending"
             disabled: $.pending
       - control: []
@@ -810,6 +828,8 @@ requests:
       entity: "@entity"
       id: "@id"
       v: "@v"
+      reason: "@reason"
+      evidence: "@evidence"
   route:
     path: github/community-console/route
     method: POST

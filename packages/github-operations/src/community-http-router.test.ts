@@ -128,6 +128,24 @@ test('returned decision endpoint can be forwarded unchanged to its real package 
   assert.equal((await findings.get(findingId))?.status, 'acknowledged');
 });
 
+test('console exemption waives a finding with the reason and evidence from its dialog', async t => {
+  const deps = options();
+  const findings = new CommunityReconciliationFindingStore(deps.storage);
+  const findingId = 'reconcile:issue:org/repo#1:changed%?';
+  await findings.upsert({ findingId, subjectKey: 'issue:org/repo#1', findingKind: 'github-reopened-case-closed',
+    severity: 'warning', message: 'Reopened' });
+  const router = await createCommunityHttpRouter(deps); t.after(() => router.stop());
+  const exempt = (body: object) => router.forwardOwner({ principal, method: 'POST', path: 'github/community-console/status',
+    body: { entity: 'finding', id: findingId, v: 'exempted', ...body } });
+  assert.notEqual((await exempt({ reason: 'Duplicate of #2' })).status, 200);
+  assert.equal((await findings.get(findingId))?.status, 'open', 'an exemption without evidence is not recorded as resolved');
+  assert.equal((await exempt({ reason: 'Duplicate of #2', evidence: 'https://github.com/org/repo/issues/2' })).status, 200);
+  const waived = await findings.get(findingId);
+  assert.equal(waived?.status, 'waived');
+  assert.equal(waived?.waiver?.reason, 'Duplicate of #2');
+  assert.equal(waived?.waiver?.evidence, 'https://github.com/org/repo/issues/2');
+});
+
 for (const journal of [false, true]) test(`publication recovers after ${journal ? 'journal' : 'workflow'} result write loss`, async t => {
   const deps = options(); let creates = 0, finds = 0;
   const issue = { number: 7, url: 'https://github.com/org/repo/issues/7' };
