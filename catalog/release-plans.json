@@ -305,6 +305,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/228",
       "reason": "Exact read-only lookup is packaged for the verified home instance; public catalog activation remains separate from local adoption.",
       "condition": "Keep the same home instance and original subscriptions under existing upgrade authority. Before public discovery, verify supported public Host compatibility and canonical registry bytes."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.46",
+      "integrity": "sha512-ioRVw4gpBXoWLKuCxRk7zFpn+ad/V69pACEjbZCiRPciTnSOYP5WhDtdcg3HlRCRPuysmib89S1OMAmCqvqLqg==",
+      "disposition": "defer",
+      "owner": "opus55",
+      "reviewBy": "2026-11-23T04:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/234",
+      "reason": "Registration reads keep their dependent requests together and reuse the account login, so tracking registration fits the Host shared MCP budget; packaged for the home instance, public catalog activation stays separate.",
+      "condition": "Upgrade the same home instance under existing upgrade authority, then retry the original failed registration ID. Before public discovery, verify supported public Host compatibility and canonical registry bytes."
     }
   ]
 }
