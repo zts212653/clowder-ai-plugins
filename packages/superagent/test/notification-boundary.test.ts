@@ -128,7 +128,7 @@ test('a result in the assistant identifies the issue, source, background and req
   await runtime.actions['superagent.tick']({});
   const notice = [...f.sent.values()].find((message) => message.threadId === main && JSON.stringify(message.payload).includes('已补齐'))!;
   const text = notice.payload.elements.filter((element) => element.kind === 'text').map((element) => element.payload.text).join('\n');
-  for (const expected of ['发送回执设计', '我的助手', `http://localhost/?threadId=${main}`, '解决发送后看不到气泡', '下一步', '验收']) assert.ok(text.includes(expected), expected);
+  for (const expected of ['发送回执设计', '我的助手', `/thread/${main}`, '解决发送后看不到气泡', '下一步', '验收']) assert.ok(text.includes(expected), expected);
   assert.doesNotMatch(text, /eventId|plugin_call|superagent_inspect/);
   assert.equal(notice.wake, undefined);
   await runtime.stop({ reason: 'test' });
@@ -148,7 +148,7 @@ test('a failed judgment explains which source stopped and where the owner can re
   const notice = [...f.sent.values()].find((message) => message.threadId === main && JSON.stringify(message.payload).includes('重试'))!;
   const text = JSON.stringify(notice.payload);
   assert.match(text, /issue#1973/);
-  assert.match(text, /http:\/\/localhost\/\?threadId=source-a/);
+  assert.match(text, /\/thread\/source-a/);
   assert.match(text, /下一步/);
   assert.match(text, /恢复处理/);
   assert.equal([...f.sent.values()].filter((message) => message.wake).length, 1);

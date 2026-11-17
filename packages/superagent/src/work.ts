@@ -47,12 +47,14 @@ export function briefResult(content: string) {
   return `原文节选：${paragraph.slice(0, 400)}${paragraph.length > 400 ? '…' : ''}`;
 }
 
+export const threadHref = (threadId: string) => `/thread/${encodeURIComponent(threadId)}`;
+
 export async function notification(host: SuperagentHost, sourceThreadId: string, title: string, content: string, nextStep: string, background?: string) {
   const source = await host.threads.get(sourceThreadId);
   const label = (source?.title ?? '原会话暂不可用').replace(/[\[\]\\]/g, '\\$&');
   return [
     `【${title}】`,
-    `来自：${source ? `[${label}](${source.deepLinkUrl})` : label}`,
+    `来自：${source ? `[${label}](${threadHref(sourceThreadId)})` : label}`,
     ...(background ? [`背景：${background.slice(0, 180)}`] : []),
     briefResult(content),
     `下一步：${nextStep}`,
@@ -75,7 +77,7 @@ export async function publish(
   const source = detailsThreadId !== mainThreadId ? await host.threads.get(detailsThreadId) : undefined;
   const summary = briefResult(content);
   const mainContent = `${await notification(host, work.sourceThreadId, `${kind === 'question' ? '需要你确认' : kind === 'error' ? '处理受阻' : '待验收'}${work.title ? ` · ${work.title}` : ''}`, summary,
-    kind === 'question' ? '请在原会话回复这个问题。' : kind === 'error' ? '请在原会话核对错误，确认后再决定是否重试。' : '请在原会话验收结果，或说明需要调整的地方。', work.outcome)}${source ? `\n[查看完整结果](${source.deepLinkUrl})` : ''}`;
+    kind === 'question' ? '请在原会话回复这个问题。' : kind === 'error' ? '请在原会话核对错误，确认后再决定是否重试。' : '请在原会话验收结果，或说明需要调整的地方。', work.outcome)}${source ? `\n[查看完整结果](${threadHref(detailsThreadId)})` : ''}`;
   const original = await send(host, work.sourceThreadId, `${key}:source`,
     work.sourceThreadId === mainThreadId ? mainContent : content);
   if (mainThreadId !== work.sourceThreadId && kind === 'question')

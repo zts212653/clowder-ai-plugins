@@ -55,6 +55,6 @@ test('work requested in the main conversation also keeps its full result in the 
   assert.ok(JSON.stringify(f.sent.get('source-b:main-request:details')!.payload).includes(content.replace(/\n/g, '\\n')));
   const main = f.sent.get('source-a:main-request:source')!;
   assert.ok(JSON.stringify(main.payload).length < 600);
-  assert.match(JSON.stringify(main.payload), /http:\/\/localhost\/\?threadId=source-b/);
+  assert.match(JSON.stringify(main.payload), /\/thread\/source-b/);
   assert.equal(f.sent.size, 2);
 });
