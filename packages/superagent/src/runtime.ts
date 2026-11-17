@@ -57,7 +57,8 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
       }
       if (runtime.mainThreadId && pref.coordinatorId) {
         if (!runtime.coordinationThreadId) {
-          const coordination = await host.threads.create({ title: `${pref.name} · 内部协调`, parentThreadId: runtime.mainThreadId, participants: [pref.coordinatorId] });
+          const input = { title: `${pref.name} · 内部协调`, parentThreadId: runtime.mainThreadId, participants: [pref.coordinatorId], internal: true as const };
+          const coordination = await host.threads.create(input);
           runtime = { ...runtime, coordinationThreadId: coordination.id };
           await host.storage.set('runtime', runtime);
         }
@@ -70,8 +71,10 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
           });
         const coordination = await host.threads.get(runtime.coordinationThreadId!);
         if (!coordination) throw new Error('Coordination conversation unavailable');
-        if (coordination.title !== `${pref.name} · 内部协调` || JSON.stringify(coordination.preferredCats) !== JSON.stringify([pref.coordinatorId]))
-          await host.threads.update(coordination.id, { title: `${pref.name} · 内部协调`, preferredCats: [pref.coordinatorId] });
+        if (!('internal' in coordination && coordination.internal === true) || coordination.title !== `${pref.name} · 内部协调` || JSON.stringify(coordination.preferredCats) !== JSON.stringify([pref.coordinatorId])) {
+          const patch = { title: `${pref.name} · 内部协调`, preferredCats: [pref.coordinatorId], internal: true as const };
+          await host.threads.update(coordination.id, patch);
+        }
       }
       const works = await records(host, 'work:', workSchema);
       const wanted = new Set([

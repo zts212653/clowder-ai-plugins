@@ -1,5 +1,7 @@
 # Superagent
 
+The top assistant entry uses its main conversation's real unread state. The paired Host marks coordination threads as `plugin_internal`: records remain available for diagnosis but stay out of ordinary conversation lists and personal unread totals. Real failures still return as user-facing main-conversation messages. Upgrade marks the retained coordination thread in place without copying messages or deleting history. Update the paired Host with plugin-thread `internal: true` support before installing this version.
+
 [Chinese guide](README.md)
 
 “Watch all pinned conversations” is enabled by default. The effective scope is the union of manual selections and the owner's current pins. Pinning adds a source and unpinning removes its automatic inclusion during background reconciliation; a manually selected source remains watched. Turning the option off preserves manual selections. Settings show manual, automatic and deduplicated totals. Assistant, coordination and work conversations are excluded. This local feature requires the companion Host's `threads.list({pinnedOnly:true})`; it does not copy browser pin caches.
