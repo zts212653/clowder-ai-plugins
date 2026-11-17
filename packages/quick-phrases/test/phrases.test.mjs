@@ -153,6 +153,28 @@ test('a selection still inserts its text after three unapplied CAS attempts (the
   assert.equal((await list({})).items[0].useCount, 3);
 });
 
+test('a selection still inserts its text when recording its use fails in storage, but not when the request is cancelled', async () => {
+  const id = '00000000-0000-4000-8000-000000000001';
+  const { storage, list } = fixture([{ id, text: 'Existing phrase', useCount: 3 }]);
+  const owner = (assertCurrent = async () => {}) => ({ kind: 'owner-http-request', userId: 'owner-a', operation: 'write', assertCurrent });
+  const pick = (store, context = owner()) => createQuickPhrases(store)({ request: { method: 'POST', body: { id } } }, context);
+  const insert = { ok: true, act: 'insert', args: { into: 'chat-input', text: 'Existing phrase' } };
+  let writes = 0;
+  const failedWrite = await pick({ ...storage, async compareAndSet() { writes++; throw new Error('storage unavailable'); } });
+  assert.equal(failedWrite.status, 200);
+  assert.deepEqual(JSON.parse(failedWrite.body), insert);
+  assert.equal(writes, 1, 'a failed write may have landed, so it is not retried');
+  let reads = 0;
+  const failedReread = await pick({
+    async get(key) { if (++reads > 2) throw new Error('storage unavailable'); return storage.get(key); },
+    async compareAndSet() { return { applied: false }; },
+  });
+  assert.deepEqual(JSON.parse(failedReread.body), insert);
+  let checks = 0;
+  await assert.rejects(pick(storage, owner(async () => { if (++checks > 1) throw new Error('request cancelled'); })), /request cancelled/);
+  assert.equal((await list({})).items[0].useCount, 3);
+});
+
 test('ordinary save keeps its single CAS attempt and reports 409 on conflict', async () => {
   const { storage, list } = fixture();
   let writes = 0;

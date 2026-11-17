@@ -93,15 +93,16 @@ export function createQuickPhrases(storage: PhraseStorage) {
       // The text goes into the input whatever happens to the usage count (the count is a receipt, not a gate).
       const insert = json(200, { ok: true, act: 'insert', args: { into: 'chat-input', text: phrase.text } });
       for (let attempt = 0; attempt < usageAttempts; attempt++) {
-        const current = await storage.get(key);
+        // A failed read or write only leaves the count as it is; a cancelled request still fails at assertCurrent.
+        const current = await storage.get(key).catch(() => undefined);
         const phrases = parsePhrases(current);
         if (!phrases?.some((item) => item.id === id)) return insert;
         const next = phrases.map((item) => (item.id === id ? { ...item, useCount: (item.useCount ?? 0) + 1 } : item));
         if (Buffer.byteLength(JSON.stringify(next), 'utf8') > 1024 * 1024) return insert;
         await context.assertCurrent();
-        const write = await storage.compareAndSet(key, current?.revision ?? null, next);
-        // Only an unapplied CAS is safe to retry; a fresh read makes the next attempt count once.
-        if (write.applied) return insert;
+        const write = await storage.compareAndSet(key, current?.revision ?? null, next).catch(() => undefined);
+        // Only an unapplied CAS is safe to retry (a failed write may have landed); a fresh read makes the next attempt count once.
+        if (write?.applied !== false) return insert;
       }
       return insert;
     }

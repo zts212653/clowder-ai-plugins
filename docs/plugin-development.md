@@ -186,7 +186,7 @@ PDL_COMPONENTS['plugin:example.plugin/summary'] = function (b, sc, root) {
 
 ### 例：Quick Phrases 的 PDL 读写与插入
 
-真实接口在 `packages/quick-phrases/src/phrases.ts`：GET `phrases` 接受 `q`、`page`，返回列表、分页位置及前后页；POST `{ text }` 保存，DELETE `{ id }` 删除。点击一条只发一次 POST `{ id }`：后端先记录使用次数，成功后返回 `{ ok: true, act: 'insert', args: { into: 'chat-input', text } }`，文字来自已保存用语。宿主随后执行这个公开动作，失败不插入。新增通过对话框填写；成功后返回公开的 `plugSet` 动作将页码重置为 1，表单随对话框关闭而清空。
+真实接口在 `packages/quick-phrases/src/phrases.ts`：GET `phrases` 接受 `q`、`page`，返回列表、分页位置及前后页；POST `{ text }` 保存，DELETE `{ id }` 删除。点击一条只发一次 POST `{ id }`：后端记录使用次数后返回 `{ ok: true, act: 'insert', args: { into: 'chat-input', text } }`，文字来自已保存用语；计数只是回执，记录失败也照常返回。宿主随后执行这个公开动作，请求失败时不插入。新增通过对话框填写；成功后返回公开的 `plugSet` 动作将页码重置为 1，表单随对话框关闭而清空。
 
 以下为包内实际声明（省略身份与 runtime），搜索和分页只使用插件视图状态，列表及分页条件由后端提供：
 
