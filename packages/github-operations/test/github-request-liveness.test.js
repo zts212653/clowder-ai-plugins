@@ -188,6 +188,55 @@ test('interactive GitHub reads pass queued collection work without concurrent cr
   assert.equal(maximum, 1, 'priority never adds concurrency for the same credential');
 });
 
+test('a native read chain keeps the credential lane between its dependent requests', async () => {
+  // F333 Task052: registration reads ~11 dependent requests one after another. A queued collector
+  // must not slip into every gap between them, or one registration pays for a whole polling tick.
+  const { GitHubRequestBudget } = await import('../src/business/infrastructure/github/request-budget.js');
+  const budget = new GitHubRequestBudget();
+  let release, entered;
+  const running = new Promise(resolve => { entered = resolve; });
+  const blocked = new Promise(resolve => { release = resolve; });
+  const order = [];
+  const execFileAsync = async (_file, args) => {
+    order.push(args[1]);
+    if (args[1] === 'poll-0') { entered(); await blocked; }
+    return { stdout: '{}' };
+  };
+  const options = { ghToken: 'native-chain-fixture', execFileAsync };
+  const collectors = Array.from({ length: 3 }, (_, i) => budget.execute(['api', `poll-${i}`], options));
+  await running;
+  const chain = (async () => {
+    for (let i = 0; i < 6; i++) {
+      await budget.execute(['api', `native-${i}`], { ...options, interactive: true });
+      await new Promise(resolve => setTimeout(resolve, 5)); // the caller parses before its next request
+    }
+  })();
+  await new Promise(resolve => setImmediate(resolve));
+  release();
+  await Promise.all([chain, ...collectors]);
+  assert.deepEqual(order, ['poll-0', ...Array.from({ length: 6 }, (_, i) => `native-${i}`), 'poll-1', 'poll-2']);
+});
+
+test('a finished native read releases waiting collectors promptly', async () => {
+  const { GitHubRequestBudget } = await import('../src/business/infrastructure/github/request-budget.js');
+  const budget = new GitHubRequestBudget();
+  let release, entered;
+  const running = new Promise(resolve => { entered = resolve; });
+  const blocked = new Promise(resolve => { release = resolve; });
+  const execFileAsync = async (_file, args) => {
+    if (args[1] === 'native') { entered(); await blocked; }
+    return { stdout: '{}' };
+  };
+  const options = { ghToken: 'native-release-fixture', execFileAsync };
+  const native = budget.execute(['api', 'native'], { ...options, interactive: true });
+  await running;
+  const collector = budget.execute(['api', 'poll'], options);
+  release(); await native;
+  const started = performance.now();
+  await collector;
+  assert.ok(performance.now() - started < 1000, 'a lone native request holds collectors only for a short grace');
+});
+
 test('interactive admission cannot bypass the shared queue capacity or credential quota', async () => {
   const { GitHubRequestBudget } = await import('../src/business/infrastructure/github/request-budget.js');
   const budget = new GitHubRequestBudget();
