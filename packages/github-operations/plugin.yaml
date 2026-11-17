@@ -14,7 +14,7 @@ icon:
 steps:
   - text: 已在运行 Clowder AI 的机器登录 GitHub CLI 时，无需填写访问令牌；也可使用下方的可选令牌。
   - text: 保存配置并测试连接，再启用插件。连接成功后，仍需让猫登记要跟踪的 PR、Issue 或仓库。
-  - text: 下方的 Webhook 和发布仓库仅供专项功能使用；普通 PR / Issue 跟踪全部留空即可。草稿在原会话内预览和确认。
+  - text: 下方的发布仓库仅供发布 Issue 草稿使用；普通 PR / Issue 跟踪留空即可。草稿在原会话内预览和确认。
 test:
   action: { method: github.connection.test }
 configuration:

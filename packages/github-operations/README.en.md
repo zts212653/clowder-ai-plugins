@@ -16,10 +16,9 @@ Other settings are optional, not installation prerequisites:
 | --- | --- |
 | Notification author allowlist | Optional additional filter for comment/review notifications. Empty adds no restriction. |
 | Notification author blocklist | Suppress named comment/review authors, case-insensitively. Blocklist wins. CI, merge and conflict state notifications are unaffected. |
-| GitHub Webhook Secret | Configure only when using the optional repository webhook, with the exact callback URL exposed by the Host. |
 | Repositories allowed for public issue drafts | Comma-separated `owner/repository` names. Empty disables new drafts and publishing. |
 
-The five ordinary-use settings remain optional: GitHub token, notification author allowlist/blocklist, webhook secret and publication repository allowlist. The retained-state recovery mode and status controls are only for existing observers; leave them unused for a fresh installation. Internal policies, the legacy `mcpToken` and narrator target coordinates retain their declarations and saved values. Drafts are saved by the plugin; publishing needs an owner-authenticated preview that supports that saved draft. The migrated feedback entry may show only a saved summary, which does not prove the full publication journey; Settings has no draft or narrator operation buttons. Existing drafts, credentials and tracking records remain intact. Fresh installation requires no legacy import.
+The four ordinary-use settings remain optional: GitHub token, notification author allowlist/blocklist and publication repository allowlist. The retained-state recovery mode and status controls are only for existing observers; leave them unused for a fresh installation. The repository webhook secret, internal policies, the legacy `mcpToken` and narrator target coordinates retain their declarations and saved values without appearing in Settings. Drafts are saved by the plugin; publishing needs an owner-authenticated preview that supports that saved draft. The migrated feedback entry may show only a saved summary, which does not prove the full publication journey; Settings has no draft or narrator operation buttons. Existing drafts, credentials and tracking records remain intact. Fresh installation requires no legacy import.
 
 ## Local update and verification
 
