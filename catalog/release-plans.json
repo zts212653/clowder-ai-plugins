@@ -352,8 +352,8 @@
     },
     {
       "pluginId": "official.github-operations",
-      "version": "0.1.0-alpha.46",
-      "integrity": "sha512-inEjvFrNm+cNl8Hj8CyqCWBHN+b0TLOaYKnbLTl53/nbzqIj8xcQzDdG7iULUJlaZ7Uy/sCLjgfD1OlPOLUN/Q==",
+      "version": "0.1.0-alpha.47",
+      "integrity": "sha512-pxYB9uj/Sb3vfTeOurKuebEnsvvgZytiU8z3tS+IyQvVuMoOsPbmEPQmqtdmpAq/rVvcUIxv8J70IE5MbxR3lQ==",
       "disposition": "defer",
       "owner": "mindfn",
       "reviewBy": "2026-11-30T08:00:00Z",
@@ -371,6 +371,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
       "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
       "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.46",
+      "integrity": "sha512-ioRVw4gpBXoWLKuCxRk7zFpn+ad/V69pACEjbZCiRPciTnSOYP5WhDtdcg3HlRCRPuysmib89S1OMAmCqvqLqg==",
+      "disposition": "defer",
+      "owner": "opus55",
+      "reviewBy": "2026-11-23T04:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/234",
+      "reason": "Registration reads keep their dependent requests together and reuse the account login, so tracking registration fits the Host shared MCP budget; packaged for the home instance, public catalog activation stays separate.",
+      "condition": "Upgrade the same home instance under existing upgrade authority, then retry the original failed registration ID. Before public discovery, verify supported public Host compatibility and canonical registry bytes."
     }
   ]
 }
