@@ -6,12 +6,13 @@ import { join } from 'node:path';
 import { awaitGitHubCaller } from './abortable-wait.js';
 import { buildGhCliEnv, withHiddenGhCliWindow } from './gh-cli-env.js';
 import { executeGitHubProcess, type GitHubProcessOptions } from './gh-process.js';
-import { GitHubRequestQueue } from './request-queue.js';
+import { GitHubRequestQueue, type NativeChain } from './request-queue.js';
 
-const interactiveRequests = new AsyncLocalStorage<boolean>();
-/** Internal scheduling hint only; native identity still comes from the Host. */
+const interactiveRequests = new AsyncLocalStorage<NativeChain>();
+/** Internal scheduling hint only; native identity still comes from the Host. Each call is its own
+ * chain, so only this action's own next request may continue its queue burst step. */
 export const withInteractiveGitHubRequests = <T>(action: () => Promise<T>): Promise<T> =>
-  interactiveRequests.run(true, action);
+  interactiveRequests.run({}, action);
 
 export interface GitHubRequestOptions {
   ghToken?: string;
@@ -106,11 +107,12 @@ export class GitHubRequestBudget {
       this.queues.set(key, queue);
     }
     let started = false;
+    const chain = interactiveRequests.getStore();
     const pending = queue.enqueue(
       () => {
         started = true;
         return this.executeForCredential(key, args, boundedOptions);
-      }, options.interactive ?? interactiveRequests.getStore() ?? false);
+      }, options.interactive ?? chain !== undefined, chain);
     const settled = () => {
       const remaining = (this.queued.get(key) ?? 1) - 1;
       if (remaining === 0) this.queued.delete(key);
