@@ -309,7 +309,7 @@
     {
       "pluginId": "official.github-operations",
       "version": "0.1.0-alpha.46",
-      "integrity": "sha512-yn37z51Xq/UW0kXuAEWJF+XaJxeyi9TOpPvFfxpBSDP2Ep325GJEbj9quo1zQiY+vT+LJDcOzwAl0gAMiqS6aQ==",
+      "integrity": "sha512-Z88ZlUbW3s4divCi0Us8KdXB7GoxTZClOQMZp4cHCnarvgOdJ5leaNldN5jDY/3OJyAtuBw8NeurAe1ZGh6kCQ==",
       "disposition": "defer",
       "owner": "opus55",
       "reviewBy": "2026-11-23T04:00:00Z",
