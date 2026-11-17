@@ -358,6 +358,7 @@ views:
                   entity: issue
                   id: $.community.detail.n
                   v: closed
+                when: "!$.community.detail.closure.locked"
                 disabled: $.pending
       - type: toolbar
         when: $.community.repos
