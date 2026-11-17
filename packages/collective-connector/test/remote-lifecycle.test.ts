@@ -16,6 +16,7 @@ import { startCollectiveServer } from '../src/business/service/http-server.js';
 const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
 function host(directory: string, config: ModulePluginHostShape['config']): ModulePluginHostShape {
   return {
+    external: { endpoint: 'https://host.invalid/api/plugins/external', token: 'fixture-external-token' },
     pluginInstanceId: 'installed-instance',
     dataPath: directory,
     config,

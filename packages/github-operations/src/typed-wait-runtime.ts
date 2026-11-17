@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { createHash } from 'node:crypto';
 import type { FeatureContext, PluginActionContext, PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import type { TaskItem } from './business/model/index.js';
 import { GitHubWaitLifecycleService } from './business/domains/github-signals/GitHubWaitLifecycleService.js';
@@ -13,7 +12,7 @@ import { copyLegacyIssueProgress } from './legacy-issue-progress.js';
 import { legacyIssueOperationInput } from './legacy-issue-observations.js';
 import { readRegistrationDiagnostics, writeRegistrationDiagnostic, registrationFailureCode, diagnosticError, type DiagnosticError, type RegistrationDiagnostic } from './tracking-diagnostics.js';
 import { assertMigratedWaitCurrent, projectMigratedWait } from './migration-host-wait.js';
-import { assertWaitStorage } from './typed-wait-record.js';
+import { assertWaitStorage, nativeSubscriptionId } from './typed-wait-record.js';
 import { pollGitHubDueWaits } from './typed-wait-poller.js';
 import type { GitHubWaitRecoveryCandidate } from './typed-wait-recovery-storage.js';
 import { withInteractiveGitHubRequests } from './business/infrastructure/github/request-budget.js';
@@ -154,7 +153,7 @@ export class TypedWaitRuntime {
           // The deterministic private ID serializes competing first registrations with CAS.
           // Existing records retain their IDs; lookup is scoped to authenticated user/cat/thread.
           const at = this.now();
-          task = { id: 'github-subscription-' + createHash('sha256').update(JSON.stringify([subject, caller.userId, caller.catId, caller.threadId])).digest('hex'),
+          task = { id: nativeSubscriptionId(subject, caller),
             kind: plan.kind, subjectKey: plan.subjectKey, threadId: caller.threadId,
             ownerCatId: caller.catId, userId: caller.userId,
             title: `${kind === 'pr' ? 'PR' : 'Issue'} tracking: ${value.repoFullName}#${number}`,
@@ -255,7 +254,9 @@ export class TypedWaitRuntime {
         if (!thread) { await this.store.recovery.finishNotice(candidate.task.id, notice, 'owner_unavailable'); continue; }
         await this.options.context.messaging.send(notice.threadId, { identity: 'github-wait',
           payload: { provenance: { epistemicStatus: 'observation' }, elements: [{ elementId: notice.key, kind: 'text',
-            payload: { text: `${candidate.task.subjectKey} 的自动检查已暂停（连续 5 次失败；${candidate.recovery.reasonCode ?? 'unknown'}）。原等待与通知进度仍保留；请查看 github_list_tracking 的恢复诊断后重试。` } }] },
+            payload: { text: candidate.recovery.retryable
+              ? `${candidate.task.subjectKey} 暂时无法完成 GitHub 检查；自动重试仍在继续，退避最长 15 分钟。原等待与通知进度保留，无需重新登记。`
+              : `${candidate.task.subjectKey} 的自动检查已暂停（连续 5 次失败；${candidate.recovery.reasonCode ?? 'unknown'}）。原等待与通知进度仍保留；请查看 github_list_tracking 的恢复诊断后重试。` } }] },
           idempotencyKey: notice.key, meta: { phase: 'status', taskId: notice.taskId } });
         await this.store.recovery.finishNotice(candidate.task.id, notice, 'delivered');
       } catch {

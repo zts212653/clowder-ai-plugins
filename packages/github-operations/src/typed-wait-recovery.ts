@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { TaskItem } from './business/model/index.js';
 import { automationGeneration } from './business/domains/github-signals/wait-ports.js';
 import type { DiagnosticError } from './tracking-diagnostics.js';
+import { resumeLegacyNetworkFailure } from './observation-recovery.js';
 export interface GitHubRecoveryNotice {
   key: string; scope: string; userId: string; threadId: string; taskId: string;
   failures: number; nextAt: number; state: 'pending' | 'delivered' | 'owner_unavailable' | 'needs_attention' | 'cancelled';
@@ -11,6 +12,7 @@ export interface GitHubWaitRecoveryFacts {
   disposition?: 'needs_attention'; reasonCode?: string;
   notices: Record<string, GitHubRecoveryNotice>; lastNoticeKey?: string;
   lastError?: DiagnosticError; lastFailureAt?: number;
+  retryable?: boolean;
 }
 export const waitIndex = (kind: TaskItem['kind']) => kind === 'pr_tracking' ? 'github-pr-waits' : 'github-issue-waits';
 export const hasWaitWork = (task: TaskItem) => Boolean(task.automationState?.waitOutcome?.delivery === 'pending' ||
@@ -23,7 +25,12 @@ export function reconcileWaitRecovery(task: TaskItem, previous: GitHubWaitRecove
   now: number, intervalMs: number): GitHubWaitRecoveryFacts {
   if (previous !== undefined) assertWaitRecovery(previous);
   const scope = waitRecoveryScope(task);
-  if (previous?.v === 1 && previous.scope === scope) return structuredClone(previous);
+  if (previous?.v === 1 && previous.scope === scope) {
+    const resumed = resumeLegacyNetworkFailure(previous), facts = structuredClone(resumed);
+    if (resumed !== previous) for (const notice of Object.values(facts.notices))
+      if (notice.scope === scope && notice.state === 'pending') notice.state = 'cancelled';
+    return facts;
+  }
   return { v: 1, scope, index: waitIndex(task.kind), revision: (previous?.revision ?? 0) + 1,
     nextPollAt: previous ? now + intervalMs : now, failures: 0, notices: structuredClone(previous?.notices ?? {}) };
 }
@@ -42,6 +49,7 @@ export function assertWaitRecovery(value: unknown): asserts value is GitHubWaitR
   if (!facts || facts.v !== 1 || typeof facts.scope !== 'string' || !facts.scope ||
     !['github-pr-waits', 'github-issue-waits'].includes(facts.index!) || !natural(facts.revision) ||
     !natural(facts.nextPollAt) || !natural(facts.failures) ||
+    (facts.retryable !== undefined && typeof facts.retryable !== 'boolean') ||
     (facts.disposition !== undefined && facts.disposition !== 'needs_attention') ||
     !facts.notices || typeof facts.notices !== 'object' || Array.isArray(facts.notices))
     throw new Error('Invalid GitHub wait recovery facts; original record retained');

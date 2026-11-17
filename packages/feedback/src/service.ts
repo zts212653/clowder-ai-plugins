@@ -9,6 +9,7 @@ import { sanitize } from './sanitize.js';
 import type { Host, Journal, OwnerContext, Profile, Provider, Report } from './types.js';
 
 type ProviderFactory = (target: Profile) => Provider;
+export class RevisionConflictError extends Error { readonly code = 'revision_conflict'; }
 export class FeedbackService {
   private readonly analysis: FeedbackAnalysis;
   private readonly records: FeedbackRecords;
@@ -24,7 +25,16 @@ export class FeedbackService {
     await context.assertCurrent();
     const data = record(input); const op = text(data.op, 30);
     const targets = await profiles(this.host);
-    const feedbackId = data.feedbackId === undefined ? undefined : text(data.feedbackId,80);
+    const selectionKey = `feedback-selection:${digest(context.userId)}`;
+    const remember = async (id: string | null) => {
+      const selected = await this.host.storage.get(selectionKey);
+      if (selected?.value === id) return true;
+      await context.assertCurrent();
+      return (await this.host.storage.compareAndSet(selectionKey, selected?.revision ?? null, id)).applied;
+    };
+    if (op === 'new') { await remember(null); return {}; }
+    const resumed = op === 'bootstrap' && data.resume === true ? (await this.host.storage.get(selectionKey))?.value as string | null | undefined : undefined;
+    const feedbackId = data.feedbackId === undefined ? resumed ?? undefined : text(data.feedbackId,80);
     if (feedbackId !== undefined && !/^[\w-]{1,80}$/.test(feedbackId)) throw new Error('反馈记录 ID 无效');
     if (['bootstrap','history'].includes(op)) await this.records.migrate(context.userId,targets);
     if (op === 'history') return {items:await this.history(context.userId)};
@@ -39,7 +49,7 @@ export class FeedbackService {
       await this.records.register(context.userId,value.id);
       await context.assertCurrent();
       const result = await this.host.storage.compareAndSet(key, current?.revision ?? null, {...value,updatedAt:Date.now()});
-      if (!result.applied) throw new Error('草稿已在另一个窗口更新，请重新打开反馈面板');
+      if (!result.applied) throw new RevisionConflictError('草稿已在另一个窗口更新，请另存为新草稿或重新打开');
       return { journal: value, revision: result.revision };
     };
     const publicWrite = async (value: Journal) => { const saved = await write(value); return present(saved.journal, saved.revision); };
@@ -49,6 +59,7 @@ export class FeedbackService {
         this.host.runtimeInfo?.get(),
       ]);
       if (feedbackId && !journal) throw new Error('反馈记录不存在或不属于当前用户');
+      if (feedbackId) await remember(feedbackId);
       return { targets, journal: journal ? await vault.hydrate(journal) : undefined, revision: current?.revision, items:await this.history(context.userId),
         clients: members.status === 'fulfilled' ? members.value.filter(member => member.available).map(member => ({ id: member.catId, label: member.displayName, model: member.defaultModel })) : [],
         projectRoot: runtime.status === 'fulfilled' ? runtime.value?.projectRoot : undefined,
@@ -62,18 +73,23 @@ export class FeedbackService {
     if (op === 'save') {
       if (journal && ['writing', 'unknown', 'upload_failed'].includes(journal.state)) throw new Error('请先处理上一次提交或保留上传回执，再编辑新报告');
       if (journal?.state === 'published') throw new Error('此反馈已投递，请新建另一条反馈');
-      if (journal && data.revision !== current?.revision) throw new Error('草稿版本已变化，请重新打开');
+      if (journal && data.revision !== current?.revision) throw new RevisionConflictError('草稿版本已变化，请另存为新草稿或重新打开');
       const target = targets.find(p => p.id === data.targetId);
       if (!target) throw new Error('反馈目标已变化');
+      const clientId = data.clientId === undefined ? journal?.clientId : text(data.clientId, 200);
+      const projectRef = data.projectRef === undefined ? journal?.projectRef : text(data.projectRef, 4096);
       const report = await vault.storeReport(this.report(data.report));
       if (data.draftOnly !== true && !report.body.trim() && !report.attachments.length) throw new Error('请描述问题或添加图片');
       const id = journal?.id ?? feedbackId ?? key.split(':').at(-1)!;
       const value: Journal = {
         version: 1, id,
         owner: context.userId, report, target, digest: digest({ id, report, target }), state: 'draft',
+        clientId, projectRef,
         createdAt:journal?.createdAt ?? Date.now(),reviewReady:data.draftOnly !== true,
       };
-      return publicWrite(value);
+      const saved = await publicWrite(value);
+      // The journal is durable already; a resume-hint failure must not hide its new revision.
+      return { ...saved, selectionSaved: await remember(id).catch(() => false) };
     }
     if (!journal || journal.owner !== context.userId || data.digest !== journal.digest) throw new Error('报告版本已变化，请重新检查并确认');
     if (digest(targets.find(p => p.id === journal.target.id)) !== digest(journal.target)) throw new Error('目标配置已变化，请重新检查报告');
@@ -92,7 +108,8 @@ export class FeedbackService {
       await this.records.register(context.userId,id);
       await this.host.storage.compareAndSet(feedbackKey(context.userId,id),null,next);
       await write({...journal,supersededBy:id});
-      return present(next,(await this.host.storage.get(feedbackKey(context.userId,id)))?.revision);
+      return present(next,(await this.host.storage.get(feedbackKey(context.userId,id)))?.revision,
+        { selectionSaved: await remember(id).catch(() => false) });
     }
     if (op === 'approve') {
       if (journal.state !== 'draft' || data.confirmed !== true) throw new Error('请检查报告和图片，并确认目标可见性');

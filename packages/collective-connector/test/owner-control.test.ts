@@ -11,6 +11,7 @@ import { memoryStorage, ownerAction, ownerCaller, serviceHostConfig } from './ru
 
 const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
 const fixtureHost = (directory: string): ModulePluginHostShape => ({
+  external: { endpoint: 'https://host.invalid/api/plugins/external', token: 'fixture-external-token' },
   pluginInstanceId: 'installed-instance',
   dataPath: directory ?? '',
   config: serviceHostConfig(),

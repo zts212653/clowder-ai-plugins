@@ -70,7 +70,7 @@ test('contract build precedes unit tests so artifact-consistency packs a built p
 
 test('catalog check builds packages whose publish surface is generated', () => {
   const command = workspacePackage.scripts['catalog:check'];
-  for (const name of ['xiangqi', 'github-operations']) {
+  for (const name of ['xiangqi', 'github-operations', 'quick-phrases']) {
     assert.ok(command.includes(`pnpm --filter @clowder-ai/${name} build`),
       `standalone catalog activation must build ${name} before packing`);
   }

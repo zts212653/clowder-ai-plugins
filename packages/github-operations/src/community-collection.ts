@@ -8,7 +8,8 @@ import type { TaskItem } from './business/model/index.js';
 import type { CommunityTracking } from './business/domains/community/ports/CommunityTracking.js';
 import type { JournalSubject } from './business/domains/community/journal-directory.js';
 import type { GitHubSnapshot } from './tracking-runtime.js';
-import { consecutiveFailures, type RecoveryAttempt } from './recovery-attempt.js';
+import { type RecoveryAttempt } from './recovery-attempt.js';
+import { observationAttempt, observationRetryDelay } from './observation-recovery.js';
 import type { DiagnosticError } from './tracking-diagnostics.js';
 
 /** Task-shaped compatibility view for the migrated board, NOT a Host Task.
@@ -137,12 +138,12 @@ export class SdkCommunityCollectionStore implements CommunityTracking {
     for (let attempt = 0; attempt < 8; attempt++) {
       const current = await this.read(selected.task.id); if (!current) return;
       if (!current.recovery || current.recovery.scope !== selected.recovery?.scope || current.recovery.revision !== selected.recovery.revision) return;
-      const failures = consecutiveFailures(current.recovery.failures, outcome);
+      const recovery = observationAttempt(current.recovery, outcome, this.now(), error), failures = recovery.failures;
+      const delay = recovery.retryable ? observationRetryDelay(failures, this.intervalMs, recovery.scope) : this.intervalMs;
       const { revision, ...row } = current;
-      if ((await this.indexed.publish(keyFor(current.task.id), revision, { ...row, recovery: { ...current.recovery,
-        revision: current.recovery.revision + 1, failures, nextAt: Math.max(notBefore, this.now() + this.intervalMs),
-        ...(error ? { lastError: error, lastFailureAt: this.now() } : {}),
-        ...(failures >= 5 ? { disposition: 'needs_attention', reasonCode: 'collection_observation_failed' } : {}) } })).applied) return;
+      if ((await this.indexed.publish(keyFor(current.task.id), revision, { ...row, recovery: { ...recovery,
+        revision: current.recovery.revision + 1, nextAt: Math.max(notBefore, this.now() + delay),
+        ...(failures >= 5 && !recovery.retryable ? { disposition: 'needs_attention', reasonCode: 'collection_observation_failed' } : {}) } })).applied) return;
     }
     throw new Error('Collection recovery accounting changed concurrently');
   }

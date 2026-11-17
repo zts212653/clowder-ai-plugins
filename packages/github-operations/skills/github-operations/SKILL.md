@@ -19,7 +19,18 @@ arrive as ordinary messages. Read the returned wait and notification coverage. U
 when requested; terminal PR/issue state also retires tracking automatically.
 Unregistering retains historical records.
 
-Read status with `github_list_tracking`: default `view:"tracking"`, 20 records;
+For a known subject, use `github_list_tracking({subjectKey:"pr:owner/repo#123"})`
+to read existing keys directly, defaulting to your authenticated user, cat and thread.
+Optional `catId`/`threadId` select the original visible route; `view:"recovery"`
+includes directly addressable recovery owners. Imported waits with arbitrary IDs
+add their original `taskId`; registration diagnostics add `view:"diagnostics"`
+and the original `registrationId`. `page.lookup.coverage` declares the addressed
+history. `legacyTaskIdRequired:true` means a native miss cannot establish that
+no imported wait exists. Lookup never scans, re-registers, repairs or reads GitHub.
+Direct lookup hides records without stored user ownership and counts them in
+`page.unattributed`; known foreign-user records stay hidden and are not counted.
+
+For discovery, read status with `github_list_tracking`: default `view:"tracking"`, 20 records;
 use `repo`, your stable `catId`, `threadId` and a small `limit` (maximum 50) for the
 needed scope. `view:"recovery",needsAttention:true` pages paused/malformed sources
 across all four recovery owners. `view:"diagnostics"` reads registration attempts.
@@ -36,6 +47,10 @@ For an existing paused typed wait, inspect `polling.state` and
 `recoveryOwners.typed` in `github_list_tracking`. A successful observation clears
 the consecutive failure count; quota, local queue pressure and skipped work do
 not consume or clear it. `lastError` is redacted historical failure evidence.
+Transient network failures use `polling.state: "backing_off"` with a persisted
+`nextPollAt` and automatic probes capped at fifteen-minute intervals. Do not
+re-register or manually reset these waits. Only a successful observation clears
+the streak; a cold start retains the deadline and original baseline.
 When the owner authorizes recovery, use `github_retry_tracking` with that row's
 `taskId`, `recovery.scope` and `recovery.revision` (not `sourceRevision`). It only
 retries a wait paused for `github_observation_failed` belonging to the current

@@ -10,12 +10,73 @@ import { MigratedIssueRuntime } from './migrated-issue-runtime.js';
 import { migratedIssueKey, MIGRATED_ISSUE_INDEX } from './migrated-issue-record.js';
 import { GitHubRateLimitError } from './business/infrastructure/github/request-budget.js';
 import type { CommunityEvent, TaskItem } from './business/model/index.js';
+import { diagnosticError } from './tracking-diagnostics.js';
 
 const route = (id: string, subject = 'issue:owner/repo#1', cat = 'cat'): CommunityEvent => ({
   sourceEventId: id, subjectKey: subject, kind: 'case.routed', classification: 'state-changing', at: 1,
   payload: { ownerThreadId: 'home', catId: cat, userId: 'owner' },
 });
 const snapshot = { state: 'open' as const, commentsComplete: true, comments: [], reviews: [] };
+
+test('collection network outages keep probing and preserve the offline comment cursor', async () => {
+  let now = 1000, offline = true, reads = 0;
+  const storage = memoryStorage(), secrets = { get: async () => undefined };
+  const diagnose = (error: unknown) => diagnosticError(error, secrets as FeatureContext['secrets']);
+  const store = new SdkCommunityCollectionStore(storage, () => now, 60_000, diagnose);
+  await new SdkCommunityEventLog(storage).append(route('network-route'));
+  const runtime = new CommunityCollectionRuntime({ store, now: () => now, allowed: async () => true, diagnose,
+    provider: { read: async (_target, _signal, cursor) => {
+      reads++; assert.equal(cursor?.conversation, 0);
+      if (offline) throw Object.assign(new Error('GitHub command failed'), { code: 1, stderr: 'Get "https://api.github.com/user": EOF' });
+      return { ...snapshot, comments: [{ id: 11, author: 'contributor', body: 'offline change', commentType: 'conversation' as const }] };
+    } }, collect: async () => {}, observe: async () => {} });
+  try {
+    for (let n = 0; n < 8; n++) {
+      await runtime.poll('issue').catch(() => {});
+      const task = (await store.getBySubject('issue:owner/repo#1'))!;
+      now = (await store.read(task.id))!.recovery!.nextAt + 1;
+    }
+    assert.equal(reads, 8, 'temporary network failure cannot consume the lifetime of collection');
+    offline = false; await runtime.poll('issue');
+    const task = (await store.getBySubject('issue:owner/repo#1'))!;
+    assert.equal(task.automationState?.issue?.lastCommentCursor, 11);
+    assert.equal((await store.read(task.id))!.recovery!.failures, 0);
+  } finally { await runtime.stop(); }
+});
+
+test('migrated issue network recovery survives recreation without replacing its binding or cursors', async () => {
+  let now = 1000, reads = 0, offline = true;
+  const storage = memoryStorage(), task: TaskItem = { id: 'network-legacy', kind: 'issue_tracking', subjectKey: 'issue:owner/repo#1',
+    userId: 'owner', threadId: 'home', ownerCatId: 'cat', status: 'doing', title: 'Original issue', why: '',
+    createdBy: 'cat', createdAt: 1, updatedAt: 1,
+    automationState: { issue: { lastCommentCursor: 10, lastDeliveredCursor: 10, issueState: 'open' } } };
+  const key = migratedIssueKey(task.id), sent: unknown[] = [];
+  await storage.set(key, { schemaVersion: 1, task, sourceUpdatedAt: 1 });
+  const context = { storage, config: { get: async () => undefined }, secrets: { get: async () => undefined },
+    tasks: { get: async () => task }, log() {}, messaging: { send: async (_thread: string, draft: unknown) => {
+      sent.push(draft); return { messageId: 'original-receipt', threadId: 'home' };
+    } } } as unknown as FeatureContext;
+  const provider = { read: async (_target: unknown, _signal: AbortSignal, cursor?: { conversation: number }) => {
+    reads++; assert.equal(cursor?.conversation, 10);
+    if (offline) throw Object.assign(new Error('GitHub command failed'), { code: 1, stderr: 'Get "https://api.github.com/user": EOF' });
+    return { ...snapshot, comments: [{ id: 11, author: 'contributor', body: 'offline change', commentType: 'conversation' as const }] };
+  } };
+  let runtime = new MigratedIssueRuntime(context, provider, () => 'self', () => now);
+  try {
+    for (let n = 0; n < 8; n++) {
+      await runtime.poll();
+      const row = (await storage.get(key))!.value as { recovery: { nextAt: number } };
+      now = row.recovery.nextAt + 1;
+    }
+    assert.equal(reads, 8);
+    await runtime.stop(); runtime = new MigratedIssueRuntime(context, provider, () => 'self', () => now);
+    offline = false; await runtime.poll();
+    const row = (await storage.get(key))!.value as { task: TaskItem; sourceUpdatedAt: number; recovery: { failures: number } };
+    assert.equal(sent.length, 1); assert.equal(row.task.id, task.id); assert.equal(row.task.ownerCatId, task.ownerCatId);
+    assert.equal(row.sourceUpdatedAt, 1); assert.equal(row.task.automationState?.issue?.lastDeliveredCursor, 11);
+    assert.equal(row.recovery.failures, 0);
+  } finally { await runtime.stop(); }
+});
 
 test('intermittent collection failures are reset only by successful collection, never by quota deferral', async t => {
   let now = 1000, failure: Error | undefined;

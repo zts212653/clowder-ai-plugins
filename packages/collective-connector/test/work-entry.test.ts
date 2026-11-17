@@ -18,6 +18,7 @@ test('production Work module owns one private MCP and rejects untrusted calls be
     throw new Error('Private effect before authenticated Work');
   };
   const host: ModulePluginHostShape = {
+    external: { endpoint: 'https://host.invalid/api/plugins/external', token: 'fixture-external-token' },
     members: { list: async () => [], get: async () => null },
     pluginInstanceId: 'installed-instance',
     dataPath: directory,

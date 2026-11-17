@@ -57,6 +57,7 @@ export interface GitHubSnapshot {
   readonly mergedByLogin?: string;
   readonly headSha?: string;
   readonly ci?: 'pending' | 'pass' | 'fail' | 'external_infrastructure';
+  readonly ciRollup?: 'empty' | 'present';
   readonly ciBlockerCount?: number;
   readonly mergeState?: string;
   readonly comments: readonly GitHubComment[];

@@ -4,10 +4,12 @@ import type { TaskItem } from './business/model/index.js';
 import { assertWaitStorage, decodeWaitTask, publishWaitRecord, WAIT_PREFIX, waitKey, type WaitRecordV1 } from './typed-wait-record.js';
 import { waitIndex, waitRecoveryScope, hasWaitWork, assertWaitRecovery, reconcileWaitRecovery, type GitHubWaitRecoveryFacts, type GitHubRecoveryNotice } from './typed-wait-recovery.js';
 import type { DiagnosticError } from './tracking-diagnostics.js';
-import { consecutiveFailures, type RecoveryAttempt } from './recovery-attempt.js';
+import { type RecoveryAttempt } from './recovery-attempt.js';
+import { observationAttempt, observationRetryDelay } from './observation-recovery.js';
 import { parkMalformedWait } from './typed-wait-invalid-record.js';
 import { storageEntries } from './storage-pages.js';
-const CENSUS = 'github.typed-wait.recovery-census.v1';
+const CENSUS = 'github.typed-wait.recovery-census.v2';
+type RecoveryRecord = Omit<WaitRecordV1, 'recovery'> & { recovery?: GitHubWaitRecoveryFacts };
 export interface GitHubWaitRecoveryCandidate { task: TaskItem; recovery: GitHubWaitRecoveryFacts }
 
 /** Original wait records own recovery; the Host only publishes their single derived projection atomically. */
@@ -99,18 +101,25 @@ export class GitHubWaitRecoveryStorage {
   }
   async finish(candidate: GitHubWaitRecoveryCandidate, outcome: RecoveryAttempt, nextPollAt: number, error?: DiagnosticError): Promise<void> {
     await this.mutate(candidate.task.id, (record) => {
-      const facts = record.recovery;
-      if (!facts || facts.scope !== candidate.recovery.scope || facts.revision !== candidate.recovery.revision) return false;
+      const previous = record.recovery;
+      if (!previous || previous.scope !== candidate.recovery.scope || previous.revision !== candidate.recovery.revision) return false;
+      const facts = observationAttempt(previous, outcome, this.now(), error);
+      record.recovery = facts;
       facts.revision++; facts.nextPollAt = nextPollAt;
-      facts.failures = consecutiveFailures(facts.failures, outcome);
-      if (outcome === 'failed' && error) { facts.lastError = error; facts.lastFailureAt = this.now(); }
-      if (facts.failures >= 5) {
-        facts.disposition = 'needs_attention'; facts.reasonCode = 'github_observation_failed';
+      if (outcome === 'failed' && facts.retryable)
+        facts.nextPollAt = Math.max(nextPollAt, this.now() + observationRetryDelay(facts.failures, this.intervalMs, facts.scope));
+      if (facts.failures >= 5 && outcome === 'failed') {
+        if (!facts.retryable) { facts.disposition = 'needs_attention'; facts.reasonCode = 'github_observation_failed'; }
         const key = `github-wait-recovery:${facts.scope}:${facts.revision}`;
-        if (record.task.userId && record.task.threadId && facts.lastNoticeKey !== key)
+        if ((facts.retryable ? previous.failures < 5 : previous.disposition !== 'needs_attention') && record.task.userId && record.task.threadId && facts.lastNoticeKey !== key) {
+          for (const notice of Object.values(facts.notices))
+            if (notice.scope === facts.scope && notice.state === 'pending') notice.state = 'cancelled';
           facts.notices[key] ??= { key, scope: facts.scope, userId: record.task.userId, threadId: record.task.threadId,
             taskId: record.task.id, failures: 0, nextAt: this.now(), state: 'pending' };
+        }
       }
+      if (outcome === 'succeeded') for (const notice of Object.values(facts.notices))
+        if (notice.scope === facts.scope && notice.state === 'pending') notice.state = 'cancelled';
       return true;
     });
   }
@@ -122,7 +131,7 @@ export class GitHubWaitRecoveryStorage {
         facts.disposition !== 'needs_attention' || facts.reasonCode !== 'github_observation_failed') return false;
       record.recoveryRetries = [...(record.recoveryRetries ?? []), { scope, revision, at: this.now(), failures: facts.failures }];
       facts.revision++; facts.failures = 0; facts.nextPollAt = this.now();
-      delete facts.disposition; delete facts.reasonCode;
+      delete facts.disposition; delete facts.reasonCode; delete facts.retryable;
       for (const notice of Object.values(facts.notices))
         if (notice.scope === scope && notice.state === 'pending') notice.state = 'cancelled';
       return true;
@@ -150,7 +159,7 @@ export class GitHubWaitRecoveryStorage {
       delete record.recovery!.notices[current.key]; return true;
     });
   }
-  private async mutate(id: string, change: (record: WaitRecordV1) => boolean): Promise<boolean> {
+  private async mutate(id: string, change: (record: RecoveryRecord) => boolean): Promise<boolean> {
     for (let attempt = 0; attempt < 5; attempt++) {
       const entry = await this.storage.get(waitKey(id)); if (!entry) return false;
       const task = decodeWaitTask(entry.value); if (task.id !== id) throw new Error('GitHub wait key mismatch');

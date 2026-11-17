@@ -33,6 +33,7 @@ on:
       - 'packages/genoffice-docx/**'
       - 'packages/github-operations/**'
       - 'packages/feedback/**'
+      - 'packages/quick-phrases/**'
       - 'packages/stackchan/**'
       - 'packages/superagent/**'
       - 'catalog/**'
@@ -252,6 +253,12 @@ jobs:
       - name: Build SDK package
         run: pnpm --filter @clowder-ai/plugin-sdk build
 
+      - name: Build feedback package
+        run: pnpm --filter @clowder-ai/feedback build
+
+      - name: Build quick phrases package
+        run: pnpm --filter @clowder-ai/quick-phrases build
+
       - name: Build connector packages
         run: |
           set -euo pipefail
@@ -317,6 +324,12 @@ jobs:
         with:
           package-directory: packages/plugin-sdk
           npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish feedback prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/feedback
+          npm-token: ''
 
       - name: Publish Collective prerelease
         uses: ./.github/actions/publish-prerelease
@@ -431,6 +444,12 @@ jobs:
         with:
           package-directory: packages/github-operations
           npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish quick phrases prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/quick-phrases
+          npm-token: ''
 
       # Publication and discovery are separate transitions. The PR already
       # declared an owner; the daily audit delivers durable follow-up reminders.

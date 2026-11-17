@@ -56,6 +56,7 @@ const module=createGitHubPluginModule({now:()=>clock,createProvider:context=>({s
   read:async(target,_signal,cursor)=>{ context.log('info','fixture-provider-read',{kind:target.kind,number:target.number});
     const mode=await context.config.get('fixtureScenario');
     if(mode==='provider-error') throw new Error('isolated provider observation failed');
+    if(mode==='provider-network-error') throw Object.assign(new Error('GitHub command failed'),{code:1,stderr:'Get "https://api.github.com/user": EOF'});
     const terminal=terminalSnapshot(mode); if(terminal) return terminal;
     const id=mode==='event' ? 11:mode?.startsWith('event:')?Number(mode.slice(6)):0;
     return {state:'open',headSha:'a'.repeat(40),ci:'pending',commentsComplete:true,reviews:[],

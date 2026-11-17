@@ -42,7 +42,7 @@ export interface GitHubWaitObservation {
   readonly at?: number;
   /** Source-owned, typed metadata for the connector message created by this observation. */
   readonly deliveryExtra?: ConnectorDeliveryInput['extra'];
-  readonly notificationFilter?: (match: GitHubWaitMatchedDelta) => boolean;
+  readonly notificationFilter?: (match: GitHubWaitMatchedDelta, allMatches: readonly GitHubWaitMatchedDelta[]) => boolean;
   /** Action-time review-history observation; projected only through the existing outcome nextStep. */
   readonly reviewLoopBrake?: GitHubReviewLoopBrake;
 }
@@ -261,8 +261,33 @@ export class GitHubWaitLifecycleService {
         } as AutomationState)
       : collectorState;
     const allMatches = matchGitHubWaitPredicates(active.continuation.when, active.baseline, input.facts);
-    const matched = input.notificationFilter ? allMatches.filter(input.notificationFilter) : allMatches;
+    const matched = input.notificationFilter
+      ? allMatches.filter(match => input.notificationFilter!(match, allMatches))
+      : allMatches;
     if (!input.subjectState && matched.length === 0 && allMatches.length > 0 && !isAwaitExpired(active, at)) {
+      if (active.autoRenew !== false && allMatches.some(match => match.kind === 'pr_head_changed')) {
+        const transitioned = transitionWaitState(transitionState, {
+          type: 'predicates_matched',
+          generation: active.generation,
+          at,
+          matched: allMatches,
+          renewal: planWaitRenewal(active, collectorState, input.facts, at, (error) =>
+            this.opts.log.warn(
+              { error, taskId: task.id },
+              '[#1392] next generation not built; tracking not rearmed',
+            ),
+          ),
+        });
+        if (transitioned.applied) {
+          const installed = await this.opts.taskStore.replaceAutomationStateIfGeneration(task.id, {
+            expectedGeneration: active.generation,
+            expectedUpdatedAt: task.updatedAt,
+            automationState: { ...transitioned.state, waitOutcome: undefined } as AutomationState,
+            status: 'doing',
+          });
+          return installed ? { kind: 'state_only', reason: 'notification_filtered' } : LOST_RACE;
+        }
+      }
       // Consume filtered events privately so a later policy change cannot replay old history.
       const baseline = 'headSha' in active.baseline
         ? renewPrWaitBaseline(active.baseline, collectorState as PrAutomationState, input.facts, at)

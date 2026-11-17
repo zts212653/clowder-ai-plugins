@@ -10,7 +10,7 @@ function fixture() {
   let now = 1000, failure: Error | undefined, reads = 0;
   const storage = memoryStorage(), sent: unknown[] = [], logs: Array<{ message: string; fields?: unknown }> = [];
   let snapshot: GitHubSnapshot = { state: 'open', headSha: 'a'.repeat(40), ci: 'pending', comments: [], reviews: [], commentsComplete: true,
-    trackingIdentity: { selfLogin: 'owner', subjectAuthorLogin: 'owner' } };
+    trackingIdentity: { selfLogin: 'maintainer', subjectAuthorLogin: 'contributor' } };
   const context = { storage, config: { get: async () => undefined }, secrets: { get: async () => undefined },
     threads: { get: async () => ({ id: 'home' }) }, messaging: { send: async (_thread: string, draft: unknown) => {
       sent.push(draft); return { messageId: 'notice', threadId: 'home' }; } }, log(_level: string, message: string, fields?: unknown) { logs.push({ message, fields }); } } as unknown as FeatureContext;
@@ -18,10 +18,30 @@ function fixture() {
   const provider: GitHubTrackingProvider = { read: async () => { reads++; if (failure) throw failure; return structuredClone(snapshot); } };
   const runtime = () => new TypedWaitRuntime({ context, now: () => now, coverage: async () => ({ covered: true }), provider });
   return { storage, context, caller, sent, logs, runtime, provider, head: (sha: string) => { snapshot = { ...snapshot, headSha: sha }; },
+    update: (patch: Partial<GitHubSnapshot>) => { snapshot = { ...snapshot, ...patch }; },
     reads: () => reads, advance: () => { now += 60_001; },
     fail: (error?: Error) => { failure = error; } };
 }
 const input = { registrationId: 'original-registration', repoFullName: 'owner/repo', prNumber: 1 };
+const reviewedHead = 'a'.repeat(40);
+
+async function seedReceipt(f: ReturnType<typeof fixture>, over: Record<string, unknown> = {},
+  url = 'https://github.com/owner/repo/pull/1#pullrequestreview-42') {
+  const { SdkCommunityObjectStore } = await import('./business/domains/community/CommunityObjectStore.js');
+  await new SdkCommunityObjectStore(f.storage).save({
+    subjectKey: 'pr:owner/repo#1',
+    externalReview: {
+      mode: 'maintainer_review', cloudPolicy: 'optional', lifecycle: 'delivered',
+      currentHeadSha: reviewedHead, headGeneration: 1, currentHeadObservedAt: 1000,
+      lastReviewedHeadSha: reviewedHead, lastReviewedHeadGeneration: 1,
+      lastDeliveredHeadSha: reviewedHead, lastDeliveredHeadGeneration: 1,
+      ci: null, cloud: null, wake: null,
+      delivery: { kind: 'delivered', headSha: reviewedHead, githubUrl: url, deliveredAt: 1000 },
+      deliveredVerdictFingerprint: null, verdictSubmissionEpoch: 1, pendingVerdict: null,
+      reviewerCatId: 'codex61-sol', reviewerThreadId: 'home', ...over,
+    },
+  } as import('./business/model/index.js').CommunityObjectProjection);
+}
 
 test('a failed optional CI batch does not charge unread PRs a provider failure', async () => {
   const f = fixture(), runtime = f.runtime();
@@ -258,5 +278,209 @@ test('corrupt recovery counters retain their original bytes and cannot reset int
     assert.equal(current.recovery.disposition, 'needs_attention');
     assert.deepEqual(current.malformedRecovery, invalid);
     assert.equal(f.reads(), before);
+  } finally { await runtime.stop(); }
+});
+
+
+test('an exact persisted self-review receipt is private, but another cat on the shared login still wakes', async () => {
+  const f = fixture(), runtime = f.runtime(), head = 'a'.repeat(40);
+  try {
+    const task = await runtime.registerPr(input, f.caller);
+    const { SdkCommunityObjectStore } = await import('./business/domains/community/CommunityObjectStore.js');
+    await new SdkCommunityObjectStore(f.storage).save({
+      subjectKey: 'pr:owner/repo#1',
+      externalReview: {
+        mode: 'maintainer_review', cloudPolicy: 'optional', lifecycle: 'delivered',
+        currentHeadSha: head, headGeneration: 1, currentHeadObservedAt: 1000,
+        lastReviewedHeadSha: head, lastReviewedHeadGeneration: 1,
+        lastDeliveredHeadSha: head, lastDeliveredHeadGeneration: 1,
+        ci: null, cloud: null, wake: null,
+        delivery: { kind: 'delivered', headSha: head,
+          githubUrl: 'https://github.com/owner/repo/pull/1#pullrequestreview-42', deliveredAt: 1000 },
+        deliveredVerdictFingerprint: null, verdictSubmissionEpoch: 1, pendingVerdict: null,
+        reviewerCatId: 'codex61-sol', reviewerThreadId: 'home',
+      },
+    } as import('./business/model/index.js').CommunityObjectProjection);
+    f.update({ reviews: [{ id: 42, author: 'zts212653', state: 'APPROVED', commitId: head }] });
+    f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 0, 'the exact review just persisted by this owner must not wake that owner again');
+    assert.equal((await runtime.store.get(task.id))!.automationState!.waitOutcome, undefined);
+
+    f.update({ reviews: [
+      { id: 42, author: 'zts212653', state: 'APPROVED', commitId: head },
+      { id: 43, author: 'zts212653', state: 'APPROVED', commitId: head },
+    ] });
+    f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 1, 'a different review id with no matching persisted self-receipt is actionable');
+  } finally { await runtime.stop(); }
+});
+
+test('a reviewed PR defers only a no-action pending HEAD update, then wakes for its current-head CI result', async () => {
+  const f = fixture(), runtime = f.runtime(), oldHead = 'a'.repeat(40), newHead = 'b'.repeat(40);
+  try {
+    f.update({ reviews: [{ id: 1, author: 'previous-reviewer', state: 'APPROVED', commitId: oldHead }] });
+    const task = await runtime.registerPr(input, f.caller);
+    f.update({ headSha: newHead, ci: 'pending', ciRollup: 'present' });
+    f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 0, 'a pure rebase/update while CI is pending needs no immediate duplicate wake');
+    const followed = (await runtime.store.get(task.id))!.automationState!.await!;
+    assert.equal(followed.generation, 2, 'the deferred notification still renews the original wait instead of creating a parallel one');
+    assert.equal('headSha' in followed.baseline && followed.baseline.headSha, newHead, 'the silent update still advances the durable head baseline');
+
+    f.update({ ci: 'pass' });
+    f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 1, 'the current-head terminal CI result still arrives');
+    assert.equal((await runtime.store.get(task.id))!.automationState!.waitOutcome!.reason, 'matched');
+  } finally { await runtime.stop(); }
+});
+
+for (const scenario of [
+  {
+    name: 'changes-requested',
+    patch: {
+      reviews: [
+        { id: 1, author: 'previous-reviewer', state: 'APPROVED', commitId: 'a'.repeat(40) },
+        { id: 2, author: 'zts212653', state: 'CHANGES_REQUESTED', commitId: 'b'.repeat(40) },
+      ],
+    },
+  },
+  {
+    name: 'author-help',
+    patch: {
+      comments: [{ id: 9, author: 'contributor', body: 'please re-review after the rebase', commentType: 'conversation' as const }],
+    },
+  },
+  {
+    name: 'conflict',
+    patch: { mergeState: 'CONFLICTING' },
+  },
+  {
+    name: 'no-ci',
+    patch: { ci: 'external_infrastructure' as const },
+  },
+] as const) {
+  test(`CI-pending coalescing never hides ${scenario.name}`, async () => {
+    const f = fixture(), runtime = f.runtime(), oldHead = 'a'.repeat(40), newHead = 'b'.repeat(40);
+    try {
+      f.update({ reviews: [{ id: 1, author: 'previous-reviewer', state: 'APPROVED', commitId: oldHead }] });
+      await runtime.registerPr(input, f.caller);
+      f.update({ headSha: newHead, ci: scenario.name === 'no-ci' ? 'external_infrastructure' : 'pending', ciRollup: 'present', ...scenario.patch });
+      f.advance(); await runtime.poll('pr');
+      assert.equal(f.sent.length, 1, `${scenario.name} must remain immediately visible`);
+    } finally { await runtime.stop(); }
+  });
+}
+
+test('CI failure and subject terminal are never deferred behind a green result', async () => {
+  for (const terminal of [{ ci: 'fail' as const }, { state: 'merged' as const }]) {
+    const f = fixture(), runtime = f.runtime(), oldHead = 'a'.repeat(40);
+    try {
+      f.update({ reviews: [{ id: 1, author: 'previous-reviewer', state: 'APPROVED', commitId: oldHead }] });
+      await runtime.registerPr(input, f.caller);
+      f.update({ headSha: 'b'.repeat(40), ci: 'pending', ciRollup: 'present', ...terminal });
+      f.advance(); await runtime.poll('pr');
+      assert.equal(f.sent.length, 1, JSON.stringify(terminal));
+    } finally { await runtime.stop(); }
+  }
+});
+
+
+test('empty CI rollup never defers a reviewed HEAD update into permanent silence', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    f.update({ reviews: [{ id: 1, author: 'previous-reviewer', state: 'APPROVED', commitId: reviewedHead }] });
+    await runtime.registerPr(input, f.caller);
+    f.update({ headSha: 'b'.repeat(40), ci: 'pending', ciRollup: 'empty' });
+    for (let i = 0; i < 6; i++) { f.advance(); await runtime.poll('pr'); }
+    assert.equal(f.sent.length, 1, 'an empty check rollup cannot be treated as a future CI terminal');
+  } finally { await runtime.stop(); }
+});
+
+test('pending coalescing requires an armed CI terminal predicate', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    f.update({ reviews: [{ id: 1, author: 'previous-reviewer', state: 'APPROVED', commitId: reviewedHead }] });
+    await runtime.registerPr({ ...input, when: [{ kind: 'pr_head_changed' }, { kind: 'pr_review_decision_changed' }] }, f.caller);
+    f.update({ headSha: 'b'.repeat(40), ci: 'pending', ciRollup: 'present' });
+    f.advance(); await runtime.poll('pr');
+    f.update({ ci: 'pass' });
+    for (let i = 0; i < 3; i++) { f.advance(); await runtime.poll('pr'); }
+    assert.equal(f.sent.length, 1, 'an unarmed CI terminal cannot be the reason to suppress the awaited HEAD update');
+  } finally { await runtime.stop(); }
+});
+
+test('dismissing the owner review is a new fact, not an exact self receipt', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    await runtime.registerPr(input, f.caller);
+    await seedReceipt(f);
+    f.update({ reviews: [{ id: 42, author: 'zts212653', state: 'APPROVED', commitId: reviewedHead }] });
+    f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 0);
+    f.update({ reviews: [{ id: 42, author: 'zts212653', state: 'DISMISSED', commitId: reviewedHead }] });
+    f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 1, 'a revoked approval must remain visible even when its original delivery was private');
+  } finally { await runtime.stop(); }
+});
+
+test('a same-tick other cat changes-requested review is not swallowed with the exact self receipt', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    await runtime.registerPr(input, f.caller);
+    await seedReceipt(f);
+    f.update({ reviews: [
+      { id: 42, author: 'zts212653', state: 'APPROVED', commitId: reviewedHead },
+      { id: 43, author: 'zts212653', state: 'CHANGES_REQUESTED', commitId: reviewedHead },
+    ] });
+    f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 1);
+  } finally { await runtime.stop(); }
+});
+
+for (const mismatch of [
+  { reviewerCatId: 'some-other-cat' },
+  { reviewerThreadId: 'other-thread' },
+  { headGeneration: 9 },
+  { currentHeadSha: 'c'.repeat(40) },
+  { delivery: { kind: 'delivered', headSha: 'c'.repeat(40), githubUrl: 'https://github.com/owner/repo/pull/1#pullrequestreview-42', deliveredAt: 1000 } },
+  { delivery: { kind: 'pending_delivery', headSha: reviewedHead, ownerCatId: 'codex61-sol', reason: 'not yet', createdAt: 1000 } },
+] as const) {
+  test(`self-receipt proof mismatch fails open: ${Object.keys(mismatch).join(',')}`, async () => {
+    const f = fixture(), runtime = f.runtime();
+    try {
+      await runtime.registerPr(input, f.caller);
+      await seedReceipt(f, mismatch);
+      f.update({ reviews: [{ id: 42, author: 'zts212653', state: 'APPROVED', commitId: reviewedHead }] });
+      f.advance(); await runtime.poll('pr');
+      assert.equal(f.sent.length, 1, 'every owner/thread/head/generation/delivery coordinate is required before suppressing');
+    } finally { await runtime.stop(); }
+  });
+}
+
+test('a persisted conversation self-comment is private, but another commenter still wakes', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    await runtime.registerPr(input, f.caller);
+    await seedReceipt(f, {}, 'https://github.com/owner/repo/pull/1#issuecomment-77');
+    f.update({ comments: [{ id: 77, author: 'zts212653', body: 'ok', commentType: 'conversation' }] });
+    f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 0);
+    f.update({ comments: [
+      { id: 77, author: 'zts212653', body: 'ok', commentType: 'conversation' },
+      { id: 78, author: 'contributor', body: 'help please', commentType: 'conversation' },
+    ] });
+    f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 1);
+  } finally { await runtime.stop(); }
+});
+
+
+test('an unreviewed HEAD update is never coalesced even with a real pending rollup', async () => {
+  const f = fixture(), runtime = f.runtime();
+  try {
+    await runtime.registerPr(input, f.caller);
+    f.update({ headSha: 'b'.repeat(40), ci: 'pending', ciRollup: 'present' });
+    f.advance(); await runtime.poll('pr');
+    assert.equal(f.sent.length, 1, 'without a formal prior review there is no redundant review wake to merge');
   } finally { await runtime.stop(); }
 });

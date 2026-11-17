@@ -1,11 +1,12 @@
 pluginId: official.quick-phrases
-version: 0.1.0-alpha.2
+version: 0.1.0-alpha.3
 contractVersion: 0.3.0
 name: 快捷用语
 description:
   default: 在聊天输入框保存、搜索和复用常用的任务派发用语。
   translations:
     en: Save, search, and reuse common instructions from the chat composer.
+icon: { type: svg, src: assets/icon.svg }
 steps:
   - text: 启用后，在聊天输入框点击「快捷用语」。输入框有文字时可保存，无文字时可搜索、选用和删除。
 contributions:

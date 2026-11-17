@@ -1,17 +1,33 @@
-import { bridge, call, copyImage, el, normalizePicture } from './bridge.js';
+import { bridge, call, copyImage, el, normalizePicture, beforeClose } from './bridge.js';
 import { reportPreview } from './report.js';
 import { feedbackForm } from './form.js';
 import { feedbackHistory } from './history.js';
 
 const app = document.getElementById('app');
 const state = { stage: 'edit', feedbackId:crypto.randomUUID(), items:[], report: { kind:'bug', title: '', body: '', attachments: [] }, targets: [], targetId: '', clients: [], clientId: '',
-  consent: false, busy: false, error: '', dirty: true, automatic: false, projectRef: '', analysis: undefined, preview: true };
+  consent: false, busy: false, error: '', saveError:'', saveErrorCode:'', selectionSaved:true, dirty: false, automatic: false, projectRef: '', analysis: undefined, preview: true };
 let analysisTimer;
 let analysisEpoch = 0;
 let historyTimer, draftTimer;
 let pendingDraft=Promise.resolve();
+let pendingAction=Promise.resolve();
 let editVersion=0;
-const recordCall = input=>call({...input,feedbackId:state.feedbackId});
+const checkRequestBudget = request=>{
+  if(new Blob([JSON.stringify(request)]).size>15*1024*1024)throw new Error('图片合计过大，请减少图片或裁剪后再添加');
+};
+const recordCall = (input,feedbackId=state.feedbackId)=>{
+  const sourceId=state.feedbackId;
+  return Promise.resolve().then(()=>{
+  const request={...input,feedbackId};if(input.op==='save')checkRequestBudget(request);return call(request);
+}).catch(error=>{
+  if(input.op==='save'&&sourceId===state.feedbackId){
+    state.saveError=error.message;
+    // A failed copy still leaves the original record in conflict; retain its recovery action.
+    if(feedbackId===sourceId)state.saveErrorCode=error.code;
+  }
+  throw error;
+});
+};
 const button = (label, action, style = 'secondary', disabled = false) => el('button', { type: 'button', text: label, className: style, disabled: disabled || state.busy, onClick: () => run(action) });
 const note = (text, className = 'hint') => el('p', { text, className });
 function input(label, field, multiline = false, copy = false) {
@@ -27,27 +43,39 @@ function input(label, field, multiline = false, copy = false) {
 function invalidate() {
   state.dirty = true; state.consent = false; state.automatic = false;
   editVersion++;
-  const status=document.querySelector('[data-save-status]');if(status)status.textContent='尚未保存，关闭前请保存';
-  if(state.stage==='edit') {clearTimeout(draftTimer);draftTimer=setTimeout(()=>{pendingDraft=pendingDraft.then(saveDraft).catch(error=>{state.error=`草稿暂未保存：${error.message}`;render();});},500);}
+  const status=document.querySelector('[data-save-status]');if(status)status.textContent=state.saveError||'草稿有更新，将自动保存';
+  if(['edit','review','handoff'].includes(state.stage)) {clearTimeout(draftTimer);draftTimer=setTimeout(()=>{pendingDraft=pendingDraft.then(()=>saveDraft()).catch(error=>{state.error=`草稿暂未保存：${error.message}`;render();});},500);}
   document.querySelectorAll('[data-consent]').forEach(node => { node.checked = false; });
   document.querySelectorAll('[data-publish]').forEach(node => { node.disabled = true; node.setAttribute('aria-disabled', 'true'); });
 }
-async function saveDraft() {
-  if(state.stage!=='edit'||!state.dirty||locked()||!hasDraft())return;
+async function saveDraft(asNew=false) {
+  if(!['edit','review','handoff'].includes(state.stage)||(!state.dirty&&!asNew)||locked()||!hasDraft())return;
   const id=state.feedbackId, version=editVersion;
   const status=document.querySelector('[data-save-status]');if(status)status.textContent='正在保存草稿…';
-  const saved=await recordCall({op:'save',draftOnly:true,targetId:state.targetId,revision:state.revision,report:state.report});
+  const saved=await recordCall({op:'save',draftOnly:asNew||state.stage==='edit',targetId:state.targetId,clientId:state.clientId,projectRef:state.projectRef,revision:asNew?undefined:state.revision,report:state.report},asNew?crypto.randomUUID():id);
   if(state.feedbackId!==id)return;
-  state.journal=saved.journal;state.revision=saved.revision;
-  if(version===editVersion)state.dirty=false;
-  if(status)status.textContent=version===editVersion?'草稿已保存到反馈记录':'尚未保存，关闭前请保存';
+  state.journal=saved.journal;state.revision=saved.revision;state.saveError='';state.saveErrorCode='';state.selectionSaved=saved.selectionSaved;
+  if(asNew){state.feedbackId=saved.journal.id;state.analysis=undefined;state.stage='edit';state.error='';}
+  if(version===editVersion){
+    state.dirty=false;
+    if(state.stage!=='edit'){
+      state.report=saved.journal.report;
+      ['title','body'].forEach(field=>{
+        const control=document.getElementById(`feedback-${field}`);
+        if(control)control.value=state.report[field];
+      });
+      document.querySelector('[aria-label="报告正文预览"]')?.replaceWith(reportPreview(state.report.body,el));
+    }
+  }
+  if(status)status.textContent=version===editVersion?(saved.selectionSaved===false?'草稿已保存，可从反馈记录继续':'草稿已保存到反馈记录'):'草稿有更新，将自动保存';
 }
-function hasDraft(){return state.journal||state.report.title.replace(/^(?:bug|feat):\s*/i,'').trim()||state.report.body.trim()||state.report.attachments.length;}
+function hasDraft(){return state.journal||state.dirty;}
 async function flushDraft(){clearTimeout(draftTimer);await pendingDraft;await saveDraft();}
 async function startNew(){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();
+  await call({op:'new'});
   Object.assign(state,{feedbackId:crypto.randomUUID(),report:{kind:'bug',title:'',body:'',attachments:[]},journal:undefined,revision:undefined,analysis:undefined,
-    stage:'edit',dirty:true,consent:false,automatic:false,error:'',projectRef:'',preview:true});
+    stage:'edit',dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,projectRef:'',preview:true});
 }
 async function showHistory(){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();state.stage='history';
@@ -60,18 +88,19 @@ async function refreshHistory(){
   if(value&&JSON.stringify(value.items)!==JSON.stringify(state.items)){state.items=value.items;render();}
   historyTimer=setTimeout(refreshHistory,2000);
 }
-async function openRecord(id){
+async function openRecord(id,value){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();
-  const value=await call({op:'bootstrap',feedbackId:id});
+  value??=await call({op:'bootstrap',feedbackId:id});
   Object.assign(state,value,{feedbackId:id,report:{...value.journal.report,kind:value.journal.report.kind??(/^feat:/i.test(value.journal.report.title)?'feat':'bug')},
-    targetId:value.journal.target.id,analysis:value.analysis,material:value.analysis?.material,hash:value.analysis?.hash,preflight:undefined,dirty:false,consent:false,automatic:false,error:'',preview:true});
-  state.clientId=value.analysis?.clientId??state.clientId;state.projectRef=value.analysis?.projectRef??'';
+    targetId:value.journal.target.id,analysis:value.analysis,material:value.analysis?.material,hash:value.analysis?.hash,preflight:undefined,dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,preview:true});
+  state.clientId=value.journal.clientId??value.analysis?.clientId??state.clientId;state.projectRef=value.journal.projectRef??value.analysis?.projectRef??'';
+  const sameContext=value.analysis?.clientId===state.clientId&&(value.analysis?.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||'');
   state.stage=value.journal.state==='published'?'submitted':value.journal.reviewReady||locked()?'review':'edit';
-  if(['prepared','preparing','starting','running','blocked'].includes(value.analysis?.state)){
+  if(sameContext&&['prepared','preparing','starting','running','blocked'].includes(value.analysis?.state)){
     state.material=value.analysis.material;state.hash=value.analysis.hash;state.stage=value.analysis.state==='prepared'?'scope':'analyzing';
     if(state.stage==='analyzing')analysisTimer=setTimeout(refreshAnalysis,1500);
   }else if(value.analysis?.state==='ready'&&!locked()){
-    const matches=value.analysis.journalDigest===value.journal.digest;
+    const matches=value.analysis.journalDigest===value.journal.digest&&sameContext;
     if(matches){state.report.title=value.analysis.title;state.report.body=value.analysis.body;await saveReview(false);}
   }
   if(state.stage==='review'&&!locked())await checkRoute();
@@ -93,16 +122,24 @@ function pictureCards() {
   ])));
 }
 async function addFiles(files) {
+  const attachments = [...state.report.attachments];
   for (const file of files) {
-    if (state.report.attachments.length >= 4 || file.size > 4000000 || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('最多 4 张 PNG/JPEG/WebP，单张不超过 4 MB');
-    state.report.attachments.push(await normalizePicture(file, state.report.attachments.length));
+    if (attachments.length >= 4 || file.size > 4000000 || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('最多 4 张 PNG/JPEG/WebP，单张不超过 4 MB');
+    const picture = await normalizePicture(file, attachments.length);
+    const report = { ...state.report, attachments: [...attachments, picture] };
+    const request = { op:'save', draftOnly:true, targetId:state.targetId,clientId:state.clientId,projectRef:state.projectRef,revision:state.revision,report,feedbackId:state.feedbackId };
+    checkRequestBudget(request);
+    if(report.attachments.reduce((sum,item)=>sum+atob(item.base64).length,0)>8_000_000)throw new Error('发送图片总大小不能超过 8 MB，请减少图片或裁剪');
+    if(report.attachments.reduce((sum,item)=>sum+(item.original?atob(item.original.base64).length:0),0)>8_000_000)throw new Error('原图总大小不能超过 8 MB，请减少图片或裁剪');
+    attachments.push(picture);
   }
+  state.report.attachments=attachments;
   invalidate();
 }
 async function saveReview(checkTarget = true) {
   await flushDraft();
-  const saved = await recordCall({ op: 'save', targetId: state.targetId, revision: state.revision, report: state.report });
-  Object.assign(state, saved, { report: saved.journal.report, dirty: false, consent: false, stage: 'review' });
+  const saved = await recordCall({ op: 'save', targetId: state.targetId, clientId: state.clientId, projectRef: state.projectRef, revision: state.revision, report: state.report });
+  Object.assign(state, saved, { report: saved.journal.report, dirty: false, consent: false, stage: 'review',saveError:'',saveErrorCode:'' });
   state.automatic = false;
   if (checkTarget) await checkRoute();
 }
@@ -141,11 +178,12 @@ async function submit() {
     state.stage = state.journal.state === 'published' ? 'submitted' : 'review';
   } catch (error) { state.stage = 'review'; throw error; }
 }
-async function run(action) {
+function run(action) {
   if (state.busy) return;
   state.busy = true; state.error = ''; render();
-  try { await action(); } catch (error) { state.error = error.message || '操作未完成，草稿已保留'; }
-  finally { state.busy = false; render(); }
+  pendingAction = Promise.resolve().then(action).catch(error => { state.error = error.message || '操作未完成，草稿已保留'; })
+    .finally(() => { state.busy = false; render(); });
+  return pendingAction;
 }
 async function refreshAnalysis() {
   if (state.stage !== 'analyzing') return;
@@ -158,8 +196,8 @@ async function refreshAnalysis() {
     state.analysis = analysis;
     if (analysis?.state === 'ready') {
       state.report.title = analysis.title; state.report.body = analysis.body; state.dirty = true;
-      state.busy = true; state.stage = 'review'; render();
-      try { await saveReview(); } finally { state.busy = false; render(); }
+      state.stage = 'review';
+      await run(saveReview);
       return;
     }
     if (['failed', 'cancelled', 'interrupted'].includes(analysis?.state)) {
@@ -182,15 +220,21 @@ function render() {
   const header = el('header', {}, [el('div',{className:'feedback-nav'},[button('新建反馈',startNew,state.stage==='edit'&&!state.journal?'primary':'secondary'),button('反馈记录',showHistory,state.stage==='history'?'primary':'secondary'),el('span',{className:'hint',text:state.items.length?`${state.items.filter(item=>!['published','retained'].includes(item.status)).length} 条待处理`:''})]),el('h1', { text: '感谢你的反馈，一起共建项目' }), note(state.stage==='history'?'查看每条反馈的分析与投递进度。':'简单描述，详细报告交给 Agent。'),
     el('nav', { 'aria-label': '反馈流程',hidden:state.stage==='history' }, ['填写问题', '分析与脱敏', '检查与提交', '完成'].map((text, index) => el('span', { text: `${index + 1}  ${text}`, className: index <= stageIndex ? 'current' : '', 'aria-current': index === stageIndex ? 'step' : 'false' })))]);
   const content = el('section', { className: 'content' }); const footer = el('footer');
+  if (state.error) content.append(el('p', { role: 'alert', className: 'error', text: state.error }));
+  if(['edit','review','handoff'].includes(state.stage)){
+    footer.append(el('span',{'data-save-status':'',className:state.saveError?'error':'hint',text:state.saveError||
+      (state.selectionSaved===false?'草稿已保存，可从反馈记录继续':state.journal&&!state.dirty?'草稿已保存到反馈记录':hasDraft()?'草稿有更新，将自动保存':'')}));
+    if(state.saveErrorCode==='revision_conflict')footer.append(button('另存为新草稿',()=>saveDraft(true)));
+  }
   if (state.stage === 'history') {
     content.append(feedbackHistory(state.items,id=>run(()=>openRecord(id))));
     footer.append(button('刷新记录',showHistory),button('新建反馈',startNew,'primary'));
   } else if (state.stage === 'edit') {
     content.append(...feedbackForm(state,{input,note,button,pictureCards,addFiles,invalidate,run,render}));
-    footer.append(el('span',{'data-save-status':'',className:'hint',text:state.journal&&!state.dirty?'草稿已保存到反馈记录':hasDraft()?'尚未保存，关闭前请保存':''}),button('保存草稿',flushDraft,'text'),button('直接反馈',saveReview),button('生成分析报告',prepareAnalysis,'primary',!state.clients.length));
-    if(state.analysis?.state==='ready')footer.append(button('查看本条分析报告',async()=>{state.report.title=state.analysis.title;state.report.body=state.analysis.body;await saveReview();},'text'));
+    footer.append(button('保存草稿',flushDraft,'text'),button('直接反馈',saveReview),button('生成分析报告',prepareAnalysis,'primary',!state.clients.length));
+    if(state.analysis?.state==='ready'&&state.analysis.clientId===state.clientId&&(state.analysis.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||''))footer.append(button('查看本条分析报告',async()=>{state.report.title=state.analysis.title;state.report.body=state.analysis.body;await saveReview();},'text'));
   } else if (['scope', 'analyzing'].includes(state.stage)) {
-    const client = state.clients.find(c=>c.id===state.clientId);
+    const client = state.clients.find(c=>c.id===(state.analysis?.clientId??state.clientId));
     content.append(el('div', { className: 'notice', text: `分析成员：${client?.label ?? '已选成员'} · ${client?.model ?? ''}。${state.report.kind === 'feat' ? '版本和功能建议' : '版本、问题描述及近期错误线索'}先在本地脱敏，再交给该成员分析；如其模型在云端，脱敏材料会发送到该模型。截图不交给模型。` }),
       note('仅生成报告，不执行修复或创建 Issue。完成后会再次脱敏，并展示完整标题和正文供你检查。'),
       el('details',{},[el('summary',{text:'查看将发送的脱敏材料'}),el('textarea', { className: 'material', value: state.material, readOnly: true, 'aria-label': '脱敏分析材料' })]));
@@ -227,12 +271,26 @@ function render() {
       el('a', { className: 'primary', text: '打开 Issue', href: state.journal.issue.url, target: '_blank', rel: 'noopener noreferrer' })]));
     footer.append(button('继续反馈', startNew), button('完成', () => bridge('close'), 'primary'));
   }
-  if (state.error) content.append(el('p', { role: 'alert', className: 'error', text: state.error }));
   app.replaceChildren(header, content, footer);
-  app.dataset.stage = state.stage; content.scrollTop = scroll;
+  app.dataset.stage = state.stage; content.scrollTop = state.error?0:scroll;
 }
 render();
+app.addEventListener('paste', event => {
+  if(state.stage!=='edit'||state.busy||locked())return;
+  const files=Array.from(event.clipboardData?.items??[]).filter(item=>item.type.startsWith('image/')).map(item=>item.getAsFile()).filter(Boolean);
+  if(!files.length)return;
+  event.preventDefault();
+  return run(()=>addFiles(files));
+});
+beforeClose(async()=>{
+  await pendingAction;
+  await run(async()=>{
+    try { await flushDraft(); void bridge('close'); }
+    catch(error) { await bridge('close.cancel'); throw error; }
+  });
+}).catch(error=>{state.error=`关闭前自动保存不可用，请更新宿主：${error.message}`;render();});
 run(async()=>{
-  const initial=await call({op:'bootstrap'});state.targets=initial.targets;state.clients=initial.clients??[];state.items=initial.items??[];
+  const initial=await call({op:'bootstrap',resume:true});state.targets=initial.targets;state.clients=initial.clients??[];state.items=initial.items??[];
   state.clientId=state.clients[0]?.id??'';state.targetId=state.targets[0]?.id??'';
+  if(initial.journal)await openRecord(initial.journal.id,initial);
 });

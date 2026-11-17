@@ -97,6 +97,7 @@ async function setup(taskHost?: ModulePluginHostShape['tasks']) {
     { ...base, id: 'unrelated-task', entrustedWork: { ...base.entrustedWork!, admission: { sourceRefs: ['message:other'] } } },
     { ...base, id: 'legacy-unowned-task', userId: null }];
   const host: ModulePluginHostShape = {members:{list:async()=>[{catId:'codex-sol',displayName:'Sol',defaultModel:'fixture',available:true}],get:async()=>null}, pluginInstanceId: 'installed-instance', dataPath: f.root, config: serviceHostConfig(), secrets: { async get() { return undefined; } }, storage: memoryStorage(),
+    external: { endpoint: 'https://host.invalid/api/plugins/external', token: 'fixture-external-token' },
     streams:{read:async function*(){throw new Error('Unused stream port');}}, messaging: { send: unused, async get(id){bodyReads++;return {id,userId:'local-owner',threadId:'channel',catId:null,content:'ordinary source',mentions:[],timestamp:0,sourceRevision:'fixture',source:{connector:'collective',label:'Collective',icon:'collective',meta:{participation:f.source}},...(deliveryStatus?{deliveryStatus}:{})};},
       async subscribe({threadId}) {expect(rows.find(row => row.id === threadId)?.createdBy).toBe('local-owner');subscriptions.add(threadId);},
       async unsubscribe({threadId}) {subscriptions.delete(threadId);}}, log() {},

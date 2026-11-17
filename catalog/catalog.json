@@ -2393,6 +2393,50 @@
       ]
     },
     {
+      "pluginId": "official.feedback",
+      "name": "问题反馈",
+      "description": {
+        "default": "通过已配置的本地 Agent Client 生成脱敏报告并提交 Issue，支持草稿恢复、粘贴截图及本地选图。需要支持声明式 HTTP 面板及关闭前保存的配套 next 宿主。",
+        "translations": {
+          "en": "Sanitized feedback reports with draft recovery, pasted screenshots and local images. Requires a paired next Host with declared HTTP panels and save-before-close support."
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "bug",
+        "feedback",
+        "issue",
+        "反馈",
+        "问题反馈"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.2",
+          "contractVersion": "0.3.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/feedback",
+            "version": "0.1.0-alpha.2",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/feedback/-/feedback-0.1.0-alpha.2.tgz",
+            "integrity": "sha512-P1jybx+cXxJUsq+C2k0rAGXNoNppihbfxxSdKwpVC7lY8QjVQ/PlXWojxZGVTikOXHPZXhOj7UyBgLTwGh09ew==",
+            "shasum": "5299098685f0e26e7fc3945b96e395fa60a071ac",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/feedback"
+            }
+          }
+        }
+      ]
+    },
+    {
       "pluginId": "official.feishu-meeting-intake",
       "name": "Feishu Meeting Intake",
       "description": "Owned meeting records, ordinary notifications and authenticated native reads.",
@@ -2624,6 +2668,49 @@
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/github-operations"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.quick-phrases",
+      "name": "快捷用语",
+      "description": {
+        "default": "在聊天输入框保存、搜索和复用常用的任务派发用语。",
+        "translations": {
+          "en": "Save, search, and reuse common instructions from the chat composer."
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "composer",
+        "quick phrases",
+        "snippets",
+        "快捷用语"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.3",
+          "contractVersion": "0.3.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/quick-phrases",
+            "version": "0.1.0-alpha.3",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/quick-phrases/-/quick-phrases-0.1.0-alpha.3.tgz",
+            "integrity": "sha512-186xs+a9mgHec3j8zfg1iczgDoL1JldRsi6U0sqgOaTCGcm00BTL0C5ZYxddLxjP2Q8w6On96kwtHtu8OSL+Ig==",
+            "shasum": "22939cc23cfe47a0920105435725dad594ff1d73",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/quick-phrases"
             }
           }
         }

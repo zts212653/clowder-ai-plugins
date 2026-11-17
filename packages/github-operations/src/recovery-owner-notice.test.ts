@@ -4,7 +4,11 @@ import type { FeatureContext } from '@clowder-ai/plugin-sdk';
 import { memoryStorage } from '../test/memory-storage.js';
 import { SdkCommunityEventLog } from './business/domains/community/CommunityEventLog.js';
 import { SdkCommunityCollectionStore } from './community-collection.js';
-import { sendRecoveryOwnerNotice } from './recovery-owner-notice.js';
+import { recoveryOwnerNotice, sendRecoveryOwnerNotice } from './recovery-owner-notice.js';
+import { collectionKey, collectionIndex } from './community-collection-record.js';
+import { migratedIssueKey, materializeMigratedIssue, type MigratedIssueRecord } from './migrated-issue-record.js';
+import { MigratedIssueRuntime } from './migrated-issue-runtime.js';
+import type { TaskItem } from './business/model/index.js';
 
 test('status notification and archive response loss preserve the original exact intent across reroute/cancellation', async () => {
   let now = 1000, accepted = 0, loseMessage = true, loseArchive = true;
@@ -53,4 +57,78 @@ test('status notification and archive response loss preserve the original exact 
   assert.equal(accepted, 1);
   const archived = Object.entries(await storage.list()).filter(([key]) => key.startsWith('github.recovery-notice.archive.'));
   assert.equal(archived.length, 1);
+});
+
+const legacyError = { name: 'Error', message: 'GitHub command failed', code: 1, stderr: 'Get "https://api.github.com/user": EOF' };
+
+test('legacy hard faults already notified do not alert again solely because notice keys gained a revision', async () => {
+  const storage = memoryStorage(), journal = new SdkCommunityEventLog(storage);
+  await journal.append({ sourceEventId: 'legacy-hard-route', subjectKey: 'issue:owner/repo#1', kind: 'case.routed',
+    classification: 'state-changing', payload: { ownerThreadId: 'home', catId: 'cat' }, at: 1 });
+  const store = new SdkCommunityCollectionStore(storage); await store.reconcileRoutes('issue');
+  const task = (await store.getBySubject('issue:owner/repo#1'))!, key = collectionKey(task.id), entry = (await storage.get(key))!;
+  const row = entry.value as { recovery: { scope: string } };
+  const oldKey = recoveryOwnerNotice('collection', row.recovery.scope, 'home', task.subjectKey!)!.key;
+  await storage.compareAndSetIndexed!(key, entry.revision, { ...entry.value as object,
+    recovery: { ...row.recovery, failures: 5, revision: 5, nextAt: 0, disposition: 'needs_attention',
+      reasonCode: 'collection_observation_failed', lastNoticeKey: oldKey } }, { index: collectionIndex('issue'), score: null });
+  await storage.delete!('community.collection.census.v2'); await new SdkCommunityCollectionStore(storage).initialize();
+  assert.equal((await store.read(task.id))!.notice, undefined);
+});
+
+test('a cancelled legacy collection notice retains history without consuming the next fault alert', async () => {
+  let now = 1000;
+  const storage = memoryStorage(), journal = new SdkCommunityEventLog(storage);
+  await journal.append({ sourceEventId: 'legacy-notice-route', subjectKey: 'issue:owner/repo#1', kind: 'case.routed',
+    classification: 'state-changing', payload: { ownerThreadId: 'home', catId: 'cat' }, at: 1 });
+  const before = new SdkCommunityCollectionStore(storage, () => now); await before.reconcileRoutes('issue');
+  const task = (await before.getBySubject('issue:owner/repo#1'))!, row = (await before.read(task.id))!;
+  const key = collectionKey(task.id), entry = (await storage.get(key))!;
+  const notice = recoveryOwnerNotice('collection', row.recovery!.scope, 'home', task.subjectKey!)!;
+  await storage.compareAndSetIndexed!(key, entry.revision, { ...entry.value as object, notice,
+    recovery: { ...row.recovery!, revision: 5, failures: 5, disposition: 'needs_attention',
+      reasonCode: 'collection_observation_failed', lastError: legacyError } }, { index: collectionIndex('issue'), score: null });
+  await storage.delete!('community.collection.census.v2');
+  await storage.set('community.collection.census.v1', { v: 1, status: 'ready', cursor: '0' });
+  const store = new SdkCommunityCollectionStore(storage, () => now); await store.initialize();
+  const sent: string[] = [], send = async (n: { key: string }) => { sent.push(n.key); return { messageId: 'actual-alert' }; };
+  await store.deliverNotice((await store.read(task.id))!, send);
+  await store.finish((await store.read(task.id))!, 'succeeded');
+  for (let n = 0; n < 5; n++) { now += 60_001; await store.finish((await store.read(task.id))!, 'failed'); }
+  const hard = (await store.read(task.id))!;
+  assert.equal(hard.notice?.state, 'pending'); assert.notEqual(hard.notice?.key, notice.key);
+  await store.deliverNotice(hard, send); await store.deliverNotice((await store.read(task.id))!, send);
+  assert.equal(sent.length, 1); assert.equal((await store.read(task.id))!.notice, undefined);
+  const archives = Object.entries(await storage.list()).filter(([k]) => k.startsWith('github.recovery-notice.archive.'));
+  assert.equal(archives.length, 2, 'both the cancelled intent and actual delivery remain durable');
+});
+
+test('a cancelled legacy migrated notice cannot suppress or collide with its later hard-fault alert', async () => {
+  let now = 1000, hardFailure = false;
+  const storage = memoryStorage(), sent: string[] = [];
+  const task: TaskItem = { id: 'legacy-notice-issue', kind: 'issue_tracking', subjectKey: 'issue:owner/repo#1', userId: 'owner',
+    ownerCatId: 'cat', threadId: 'home', status: 'doing', title: 'Original', why: '', createdBy: 'cat', createdAt: 1, updatedAt: 1,
+    automationState: { issue: { lastCommentCursor: 10, lastDeliveredCursor: 10, issueState: 'open' } } };
+  const key = migratedIssueKey(task.id), row = materializeMigratedIssue({ schemaVersion: 1, task, sourceUpdatedAt: 1 }, key) as MigratedIssueRecord;
+  const notice = recoveryOwnerNotice('migrated-issue', row.recovery!.scope, 'home', task.subjectKey!)!;
+  await storage.compareAndSetIndexed!(key, null, { ...row, notice, recovery: { ...row.recovery!, revision: 5, failures: 5,
+    disposition: 'needs_attention', reasonCode: 'migrated_issue_observation_failed', lastError: legacyError } },
+    { index: 'github-migrated-issues', score: null });
+  const context = { storage, config: { get: async () => undefined }, secrets: { get: async () => undefined },
+    tasks: { get: async () => task }, log() {}, messaging: { send: async (_thread: string, draft: { idempotencyKey: string }) => {
+      sent.push(draft.idempotencyKey); return { messageId: 'actual-alert', threadId: 'home' };
+    } } } as unknown as FeatureContext;
+  const runtime = new MigratedIssueRuntime(context, { read: async () => {
+    if (hardFailure) throw new Error('HTTP 401: authentication required');
+    return { state: 'open', commentsComplete: true, comments: [], reviews: [] };
+  } }, () => 'self', () => now);
+  try {
+    await runtime.poll(); hardFailure = true;
+    for (let n = 0; n < 5; n++) { now += 60_001; await runtime.poll(); }
+    const hard = (await storage.get(key))!.value as MigratedIssueRecord;
+    assert.equal(hard.notice?.state, 'pending'); assert.notEqual(hard.notice?.key, notice.key);
+    await runtime.poll(); await runtime.poll();
+    assert.equal(sent.length, 1); assert.equal(((await storage.get(key))!.value as MigratedIssueRecord).notice, undefined);
+    assert.equal(Object.keys(await storage.list()).filter(k => k.startsWith('github.recovery-notice.archive.')).length, 2);
+  } finally { await runtime.stop(); }
 });
