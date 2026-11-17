@@ -98,7 +98,7 @@ export class DelegationRuntime {
       } catch { accountProbeFailed = true; }
 
     }
-    return { ...snapshot, auth: await this.auth.status(), keychainRepair: await this.keychain.status(), messageSync: this.sync.snapshot(account), runtime: this.supervisor.client ? 'running' : 'dormant', account, accountIsLive, accountProbeFailed, accountObservedAt: this.accountObservedAt ?? null, storagePath: this.host.dataPath,
+    return { ...snapshot, desktopWechat: this.desktopWechat ?? null, desktopChecking: this.desktopChecking === true, auth: await this.auth.status(), keychainRepair: await this.keychain.status(), messageSync: this.sync.snapshot(account), runtime: this.supervisor.client ? 'running' : 'dormant', account, accountIsLive, accountProbeFailed, accountObservedAt: this.accountObservedAt ?? null, storagePath: this.host.dataPath,
       senderStops: [...this.barriers].filter(([key]) => key.startsWith('native:')).map(([key, entry]) => ({ policyId: key === 'native:all' ? null : key.slice(7), state: entry.state })),
       memberRuntimeAvailable: this.model.available(), lastError: this.lastError,
       // Credentials and provider session data are never part of the page projection.
@@ -113,6 +113,21 @@ export class DelegationRuntime {
     const action = input.action;
     const activationBaseline = action === 'activate' ? await this.service.serial(() => this.service.snapshot()) : null;
     if (action === 'status') return this.status();
+    if (action === 'desktop_status' || action === 'desktop_request_access') {
+      if (action === 'desktop_request_access' && input.confirm !== true) throw Error('请确认允许系统询问辅助功能检测权限');
+      if (this.desktopChecking) throw Error('本机微信检测正在进行');
+      this.desktopChecking = true;
+      try {
+        const value = await this.supervisor.desktopStatus(context, action === 'desktop_request_access');
+        await context.assertCurrent();
+        if (!this.running) throw Error('插件已停止');
+        this.desktopWechat = value;
+        return value;
+      } catch (error) {
+        if (this.running) this.desktopWechat = { state: 'unknown', appVersion: null, observedAt: Date.now() };
+        throw error;
+      } finally { this.desktopChecking = false; }
+    }
     if (action === 'prepare') {
       if (input.acceptThirdParty !== true) throw Error('请先确认第三方组件与客户端同步范围说明');
       await this.service.takeover(null);

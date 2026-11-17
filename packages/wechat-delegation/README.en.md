@@ -1,6 +1,8 @@
 # WeChat delegation and human takeover — security rewrite in progress
 
 The intended product lets the authenticated owner select a normal WeChat friend or group, choose a cat and speaking style, authorize proactive messages/replies, and take over at any time. It does not substitute a bot or desktop OCR for that journey.
+Local desktop detection uses a separate owned read-only helper, isolated from the credential service. The connection card distinguishes desktop observations from the plugin connection. Installation, running state, signature and permission checks work before account preparation. Only a supported version and explicit application-menu evidence allow a logged-in UI observation; missing permission or unknown evidence stays undetermined. System accessibility prompting requires a separate owner confirmation. Real permission attribution and positive menu matching still need on-device validation. Detection never imports the desktop session or starts authentication or sending.
+
 
 This branch is an internal development candidate, not an accepted installation. The restricted native service, private stdio client, final sender deadlines, Host stop/renewal ordering, durable authentication intents, sync baseline/reset and exact canonical delivery inspection are implemented. The panel exposes explicit resume/cancel, synchronization state, system Keychain authorization and evidence-bound first-initialization recovery. Explicit per-login LAN consent is implemented; interactive system validation and final real-account acceptance remain open. `accountServiceReady=false`. The running plugin has not been replaced; no real account login/send, merge or publication is claimed.
 

@@ -7,8 +7,15 @@ import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { NativeStdioTransport } from './native-stdio.mjs';
 import { NativeLinkClient } from './link-client.mjs';
+import { inspectDesktop } from './desktop-probe.mjs';
 
 const pins = JSON.parse(readFileSync(new URL('../assets/native/manifest.json', import.meta.url), 'utf8'));
+const desktopPins = JSON.parse(readFileSync(new URL('../assets/native/desktop-manifest.json', import.meta.url), 'utf8'));
+export function desktopAsset(platform = process.platform, arch = process.arch) {
+  const pin = desktopPins.artifacts[`${platform}-${arch}`];
+  if (!pin || desktopPins.product !== 'clowder-wechat-desktop') throw Error('当前安装包尚未包含适用于本机的桌面微信检测组件');
+  return { ...pin, product: desktopPins.product, version: desktopPins.version };
+}
 export function nativeAsset(platform = process.platform, arch = process.arch) {
   const pin = pins.artifacts[`${platform}-${arch}`];
   if (!pin || pins.product !== 'clowder-wechat-link') throw Error('当前安装包尚未包含适用于本机的安全重写连接组件');
@@ -48,11 +55,14 @@ function validAsset(asset) {
 /** Own exactly one private-pipe process. There is no port/token, external PID
  * lookup, generic configuration root, legacy profile import or backend fallback. */
 export class NativeSupervisor {
-  constructor({ dataPath, asset, download = loadBundled }) {
-    Object.assign(this, { dataPath, asset, download }); this.client = null; this.clients = new WeakMap(); this.epoch = 0;
+  desktopStatus(owner, prompt = false) { return inspectDesktop(this, owner, prompt); }
+  constructor({ dataPath, asset, download = loadBundled, desktopAsset: desktopPin, desktopDownload = loadBundled }) {
+    Object.assign(this, { dataPath, asset, download, desktopPin, desktopDownload }); this.client = null; this.clients = new WeakMap(); this.epoch = 0;
   }
-  async executable(signal, current) {
-    const asset = this.asset ?? nativeAsset();
+  desktopExecutable(signal, current) {
+    return this.executable(signal, current, this.desktopPin ?? desktopAsset(), this.desktopDownload);
+  }
+  async executable(signal, current, asset = this.asset ?? nativeAsset(), download = this.download) {
     if (!validAsset(asset)) throw Error('native integrity descriptor invalid');
     await privateDirectory(this.dataPath, true);
     const root = await realpath(this.dataPath), binary = join(root, asset.fileName);
@@ -63,7 +73,7 @@ export class NativeSupervisor {
       if (stat.size === asset.size) bytes = await readFile(binary);
     } catch (error) { if (error.code !== 'ENOENT') throw error; }
     if (!bytes || createHash('sha256').update(bytes).digest('hex') !== asset.sha256) {
-      bytes = await this.download(asset, signal);
+      bytes = await download(asset, signal);
       if (!Buffer.isBuffer(bytes) || bytes.length !== asset.size || createHash('sha256').update(bytes).digest('hex') !== asset.sha256) throw Error('native integrity mismatch');
       await current();
       const temporary = join(root, `.component-${randomUUID()}`);
@@ -199,6 +209,8 @@ export class NativeSupervisor {
   async stopOwned(client) { const record = this.clients.get(client); if (record) await this.stopRecord(record); }
   async stop() {
     this.epoch++;
+    const probe = this.desktopProbe;
+    if (probe) { await this.stopRecord(probe); await probe.pending?.catch(() => {}); }
     const record = this.record;
     if (!record) return;
     await this.stopRecord(record); await record.pending?.catch(() => {});

@@ -49,6 +49,25 @@ test('activation is dormant and actions reject forged or stale owner contexts', 
     await assert.rejects(f.runtime.dispatch({ action: 'prepare', acceptThirdParty: true }, context), /owner|本人|已登录/);
   assert.equal(f.prepared(), 0);
 });
+test('desktop detection works before account preparation and never adopts a desktop session or grants a conversation', async t => {
+  const f = await fixture(t); const prompts = [];
+  f.runtime.supervisor.desktopStatus = async (_context, prompt) => {
+    prompts.push(prompt); return { state: 'logged_in_ui', appVersion: '4.2.0', observedAt: Date.now() };
+  };
+  const result = await f.runtime.dispatch({ action: 'desktop_status' }, owner());
+  assert.equal(result.state, 'logged_in_ui');
+  assert.equal(f.prepared(), 0); assert.equal(f.runtime.supervisor.client, null);
+  assert.equal((await f.runtime.status()).account, null);
+  assert.equal((await f.runtime.status()).desktopWechat.state, 'logged_in_ui');
+  assert.equal((await f.runtime.service.snapshot()).policies.length, 0);
+  await assert.rejects(f.runtime.dispatch({ action: 'desktop_request_access' }, owner()), /确认/);
+  assert.deepEqual(prompts, [false]);
+  await f.runtime.dispatch({ action: 'desktop_request_access', confirm: true }, owner());
+  assert.deepEqual(prompts, [false, true]);
+  f.runtime.supervisor.desktopStatus = async () => { throw Error('probe failed'); };
+  await assert.rejects(f.runtime.dispatch({ action: 'desktop_status' }, owner()));
+  assert.equal((await f.runtime.status()).desktopWechat.state, 'unknown', 'a failed recheck cannot retain an old logged-in claim');
+});
 test('an explicit owner system authorization stops delegation, retains the result and requires a separate connection preparation',async t=>{
   const f=await fixture(t);let repairs=0;
   f.runtime.supervisor.reauthorize=async()=>{repairs++;await f.runtime.supervisor.stop();return{state:'verified'};};

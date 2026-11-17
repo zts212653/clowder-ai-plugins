@@ -12,6 +12,10 @@ import { NativeStdioTransport } from '../src/native-stdio.mjs';
 // Executable synthetic peer. This never opens a Keychain or contacts WeChat.
 const source = Buffer.from(`#!${process.execPath}
 const fs=require('node:fs'),path=require('node:path'),readline=require('node:readline');
+if(process.argv.includes('--desktop-status')||process.argv.includes('--request-desktop-access')){
+fs.writeFileSync(path.join(path.dirname(process.argv[1]),'desktop-started.json'),JSON.stringify({args:process.argv.slice(2),environment:Object.keys(process.env)}),{mode:0o600});
+process.stdout.write(JSON.stringify({product:'clowder-wechat-desktop',version:'test',pid:process.pid,probe:'desktop-wechat',state:'permission_required',appVersion:'4.2.0'})+'\\n');process.exit(0);
+}
 const dir=process.argv[process.argv.indexOf('--data-dir')+1];
 if(process.argv.includes('--reauthorize')||process.argv.includes('--recover-initialization')){
 fs.writeFileSync(path.join(path.dirname(dir),'repair-started.json'),JSON.stringify({args:process.argv.slice(2),environment:Object.keys(process.env)}),{mode:0o600});
@@ -31,10 +35,39 @@ const actor=()=>({signal:new AbortController().signal,assertCurrent:async()=>{}}
 const asset=()=>({fileName:'clowder-link-test',version:'test',size:source.length,sha256:createHash('sha256').update(source).digest('hex')});
 async function fixture(t){
   const root=await mkdtemp(join(tmpdir(),'wechat-owned-link-'));
-  const supervisor=new NativeSupervisor({dataPath:root,asset:asset(),download:async()=>source});
+  const supervisor=new NativeSupervisor({dataPath:root,asset:asset(),download:async()=>source,
+    desktopAsset:{...asset(),fileName:'clowder-desktop-test',product:'clowder-wechat-desktop'},desktopDownload:async()=>source});
   t.after(async()=>{await supervisor.stop();await rm(root,{recursive:true,force:true});});
   return {root,supervisor};
 }
+test('desktop metadata uses the pinned one-shot child before preparation, without vault creation or automatic permission requests',async t=>{
+  const {root,supervisor}=await fixture(t);
+  const read=await supervisor.desktopStatus(actor());
+  assert.equal(read.state,'permission_required');assert.equal(read.appVersion,'4.2.0');assert.equal(supervisor.client,null);
+  await assert.rejects(stat(join(root,'link-vault')),{code:'ENOENT'});
+  let started=JSON.parse(await readFile(join(root,'desktop-started.json')));
+  assert.deepEqual(started.args,['--desktop-status']);assert.equal(started.environment.every(key=>key==='__CF_USER_TEXT_ENCODING'),true);
+  const client=await supervisor.prepare(actor());
+  await supervisor.desktopStatus(actor(),true);
+  started=JSON.parse(await readFile(join(root,'desktop-started.json')));
+  assert.deepEqual(started.args,['--request-desktop-access']);assert.equal(supervisor.client,client);
+  assert.equal((await client.status()).connection,'offline');
+});
+test('a stopped supervisor cannot start a delayed desktop probe after its owner check finishes',async t=>{
+  const {root,supervisor}=await fixture(t);let entered,release;
+  const waiting=new Promise(r=>entered=r),gate=new Promise(r=>release=r);
+  const pending=supervisor.desktopStatus({...actor(),assertCurrent:async()=>{entered();await gate;}});
+  await waiting;await supervisor.stop();release();await assert.rejects(pending);
+  await assert.rejects(stat(join(root,'desktop-started.json')),{code:'ENOENT'});
+});
+test('desktop projection rejects unexpected fields without forwarding them or opening an account vault',async t=>{
+  const {root,supervisor}=await fixture(t);
+  const corrupt=Buffer.from(source.toString().replace("probe:'desktop-wechat',state:","probe:'desktop-wechat',secret:'DESKTOP_PRIVATE_CANARY',state:"));
+  supervisor.desktopPin={...supervisor.desktopPin,size:corrupt.length,sha256:createHash('sha256').update(corrupt).digest('hex')};
+  supervisor.desktopDownload=async()=>corrupt;
+  await assert.rejects(supervisor.desktopStatus(actor()),error=>!error.message.includes('DESKTOP_PRIVATE_CANARY'));
+  assert.equal(supervisor.client,null);await assert.rejects(stat(join(root,'link-vault')),{code:'ENOENT'});
+});
 test('preparation verifies owned bytes and uses only private pipes, an empty environment and the new vault',async t=>{
   const {root,supervisor}=await fixture(t);const client=await supervisor.prepare(actor());
   assert.equal((await client.status()).connection,'offline');assert.equal(supervisor.child.pid,client.pid);

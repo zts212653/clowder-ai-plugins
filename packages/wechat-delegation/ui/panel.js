@@ -196,7 +196,7 @@
     globalStop.classList.toggle('is-urgent', activeCount > 0 || unresolvedCount > 0);
     inflight.hidden = unresolvedCount === 0;
     inflightText.textContent = `${unresolvedCount} 笔消息仍可能发出。暂停只停止后续代聊；结果未确认时不会自动重发。`;
-    summary.replaceChildren(...[snapshot.account?.connected ? `${snapshot.accountIsLive ? '微信账号' : '上次核验的微信账号'}：${snapshot.account.accountIdentity}` : '微信账号：尚未连接或待核验',
+    summary.replaceChildren(...[snapshot.account?.connected ? `${snapshot.accountIsLive ? '插件连接' : '上次核验的插件连接'}：${snapshot.account.accountIdentity}` : '插件连接：尚未接通或待核验',
       snapshot.memberRuntimeAvailable ? '猫服务可用' : '猫服务暂不可用', snapshot.globalPause ? '全部代聊已暂停' : `代聊中：${activeCount} 个会话`,
       !connected ? '消息同步：尚未连接' : snapshot.messageSync?.ready ? '消息同步已完成' : '消息同步中 · 暂不能开启代聊'].map((text, index) => el('span', { class: 'badge', text, 'data-tone': index === 0 && connected || index === 1 && snapshot.memberRuntimeAvailable || index === 3 && snapshot.messageSync?.ready ? 'connected' : index === 2 && activeCount > 0 ? 'active' : 'idle' })));
     const globalStopState = snapshot.senderStops?.find(item => item.policyId === null)?.state;

@@ -1,5 +1,7 @@
 # 微信文字协议子集（实施中）
 
+本机桌面微信识别由独立的`desktop/` crate负责，不进入下述持凭据服务。它只用AppKit、ApplicationServices和Security检查固定官方应用及应用菜单，依赖闭包只有锁内serde/serde_json和构建cc；不编入协议、网络、账号或Vault。`clowder-wechat-link`不开放AX/desktop模式。桌面与插件状态分开，识别不导入会话；当前本机真实结果为微信4.2.0运行、辅助功能未授权，正向菜单匹配和系统提示归属仍未实测。
+
 这是账号安全重写的内部实施代码，尚未接入用户正在运行的插件。无参只开放hello/status；显式私有目录已接扫码、显式保存会话恢复、文字发送/接管、入站同步及当前目录。Node/Host和面板已消费自有私有stdio组件，新增明确的钥匙串系统授权和首次初始化恢复入口；显式LAN许可已实现；真实交互、最终制品/完整旅程仍待验收，accountServiceReady=false。入口契约见[IPC.md](IPC.md)。
 
 来源与授权：本人 `thread_mwg7kandcxztqeab#0001794847733075-000352-bf448701`；架构来源为宪宪 `000355` / `000362`，独立威胁稿为小多子 `000356`。完整产品与安全终态要求见 `docs/plans/2026-11-17-wechat-native-security-rewrite.md`。`b3028a9`的内部持久层与依赖更新已获小多子`000397`准确HEAD独立批准，未覆盖尚缺的执行器/真实旅程。
@@ -43,6 +45,8 @@ MACOSX_DEPLOYMENT_TARGET=26.5 cargo build --locked --release --manifest-path pac
 node packages/wechat-delegation/native/scripts/package-release.mjs /absolute/cargo-target/release/clowder-wechat-link
 node --test packages/wechat-delegation/test/native-artifact.test.mjs
 ```
+
+alpha.12同时构建`-p clowder-wechat-desktop`，向上述打包命令追加其绝对路径，分别生成两个不同identifier的hardened runtime制品。`assets/native/desktop-manifest.json`另记探针的源码文件摘要、source commit与二进制摘要；没有账号服务目录或凭据。仅`--request-desktop-access`会请求系统辅助功能提示，默认`--desktop-status`不弹窗。
 
 产物仍没有Apple Team或公证，不将ad-hoc runtime签名冒称正式分发身份。每次升级cdhash会变，既有文件钥匙串授权仍须本人通过系统入口续信任；这条恢复旅程尚未验收。离线实物检查向解压后的真实发布二进制设置`DYLD_INSERT_LIBRARIES`，无参只请求hello：不允许探针动态库执行，且不打开默认钥匙串。此检查保护的是已观察到的加载路径，不代表同UID进程隔离或完整端到端密钥泄漏测试。Apple说明见[Hardened Runtime](https://developer.apple.com/documentation/security/hardened-runtime)。
 

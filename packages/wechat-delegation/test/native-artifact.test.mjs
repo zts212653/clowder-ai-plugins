@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { loadBundled, nativeAsset } from '../src/native-supervisor.mjs';
+import { loadBundled, nativeAsset, desktopAsset } from '../src/native-supervisor.mjs';
 
 test('the actual shipped executable rejects DYLD injection before any Keychain is opened', { skip: process.platform !== 'darwin' || process.arch !== 'arm64' }, async t => {
   const root = await mkdtemp(join(tmpdir(), 'wechat-artifact-injection-'));
@@ -31,4 +31,18 @@ test('the actual shipped executable rejects DYLD injection before any Keychain i
   const signing = spawnSync('/usr/bin/codesign', ['-dvv', binary], { encoding: 'utf8' });
   assert.equal(signing.status, 0);
   assert.match(signing.stderr, /flags=0x[0-9a-f]+\([^\n]*runtime/);
+  const desktop = join(root, 'clowder-wechat-desktop');
+  await writeFile(desktop, await loadBundled(desktopAsset(), new AbortController().signal), { mode: 0o700 });
+  const metadata = spawnSync(desktop, ['--desktop-status'], { encoding: 'utf8', timeout: 20000,
+    env: { DYLD_INSERT_LIBRARIES: library } });
+  assert.equal(metadata.status, 0);
+  assert.doesNotMatch(metadata.stderr, /CLOWDER_INJECTION_CANARY/);
+  const report = JSON.parse(metadata.stdout);
+  assert.equal(report.product, 'clowder-wechat-desktop'); assert.equal(report.probe, 'desktop-wechat');
+  assert.equal(Object.keys(report).length, 6);
+  const desktopSigning = spawnSync('/usr/bin/codesign', ['-dvv', desktop], { encoding: 'utf8' });
+  assert.match(desktopSigning.stderr, /Identifier=ai\.clowder\.wechat-desktop/);
+  assert.match(desktopSigning.stderr, /flags=0x[0-9a-f]+\([^\n]*runtime/);
+  assert.equal(spawnSync(binary, ['--desktop-status'], { env: {}, timeout: 10000 }).status, 1,
+    'credential service must not expose desktop accessibility operations');
 });

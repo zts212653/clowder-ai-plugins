@@ -15,6 +15,7 @@ window.createWechatConnection = ({ el, button, check, call, perform, show, refre
   const uncertainty = el('p', { class: 'notice', hidden: true, text: '认证请求可能已经到达微信。取消或退出本机组件不能证明手机上的设备授权已撤销；请在手机微信核对已登录设备。' });
   const hint = el('p', { class: 'muted' }), sync = el('p', { role: 'status', class: 'muted' }), path = el('small');
   const repair = window.createWechatKeychainRepair({ el, button, check, perform, show });
+  const desktop = window.createWechatDesktopStatus({ el, button, check, call, refresh });
   const lan = window.createWechatLoginLan({ el, button, check, authenticate });
   const consent = check('我了解将准备 Clowder 自有连接组件；登录后可能同步其他未选中会话到本机，猫只处理我另行授权的会话。');
   const setup = button('准备账号连接组件', async () => {
@@ -73,7 +74,7 @@ window.createWechatConnection = ({ el, button, check, call, perform, show, refre
     query.hidden = !running || !current.operationId;
     disconnect.hidden = !running;
   }
-  const node = el('section', { class: 'stage-card account-section' }, [el('h2', { text: '连接微信账号' }), hint,
+  const node = el('section', { class: 'stage-card account-section' }, [el('h2', { text: '连接微信账号' }), desktop.node, el('strong', { text: '插件连接' }), hint,
     el('p', { class: 'notice', text: '使用 Clowder 重写的本机连接服务，含裁剪的 MIT 协议代码。登录后可能接收其他未选中会话及更广范围消息；逐会话授权前不会交给猫处理。开启代聊后，以你登录的个人微信账号发言。' }),
     el('p', { class: 'muted', text: '凭据与同步数据保存在本机专属加密库，密钥由 macOS 文件钥匙串保护。Host 和模型不会取得原始账号密钥；不会导入桌面微信目录。扫码或恢复连接不会开启代聊。' }),
     el('p', { class: 'muted', text: '当前安全重写仍在验收中，真实账号、局域网验证及签名升级交互仍需本人现场验收。' }),
@@ -84,6 +85,7 @@ window.createWechatConnection = ({ el, button, check, call, perform, show, refre
     node,
     render(value) {
       snapshot = value; renderAuth(value.auth);
+      desktop.render(value);
       repair.render(value.keychainRepair);
       if (value.runtime !== 'running') {
         clearInterval(timer); timer = null; qr.replaceChildren();
@@ -96,6 +98,6 @@ window.createWechatConnection = ({ el, button, check, call, perform, show, refre
       path.textContent = value.storagePath ? `本机保存位置：${value.storagePath}` : '由宿主的插件专属数据目录管理。';
       controls();
     },
-    close() { clearInterval(timer); version++; },
+    close() { clearInterval(timer); version++; desktop.close(); },
   };
 };

@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/wechat-delegation",
-  "version": "0.1.0-alpha.11",
+  "version": "0.1.0-alpha.12",
   "private": true,
   "type": "module",
   "license": "MIT",

@@ -1,5 +1,5 @@
 [workspace]
-members = ["proto", "link"]
+members = ["proto", "link", "desktop"]
 resolver = "2"
 
 [profile.release]
