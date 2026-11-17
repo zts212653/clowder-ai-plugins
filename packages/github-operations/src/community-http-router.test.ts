@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { memoryStorage } from '../test/memory-storage.js';
 import { createCommunityHttpRouter, type CommunityHttpRouterOptions } from './community-http-router.js';
+import { SdkCommunityCollectionStore } from './community-collection.js';
 import { CommunityProjector, CommunityProjectionOperations } from './business/domains/community/community-projector.js';
 import { createCatId } from './business/model/index.js';
 import { SdkCommunityWorkflowIssueStore, SdkCommunityIssueDraftStore, SdkCommunityPrStore } from './business/domains/community/CommunityWorkflowStores.js';
@@ -466,6 +467,26 @@ test('console community routes shape identities, filters, direction detail and P
   assert.deepEqual(detail.body.detail.dir.questions, [{ label: 'Q1', value: 'PASS' }]);
   assert.equal(detail.body.detail.url, 'https://github.com/org/repo/issues/1');
   assert.deepEqual((await get({ detail: '999' })).body, { detail: { gone: true } });
+});
+
+test('console acceptance routes a pending decision to its assigned member and starts its tracking', async t => {
+  const base = options(), { taskStore: _throwingTracking, ...issueOptions } = base.issues;
+  const deps: CommunityHttpRouterOptions = { ...base, issues: issueOptions, threads: {
+    get: async id => ({ id, title: 'Thread', deepLinkUrl: '/threads/' + id, createdAt: 1, lastActiveAt: 1, preferredCats: [], featureRefs: [] }),
+    create: async () => { throw new Error('unexpected thread creation'); },
+  } };
+  const issues = new SdkCommunityWorkflowIssueStore(deps.storage);
+  const i = (await issues.create({ repo: 'org/repo', issueNumber: 1, issueType: 'bug', title: 'Needs a decision' }))!;
+  await issues.update(i.id, { state: 'pending-decision', assignedCatId: createCatId('cat'), assignedThreadId: 'thread', directionCard: { entries: [{
+    catId: 'narrator', authoredByRole: 'narrator', verdict: 'WELCOME', questions: [{ id: 'Q1', result: 'PASS' }], timestamp: 1,
+    routeRecommendation: { kind: 'existing-thread', threadId: 'thread' },
+  }] } });
+  const router = await createCommunityHttpRouter(deps); t.after(() => router.stop());
+  const accepted = await router.forwardOwner({ principal, method: 'POST', path: 'github/community-console/status', body: { repo: 'org/repo', entity: 'issue', id: 1, v: 'accepted' } });
+  assert.equal(accepted.status, 200, JSON.stringify(accepted.body));
+  const routed = (await new SdkCommunityEventLog(deps.storage).read('issue:org/repo#1')).find(e => e.kind === 'case.routed');
+  assert.equal((routed?.payload as { catId?: string } | undefined)?.catId, 'cat');
+  assert.equal((await new SdkCommunityCollectionStore(deps.storage).getBySubject('issue:org/repo#1'))?.ownerCatId, 'cat');
 });
 
 test('console community sync returns the selected repo through one public host action', async t => {

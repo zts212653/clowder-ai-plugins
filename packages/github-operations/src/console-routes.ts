@@ -124,7 +124,10 @@ export function registerConsoleRoutes(app: FastifyInstance, scope: CommunityRequ
       if (op === 'waive') await call(path + '/waive-closure', 'POST', { reason: b.reason, evidence: b.evidence });
       if (op === 'status') {
         if (b.v !== 'accepted' && b.v !== 'rejected') throw new Error('Invalid owner decision');
-        await call(path + '/resolve', 'POST', { decision: b.v === 'accepted' ? 'accepted' : 'declined', routeRecommendation: narrator(i)?.routeRecommendation });
+        // As the decision queue does, an accepted case goes to the issue's assigned member: /resolve records
+        // the routing and starts its tracking only with that catId.
+        await call(path + '/resolve', 'POST', { decision: b.v === 'accepted' ? 'accepted' : 'declined', routeRecommendation: narrator(i)?.routeRecommendation,
+          ...(b.v === 'accepted' && i.assignedCatId ? { catId: i.assignedCatId } : {}) });
       }
     }
     return { ok: true };
