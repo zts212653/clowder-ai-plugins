@@ -2528,8 +2528,8 @@
             "packageName": "@clowder-ai/feedback",
             "version": "0.1.0-alpha.3",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/feedback/-/feedback-0.1.0-alpha.3.tgz",
-            "integrity": "sha512-Z+wG8lBR7ff0VgnpwKXsOATKZgdFpuIrWQ1UeINfDTmpEBK/2TLsf9BTPxFBq1tuT2ZrL9GddDl/iMowfqzEHQ==",
-            "shasum": "9b05deb5aa66c8a6770d363749dcc2c3412ebe7f",
+            "integrity": "sha512-OyPZksC5Y0K5tr/cwKhGX2SEmOzA0ABFZCQT2xkwyPFcLZp6O3mEATAmy1M62TrtGOV8m7RDu6flXiGa4g9uyw==",
+            "shasum": "12816e42a8db4077b7720efcf1a68b78c67df6d5",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/feedback"
@@ -2646,8 +2646,8 @@
             "packageName": "@clowder-ai/github-operations",
             "version": "0.1.0-alpha.47",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.47.tgz",
-            "integrity": "sha512-Sac9EI2DJcAagchpfcBBln80TpSDEfxX9mcVHrSIXnlNsX1Q/uiAOhSEC/8vQc8cA0wTGk2T8jQTMfXUIvw1bw==",
-            "shasum": "791c1dbeeb76d431206c978f95d0affba1bf3514",
+            "integrity": "sha512-l8Y0N0mxOOr6kNPFuUozpSnC3z5g7YNRPBNKL9MBuc74ZXTyzIrAv/0FYFCHbaFeW0opd4RZnbKvDePSfRLryA==",
+            "shasum": "7952e863e5506a1d67cf60ea13c892a862e66b01",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/github-operations"
@@ -3046,8 +3046,8 @@
             "packageName": "@clowder-ai/quick-phrases",
             "version": "0.1.0-alpha.4",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/quick-phrases/-/quick-phrases-0.1.0-alpha.4.tgz",
-            "integrity": "sha512-8grZJ5IZXJHcnuyOgNX995WoVDAuruW2rYgDcZ8tuNztkWpfLy8bma5P5BrPMfAEkbnaAfAqtb+u6/lj+AjRWw==",
-            "shasum": "4fb485599ec36ae4ed2846449e48f850e36a478e",
+            "integrity": "sha512-WOcfPhjib4EGqVbuRlRxol1v5XSXlzTRjBjz9blmHl0YhEtbhfVxc/SQWMoXhj3JTafPZv+IhlPpiTvh8+rlRw==",
+            "shasum": "46438f66d090e7c99e36f464ff165537903293e4",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/quick-phrases"
