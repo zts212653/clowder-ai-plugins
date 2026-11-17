@@ -5,7 +5,7 @@ import { validateManifest } from '@clowder-ai/plugin-contract';
 import { parse } from 'yaml';
 import { startSuperagent } from '../src/runtime.js';
 import { preferencesSchema, readPreferences } from '../src/state.js';
-import { fixture } from './fixture.js';
+import { event, fixture } from './fixture.js';
 
 test('assistant, execution members and watched conversations are separate settings that preserve each other', async () => {
   const declaration = validateManifest(parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8')));
@@ -43,6 +43,48 @@ test('assistant, execution members and watched conversations are separate settin
     assert.equal('coordinatorId' in stored, false);
     assert.equal('workerIds' in stored, false);
     assert.equal('threadIds' in stored, false);
+  } finally {
+    await runtime.stop({ reason: 'test' });
+  }
+});
+
+test('an upgraded install keeps the scope it saved before the scope became configuration', async () => {
+  const f = fixture();
+  await f.host.storage.set('preferences', {
+    ...f.preferences,
+    started: true,
+    coordinatorId: 'coordinator',
+    workerIds: ['worker'],
+    threadIds: ['source-a', 'source-b'],
+  });
+  for (const key of ['coordinatorId', 'workerIds', 'threadIds']) f.config.delete(key);
+  const runtime = await startSuperagent(f.host);
+  const owner = {
+    kind: 'owner-operation' as const,
+    userId: 'owner',
+    pluginInstanceId: f.host.pluginInstanceId,
+    operationKey: 'pause',
+    actionId: 'pause',
+    requestId: 'request-pause',
+    signal: new AbortController().signal,
+    assertCurrent: async () => {},
+  };
+  try {
+    await runtime.actions['superagent.observe'](event('after-upgrade'));
+    await runtime.actions['superagent.tick']({});
+    assert.ok([...f.sent.values()].some((message) => message.wake), 'intake still reaches the saved coordinator');
+    await runtime.actions['superagent.pause']({}, undefined, owner);
+    const paused = await readPreferences(f.host);
+    assert.equal(paused.enabled, false);
+    assert.equal(paused.coordinatorId, 'coordinator', 'an edit keeps the saved scope');
+    assert.deepEqual(paused.workerIds, ['worker']);
+    assert.deepEqual(paused.threadIds, ['source-a', 'source-b']);
+    f.config.set('threadIds', '["source-b"]');
+    await runtime.configRefresh?.();
+    const configured = await readPreferences(f.host);
+    assert.deepEqual(configured.threadIds, ['source-b'], 'a configured key replaces the saved one');
+    assert.equal(configured.coordinatorId, 'coordinator');
+    assert.equal(f.subscriptions.has('source-a'), false);
   } finally {
     await runtime.stop({ reason: 'test' });
   }
