@@ -77,7 +77,7 @@ window.createWechatConnection = ({ el, button, check, call, perform, show, refre
   const node = el('section', { class: 'stage-card account-section' }, [el('h2', { text: '连接微信账号' }), desktop.node, el('strong', { text: '插件连接' }), hint,
     el('p', { class: 'notice', text: '使用 Clowder 重写的本机连接服务，含裁剪的 MIT 协议代码。登录后可能接收其他未选中会话及更广范围消息；逐会话授权前不会交给猫处理。开启代聊后，以你登录的个人微信账号发言。' }),
     el('p', { class: 'muted', text: '凭据与同步数据保存在本机专属加密库，密钥由 macOS 文件钥匙串保护。Host 和模型不会取得原始账号密钥；不会导入桌面微信目录。扫码或恢复连接不会开启代聊。' }),
-    el('p', { class: 'muted', text: '当前安全重写仍在验收中，真实账号、局域网验证及签名升级交互仍需本人现场验收。' }),
+    el('p', { class: 'muted', text: '当前安全重写仍在验收中，真实账号、局域网验证及签名升级交互仍需本人现场验收。插件会建立独立的电脑端会话；能否与现有电脑微信同时在线尚未验证。' }),
     consent.node, el('div', { class: 'toolbar' }, [setup, login, resume, cancel, query, disconnect]), authText, operation, uncertainty, qr, lan.node, sync,
     el('details', { class: 'privacy' }, [el('summary', { text: '数据与授权范围' }),
       el('p', { text: '协议代码来自固定版本的 Agent WeChat 开源代码。微信登录和同步需要连接微信服务器；开启代聊后，所选会话的文字会交给你确认的模型服务。' }), path]), repair.node]);
