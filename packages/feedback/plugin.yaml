@@ -10,7 +10,7 @@ icon: { type: svg, src: assets/icon.svg }
 steps:
   - text: 启用后，从左侧栏底部打开“问题反馈”。建议先分析，检查完整报告和截图后再确认提交。
   - text: 本地 Client 可能连接云端模型；文本先脱敏，截图不交给模型。请手动遮盖截图中的敏感信息。
-  - text: 默认反馈到公开的 Clowder AI GitHub 仓库。内网可配置 GitLab、组织 CLI 或仅手动创建。
+  - text: 默认反馈到公开的 Clowder AI GitHub 仓库；自动提交需要下方的 GitHub 访问令牌，否则可手动创建。
 test: { action: { method: feedback.check } }
 configuration:
   - key: destinations
