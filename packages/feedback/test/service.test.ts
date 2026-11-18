@@ -3,67 +3,96 @@ import test from 'node:test';
 import { FeedbackService } from '../src/service.js';
 import {fixture} from './service-fixture.js';
 import { pngFixture } from './png-fixture.js';
-import type {HydratedJournal} from '../src/types.js';
+import { feedbackKey } from '../src/config.js';
+import type {HydratedJournal,Journal} from '../src/types.js';
 
 const report = { title: '中文标题', body: '## 现象\napi_key=secret-value', attachments: [] };
 
-test('GitHub with an image can create one verified Issue after explicit approval to add the image later', async () => {
+test('initial Issue publication sends no images, then uploads exactly the selected subset to the same Issue', async () => {
   const f = fixture();
-  f.adapter.preflight = async () => ({ principal: 'owner', visibility: 'public', attachments: false });
-  f.adapter.upload = async () => assert.fail('The approved screenshot stays on this device');
-  const image = pngFixture().toString('base64');
-  const saved = await f.call({ op:'save', targetId:'clowder',
-    report:{...report,attachments:[{mime:'image/png',base64:image}]},
-  });
+  f.adapter.preflight = async () => ({principal:'owner',visibility:'public',attachments:false,githubCliAttachments:true});
+  f.adapter.upload = async () => assert.fail('no pre-Issue upload');
+  let remoteHashes: string[] = [];
+  f.adapter.attachToIssue = async (issue,pictures) => {
+    assert.equal(f.creates(),1);
+    assert.ok(issue.url.endsWith('/issues/12'));
+    remoteHashes = pictures.map(picture=>picture.sha256);
+    return remoteHashes;
+  };
+  const pictures = [16,17,18].map(size=>({mime:'image/png',base64:pngFixture(size).toString('base64')}));
+  const saved = await f.call({op:'save',targetId:'clowder',report:{...report,attachments:pictures.slice(0,2)}});
   const {digest,id} = saved.journal;
-  assert.deepEqual(await f.call({op:'preflight',digest}), {principal:'owner',visibility:'public',attachments:false});
   await f.call({op:'approve',digest,confirmed:true});
-  await assert.rejects(f.call({op:'submit',digest}), /\u622a\u56fe/);
-  assert.equal(f.creates(),0);
+  const published = await f.call({op:'submit',digest});
+  assert.equal(published.journal.state,'published');
+  assert.equal(published.journal.screenshotItems?.length,2);
+  assert.deepEqual(published.journal.report.attachments,[]);
+  assert.deepEqual(remoteHashes,[]);
+  assert.ok(!published.journal.issue?.body.includes('Clowder-screenshot'));
 
-  await f.call({op:'approve',digest,confirmed:true,addScreenshotsLater:true});
-  await assert.rejects(f.call({op:'submit',digest}), /\u622a\u56fe/);
-  const submitted = await f.call({op:'submit',digest,addScreenshotsLater:true});
-  assert.equal(submitted.journal.state,'published');
-  assert.equal(submitted.journal.addScreenshotsLater,true);
-  assert.ok(submitted.journal.issue?.url.endsWith('/issues/12'));
-  assert.ok(!submitted.journal.issue?.body.includes('## \u622a\u56fe'));
-  assert.equal(f.creates(),1);
+  const added = await f.call({op:'add-screenshots',digest,pictures:[pictures[2]]});
+  assert.equal(added.journal.digest,digest);
+  const selected = added.journal.screenshotItems?.[2]?.sha256;
+  assert.ok(selected);
+  await assert.rejects(f.call({op:'upload-screenshots',digest,hashes:[selected]}));
+  assert.deepEqual(remoteHashes,[]);
+  await f.call({op:'upload-screenshots',digest,hashes:[selected],confirmed:true});
   const reopened = await f.call({op:'bootstrap',feedbackId:id});
-  assert.equal(reopened.journal.addScreenshotsLater,true);
-  assert.equal(reopened.journal.report.attachments[0]?.base64,image);
-  const confirmed = await f.call({op:'confirm-screenshots',digest});
-  assert.equal(confirmed.journal.screenshotsConfirmed,true);
+  assert.deepEqual(reopened.journal.screenshotSent,[selected]);
+  assert.deepEqual(remoteHashes,[selected]);
+  await assert.rejects(f.call({op:'upload-screenshots',digest,hashes:[selected],confirmed:true}));
   await f.call({op:'submit',digest});
   assert.equal(f.creates(),1);
 });
 
-test('GitHub CLI comment failure preserves the verified Issue and the pictures without another create or comment', async () => {
+test('a lost screenshot comment response is checked on the existing Issue without blind re-upload', async () => {
   const f = fixture();
   let comments = 0;
   f.adapter.preflight = async () => ({principal:'owner',visibility:'public',attachments:false,githubCliAttachments:true});
-  f.adapter.upload = async () => assert.fail('The CLI adds pictures to the verified Issue');
-  f.adapter.attachToIssue = async (issue, pictures) => {
-    assert.equal(f.creates(),1);
-    assert.ok(issue.url.endsWith('/issues/12'));
-    assert.equal(pictures.length,1);
+  f.adapter.attachToIssue = async () => {
     comments++;
-    throw new Error('synthetic incomplete attachment comment');
+    throw new Error('synthetic lost response');
   };
-  const saved = await f.call({op:'save',targetId:'clowder',
-    report:{...report,attachments:[{mime:'image/png',base64:pngFixture().toString('base64')}]},
-  });
-  const { digest, id } = saved.journal;
+  let checked = false;
+  f.adapter.findIssueScreenshots = async (_issue, hashes) => checked ? hashes.slice(0,1) : undefined;
+  const saved = await f.call({op:'save',targetId:'clowder',report:{...report,
+    attachments:[20,21].map(size=>({mime:'image/png',base64:pngFixture(size).toString('base64')}))}});
+  const {digest,id} = saved.journal;
   await f.call({op:'approve',digest,confirmed:true});
   const result = await f.call({op:'submit',digest});
-  assert.equal(result.journal.state,'published');
-  assert.equal(result.journal.screenshotCommentUnverified,true);
+  const hashes = result.journal.screenshotItems?.map(item=>item.sha256);
+  const uploaded = await f.call({op:'upload-screenshots',digest,hashes,confirmed:true});
+  assert.deepEqual(uploaded.journal.screenshotAttempt?.hashes,hashes);
+  await assert.rejects(f.call({op:'upload-screenshots',digest,hashes,confirmed:true}));
   const reopened = await f.call({op:'bootstrap',feedbackId:id});
-  assert.equal(reopened.journal.screenshotCommentUnverified,true);
-  assert.equal(reopened.journal.report.attachments.length,1);
-  await f.call({op:'submit',digest});
+  assert.deepEqual(reopened.journal.screenshotAttempt?.hashes,hashes);
+  assert.ok((await f.call({op:'check-screenshots',digest})).journal.screenshotAttempt);
+  checked = true;
+  const verified = await f.call({op:'check-screenshots',digest});
+  assert.deepEqual(verified.journal.screenshotSent,hashes?.slice(0,1));
+  assert.equal(verified.journal.screenshotAttempt,undefined);
   assert.equal(f.creates(),1);
   assert.equal(comments,1);
+});
+
+test('an Issue published by alpha.7 can upload the saved screenshots in place', async () => {
+  const f = fixture();
+  const image = {mime:'image/png',base64:pngFixture().toString('base64')};
+  f.adapter.attachToIssue = async (_issue,pictures)=>pictures.map(picture=>picture.sha256);
+  const saved = await f.call({op:'save',targetId:'clowder',report:{...report,attachments:[image]}});
+  const {digest,id} = saved.journal;
+  await f.call({op:'approve',digest,confirmed:true});
+  await f.call({op:'submit',digest});
+  const key = feedbackKey(f.ctx.userId,id);
+  const state = (await f.host.storage.get(key))!;
+  const journal = state.value as Journal;
+  await f.host.storage.compareAndSet(key,state.revision,{...journal,screenshotItems:undefined,addScreenshotsLater:true});
+  const reopened = await f.call({op:'bootstrap',feedbackId:id});
+  const hash = reopened.journal.report.attachments[0]?.sha256;
+  assert.ok(hash);
+  const result = await f.call({op:'upload-screenshots',digest,hashes:[hash],confirmed:true});
+  assert.deepEqual(result.journal.screenshotSent,[hash]);
+  assert.equal(f.creates(),1);
 });
 
 test('owner-only confirmation binds sanitized bytes and CAS allows only one create', async () => {

@@ -24,7 +24,14 @@ export class AttachmentVault {
     }
     return { ...report, attachments };
   }
-  async hydrate(journal: Journal): Promise<HydratedJournal> { return { ...journal, report: await this.readReport(journal.report) }; }
+  async hydrate(journal: Journal): Promise<HydratedJournal> {
+    const { screenshotItems, ...stored } = journal;
+    if (screenshotItems && stored.state === 'published') {
+      const hydrated = await this.readReport({ ...stored.report, attachments: screenshotItems });
+      return { ...stored, report: {...hydrated,attachments:[]}, screenshotItems:hydrated.attachments };
+    }
+    return { ...stored, report: await this.readReport(stored.report) };
+  }
   private async directory(): Promise<string> {
     await mkdir(resolve(this.dataPath), { recursive: true, mode: 0o700 });
     const root = await realpath(resolve(this.dataPath)); const directory = join(root, 'feedback-attachments');

@@ -79,14 +79,14 @@ test('GitHub CLI attachments require push permission and confirm a comment on th
   const adapter = provider(host, target, async url => {
     if (String(url).endsWith('/user')) return json({login:'owner'});
     if (String(url).endsWith('/issues/comments/41')) return json({html_url:commentUrl,
-      body:partial ? marker('my-id') : `截图\n\n${marker('my-id')}\n\n![Clowder-screenshot-1](https://github.com/user-attachments/assets/test)`});
+      body:partial ? '<!-- clowder-screenshots:my-id -->' : '截图\n\n<!-- clowder-screenshots:my-id -->\n\n![Clowder-screenshot-1](https://github.com/user-attachments/assets/test)'});
     return json({full_name:target.project,private:false,permissions:{push}});
   }, async () => assert.fail('configured token is sufficient'),
   async () => { help++; return true; },
   async (url, pictures, body, auth) => {
     assert.equal(url,issue.url);
     assert.deepEqual(pictures,[picture]);
-    assert.match(body,/clowder-feedback:my-id/);
+    assert.match(body,/clowder-screenshots:my-id/);
     assert.equal(auth,'test-only-token');
     comments++;
     return commentUrl;
@@ -96,9 +96,9 @@ test('GitHub CLI attachments require push permission and confirm a comment on th
   push = true;
   assert.equal((await adapter.preflight(signal,true)).githubCliAttachments,true);
   assert.equal(help,1);
-  await adapter.attachToIssue!(issue,[picture],'my-id',signal);
+  assert.deepEqual(await adapter.attachToIssue!(issue,[picture],'my-id',signal),[picture.sha256]);
   partial = true;
-  await assert.rejects(adapter.attachToIssue!(issue,[picture],'my-id',signal), /截图评论未完整回读/);
+  assert.deepEqual(await adapter.attachToIssue!(issue,[picture],'my-id',signal),[]);
   assert.equal(comments,2);
 });
 

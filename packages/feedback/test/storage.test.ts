@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {feedbackKey} from '../src/config.js';
+import type {Journal} from '../src/types.js';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -30,15 +32,18 @@ test('automatic PNG bytes exclude hidden metadata while keeping actual image chu
   assert.ok(actual.includes(Buffer.from('IDAT')));
 });
 
-test('partial uploads retain each receipt and allow explicit edit recovery without creating an Issue', async () => {
+test('legacy pre-Issue upload failures retain their receipts and allow explicit edit recovery', async () => {
   const f = fixture(); f.host.dataPath = await mkdtemp(join(tmpdir(), 'feedback-upload-test-'));
   const writes: unknown[] = []; const original = f.host.storage.compareAndSet;
   f.host.storage.compareAndSet = async (key, revision, value) => { writes.push(structuredClone(value)); return original(key, revision, value); };
-  let uploads = 0;
-  f.adapter.upload = async () => { uploads++; if (uploads === 2) throw new Error('synthetic second upload failure'); return '![first](https://images.example.test/first.png)'; };
+  f.adapter.upload = async () => assert.fail('legacy draft recovery must not start a remote upload');
   const saved = await f.call({ op: 'save', targetId: 'clowder', report: { title: 'partial', body: 'report', attachments: [16, 17].map(size => ({ mime: 'image/png', base64: pngFixture(size).toString('base64') })) } });
-  await f.call({ op: 'approve', digest: saved.journal.digest, confirmed: true });
-  const failed = await f.call({ op: 'submit', digest: saved.journal.digest });
+  const key = feedbackKey(f.ctx.userId,saved.journal.id);
+  const previous = (await f.host.storage.get(key))!;
+  const prior = previous.value as Journal;
+  await f.host.storage.compareAndSet(key,previous.revision,{...prior,state:'upload_failed',phase:'uploading',
+    uploads:[{submissionId:prior.id,sha256:prior.report.attachments[0]?.sha256,markdown:'![first](https://images.example.test/first.png)'}]});
+  const failed = await f.call({op:'bootstrap',feedbackId:prior.id});
   assert.equal(failed.journal.state, 'upload_failed'); assert.equal(f.creates(), 0);
   assert.equal(failed.journal.uploads?.length, 1); assert.match(JSON.stringify(writes), /first\.png/);
   const reset = await f.call({ op: 'reset-upload', digest: failed.journal.digest, confirmed: true });
@@ -46,7 +51,7 @@ test('partial uploads retain each receipt and allow explicit edit recovery witho
   const resumed=await f.service.dispatch({op:'bootstrap',resume:true},f.ctx) as {journal:{id:string}};
   assert.equal(resumed.journal.id,reset.journal.id);
   await assert.rejects(f.call({ op: 'approve', digest: failed.journal.digest, confirmed: true }), /版本已变化/);
-  assert.equal(uploads, 2, 'reset never uploads');
+  assert.equal(f.creates(),0,'reset never creates an Issue');
 });
 
 test('known Issue survives readback failure without another create', async () => {

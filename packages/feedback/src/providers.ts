@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { CliUnavailableError, githubCliAttach, githubCliCanAttach, githubCliToken, runCli } from './cli.js';
+import { CliUnavailableError, githubCliAttach, githubCliCanAttach, githubCliExecutable, githubCliToken, runCli } from './cli.js';
 import { record, safeUrl, text } from './config.js';
 import type { Attachment, Host, Profile, Provider, RemoteIssue, Report } from './types.js';
 
@@ -10,9 +10,15 @@ export class FeedbackTokenError extends Error {
     super(message);
   }
 }
+const screenshotMarker = (batch: string) => `<!-- clowder-screenshots:${batch} -->`;
+const confirmedScreenshots = (body: string, hashes: string[]) => hashes.filter((_, i) =>
+  new RegExp(`!\\[Clowder-screenshot-${i + 1}\\]\\(https://[^\\s)]+\\)`).test(body));
 type Request = (path: string, signal: AbortSignal, body?: unknown) => Promise<unknown>;
 export function provider(host: Host, target: Profile, fetcher: typeof fetch = fetch,
-  localGitHubToken = githubCliToken, canAttach = githubCliCanAttach, attach = githubCliAttach): Provider {
+  localGitHubToken = (signal: AbortSignal) => githubCliExecutable(host.dataPath).then(executable => githubCliToken(signal, executable)),
+  canAttach = (signal: AbortSignal) => githubCliExecutable(host.dataPath).then(executable => githubCliCanAttach(signal, executable)),
+  attach: typeof githubCliAttach = async (url, pictures, body, token, signal) =>
+    githubCliAttach(url, pictures, body, token, signal, await githubCliExecutable(host.dataPath))): Provider {
   const gitlab = target.provider === 'gitlab';
   const prefix = gitlab ? `/projects/${encodeURIComponent(target.project)}` : `/repos/${target.project}`;
   const githubDotCom = target.provider === 'github' && target.apiBaseUrl === 'https://api.github.com' &&
@@ -99,18 +105,41 @@ export function provider(host: Host, target: Profile, fetcher: typeof fetch = fe
           checkGitHubAttachments ? {githubAttachmentLimit:canPush ? 'cli' : 'permission'} : {}) };
     },
     async attachToIssue(issue, pictures, id, signal) {
-      if (!githubDotCom) throw new Error('GitHub CLI 仅用于 GitHub.com');
-      const comment = await attach(issue.url, pictures, `截图\n\n${marker(id)}`, await token(signal), signal);
-      const url = new URL(comment);
-      const expected = new URL(issue.url);
-      const match = /^#issuecomment-(\d+)$/.exec(url.hash);
-      if (url.origin !== expected.origin || url.pathname !== expected.pathname || !match) throw new Error('截图评论地址无法核验');
-      const remote = record(await request(`${prefix}/issues/comments/${match[1]}`, signal));
-      const body = text(remote.body, 120_000);
-      if (remote.html_url !== url.href || !body.includes(marker(id)) || !pictures.every((_, i) =>
-        body.includes(`![Clowder-screenshot-${i + 1}](https://`))) {
-        throw new Error('截图评论未完整回读');
+      let remote: Record<string, unknown>;
+      const header = `截图\n\n${screenshotMarker(id)}`;
+      const comments = `${prefix}/issues/${issue.id}/${gitlab ? 'notes' : 'comments'}`;
+      if (gitlab || target.attachmentCommand) {
+        const markdown = [];
+        for (const [index, picture] of pictures.entries()) {
+          const link = await this.upload(picture, id, signal);
+          markdown.push(link.replace(/^!\[[^\]]*\]/, `![Clowder-screenshot-${index + 1}]`));
+        }
+        const created = record(await request(comments, signal, {body:`${header}\n\n${markdown.join('\n\n')}`}));
+        const commentId = String(created.id);
+        if (!/^\d+$/.test(commentId)) throw new Error('截图评论编号无法核验');
+        remote = record(await request(gitlab ? `${comments}/${commentId}` : `${prefix}/issues/comments/${commentId}`, signal));
+      } else {
+        if (!githubDotCom) throw new Error('此目标暂不支持在插件内上传截图');
+        const comment = await attach(issue.url, pictures, header, await token(signal), signal);
+        const url = new URL(comment);
+        const expected = new URL(issue.url);
+        const match = /^#issuecomment-(\d+)$/.exec(url.hash);
+        if (url.origin !== expected.origin || url.pathname !== expected.pathname || !match) throw new Error('截图评论地址无法核验');
+        remote = record(await request(`${prefix}/issues/comments/${match[1]}`, signal));
+        if (remote.html_url !== url.href) throw new Error('截图评论地址与回读不一致');
       }
+      const body = text(remote.body, 120_000);
+      if (!body.includes(screenshotMarker(id))) throw new Error('截图评论未回读');
+      return confirmedScreenshots(body, pictures.map(picture => picture.sha256));
+    },
+    async findIssueScreenshots(issue, hashes, id, startedAt, signal) {
+      const comments = gitlab ? 'notes' : 'comments';
+      const result = await request(`${prefix}/issues/${issue.id}/${comments}?per_page=100${gitlab
+        ? '&sort=desc&order_by=created_at' : `&since=${encodeURIComponent(new Date(startedAt - 60_000).toISOString())}`}`, signal);
+      if (!Array.isArray(result)) throw new Error('截图评论核对返回无效');
+      const matches = result.map(record).filter(comment => typeof comment.body === 'string' && comment.body.includes(screenshotMarker(id)));
+      if (matches.length !== 1) return undefined;
+      return confirmedScreenshots(text(matches[0]!.body, 120_000), hashes);
     },
     async upload(attachment, id, signal) {
       // Original downloads are local-only. CLI transports receive exactly the approved send copy.

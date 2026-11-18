@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, unlink, rmdir, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, unlink, rmdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Attachment, Command } from './types.js';
@@ -12,18 +12,24 @@ export async function runCli(command: Command, input: unknown, signal: AbortSign
   try { return JSON.parse(output); } catch { throw new Error('CLI 返回了无效 JSON'); }
 }
 
-export async function githubCliToken(signal: AbortSignal) {
-  const output = await runCommand({ executable: 'gh', args: ['auth', 'token', '--hostname', 'github.com'] }, undefined, signal, {});
+export async function githubCliExecutable(dataPath: string) {
+  if (process.platform !== 'win32') return 'gh';
+  const executable = join(dataPath, 'tools', 'github-cli', 'gh.exe');
+  return access(executable).then(() => executable, () => 'gh');
+}
+
+export async function githubCliToken(signal: AbortSignal, executable = 'gh') {
+  const output = await runCommand({ executable, args: ['auth', 'token', '--hostname', 'github.com'] }, undefined, signal, {});
   return output.trim();
 }
 
-export async function githubCliCanAttach(signal: AbortSignal) {
-  const help = await runCommand({ executable: 'gh', args: ['issue', 'comment', '--help'] }, undefined, signal, {}).catch(() => '');
+export async function githubCliCanAttach(signal: AbortSignal, executable = 'gh') {
+  const help = await runCommand({ executable, args: ['issue', 'comment', '--help'] }, undefined, signal, {}).catch(() => '');
   signal.throwIfAborted();
   return /^\s*--attach\s/m.test(help);
 }
 
-export async function githubCliAttach(issueUrl: string, pictures: Attachment[], comment: string, auth: string, signal: AbortSignal) {
+export async function githubCliAttach(issueUrl: string, pictures: Attachment[], comment: string, auth: string, signal: AbortSignal, executable = 'gh') {
   const directory = await mkdtemp(join(tmpdir(), 'clowder-feedback-'));
   const files = pictures.map((picture, index) =>
     join(directory, `screenshot-${index + 1}.${picture.mime.split('/')[1]}`));
@@ -33,14 +39,14 @@ export async function githubCliAttach(issueUrl: string, pictures: Attachment[], 
     }
     const args = ['issue', 'comment', issueUrl, '--body-file', '-',
       ...files.flatMap((file, i) => ['--attach', `${file}#Clowder-screenshot-${i + 1}`])];
-    return (await runCommand({ executable: 'gh', args }, comment, signal, {GH_TOKEN:auth})).trim();
+    return (await runCommand({ executable, args }, comment, signal, {GH_TOKEN:auth}, 90_000)).trim();
   } finally {
     await Promise.allSettled(files.map(file => unlink(file)));
     await rmdir(directory).catch(() => {});
   }
 }
 
-async function runCommand(command: Command, input: string | undefined, signal: AbortSignal, githubEnv?: NodeJS.ProcessEnv): Promise<string> {
+async function runCommand(command: Command, input: string | undefined, signal: AbortSignal, githubEnv?: NodeJS.ProcessEnv, timeout = 30_000): Promise<string> {
   signal.throwIfAborted();
   const env: NodeJS.ProcessEnv = {};
   for (const key of ['PATH', 'Path', 'SystemRoot', 'WINDIR', 'PATHEXT', 'TEMP', 'TMP', 'HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA']) {
@@ -64,7 +70,7 @@ async function runCommand(command: Command, input: string | undefined, signal: A
       } else child.kill('SIGKILL');
     };
     const abort = () => finish(new Error('CLI 已取消；远端写入结果需要核对'));
-    const timer = setTimeout(() => finish(new Error('CLI 超时；远端写入结果需要核对')), 30_000);
+    const timer = setTimeout(() => finish(new Error('CLI 超时；远端写入结果需要核对')), timeout);
     signal.addEventListener('abort', abort, { once: true });
     child.stdout.on('data', (chunk: Buffer) => {
       bytes += chunk.length;

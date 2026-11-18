@@ -43,13 +43,17 @@ export interface Journal {
   addScreenshotsLater?: true;
   screenshotCommentUnverified?: true;
   screenshotsConfirmed?: true;
+  screenshotItems?: StoredAttachment[];
+  screenshotSent?: string[];
+  screenshotAttempt?: { id: string; hashes: string[]; startedAt: number };
   clientId?: string; projectRef?: string;
   createdAt?: number; updatedAt?: number; reviewReady?: boolean; handoffAt?: number; supersededBy?: string;
 }
-export type HydratedJournal = Omit<Journal, 'report'> & { report: Report };
+export type HydratedJournal = Omit<Journal, 'report' | 'screenshotItems'> & { report: Report; screenshotItems?: Attachment[] };
 export interface Provider {
   preflight(signal: AbortSignal, hasPictures?: boolean): Promise<{ principal: string; visibility: string; attachments: boolean; githubCliAttachments?: boolean; githubAuth?: 'cli' | 'token'; githubAttachmentLimit?: 'permission' | 'cli' }>;
-  attachToIssue?(issue: RemoteIssue, pictures: Attachment[], id: string, signal: AbortSignal): Promise<void>;
+  attachToIssue?(issue: RemoteIssue, pictures: Attachment[], id: string, signal: AbortSignal): Promise<string[]>;
+  findIssueScreenshots?(issue: RemoteIssue, hashes: string[], id: string, startedAt: number, signal: AbortSignal): Promise<string[] | undefined>;
   upload(attachment: Attachment, id: string, signal: AbortSignal): Promise<string>;
   create(report: Report, id: string, signal: AbortSignal): Promise<RemoteIssue>;
   reconcile(id: string, signal: AbortSignal): Promise<RemoteIssue | undefined>;

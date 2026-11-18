@@ -58,7 +58,7 @@ npm pack --ignore-scripts
 
 GitLab 使用项目 Markdown 上传接口，上传后回读实际字节并核对 SHA-256。公开项目的上传文件可能通过直接地址访问，不能把 Issue 保密状态当作附件隐私保证。
 
-GitHub 自动上传截图需要组织批准的 `attachmentCommand` 和 `attachmentOrigins`。GitHub.com 也可在具备仓库写权限且本机 GitHub CLI 支持 `--attach` 时，将截图自动附到同一 Issue 的评论。没有自动附件通路时，可明确确认先自动创建正文，随后在同一个 Issue 添加保存的截图。手动创建整份反馈也可使用。
+初次提交只发送报告正文。Issue 创建后，可在反馈面板中预览并勾选原截图，或选择新的本地图片，再把所选图片上传到同一个 Issue 的评论。默认不勾选。GitHub.com 使用支持 `--attach` 的 GitHub CLI 和有仓库写权限的凭据，也支持组织批准的 `attachmentCommand` 和 `attachmentOrigins`。GitLab 使用项目图片上传和 Issue 评论。
 
 ```json
 {

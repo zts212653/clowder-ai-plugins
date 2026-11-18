@@ -83,7 +83,7 @@ async function startNew(){
   await call({op:'new'});
   Object.assign(state,{feedbackId:crypto.randomUUID(),report:{kind:'bug',title:'',body:'',attachments:[]},journal:undefined,revision:undefined,analysis:undefined,
     stage:'edit',dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,projectRef:'',contextChanged:false,preview:true,
-    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,githubCli:undefined,addScreenshotsLater:false,feedbackNotice:''});
+    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,githubCli:undefined,screenshotSelection:[],screenshotPreview:undefined,feedbackNotice:''});
 }
 async function showHistory(){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();state.stage='history';
@@ -101,7 +101,7 @@ async function openRecord(id,value){
   value??=await call({op:'bootstrap',feedbackId:id});
   Object.assign(state,value,{feedbackId:id,report:{...value.journal.report,kind:value.journal.report.kind??(/^feat:/i.test(value.journal.report.title)?'feat':'bug')},
     targetId:value.journal.target.id,analysis:value.analysis,material:value.analysis?.material,hash:value.analysis?.hash,contextChanged:false,preflight:undefined,dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,preview:true,
-    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,githubCli:undefined,addScreenshotsLater:false,feedbackNotice:''});
+    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,githubCli:undefined,screenshotSelection:[],screenshotPreview:undefined,feedbackNotice:''});
   state.clientId=value.journal.clientId??value.analysis?.clientId??state.clientId;state.projectRef=value.journal.projectRef??value.analysis?.projectRef??'';
   const sameContext=value.analysis?.clientId===state.clientId&&(value.analysis?.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||'');
   state.stage=value.journal.state==='published'?'submitted':value.journal.reviewReady||locked()?'review':'edit';
@@ -165,9 +165,6 @@ async function checkRoute() {
     const preflight = await recordCall({ op: 'preflight', digest: state.journal.digest });
     state.preflight = preflight;
     state.automatic = !preflight.manualReason;
-    const addScreenshotsLater = state.automatic && state.report.attachments.length > 0 && !preflight.attachments && !preflight.githubCliAttachments;
-    if (Boolean(state.addScreenshotsLater) !== addScreenshotsLater) state.consent = false;
-    state.addScreenshotsLater = addScreenshotsLater;
     if (!state.automatic) state.routeProblem = { kind:'manual', text:'此目标需要在网页手动创建。' };
   } catch (error) {
     if (error.code === 'feedback_token_missing' || error.code === 'feedback_token_invalid') {
@@ -198,11 +195,11 @@ async function submit() {
   state.stage = 'submitting'; render();
   try {
     const { digest } = state.journal;
-    const addScreenshotsLater = Boolean(state.addScreenshotsLater);
-    if (state.journal.state === 'draft' || addScreenshotsLater !== Boolean(state.journal.addScreenshotsLater)) {
-      Object.assign(state, await recordCall({ op: 'approve', digest, revision:state.revision, confirmed: true, addScreenshotsLater }));
+    if (state.journal.state === 'draft') {
+      Object.assign(state, await recordCall({ op: 'approve', digest, revision:state.revision, confirmed: true }));
     }
-    Object.assign(state, await recordCall({ op: 'submit', digest, addScreenshotsLater }));
+    Object.assign(state, await recordCall({ op: 'submit', digest }));
+    state.screenshotSelection=[];
     state.stage = state.journal.state === 'published' ? 'submitted' : 'review';
   } catch (error) {
     state.stage = 'review';
@@ -349,12 +346,8 @@ function renderReview(content, footer) {
       ])]:[]),
     ]));
   }
-  if (!locked() && state.automatic && state.addScreenshotsLater) {
-    const limit = state.preflight?.githubAttachmentLimit;
-    const reason = limit==='permission' ? '自动传图需要仓库写权限。' : limit==='cli' ? '当前 GitHub CLI 不支持自动传图。' : '';
-    route.append(note(`${reason}正文会自动提交。截图保留在这里，创建后可补到同一个 Issue。`,'review-route-condition hint'));
-  } else if (!locked() && state.automatic && state.preflight?.githubCliAttachments) {
-    route.append(note('截图会自动附在同一个 Issue 的评论中。','review-route-condition hint'));
+  if (!locked() && state.automatic) {
+    route.append(note('截图可能含有个人信息，默认不发送。Issue 创建后可选择上传。','review-route-condition hint'));
   }
   if (!locked()) route.append(el('div',{className:'review-recheck'},[
     note('报告有改动，保存后可重新检查自动提交条件。'),
@@ -382,7 +375,7 @@ function renderReview(content, footer) {
       },
     }));
     if (state.automatic) {
-      const submitButton=button(state.addScreenshotsLater?'先提交正文':'提交 Issue',submit,'primary',!state.consent||state.dirty);
+      const submitButton=button('提交正文',submit,'primary',!state.consent||state.dirty);
       submitButton.dataset.publish='auto';
       actions.append(submitButton);
     }
@@ -399,10 +392,7 @@ function renderReview(content, footer) {
     },'primary'));
   }
   if (!locked() && state.stage !== 'submitting') {
-    const consent = state.automatic && state.addScreenshotsLater
-      ? `我已检查报告和截图，同意先将正文提交至「${target?.label??''}」，截图随后补加`
-      : `我已检查报告和截图，同意提交至「${target?.label??''}」`;
-    footer.append(check(consent,'consent'));
+    footer.append(check(`我已检查报告，同意将正文提交至「${target?.label??''}」`,'consent'));
   }
   footer.append(el('div',{className:'review-footer-row'},[
     !locked()&&state.stage!=='submitting' ? button('返回填写',async()=>{state.stage='edit';state.consent=false;},'text') : el('span'),
@@ -411,6 +401,98 @@ function renderReview(content, footer) {
       onClick:()=>selectView('delivery','[data-review-view="delivery"]')}),
     actions,
   ]));
+}
+function publishedScreenshotItems() {
+  const journal = state.journal;
+  return journal.screenshotItems ?? (journal.addScreenshotsLater && !journal.screenshotsConfirmed ? journal.report.attachments : []);
+}
+async function changePublishedScreenshots(op, data = {}) {
+  const {digest} = state.journal;
+  const value = await recordCall({op,digest,revision:state.revision,...data});
+  Object.assign(state,value);
+  state.feedbackNotice = value.message ?? '';
+}
+function renderPublishedScreenshots(content) {
+  const {issue,target,screenshotSent = [],screenshotAttempt} = state.journal;
+  const items = publishedScreenshotItems();
+  const selected = state.screenshotSelection ?? [];
+  const preview = items.find(item=>item.sha256===state.screenshotPreview);
+  const section = el('section',{className:'supplemental','aria-label':'补充截图（可选）'},[
+    el('h2',{text:'补充截图（可选）'}),
+    note(target.visibility==='public' ? '截图可能含有个人信息。请检查后再上传，所选截图会公开显示在此 Issue 的评论中。'
+      : '截图可能含有个人信息。请检查后再上传，所选截图将添加到此 Issue 的评论中。'),
+  ]);
+  if (preview) {
+    section.append(button('返回选图',async()=>{state.screenshotPreview=undefined;},'text'),
+      el('img',{className:'supplemental-preview',src:`data:${preview.mime};base64,${preview.base64}`,alt:'截图预览'}));
+  } else {
+    const cards = items.map((picture,index)=>{
+      const hash = picture.sha256;
+      const sent = screenshotSent.includes(hash);
+      return el('div',{className:'supplemental-card'},[
+        el('button',{type:'button',className:'supplemental-thumb', 'aria-label':`预览截图 ${index + 1}`,onClick:()=>{
+          state.screenshotPreview=hash;render();app.querySelector('.supplemental button')?.focus();
+        }},[el('img',{src:`data:${picture.mime};base64,${picture.base64}`,alt:''})]),
+        el('label',{className:'check'},[
+          el('input',{type:'checkbox',checked:sent||selected.includes(hash),disabled:sent||!!screenshotAttempt||state.busy,
+            'data-screenshot-choice':index,onChange:event=>{
+              state.screenshotSelection=event.target.checked?[...selected,hash]:selected.filter(value=>value!==hash);
+              render();app.querySelector(`[data-screenshot-choice="${index}"]`)?.focus();
+            }}),el('span',{text:sent?`截图 ${index + 1} 已上传`:`选择截图 ${index + 1}`}),
+        ]),
+        ...(!sent&&!screenshotAttempt?[button('移出候选',async()=>{
+          await changePublishedScreenshots('remove-screenshot',{hash});
+          state.screenshotSelection=selected.filter(value=>value!==hash);
+        },'text')]:[]),
+      ]);
+    });
+    if (cards.length) section.append(el('div',{className:'supplemental-cards'},cards));
+    if (screenshotAttempt) {
+      section.append(note('上次上传结果待核对，已确认上传的截图会标为已上传。'),
+        button('核对截图上传结果',()=>changePublishedScreenshots('check-screenshots'),'primary'));
+    } else {
+      if (state.journal.screenshotCommentUnverified && !state.journal.screenshotsConfirmed) {
+        section.append(note('旧版本有截图上传记录待核对。补充新图前，可先打开原 Issue 查看。'));
+      }
+      const pick = el('label',{className:'secondary add-picture',text:'选择本地图片'});
+      const picker = el('input',{type:'file',accept:'image/png,image/jpeg,image/webp',multiple:true,
+        'aria-label':'选择本地图片',disabled:state.busy||items.length>=4,onChange:event=>{
+          const files=Array.from(event.target.files);
+          if (!files.length) return;
+          void run(async()=>{
+            if (items.length + files.length > 4) throw new Error('最多保留 4 张截图，可先移出不需要的候选。');
+            const pictures=await Promise.all(files.map(async (file,index)=>{
+              if (file.size>4_000_000 || !['image/png','image/jpeg','image/webp'].includes(file.type)) throw new Error('请选择单张不超过 4 MB 的图片。');
+              const {original,...picture}=await normalizePicture(file,items.length+index);
+              return picture;
+            }));
+            checkRequestBudget({op:'add-screenshots',pictures});
+            const previous = new Set(items.map(item=>item.sha256));
+            await changePublishedScreenshots('add-screenshots',{pictures});
+            state.screenshotSelection=[...selected,...publishedScreenshotItems().filter(item=>!previous.has(item.sha256)).map(item=>item.sha256)];
+          });
+        }});
+      pick.append(picker);
+      const upload = button(selected.length?`上传所选截图（${selected.length}）`:'上传所选截图',async()=>{
+        try {
+          await changePublishedScreenshots('upload-screenshots',{hashes:selected,confirmed:true});
+          state.screenshotSelection=[];
+        } catch (error) {
+          if (error.code === 'feedback_token_missing' || error.code === 'feedback_token_invalid') state.tokenIssue=error.code;
+          throw error;
+        }
+      },'primary',!selected.length);
+      section.append(el('div',{className:'supplemental-actions'},[...(items.length<4?[pick]:[]),upload]));
+      if (state.tokenIssue && ['github','gitlab'].includes(target.provider)) section.append(button('配置访问令牌',async()=>{
+        if(await bridge('feedback.configureToken',target.provider)){state.tokenIssue=undefined;state.feedbackNotice='令牌已更新，请确认所选截图后上传。';}
+      },'text'));
+    }
+  }
+  if(state.feedbackNotice) section.append(el('p',{className:'hint',role:'status',text:state.feedbackNotice}));
+  content.append(el('div',{className:'issue-confirmed'},[
+    el('h2',{text:'Issue 已创建'}),
+    el('a',{text:`打开 Issue #${issue.id}`,href:issue.url,target:'_blank',rel:'noopener noreferrer'}),
+  ]),section);
 }
 function render() {
   unbindReader?.();
@@ -456,22 +538,8 @@ function render() {
     footer.className='review-footer';
     renderReview(content,footer);
   } else if (state.stage === 'submitted') {
-    const { addScreenshotsLater, screenshotCommentUnverified, screenshotsConfirmed } = state.journal;
-    const showPictures = addScreenshotsLater || screenshotCommentUnverified;
-    const issueUrl = state.journal.issue.url;
-    content.append(el('div', { className: 'success' }, [
-      el('h2', { text: showPictures ? 'Issue 已创建'+(screenshotsConfirmed ? ' · 已确认补图' : '，可继续补图') : '✓ 反馈已提交，感谢你的帮助' }),
-      note(screenshotsConfirmed ? '你已确认截图补齐。' :
-        screenshotCommentUnverified ? '自动补图结果待核对。打开 Issue 检查已上传的图片，只补缺少的截图。'
-        : addScreenshotsLater ? `还有 ${state.report.attachments.length} 张截图。复制下方图片，在此 Issue 的评论框粘贴并发送。` : '已回读远端 Issue，标题与报告正文核对通过。'),
-      el('a', { className: 'issue', text: issueUrl, href: issueUrl, target: '_blank', rel: 'noopener noreferrer' }),
-      el('a', { className: 'primary', text: showPictures && !screenshotsConfirmed ? '打开 Issue 补图' : '打开 Issue', href: issueUrl, target: '_blank', rel: 'noopener noreferrer' }),
-    ]));
-    if (showPictures) content.append(pictureCards());
-    if (showPictures && !screenshotsConfirmed) footer.append(button('我已补图', async()=>{
-      Object.assign(state,await recordCall({op:'confirm-screenshots',digest:state.journal.digest}));
-    }));
-    footer.append(button('继续反馈', startNew), button('完成', () => bridge('close'), 'primary'));
+    renderPublishedScreenshots(content);
+    footer.append(button('继续反馈', startNew,'text'), button('完成', () => bridge('close')));
   }
   app.replaceChildren(header, content, footer);
   app.dataset.stage = state.stage; content.scrollTop = state.error?0:scroll;

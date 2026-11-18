@@ -159,6 +159,18 @@ details{margin:12px 0}summary{color:var(--feedback-accent);min-height:32px;paddi
   .review-footer-row, .review-actions { flex-wrap: wrap; }
   .review-footer [data-save-status] { flex-basis: auto; }
 }
+.issue-confirmed, .supplemental { max-width: 640px; margin-inline: auto; }
+.issue-confirmed { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+.issue-confirmed h2, .supplemental h2 { margin: 0; font-size: 16px; }
+.issue-confirmed a { color: var(--feedback-accent); font-size: 13px; }
+.supplemental { border-top: 1px solid var(--feedback-border); padding-top: 16px; }
+.supplemental-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(120px,1fr)); gap: 10px; margin-block: 12px; }
+.supplemental-card { border: 1px solid var(--feedback-border); border-radius: 8px; padding: 6px; }
+.supplemental-card .check, .supplemental-card .text { font-size: 12px; }
+.supplemental-thumb { width: 100%; padding: 0; border: 0; background: var(--feedback-surface); }
+.supplemental-thumb img { display: block; width: 100%; height: 72px; object-fit: contain; }
+.supplemental-preview { display: block; max-width: 100%; max-height: 42dvh; margin: 8px auto; object-fit: contain; }
+.supplemental-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
 @media (max-height: 460px) {
   .review-content { padding-block: 8px; }
   #app[data-review-delivery=true] .review-content { overflow-y: auto; scrollbar-width: none; }

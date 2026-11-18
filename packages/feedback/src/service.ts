@@ -6,7 +6,7 @@ import { digest, feedbackKey, feedbackTitle, profiles, record, text } from './co
 import { FeedbackRecords } from './records.js';
 import { marker, provider } from './providers.js';
 import { sanitize } from './sanitize.js';
-import type { Host, Journal, OwnerContext, Profile, Provider, Report } from './types.js';
+import type { Host, Journal, OwnerContext, Profile, Provider, Report, StoredAttachment } from './types.js';
 
 type ProviderFactory = (target: Profile) => Provider;
 export class RevisionConflictError extends Error { readonly code = 'revision_conflict'; }
@@ -96,15 +96,72 @@ export class FeedbackService {
     if (op === 'preflight') {
       const target = journal.target;
       if (target.mode === 'manual') return { manualReason: 'target' };
-      return this.factory(target).preflight(context.signal, journal.report.attachments.length > 0);
-    }
-    if (op === 'confirm-screenshots') {
-      if (journal.state !== 'published' || !(journal.addScreenshotsLater || journal.screenshotCommentUnverified)) {
-        throw new Error('此记录没有需要手动核对的截图');
-      }
-      return publicWrite({...journal,screenshotsConfirmed:true});
+      return this.factory(target).preflight(context.signal);
     }
     const adapter = this.factory(journal.target);
+    if (['add-screenshots','remove-screenshot','upload-screenshots','check-screenshots'].includes(op)) {
+      if (journal.state !== 'published' || !journal.issue) throw new Error('请先确认 Issue 已创建');
+      if (data.revision !== current?.revision) throw new RevisionConflictError('反馈记录已有更新，请重新打开');
+      const items = screenshotCandidates(journal);
+      const sent = journal.screenshotSent ?? [];
+      const attempt = journal.screenshotAttempt;
+      if (op === 'check-screenshots') {
+        if (!attempt || !adapter.findIssueScreenshots) throw new Error('没有需要核对的截图');
+        const found = await adapter.findIssueScreenshots(journal.issue, attempt.hashes, attempt.id, attempt.startedAt, context.signal);
+        if (found === undefined) return present(journal, current?.revision, { message:'还未查到上传回执，请稍后再核对。' });
+        const updated = await publicWrite({...journal,screenshotAttempt:undefined,screenshotSent:[...sent,...found]});
+        return {...updated,message: found.length === attempt.hashes.length ? '截图已添加到 Issue。' : '已核对上传结果，可重新选择剩余截图。'};
+      }
+      if (attempt) throw new Error('请先核对上次上传结果');
+      if (op === 'add-screenshots') {
+        const pictures = attachments(data.pictures).map(({original,...picture})=>picture);
+        const existing = new Set(items.map(item => item.sha256));
+        const toAdd = pictures.filter(picture => {
+          if (existing.has(picture.sha256)) return false;
+          existing.add(picture.sha256);
+          return true;
+        });
+        if (items.length + toAdd.length > 4) throw new Error('最多保留 4 张截图，可先移除不需要的候选。');
+        if (!toAdd.length) return present(journal, current?.revision);
+        const retained = (await vault.readReport({title:'',body:'',attachments:items})).attachments;
+        if ([...retained,...toAdd].reduce((sum,picture)=>sum+Buffer.byteLength(picture.base64,'base64'),0)>8_000_000) {
+          throw new Error('发送图片总大小不能超过 8 MB');
+        }
+        const stored = await vault.storeReport({title:'',body:'',attachments:toAdd});
+        return publicWrite({...journal,screenshotItems:[...items,...stored.attachments]});
+      }
+      if (op === 'remove-screenshot') {
+        const hash = text(data.hash,64);
+        if (sent.includes(hash) || !items.some(item => item.sha256 === hash)) throw new Error('请选择尚未上传的截图');
+        return publicWrite({...journal,screenshotItems:items.filter(item => item.sha256 !== hash)});
+      }
+      if (!Array.isArray(data.hashes) || !data.hashes.length || data.hashes.length > 4 || data.confirmed !== true) {
+        throw new Error('请选择要上传的截图并确认');
+      }
+      const selectedHashes = new Set<unknown>(data.hashes);
+      const selected = items.filter(item => selectedHashes.has(item.sha256) && !sent.includes(item.sha256));
+      if (selected.length !== selectedHashes.size || data.hashes.length !== selectedHashes.size) throw new Error('截图选择已变化，请重新选择');
+      const check = await adapter.preflight(context.signal, true);
+      if (journal.target.provider === 'organization-cli' || !adapter.attachToIssue || (!check.attachments && !check.githubCliAttachments)) {
+        throw new Error(check.githubAttachmentLimit === 'permission' ? '当前账号没有目标仓库写权限。可更换访问令牌或 GitHub CLI 登录后重试。'
+          : check.githubAttachmentLimit === 'cli' ? '在本机安装或更新支持附件的 GitHub CLI 后，可在这里重试。'
+          : '此目标暂不支持在插件内上传截图。');
+      }
+      const validated = await adapter.read(journal.issue, context.signal);
+      if (validated.url !== journal.issue.url || validated.id !== journal.issue.id || !validated.body.includes(marker(journal.id))) {
+        throw new Error('Issue 已变化，无法确认截图的提交位置');
+      }
+      const pictures = (await vault.readReport({title:'',body:'',attachments:selected})).attachments;
+      const batch = {id:randomUUID(),hashes:selected.map(item => item.sha256),startedAt:Date.now()};
+      const staged = await write({...journal,screenshotAttempt:batch});
+      await context.assertCurrent();
+      const found = await adapter.attachToIssue(validated, pictures, batch.id, context.signal).catch(() => undefined);
+      if (found === undefined) return present(staged.journal, staged.revision, {message:'上传结果待核对，请在此检查。'});
+      const updated: Journal = {...staged.journal,screenshotAttempt:undefined,screenshotSent:[...sent,...found]};
+      const saved = await this.host.storage.compareAndSet(key, staged.revision ?? null, {...updated,updatedAt:Date.now()});
+      if (!saved.applied) throw new RevisionConflictError('上传记录已更新，请重新打开反馈');
+      return present(updated, saved.revision, {message:found.length===selected.length ? '截图已添加到 Issue。' : '部分截图已添加，可选择剩余截图继续上传。'});
+    }
     if (op === 'manual') {
       if (!['draft','approved'].includes(journal.state)) throw new Error('请先核对当前提交结果');
       return publicWrite({...journal,handoffAt:Date.now()});
@@ -122,22 +179,16 @@ export class FeedbackService {
         { selectionSaved: await remember(id).catch(() => false) });
     }
     if (op === 'approve') {
-      if (!['draft','approved'].includes(journal.state) || data.confirmed !== true) throw new Error('请检查报告和图片，并确认目标可见性');
+      if (!['draft','approved'].includes(journal.state) || data.confirmed !== true) throw new Error('请检查报告，并确认目标可见性');
       if (journal.state === 'approved' && data.revision !== current?.revision) throw new RevisionConflictError('确认已在另一个窗口更新，请重新打开');
-      const addScreenshotsLater = data.addScreenshotsLater === true && journal.report.attachments.length > 0 ? true : undefined;
-      return publicWrite({ ...journal, state: 'approved', addScreenshotsLater });
+      return publicWrite({ ...journal, state: 'approved' });
     }
     if (op === 'submit') {
       if (journal.state === 'published') return present(journal, current?.revision);
       if (journal.state !== 'approved') throw new Error('提交尚未确认或远端结果待核对，不会重复上传');
-      if (Boolean(journal.addScreenshotsLater) !== (data.addScreenshotsLater === true)) throw new Error('截图提交方式已变化，请重新检查并确认');
-      const hasPictures = journal.report.attachments.length > 0;
-      const check = await adapter.preflight(context.signal, hasPictures);
-      const attachToIssue = check.githubCliAttachments && adapter.attachToIssue;
-      if (hasPictures && !check.attachments && !attachToIssue && !journal.addScreenshotsLater) throw new Error('截图上传通路已变化，请重新检查提交方式');
+      await adapter.preflight(context.signal);
       await context.assertCurrent();
-      const approvedReport = await vault.readReport(journal.report);
-      const locked = await write({ ...journal, state: 'writing', phase: 'uploading', uploads: [] });
+      const locked = await write({ ...journal, state: 'writing', phase: 'creating', screenshotItems:uniqueScreenshotCopies(journal.report.attachments) });
       let revision = locked.revision;
       let pending: Journal = locked.journal;
       const checkpoint = async (next: Journal) => {
@@ -146,36 +197,18 @@ export class FeedbackService {
         revision = saved.revision; pending = next;
       };
       try {
-        const uploaded: string[] = [];
-        for (const attachment of journal.addScreenshotsLater || attachToIssue ? [] : approvedReport.attachments) {
-          await context.assertCurrent();
-          await checkpoint({ ...pending, uploadingHash: attachment.sha256 });
-          const markdown = await adapter.upload(attachment, journal.id, context.signal);
-          uploaded.push(markdown);
-          await checkpoint({ ...pending, uploads: [...(pending.uploads ?? []), { submissionId: journal.id, sha256: attachment.sha256, markdown }], uploadingHash: undefined });
-        }
-        const report = { ...journal.report, body: `${journal.report.body}${uploaded.length ? `\n\n## 截图\n${uploaded.join('\n\n')}` : ''}` };
-        const addComment = hasPictures && !journal.addScreenshotsLater && attachToIssue;
-        await checkpoint({ ...pending, report, phase: 'creating', ...(addComment ? {screenshotCommentUnverified:true} : {}) });
         await context.assertCurrent();
-        const issue = await adapter.create({ ...approvedReport, body: report.body }, journal.id, context.signal);
-        await checkpoint({ ...pending, report, issue, state: 'unknown', phase: 'verifying' });
+        const issue = await adapter.create({ ...journal.report, attachments:[] }, journal.id, context.signal);
+        await checkpoint({ ...pending, issue, state: 'unknown', phase: 'verifying' });
         const verified = await adapter.read(issue, context.signal);
         verify(pending, verified);
         await checkpoint({ ...pending, state: 'published', issue: verified });
-        if (addComment) {
-          // Publish the verified Issue first. If the separate comment fails or is interrupted, never recreate the Issue.
-          const attached = await context.assertCurrent().then(() => addComment(verified, approvedReport.attachments, journal.id, context.signal))
-            .then(() => true, () => false);
-          if (attached) await checkpoint({ ...pending, screenshotCommentUnverified:undefined });
-        }
         await this.host.storage.compareAndSet(`publication:${journal.id}`, null, pending);
         return present(pending, revision);
       } catch {
         if (pending.state === 'published') return present(pending, revision);
-        const state = pending.phase === 'uploading' ? 'upload_failed' : 'unknown';
-        try { await checkpoint({ ...pending, state, safeError: state === 'upload_failed' ? '附件上传未完成，Issue 尚未开始创建。已取得的回执已保留；不会自动重传。' : '提交结果尚未核实。请先核对远端；不会自动重发。' }); } catch { /* A persisted writing fence also prevents retries. */ }
-        return present({ ...pending, state }, revision);
+        try { await checkpoint({ ...pending, state:'unknown', safeError:'提交结果尚未核实。请先核对远端；不会自动重发。' }); } catch { /* A persisted writing fence also prevents retries. */ }
+        return present({ ...pending, state:'unknown' }, revision);
       }
     }
     if (op === 'reconcile') {
@@ -208,11 +241,19 @@ export class FeedbackService {
         : analysis?.state==='ready' || journal.reviewReady ? 'ready' : 'draft';
       return {id:journal.id,title:journal.report.title,kind:journal.report.kind ?? (/^feat:/i.test(journal.report.title)?'feat':'bug'),status,
         updatedAt:Math.max(journal.updatedAt ?? journal.createdAt ?? 0,analysis?.startedAt ?? 0),analyzed:analysis?.state==='ready',issueUrl:journal.issue?.url,threadUrl:analysis?.threadUrl,
-        screenshotsPending:journal.state==='published'&&!journal.screenshotsConfirmed
-          ? journal.addScreenshotsLater ? journal.report.attachments.length : journal.screenshotCommentUnverified ? 'verify' : undefined : undefined};
+        screenshotsPending:journal.state==='published' && (journal.screenshotAttempt || (journal.screenshotCommentUnverified && !journal.screenshotsConfirmed))
+          ? 'verify' : undefined};
     }));
     return items.sort((a,b)=>b.updatedAt-a.updatedAt);
   }
+}
+function screenshotCandidates(journal: Journal): StoredAttachment[] {
+  if (journal.screenshotItems) return journal.screenshotItems;
+  if (!journal.addScreenshotsLater || journal.screenshotsConfirmed) return [];
+  return uniqueScreenshotCopies(journal.report.attachments);
+}
+function uniqueScreenshotCopies(items: StoredAttachment[]) {
+  return [...new Map(items.map(({original,...item}) => [item.sha256,item])).values()];
 }
 function verify(journal: Journal, issue: { title: string; body: string }): void {
   if (issue.title !== journal.report.title || issue.body !== `${journal.report.body}\n\n${marker(journal.id)}`) throw new Error('远端正文与已确认内容不一致，需人工核对');
