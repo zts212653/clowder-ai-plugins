@@ -28,7 +28,7 @@ npm pack --ignore-scripts
 
 ## 目标配置
 
-默认目标是公开的 `zts212653/clowder-ai`。GitHub 自动提交需要 `githubToken`；GitLab REST 使用 `gitlabToken`。令牌只存于宿主 secret 字段，不要放入 JSON 或命令参数。
+默认目标是公开的 `zts212653/clowder-ai`。GitHub 自动提交需要 `githubToken`，GitLab REST 使用 `gitlabToken`。支持面板内配置的宿主会在检查报告时提供对应入口。令牌在宿主输入并保存，保存后回到原报告重新检查通路，再由用户确认提交。令牌只存于宿主 secret 字段，不要放入 JSON 或命令参数。
 
 `destinations` 可配置多个目标，用户在表单选择。每次修改配置需递增 `revision`；所有配置字节和报告、图片摘要都会绑定到确认，改变后旧确认无效。内网目标不会降级调用公网。
 

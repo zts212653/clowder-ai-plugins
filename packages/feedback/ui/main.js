@@ -147,12 +147,16 @@ async function saveReview(checkTarget = true) {
 }
 async function checkRoute() {
   state.automatic=false;
+  state.tokenIssue=undefined;
   try {
     const preflight = await recordCall({ op: 'preflight', digest: state.journal.digest });
     state.preflight = preflight;
     state.automatic = !state.report.attachments.length || preflight.attachments;
     if (!state.automatic) state.error = '自动附件通路未配置。可复制图片或下载原图，然后手动创建 Issue。';
-  } catch (error) { state.error = error.message + '。手动创建仍可使用。'; }
+  } catch (error) {
+    if (error.code === 'feedback_token_missing' || error.code === 'feedback_token_invalid') state.tokenIssue = error.code;
+    else state.error = error.message + '。手动创建仍可使用。';
+  }
 }
 async function prepareAnalysis() {
   analysisEpoch++; clearTimeout(analysisTimer);
@@ -178,7 +182,12 @@ async function submit() {
     if (state.journal.state === 'draft') Object.assign(state, await recordCall({ op: 'approve', digest: state.journal.digest, confirmed: true }));
     Object.assign(state, await recordCall({ op: 'submit', digest: state.journal.digest }));
     state.stage = state.journal.state === 'published' ? 'submitted' : 'review';
-  } catch (error) { state.stage = 'review'; throw error; }
+  } catch (error) {
+    state.stage = 'review';
+    if (error.code !== 'feedback_token_missing' && error.code !== 'feedback_token_invalid') throw error;
+    state.automatic = false;
+    state.tokenIssue = error.code;
+  }
 }
 function run(action) {
   if (state.busy) return;
@@ -256,6 +265,21 @@ function render() {
     else footer.append(button('更改分析设置',async()=>{state.stage='configure';},'text'),button('跳过分析', saveReview), ['failed', 'cancelled', 'interrupted'].includes(state.analysis?.state)
       ? button('重新准备材料', prepareAnalysis, 'primary') : button('开始分析', analyze, 'primary', !state.clientId));
   } else if (['review', 'handoff', 'submitting'].includes(state.stage)) {
+    if (state.tokenIssue && !locked()) {
+      const provider = state.journal.target.provider;
+      const name = provider === 'gitlab' ? 'GitLab' : 'GitHub';
+      const missing = state.tokenIssue === 'feedback_token_missing';
+      content.append(el('div', { className: 'notice token-notice' }, [
+        note(missing ? `自动提交需要 ${name} 访问令牌。` : `${name} 未接受当前令牌，请更换后再试。`),
+        button(`${missing ? '配置' : '更换'} ${name} 访问令牌`, async () => {
+          await flushDraft();
+          if (await bridge('feedback.configureToken', provider)) {
+            state.consent = false;
+            await checkRoute();
+          }
+        }),
+      ]));
+    }
     if(state.targets.length>1){
       const target=el('select',{'aria-label':'反馈目标',disabled:state.busy||locked(),onChange:event=>run(async()=>{state.targetId=event.target.value;invalidate();await saveReview();})},state.targets.map(value=>el('option',{value:value.id,text:`${value.label} · ${value.visibility==='public'?'公开':value.visibility==='private'?'私有':'可见性未知'}`})));
       target.value=state.targetId;

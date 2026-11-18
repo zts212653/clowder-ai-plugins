@@ -25,7 +25,8 @@ window.addEventListener('keydown', event => {
 export function bridge(type, input) {
   const requestId = ++sequence;
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { pending.delete(requestId); reject(new Error('操作超时。提交结果可能待核对，请重新打开检查状态。')); }, 185000);
+    // The Host-owned dialog remains open while the operator finds their token.
+    const timer = type === 'feedback.configureToken' ? undefined : setTimeout(() => { pending.delete(requestId); reject(new Error('操作超时。提交结果可能待核对，请重新打开检查状态。')); }, 185000);
     pending.set(requestId, { resolve, reject, timer });
     parent.postMessage({ channel, nonce, requestId, type, ...(type === 'http' ? { request: input } : { value: input }) }, '*');
   });

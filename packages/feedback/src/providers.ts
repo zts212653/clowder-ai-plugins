@@ -4,6 +4,11 @@ import { record, safeUrl, text } from './config.js';
 import type { Attachment, Host, Profile, Provider, RemoteIssue, Report } from './types.js';
 
 export const marker = (id: string) => `<!-- clowder-feedback:${id} -->`;
+export class FeedbackTokenError extends Error {
+  constructor(message: string, readonly code: 'feedback_token_missing' | 'feedback_token_invalid') {
+    super(message);
+  }
+}
 type Request = (path: string, signal: AbortSignal, body?: unknown) => Promise<unknown>;
 export function provider(host: Host, target: Profile, fetcher: typeof fetch = fetch): Provider {
   const gitlab = target.provider === 'gitlab';
@@ -11,7 +16,7 @@ export function provider(host: Host, target: Profile, fetcher: typeof fetch = fe
   async function token(): Promise<string> {
     const configured = await host.secrets.get(target.tokenRef);
     if (configured) return configured;
-    throw new Error('请先在插件设置中配置目标访问令牌，或使用组织 CLI 适配器');
+    throw new FeedbackTokenError('配置目标的访问令牌后即可检查自动提交。', 'feedback_token_missing');
   }
   const request: Request = async (path, signal, body) => {
     const auth = await token();
@@ -21,7 +26,12 @@ export function provider(host: Host, target: Profile, fetcher: typeof fetch = fe
         ...(body instanceof FormData ? {} : { 'content-type': 'application/json' }) },
       ...(body === undefined ? {} : { body: body instanceof FormData ? body : JSON.stringify(body) }),
     });
-    if (!response.ok) { await response.body?.cancel(); throw new Error(`目标平台返回 HTTP ${response.status}`); }
+    if (!response.ok) {
+      await response.body?.cancel();
+      if (response.status === 401)
+        throw new FeedbackTokenError('目标平台未接受当前令牌，请更换后再试。', 'feedback_token_invalid');
+      throw new Error(`目标平台返回 HTTP ${response.status}`);
+    }
     const data = await boundedBody(response, 2_000_000);
     return JSON.parse(data.toString('utf8')) as unknown;
   };

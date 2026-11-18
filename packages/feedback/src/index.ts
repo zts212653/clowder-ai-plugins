@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { FeedbackService, RevisionConflictError } from './service.js';
 import { parseProfiles, record } from './config.js';
+import { FeedbackTokenError } from './providers.js';
 import { sanitize } from './sanitize.js';
 import type { Host, OwnerContext } from './types.js';
 
@@ -40,7 +41,7 @@ export default {
               } catch (error) {
                 return { status: 409, headers: { 'content-type': 'application/json; charset=utf-8' },
                   body: { error: sanitize(error instanceof Error ? error.message : '反馈操作未完成').slice(0, 512),
-                    ...(error instanceof RevisionConflictError ? {code:error.code} : {}) } };
+                    ...(error instanceof RevisionConflictError || error instanceof FeedbackTokenError ? {code:error.code} : {}) } };
               }
             },
             'feedback.check': () => check(host),
