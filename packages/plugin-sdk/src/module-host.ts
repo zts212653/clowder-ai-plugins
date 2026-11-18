@@ -147,6 +147,8 @@ export interface PluginThreadHost {
   getCats(threadId: string): Promise<PluginThreadCats>;
   addParticipants(input: { readonly threadId: string; readonly catIds: readonly string[] }): Promise<PluginThreadSummary>;
   create(input: PluginThreadCreateInput): Promise<PluginThreadSummary>;
+  /** Creates an ordinary owner-visible thread in a conversation group, creating the named group if needed. */
+  createInGroup?(input: PluginThreadCreateInput & { readonly groupName: string }): Promise<PluginThreadSummary>;
   update(threadId: string, patch: { readonly title?: string; readonly preferredCats?: readonly string[] }): Promise<PluginThreadSummary>;
 
 }

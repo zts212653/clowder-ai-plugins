@@ -12,7 +12,12 @@ export interface Host {
   config: { get(key: string): Promise<unknown> }; secrets: { get(key: string): Promise<string | undefined> };
   runtimeInfo?: import('@clowder-ai/plugin-sdk').PluginRuntimeInfoHost;
   members?: import('@clowder-ai/plugin-sdk').ModulePluginHostShape['members'];
-  threads?: Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'create' | 'get' | 'list'> & Partial<Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'readMessages'>>;
+  threads?: Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'create' | 'get' | 'list'> &
+    Partial<Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'readMessages'>> & {
+    // Optional on installed Hosts built before grouped thread creation.
+    createInGroup?(input: import('@clowder-ai/plugin-sdk').PluginThreadCreateInput & {readonly groupName: string}):
+      ReturnType<import('@clowder-ai/plugin-sdk').PluginThreadHost['create']>;
+  };
   messaging?: Pick<import('@clowder-ai/plugin-sdk').ModulePluginHostShape['messaging'], 'send' | 'subscribe' | 'unsubscribe'>;
 }
 export interface Command { executable: string; args: string[] }

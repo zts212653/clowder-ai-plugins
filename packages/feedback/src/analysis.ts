@@ -106,7 +106,15 @@ export class FeedbackAnalysis {
       const pending: Analysis = { id: randomUUID(), activationId: this.activationId, owner: context.userId, threadId: '', threadUrl: '', projectRef: '', hash: '', material: '', state: 'preparing', ...(data.clientId===undefined?{}:{catId:text(data.clientId,200)}), ...(report.kind === 'bug' || report.kind === 'feat' ? {kind:report.kind} : {}), ...(data.journalDigest === undefined ? {} : {journalDigest:text(data.journalDigest,64)}), error: '正在准备项目对话或结果待核对；不会自动重复创建。' };
       await context.assertCurrent();
       if (!(await this.host.storage.compareAndSet(key, previous?.revision ?? null, pending)).applied) throw new Error('分析准备已在另一个窗口变化，请重新检查');
-      const thread = await threads.create({ title: '问题反馈分析', ...(parentThreadId ? { parentThreadId } : {}), ...(projectRef ? { projectRef } : {}) });
+      const groupName = '问题反馈';
+      const firstSentence = title
+        .replace(/^(?:(?:bug|feat)\s*[:：]\s*|问题反馈\s*[:：]\s*)+/i,'')
+        .split(/[\r\n。！？]|[.!?](?=\s)/u,1)[0] ?? '';
+      const description = sanitize(firstSentence,[projectRef ?? '',environment.projectRoot,environment.logDirectory]).trim() || '反馈分析';
+      const characters = [...description];
+      const shortTitle = characters.length > 64 ? `${characters.slice(0,64).join('').trimEnd()}…` : description;
+      const create = { title: `${groupName}：${shortTitle}`, ...(parentThreadId ? { parentThreadId } : {}), ...(projectRef ? { projectRef } : {}) };
+      const thread = threads.createInGroup ? await threads.createInGroup({ ...create, groupName }) : await threads.create(create);
       const project = thread.projectRef ?? environment.projectRoot;
       await this.update(key, current => ({ ...current, threadId: thread.id, threadUrl: thread.deepLinkUrl, projectRef: project }), pending.id);
       await this.host.storage.compareAndSet(`analysis-thread:${thread.id}`, null, { key, id: pending.id });

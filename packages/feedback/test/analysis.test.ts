@@ -53,6 +53,20 @@ test('missing reports and late results are explicit; direct feedback remains ind
   await f.call({ op: 'save', targetId: 'clowder', report: { title: '直接反馈', body: '不依赖分析', attachments: [] } });
 });
 
+test('grouped analysis uses a redacted one-line title from the saved report', async () => {
+  const f = analysisFixture();
+  const calls: unknown[] = [];
+  Object.assign(f.host.threads!, {
+    createInGroup: async (input: unknown) => { calls.push(input); return f.thread; },
+  });
+  await f.call({
+    op: 'prepare-analysis',
+    report: { kind: 'bug', title: '崩溃 token=synthetic-value。额外细节', body: '用户现象', attachments: [] },
+  });
+  assert.deepEqual(calls, [{ title: '问题反馈：崩溃 token=[REDACTED]', groupName: '问题反馈' }]);
+  assert.equal(f.effects.length, 0);
+});
+
 test('plugin collects bounded log evidence and redacts it before any member invocation', async () => {
   const f = analysisFixture();
   await mkdir(f.host.dataPath, { recursive: true });
