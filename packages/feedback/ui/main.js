@@ -1,11 +1,11 @@
 import { bridge, call, copyImage, el, normalizePicture, beforeClose } from './bridge.js';
 import { reportPreview } from './report.js';
-import { feedbackForm } from './form.js';
+import { feedbackForm, analysisSettings } from './form.js';
 import { feedbackHistory } from './history.js';
 
 const app = document.getElementById('app');
 const state = { stage: 'edit', feedbackId:crypto.randomUUID(), items:[], report: { kind:'bug', title: '', body: '', attachments: [] }, targets: [], targetId: '', clients: [], clientId: '',
-  consent: false, busy: false, error: '', saveError:'', saveErrorCode:'', selectionSaved:true, dirty: false, automatic: false, projectRef: '', analysis: undefined, preview: true };
+  consent: false, busy: false, error: '', saveError:'', saveErrorCode:'', selectionSaved:true, dirty: false, automatic: false, projectRef: '', analysis: undefined, contextChanged:false, preview: true };
 let analysisTimer;
 let analysisEpoch = 0;
 let historyTimer, draftTimer;
@@ -44,21 +44,23 @@ function invalidate() {
   state.dirty = true; state.consent = false; state.automatic = false;
   editVersion++;
   const status=document.querySelector('[data-save-status]');if(status)status.textContent=state.saveError||'草稿有更新，将自动保存';
-  if(['edit','review','handoff'].includes(state.stage)) {clearTimeout(draftTimer);draftTimer=setTimeout(()=>{pendingDraft=pendingDraft.then(()=>saveDraft()).catch(error=>{state.error=`草稿暂未保存：${error.message}`;render();});},500);}
+  const contextNotice=document.querySelector('[data-context-notice]');
+  if(contextNotice)contextNotice.hidden=!state.contextChanged;
+  if(['edit','configure','review','handoff'].includes(state.stage)) {clearTimeout(draftTimer);draftTimer=setTimeout(()=>{pendingDraft=pendingDraft.then(()=>saveDraft()).catch(error=>{state.error=`草稿暂未保存：${error.message}`;render();});},500);}
   document.querySelectorAll('[data-consent]').forEach(node => { node.checked = false; });
   document.querySelectorAll('[data-publish]').forEach(node => { node.disabled = true; node.setAttribute('aria-disabled', 'true'); });
 }
 async function saveDraft(asNew=false) {
-  if(!['edit','review','handoff'].includes(state.stage)||(!state.dirty&&!asNew)||locked()||!hasDraft())return;
+  if(!['edit','configure','review','handoff'].includes(state.stage)||(!state.dirty&&!asNew)||locked()||!hasDraft())return;
   const id=state.feedbackId, version=editVersion;
   const status=document.querySelector('[data-save-status]');if(status)status.textContent='正在保存草稿…';
-  const saved=await recordCall({op:'save',draftOnly:asNew||state.stage==='edit',targetId:state.targetId,clientId:state.clientId,projectRef:state.projectRef,revision:asNew?undefined:state.revision,report:state.report},asNew?crypto.randomUUID():id);
+  const saved=await recordCall({op:'save',draftOnly:asNew||['edit','configure'].includes(state.stage),targetId:state.targetId,clientId:state.clientId,projectRef:state.projectRef,revision:asNew?undefined:state.revision,report:state.report},asNew?crypto.randomUUID():id);
   if(state.feedbackId!==id)return;
   state.journal=saved.journal;state.revision=saved.revision;state.saveError='';state.saveErrorCode='';state.selectionSaved=saved.selectionSaved;
   if(asNew){state.feedbackId=saved.journal.id;state.analysis=undefined;state.stage='edit';state.error='';}
   if(version===editVersion){
     state.dirty=false;
-    if(state.stage!=='edit'){
+    if(!['edit','configure'].includes(state.stage)){
       state.report=saved.journal.report;
       ['title','body'].forEach(field=>{
         const control=document.getElementById(`feedback-${field}`);
@@ -75,7 +77,7 @@ async function startNew(){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();
   await call({op:'new'});
   Object.assign(state,{feedbackId:crypto.randomUUID(),report:{kind:'bug',title:'',body:'',attachments:[]},journal:undefined,revision:undefined,analysis:undefined,
-    stage:'edit',dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,projectRef:'',preview:true});
+    stage:'edit',dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,projectRef:'',contextChanged:false,preview:true});
 }
 async function showHistory(){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();state.stage='history';
@@ -92,7 +94,7 @@ async function openRecord(id,value){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();
   value??=await call({op:'bootstrap',feedbackId:id});
   Object.assign(state,value,{feedbackId:id,report:{...value.journal.report,kind:value.journal.report.kind??(/^feat:/i.test(value.journal.report.title)?'feat':'bug')},
-    targetId:value.journal.target.id,analysis:value.analysis,material:value.analysis?.material,hash:value.analysis?.hash,preflight:undefined,dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,preview:true});
+    targetId:value.journal.target.id,analysis:value.analysis,material:value.analysis?.material,hash:value.analysis?.hash,contextChanged:false,preflight:undefined,dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,preview:true});
   state.clientId=value.journal.clientId??value.analysis?.clientId??state.clientId;state.projectRef=value.journal.projectRef??value.analysis?.projectRef??'';
   const sameContext=value.analysis?.clientId===state.clientId&&(value.analysis?.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||'');
   state.stage=value.journal.state==='published'?'submitted':value.journal.reviewReady||locked()?'review':'edit';
@@ -113,12 +115,12 @@ function check(label, key) {
     onChange: event => { state[key] = event.target.checked; render(); } }), el('span', { text: label })]);
 }
 function pictureCards() {
-  return el('div', { className: 'pictures' }, state.report.attachments.map((picture, index) => el('div', { className: 'picture' }, [
+  return el('div', { className: 'pictures', 'aria-label':'反馈图片' }, state.report.attachments.map((picture, index) => el('div', { className: 'picture' }, [
     el('img', { src: `data:${picture.mime};base64,${picture.base64}`, alt: `截图 ${index + 1}` }),
     el('div', {}, [...(state.stage==='edit'?[]:[button('复制图片', async () => { await copyImage(picture); state.error = '图片已复制，可粘贴到 Issue 页面'; }, 'text'),
       el('a', { text: '下载发送副本', href: `data:${picture.mime};base64,${picture.base64}`, download: picture.name, title: '已去除元数据的 PNG；这是自动提交的实际图片' }),
       ...(picture.original ? [el('a', { text: '下载原图', href: `data:${picture.original.mime};base64,${picture.original.base64}`, download: picture.original.name, title: '原图可能包含隐私元数据，自动提交不会上传原图' })] : [])]),
-      ...(!locked() ? [button('移除', async () => { state.report.attachments.splice(index, 1); invalidate(); }, 'text')] : [])]),
+      ...(!locked() ? [el('button',{type:'button',text:'移除',className:'text','aria-label':`移除第 ${index+1} 张图片`,disabled:state.busy,onClick:()=>run(async()=>{state.report.attachments.splice(index,1);invalidate();})})] : [])]),
   ])));
 }
 async function addFiles(files) {
@@ -157,7 +159,7 @@ async function prepareAnalysis() {
   // Persist the form first so a failed/cancelled client cannot lose the draft.
   await saveReview(false); state.error = '';
   const prepared = await recordCall({ op: 'prepare-analysis', report: state.report, logs: state.report.kind!=='feat', projectRef: state.projectRef, clientId:state.clientId, journalDigest:state.journal.digest });
-  Object.assign(state, prepared, { stage: 'scope' });
+  Object.assign(state, prepared, { stage: 'scope',contextChanged:false });
   if (!state.clients.some(c => c.id === state.clientId)) state.clientId = state.clients[0]?.id ?? '';
 }
 async function analyze() {
@@ -216,12 +218,13 @@ async function refreshAnalysis() {
 }
 function render() {
   const scroll = app.dataset.stage === state.stage ? app.querySelector('.content')?.scrollTop ?? 0 : 0;
-  const stageIndex = state.stage === 'edit' ? 0 : ['scope', 'analyzing'].includes(state.stage) ? 1 : ['review', 'submitting'].includes(state.stage) ? 2 : 3;
-  const header = el('header', {}, [el('div',{className:'feedback-nav'},[button('新建反馈',startNew,state.stage==='edit'&&!state.journal?'primary':'secondary'),button('反馈记录',showHistory,state.stage==='history'?'primary':'secondary'),el('span',{className:'hint',text:state.items.length?`${state.items.filter(item=>!['published','retained'].includes(item.status)).length} 条待处理`:''})]),el('h1', { text: '感谢你的反馈，一起共建项目' }), note(state.stage==='history'?'查看每条反馈的分析与投递进度。':'简单描述，详细报告交给 Agent。'),
-    el('nav', { 'aria-label': '反馈流程',hidden:state.stage==='history' }, ['填写问题', '分析与脱敏', '检查与提交', '完成'].map((text, index) => el('span', { text: `${index + 1}  ${text}`, className: index <= stageIndex ? 'current' : '', 'aria-current': index === stageIndex ? 'step' : 'false' })))]);
+  const stageIndex = state.stage === 'edit' ? 0 : ['configure','scope', 'analyzing'].includes(state.stage) ? 1 : ['review','handoff', 'submitting'].includes(state.stage) ? 2 : 3;
+  const header = el('header', {}, [el('div',{className:'heading-row'},[
+    el('div',{},[el('h1',{text:state.stage==='history'?'反馈记录':'问题反馈'}),note(state.stage==='edit'?'描述问题，图片可选。':state.stage==='history'?'草稿、分析和投递进度都在这里。':['填写问题','分析与脱敏','检查与提交','反馈完成'][stageIndex])]),
+    el('div',{className:'feedback-nav'},[button('新建反馈',startNew,'text'),button('反馈记录',showHistory,'secondary')])])]);
   const content = el('section', { className: 'content' }); const footer = el('footer');
   if (state.error) content.append(el('p', { role: 'alert', className: 'error', text: state.error }));
-  if(['edit','review','handoff'].includes(state.stage)){
+  if(['edit','configure','review','handoff'].includes(state.stage)){
     footer.append(el('span',{'data-save-status':'',className:state.saveError?'error':'hint',text:state.saveError||
       (state.selectionSaved===false?'草稿已保存，可从反馈记录继续':state.journal&&!state.dirty?'草稿已保存到反馈记录':hasDraft()?'草稿有更新，将自动保存':'')}));
     if(state.saveErrorCode==='revision_conflict')footer.append(button('另存为新草稿',()=>saveDraft(true)));
@@ -231,8 +234,13 @@ function render() {
     footer.append(button('刷新记录',showHistory),button('新建反馈',startNew,'primary'));
   } else if (state.stage === 'edit') {
     content.append(...feedbackForm(state,{input,note,button,pictureCards,addFiles,invalidate,run,render}));
-    footer.append(button('保存草稿',flushDraft,'text'),button('直接反馈',saveReview),button('生成分析报告',prepareAnalysis,'primary',!state.clients.length));
+    footer.append(button('保存草稿',flushDraft,'text'),button('直接反馈',saveReview),button('生成分析报告',async()=>{await flushDraft();state.stage='configure';},'primary'));
     if(state.analysis?.state==='ready'&&state.analysis.clientId===state.clientId&&(state.analysis.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||''))footer.append(button('查看本条分析报告',async()=>{state.report.title=state.analysis.title;state.report.body=state.analysis.body;await saveReview();},'text'));
+  } else if(state.stage==='configure') {
+    content.append(analysisSettings(state,{invalidate,note}));
+    if(!state.clients.length)content.append(note('还没有可用的分析成员，请先在宿主设置中配置 Agent Client。也可以跳过分析，直接反馈。','notice'));
+    content.append(el('p',{'data-context-notice':'',role:'status',className:'notice',text:'分析上下文已改变，需要重新分析。现有正文会保留，便于继续编辑。',hidden:!state.contextChanged}));
+    footer.append(button('返回填写',async()=>{await flushDraft();state.stage='edit';},'text'),button('跳过分析',saveReview),button('准备分析材料',prepareAnalysis,'primary',!state.clients.some(client=>client.id===state.clientId)));
   } else if (['scope', 'analyzing'].includes(state.stage)) {
     const client = state.clients.find(c=>c.id===(state.analysis?.clientId??state.clientId));
     content.append(el('div', { className: 'notice', text: `分析成员：${client?.label ?? '已选成员'} · ${client?.model ?? ''}。${state.report.kind === 'feat' ? '版本和功能建议' : '版本、问题描述及近期错误线索'}先在本地脱敏，再交给该成员分析；如其模型在云端，脱敏材料会发送到该模型。截图不交给模型。` }),
@@ -244,9 +252,14 @@ function render() {
     if (state.analysis?.threadUrl) content.append(el('a', { href: state.analysis.threadUrl, text: '打开分析对话', target: '_blank', rel: 'noopener noreferrer' }));
     if (['blocked', 'preparing'].includes(state.analysis?.state)) content.append(note(state.analysis.error || 'Client 需要处理，请打开分析对话。', 'notice'));
     if (state.stage === 'analyzing') footer.append(button('停止等待，保留草稿', async () => { analysisEpoch++; clearTimeout(analysisTimer); const result = await recordCall({ op: 'cancel-analysis' }); state.analysis = result.analysis; state.stage = 'scope'; state.error = '已停止等待；这不会强制终止 Client，可打开分析对话查看。'; }));
-    else footer.append(button('跳过分析', saveReview), ['failed', 'cancelled', 'interrupted'].includes(state.analysis?.state)
+    else footer.append(button('更改分析设置',async()=>{state.stage='configure';},'text'),button('跳过分析', saveReview), ['failed', 'cancelled', 'interrupted'].includes(state.analysis?.state)
       ? button('重新准备材料', prepareAnalysis, 'primary') : button('开始分析', analyze, 'primary', !state.clientId));
   } else if (['review', 'handoff', 'submitting'].includes(state.stage)) {
+    if(state.targets.length>1){
+      const target=el('select',{'aria-label':'反馈目标',disabled:state.busy||locked(),onChange:event=>run(async()=>{state.targetId=event.target.value;invalidate();await saveReview();})},state.targets.map(value=>el('option',{value:value.id,text:`${value.label} · ${value.visibility==='public'?'公开':value.visibility==='private'?'私有':'可见性未知'}`})));
+      target.value=state.targetId;
+      content.append(el('label',{className:'field'},[el('span',{className:'label',text:'投递到'}),target]));
+    }
     content.append(input('Issue 标题', 'title', false, true), input('报告正文', 'body', true, true), pictureCards(),
       el('div', { className: 'notice', text: `目标：${state.journal?.target.label ?? ''} · ${state.journal?.target.visibility === 'public' ? '公开可见' : '请核对目标权限'}。文本已经本地过滤，但仍需检查业务内容和截图。` }));
     if (state.stage === 'handoff') content.append(note('已打开手动创建入口。Issue 尚未提交：请粘贴标题、报告和图片，或下载图片后拖入目标网页。', 'notice'));

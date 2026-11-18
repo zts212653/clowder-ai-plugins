@@ -6,6 +6,7 @@ let closeHandler;
 window.addEventListener('message', event => {
   const data = event.data;
   if (event.source !== parent || !data || data.channel !== channel || data.nonce !== nonce) return;
+  if (data.type === 'theme' && ['light','dark'].includes(data.value)) { document.documentElement.dataset.theme=data.value; return; }
   if (data.type === 'before-close') { void closeHandler?.(); return; }
   const request = pending.get(data.requestId);
   if (!request) return;
