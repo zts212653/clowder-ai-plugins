@@ -224,6 +224,7 @@ function render() {
     el('div',{className:'feedback-nav'},[button('新建反馈',startNew,'text'),button('反馈记录',showHistory,'secondary')])])]);
   const content = el('section', { className: 'content' }); const footer = el('footer');
   if (state.error) content.append(el('p', { role: 'alert', className: 'error', text: state.error }));
+  if(['review','handoff','submitting'].includes(state.stage)&&!issueMayExist())footer.append(check(`我已检查完整报告和所有图片，并同意向「${state.journal?.target.label??''}」提交`,'consent'));
   if(['edit','configure','review','handoff'].includes(state.stage)){
     footer.append(el('span',{'data-save-status':'',className:state.saveError?'error':'hint',text:state.saveError||
       (state.selectionSaved===false?'草稿已保存，可从反馈记录继续':state.journal&&!state.dirty?'草稿已保存到反馈记录':hasDraft()?'草稿有更新，将自动保存':'')}));
@@ -260,13 +261,12 @@ function render() {
       target.value=state.targetId;
       content.append(el('label',{className:'field'},[el('span',{className:'label',text:'投递到'}),target]));
     }
-    content.append(input('Issue 标题', 'title', false, true), input('报告正文', 'body', true, true), pictureCards(),
-      el('div', { className: 'notice', text: `目标：${state.journal?.target.label ?? ''} · ${state.journal?.target.visibility === 'public' ? '公开可见' : '请核对目标权限'}。文本已经本地过滤，但仍需检查业务内容和截图。` }));
+    content.append(el('div', { className: 'notice', text: `目标：${state.journal?.target.label ?? ''} · ${state.journal?.target.visibility === 'public' ? '公开可见' : '请核对目标权限'}。文本已经本地过滤，仍需检查业务内容和截图。` }),
+      input('Issue 标题', 'title', false, true), input('报告正文', 'body', true, true), pictureCards());
     if (state.stage === 'handoff') content.append(note('已打开手动创建入口。Issue 尚未提交：请粘贴标题、报告和图片，或下载图片后拖入目标网页。', 'notice'));
     if (state.journal?.state === 'upload_failed') content.append(note(state.journal.safeError, 'notice'));
     else if (issueMayExist()) content.append(note('提交结果待核对；不要再次手动创建，以免重复。此处仅核对，不会重发。', 'notice'));
     if (state.journal?.issue && issueMayExist()) content.append(el('a', { className: 'issue', text: `已创建，待核验：${state.journal.issue.url}`, href: state.journal.issue.url, target: '_blank', rel: 'noopener noreferrer' }));
-    if (!issueMayExist()) content.append(check('我已检查完整报告和所有图片，并同意向上述目标提交', 'consent'));
     if (!locked()) footer.append(button('返回修改', async () => { state.stage = 'edit'; state.consent = false; }, 'text'), button('更新报告并检查通路', saveReview));
     const manual = el('a', { text: '手动创建', className: 'secondary', href: state.journal?.target.issueCreateUrl, target: '_blank', rel: 'noopener noreferrer',
       title: '跳转到 Issue 页面，然后进行手动粘贴问题并创建', 'data-publish': 'manual', 'aria-disabled': !state.consent || state.dirty || issueMayExist(),
@@ -277,7 +277,7 @@ function render() {
     else {
       const auto = button('确认上传', submit, 'primary', !state.consent || state.dirty || !state.automatic); auto.dataset.publish = 'auto'; footer.append(auto);
     }
-    footer.append(note(state.stage === 'submitting' ? '正在上传，请等待回执；关闭后仍可重新打开核对状态。' : '自动提交优先；手动创建为兜底。复制按钮紧邻对应字段，图片可逐张复制或下载。'));
+    if(state.stage==='submitting')footer.append(note('正在上传，请等待回执；关闭后仍可重新打开核对状态。'));
   } else if (state.stage === 'submitted') {
     content.append(el('div', { className: 'success' }, [el('h2', { text: '✓ 反馈已提交，感谢你的帮助' }), note('已回读远端 Issue，标题与报告正文核对通过。'),
       el('a', { className: 'issue', text: state.journal.issue.url, href: state.journal.issue.url, target: '_blank', rel: 'noopener noreferrer' }),
