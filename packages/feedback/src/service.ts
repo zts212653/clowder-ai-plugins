@@ -93,8 +93,14 @@ export class FeedbackService {
     }
     if (!journal || journal.owner !== context.userId || data.digest !== journal.digest) throw new Error('报告版本已变化，请重新检查并确认');
     if (digest(targets.find(p => p.id === journal.target.id)) !== digest(journal.target)) throw new Error('目标配置已变化，请重新检查报告');
+    if (op === 'preflight') {
+      const target = journal.target;
+      if (target.mode === 'manual') return { manualReason: 'target' };
+      if (journal.report.attachments.length && target.provider === 'github' && !target.attachmentCommand)
+        return { manualReason: 'attachments' };
+      return this.factory(target).preflight(context.signal);
+    }
     const adapter = this.factory(journal.target);
-    if (op === 'preflight') return adapter.preflight(context.signal);
     if (op === 'manual') {
       if (!['draft','approved'].includes(journal.state)) throw new Error('请先核对当前提交结果');
       return publicWrite({...journal,handoffAt:Date.now()});

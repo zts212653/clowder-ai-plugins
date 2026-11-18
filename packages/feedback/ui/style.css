@@ -115,6 +115,7 @@ details{margin:12px 0}summary{color:var(--feedback-accent);min-height:32px;paddi
 .review-route-condition > p, .review-recheck > p { margin: 0 0 6px; }
 .review-route-condition .primary { white-space: normal; }
 #app:not([data-review-dirty=true]) .review-recheck { display: none; }
+#app[data-review-dirty=true] .review-route-retry { display: none; }
 .review-footer { justify-content: flex-start; padding-block: 10px; }
 .review-footer > .check { font-size: 13px; }
 .review-footer-row, .review-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

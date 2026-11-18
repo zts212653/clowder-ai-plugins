@@ -6,7 +6,7 @@ import { feedbackHistory } from './history.js';
 const app = document.getElementById('app');
 const state = { stage: 'edit', feedbackId:crypto.randomUUID(), items:[], report: { kind:'bug', title: '', body: '', attachments: [] }, targets: [], targetId: '', clients: [], clientId: '',
   consent: false, busy: false, error: '', saveError:'', saveErrorCode:'', selectionSaved:true, dirty: false, automatic: false, projectRef: '', analysis: undefined, contextChanged:false, preview: true,
-  reviewView:'report', reviewImage:0, reviewScroll:0, routeDirty:false, routeProblem:'', feedbackNotice:'' };
+  reviewView:'report', reviewImage:0, reviewScroll:0, routeDirty:false, routeProblem:undefined, feedbackNotice:'' };
 let analysisTimer;
 let analysisEpoch = 0;
 let historyTimer, draftTimer;
@@ -83,7 +83,7 @@ async function startNew(){
   await call({op:'new'});
   Object.assign(state,{feedbackId:crypto.randomUUID(),report:{kind:'bug',title:'',body:'',attachments:[]},journal:undefined,revision:undefined,analysis:undefined,
     stage:'edit',dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,projectRef:'',contextChanged:false,preview:true,
-    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:'',tokenIssue:undefined,feedbackNotice:''});
+    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,feedbackNotice:''});
 }
 async function showHistory(){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();state.stage='history';
@@ -101,7 +101,7 @@ async function openRecord(id,value){
   value??=await call({op:'bootstrap',feedbackId:id});
   Object.assign(state,value,{feedbackId:id,report:{...value.journal.report,kind:value.journal.report.kind??(/^feat:/i.test(value.journal.report.title)?'feat':'bug')},
     targetId:value.journal.target.id,analysis:value.analysis,material:value.analysis?.material,hash:value.analysis?.hash,contextChanged:false,preflight:undefined,dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,preview:true,
-    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:'',tokenIssue:undefined,feedbackNotice:''});
+    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,feedbackNotice:''});
   state.clientId=value.journal.clientId??value.analysis?.clientId??state.clientId;state.projectRef=value.journal.projectRef??value.analysis?.projectRef??'';
   const sameContext=value.analysis?.clientId===state.clientId&&(value.analysis?.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||'');
   state.stage=value.journal.state==='published'?'submitted':value.journal.reviewReady||locked()?'review':'edit';
@@ -158,16 +158,18 @@ async function saveReview(checkTarget = true) {
 async function checkRoute() {
   state.automatic=false;
   state.tokenIssue=undefined;
-  state.routeProblem='';
+  state.routeProblem=undefined;
   state.routeDirty=false;
   try {
     const preflight = await recordCall({ op: 'preflight', digest: state.journal.digest });
     state.preflight = preflight;
-    state.automatic = !state.report.attachments.length || preflight.attachments;
-    if (!state.automatic) state.routeProblem = '当前目标需要手动添加截图。可在「截图」中复制或下载。';
+    state.automatic = !preflight.manualReason && (!state.report.attachments.length || preflight.attachments);
+    if (!state.automatic) state.routeProblem = { kind:'manual', text:preflight.manualReason==='target'
+      ? '此目标需要在网页手动创建。'
+      : '当前目标需要手动添加截图。可在「截图」中复制或下载。' };
   } catch (error) {
     if (error.code === 'feedback_token_missing' || error.code === 'feedback_token_invalid') state.tokenIssue = error.code;
-    else state.routeProblem = error.message + '。也可手动创建。';
+    else state.routeProblem = { kind:'retry', text:error.message + '。也可手动创建。' };
   }
 }
 async function prepareAnalysis() {
@@ -314,7 +316,12 @@ function renderReview(content, footer) {
       },'primary'),
     ]));
   } else if (!locked() && state.routeProblem) {
-    route.append(note(state.routeProblem,'review-route-condition hint'));
+    route.append(el('div',{className:'review-route-condition'},[
+      note(state.routeProblem.text),
+      ...(state.routeProblem.kind==='retry'?[el('div',{className:'review-route-retry'},[
+        button('重新检查',checkRoute),
+      ])]:[]),
+    ]));
   }
   if (!locked()) route.append(el('div',{className:'review-recheck'},[
     note('报告有改动，保存后可重新检查自动提交条件。'),
@@ -332,7 +339,8 @@ function renderReview(content, footer) {
 
   const actions = el('div',{className:'review-actions'});
   if (!locked() && state.stage !== 'submitting') {
-    actions.append(el('a',{text:'手动创建',className:'secondary',href:target?.issueCreateUrl,target:'_blank',rel:'noopener noreferrer',
+    actions.append(el('a',{text:'手动创建',className:state.routeProblem?.kind==='manual'?'primary':'secondary',
+      href:target?.issueCreateUrl,target:'_blank',rel:'noopener noreferrer',
       'data-publish':'manual','aria-disabled':!state.consent||state.dirty||state.busy,
       title:'在目标网页粘贴报告和截图，手动创建 Issue',
       onClick:event=>{

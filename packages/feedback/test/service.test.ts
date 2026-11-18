@@ -2,9 +2,24 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { FeedbackService } from '../src/service.js';
 import {fixture} from './service-fixture.js';
+import { pngFixture } from './png-fixture.js';
 import type {HydratedJournal} from '../src/types.js';
 
 const report = { title: '中文标题', body: '## 现象\napi_key=secret-value', attachments: [] };
+
+test('the default GitHub route with an image is manual before attempting credential checks', async () => {
+  const f = fixture();
+  let checks = 0;
+  f.adapter.preflight = async () => { checks++; throw new Error('synthetic credential unavailable'); };
+  const saved = await f.call({ op:'save', targetId:'clowder',
+    report:{...report,attachments:[{mime:'image/png',base64:pngFixture().toString('base64')}]},
+  });
+  assert.deepEqual(await f.call({op:'preflight',digest:saved.journal.digest}), {manualReason:'attachments'});
+  assert.equal(checks,0);
+  const edited = await f.call({op:'save',targetId:'clowder',report});
+  await assert.rejects(f.call({op:'preflight',digest:edited.journal.digest}), /synthetic credential unavailable/);
+  assert.equal(checks,1);
+});
 
 test('owner-only confirmation binds sanitized bytes and CAS allows only one create', async () => {
   const f = fixture();
