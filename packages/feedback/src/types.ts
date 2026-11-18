@@ -40,12 +40,16 @@ export interface Journal {
   phase?: 'uploading' | 'creating' | 'verifying';
   uploads?: { submissionId: string; sha256: string; markdown: string }[];
   uploadingHash?: string;
+  addScreenshotsLater?: true;
+  screenshotCommentUnverified?: true;
+  screenshotsConfirmed?: true;
   clientId?: string; projectRef?: string;
   createdAt?: number; updatedAt?: number; reviewReady?: boolean; handoffAt?: number; supersededBy?: string;
 }
 export type HydratedJournal = Omit<Journal, 'report'> & { report: Report };
 export interface Provider {
-  preflight(signal: AbortSignal): Promise<{ principal: string; visibility: string; attachments: boolean }>;
+  preflight(signal: AbortSignal, hasPictures?: boolean): Promise<{ principal: string; visibility: string; attachments: boolean; githubCliAttachments?: boolean; githubAuth?: 'cli' | 'token'; githubAttachmentLimit?: 'permission' | 'cli' }>;
+  attachToIssue?(issue: RemoteIssue, pictures: Attachment[], id: string, signal: AbortSignal): Promise<void>;
   upload(attachment: Attachment, id: string, signal: AbortSignal): Promise<string>;
   create(report: Report, id: string, signal: AbortSignal): Promise<RemoteIssue>;
   reconcile(id: string, signal: AbortSignal): Promise<RemoteIssue | undefined>;

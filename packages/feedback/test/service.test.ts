@@ -7,18 +7,63 @@ import type {HydratedJournal} from '../src/types.js';
 
 const report = { title: '中文标题', body: '## 现象\napi_key=secret-value', attachments: [] };
 
-test('the default GitHub route with an image is manual before attempting credential checks', async () => {
+test('GitHub with an image can create one verified Issue after explicit approval to add the image later', async () => {
   const f = fixture();
-  let checks = 0;
-  f.adapter.preflight = async () => { checks++; throw new Error('synthetic credential unavailable'); };
+  f.adapter.preflight = async () => ({ principal: 'owner', visibility: 'public', attachments: false });
+  f.adapter.upload = async () => assert.fail('The approved screenshot stays on this device');
+  const image = pngFixture().toString('base64');
   const saved = await f.call({ op:'save', targetId:'clowder',
+    report:{...report,attachments:[{mime:'image/png',base64:image}]},
+  });
+  const {digest,id} = saved.journal;
+  assert.deepEqual(await f.call({op:'preflight',digest}), {principal:'owner',visibility:'public',attachments:false});
+  await f.call({op:'approve',digest,confirmed:true});
+  await assert.rejects(f.call({op:'submit',digest}), /\u622a\u56fe/);
+  assert.equal(f.creates(),0);
+
+  await f.call({op:'approve',digest,confirmed:true,addScreenshotsLater:true});
+  await assert.rejects(f.call({op:'submit',digest}), /\u622a\u56fe/);
+  const submitted = await f.call({op:'submit',digest,addScreenshotsLater:true});
+  assert.equal(submitted.journal.state,'published');
+  assert.equal(submitted.journal.addScreenshotsLater,true);
+  assert.ok(submitted.journal.issue?.url.endsWith('/issues/12'));
+  assert.ok(!submitted.journal.issue?.body.includes('## \u622a\u56fe'));
+  assert.equal(f.creates(),1);
+  const reopened = await f.call({op:'bootstrap',feedbackId:id});
+  assert.equal(reopened.journal.addScreenshotsLater,true);
+  assert.equal(reopened.journal.report.attachments[0]?.base64,image);
+  const confirmed = await f.call({op:'confirm-screenshots',digest});
+  assert.equal(confirmed.journal.screenshotsConfirmed,true);
+  await f.call({op:'submit',digest});
+  assert.equal(f.creates(),1);
+});
+
+test('GitHub CLI comment failure preserves the verified Issue and the pictures without another create or comment', async () => {
+  const f = fixture();
+  let comments = 0;
+  f.adapter.preflight = async () => ({principal:'owner',visibility:'public',attachments:false,githubCliAttachments:true});
+  f.adapter.upload = async () => assert.fail('The CLI adds pictures to the verified Issue');
+  f.adapter.attachToIssue = async (issue, pictures) => {
+    assert.equal(f.creates(),1);
+    assert.ok(issue.url.endsWith('/issues/12'));
+    assert.equal(pictures.length,1);
+    comments++;
+    throw new Error('synthetic incomplete attachment comment');
+  };
+  const saved = await f.call({op:'save',targetId:'clowder',
     report:{...report,attachments:[{mime:'image/png',base64:pngFixture().toString('base64')}]},
   });
-  assert.deepEqual(await f.call({op:'preflight',digest:saved.journal.digest}), {manualReason:'attachments'});
-  assert.equal(checks,0);
-  const edited = await f.call({op:'save',targetId:'clowder',report});
-  await assert.rejects(f.call({op:'preflight',digest:edited.journal.digest}), /synthetic credential unavailable/);
-  assert.equal(checks,1);
+  const { digest, id } = saved.journal;
+  await f.call({op:'approve',digest,confirmed:true});
+  const result = await f.call({op:'submit',digest});
+  assert.equal(result.journal.state,'published');
+  assert.equal(result.journal.screenshotCommentUnverified,true);
+  const reopened = await f.call({op:'bootstrap',feedbackId:id});
+  assert.equal(reopened.journal.screenshotCommentUnverified,true);
+  assert.equal(reopened.journal.report.attachments.length,1);
+  await f.call({op:'submit',digest});
+  assert.equal(f.creates(),1);
+  assert.equal(comments,1);
 });
 
 test('owner-only confirmation binds sanitized bytes and CAS allows only one create', async () => {

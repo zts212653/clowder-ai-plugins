@@ -30,7 +30,7 @@ npm pack --ignore-scripts
 
 ## 目标配置
 
-默认目标是公开的 `zts212653/clowder-ai`。GitHub 自动提交需要 `githubToken`，GitLab REST 使用 `gitlabToken`。支持面板内配置的宿主会在检查报告时提供对应入口。令牌在宿主输入并保存，保存后回到原报告重新检查通路，再由用户确认提交。令牌只存于宿主 secret 字段，不要放入 JSON 或命令参数。
+默认目标是公开的 `zts212653/clowder-ai`。GitHub.com 自动提交可使用 `githubToken` 或本机现有的 GitHub CLI 登录，GitLab REST 使用 `gitlabToken`。支持面板内配置的宿主会在检查报告时提供对应入口。令牌在宿主输入并保存，保存后回到原报告重新检查通路，再由用户确认提交。令牌只存于宿主 secret 字段，不要放入 JSON 或命令参数。
 
 `destinations` 可配置多个目标，用户在表单选择。每次修改配置需递增 `revision`；所有配置字节和报告、图片摘要都会绑定到确认，改变后旧确认无效。内网目标不会降级调用公网。
 
@@ -58,7 +58,7 @@ npm pack --ignore-scripts
 
 GitLab 使用项目 Markdown 上传接口，上传后回读实际字节并核对 SHA-256。公开项目的上传文件可能通过直接地址访问，不能把 Issue 保密状态当作附件隐私保证。
 
-GitHub Issue REST 没有本插件可直接使用的图片上传通路。带图自动提交需要配置 `attachmentCommand` 和 `attachmentOrigins`，使用组织批准的附件存储。无适配器时，界面保留报告和图片并指向手动创建；无图自动提交仍可使用。不能上传本机 `file:`/`blob:` 地址或把图片遗漏后宣称提交完成。
+GitHub 自动上传截图需要组织批准的 `attachmentCommand` 和 `attachmentOrigins`。GitHub.com 也可在具备仓库写权限且本机 GitHub CLI 支持 `--attach` 时，将截图自动附到同一 Issue 的评论。没有自动附件通路时，可明确确认先自动创建正文，随后在同一个 Issue 添加保存的截图。手动创建整份反馈也可使用。
 
 ```json
 {

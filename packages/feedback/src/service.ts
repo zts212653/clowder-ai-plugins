@@ -96,9 +96,13 @@ export class FeedbackService {
     if (op === 'preflight') {
       const target = journal.target;
       if (target.mode === 'manual') return { manualReason: 'target' };
-      if (journal.report.attachments.length && target.provider === 'github' && !target.attachmentCommand)
-        return { manualReason: 'attachments' };
-      return this.factory(target).preflight(context.signal);
+      return this.factory(target).preflight(context.signal, journal.report.attachments.length > 0);
+    }
+    if (op === 'confirm-screenshots') {
+      if (journal.state !== 'published' || !(journal.addScreenshotsLater || journal.screenshotCommentUnverified)) {
+        throw new Error('此记录没有需要手动核对的截图');
+      }
+      return publicWrite({...journal,screenshotsConfirmed:true});
     }
     const adapter = this.factory(journal.target);
     if (op === 'manual') {
@@ -118,14 +122,19 @@ export class FeedbackService {
         { selectionSaved: await remember(id).catch(() => false) });
     }
     if (op === 'approve') {
-      if (journal.state !== 'draft' || data.confirmed !== true) throw new Error('请检查报告和图片，并确认目标可见性');
-      return publicWrite({ ...journal, state: 'approved' });
+      if (!['draft','approved'].includes(journal.state) || data.confirmed !== true) throw new Error('请检查报告和图片，并确认目标可见性');
+      if (journal.state === 'approved' && data.revision !== current?.revision) throw new RevisionConflictError('确认已在另一个窗口更新，请重新打开');
+      const addScreenshotsLater = data.addScreenshotsLater === true && journal.report.attachments.length > 0 ? true : undefined;
+      return publicWrite({ ...journal, state: 'approved', addScreenshotsLater });
     }
     if (op === 'submit') {
       if (journal.state === 'published') return present(journal, current?.revision);
       if (journal.state !== 'approved') throw new Error('提交尚未确认或远端结果待核对，不会重复上传');
-      const check = await adapter.preflight(context.signal);
-      if (journal.report.attachments.length && !check.attachments) throw new Error('自动附件通路未配置，请手动创建并粘贴或上传图片');
+      if (Boolean(journal.addScreenshotsLater) !== (data.addScreenshotsLater === true)) throw new Error('截图提交方式已变化，请重新检查并确认');
+      const hasPictures = journal.report.attachments.length > 0;
+      const check = await adapter.preflight(context.signal, hasPictures);
+      const attachToIssue = check.githubCliAttachments && adapter.attachToIssue;
+      if (hasPictures && !check.attachments && !attachToIssue && !journal.addScreenshotsLater) throw new Error('截图上传通路已变化，请重新检查提交方式');
       await context.assertCurrent();
       const approvedReport = await vault.readReport(journal.report);
       const locked = await write({ ...journal, state: 'writing', phase: 'uploading', uploads: [] });
@@ -138,7 +147,7 @@ export class FeedbackService {
       };
       try {
         const uploaded: string[] = [];
-        for (const attachment of approvedReport.attachments) {
+        for (const attachment of journal.addScreenshotsLater || attachToIssue ? [] : approvedReport.attachments) {
           await context.assertCurrent();
           await checkpoint({ ...pending, uploadingHash: attachment.sha256 });
           const markdown = await adapter.upload(attachment, journal.id, context.signal);
@@ -146,16 +155,24 @@ export class FeedbackService {
           await checkpoint({ ...pending, uploads: [...(pending.uploads ?? []), { submissionId: journal.id, sha256: attachment.sha256, markdown }], uploadingHash: undefined });
         }
         const report = { ...journal.report, body: `${journal.report.body}${uploaded.length ? `\n\n## 截图\n${uploaded.join('\n\n')}` : ''}` };
-        await checkpoint({ ...pending, report, phase: 'creating' });
+        const addComment = hasPictures && !journal.addScreenshotsLater && attachToIssue;
+        await checkpoint({ ...pending, report, phase: 'creating', ...(addComment ? {screenshotCommentUnverified:true} : {}) });
         await context.assertCurrent();
         const issue = await adapter.create({ ...approvedReport, body: report.body }, journal.id, context.signal);
         await checkpoint({ ...pending, report, issue, state: 'unknown', phase: 'verifying' });
         const verified = await adapter.read(issue, context.signal);
         verify(pending, verified);
         await checkpoint({ ...pending, state: 'published', issue: verified });
+        if (addComment) {
+          // Publish the verified Issue first. If the separate comment fails or is interrupted, never recreate the Issue.
+          const attached = await context.assertCurrent().then(() => addComment(verified, approvedReport.attachments, journal.id, context.signal))
+            .then(() => true, () => false);
+          if (attached) await checkpoint({ ...pending, screenshotCommentUnverified:undefined });
+        }
         await this.host.storage.compareAndSet(`publication:${journal.id}`, null, pending);
         return present(pending, revision);
       } catch {
+        if (pending.state === 'published') return present(pending, revision);
         const state = pending.phase === 'uploading' ? 'upload_failed' : 'unknown';
         try { await checkpoint({ ...pending, state, safeError: state === 'upload_failed' ? '附件上传未完成，Issue 尚未开始创建。已取得的回执已保留；不会自动重传。' : '提交结果尚未核实。请先核对远端；不会自动重发。' }); } catch { /* A persisted writing fence also prevents retries. */ }
         return present({ ...pending, state }, revision);
@@ -190,7 +207,9 @@ export class FeedbackService {
         : ['failed','interrupted','cancelled','unavailable'].includes(analysis?.state ?? '') ? analysis!.state
         : analysis?.state==='ready' || journal.reviewReady ? 'ready' : 'draft';
       return {id:journal.id,title:journal.report.title,kind:journal.report.kind ?? (/^feat:/i.test(journal.report.title)?'feat':'bug'),status,
-        updatedAt:Math.max(journal.updatedAt ?? journal.createdAt ?? 0,analysis?.startedAt ?? 0),analyzed:analysis?.state==='ready',issueUrl:journal.issue?.url,threadUrl:analysis?.threadUrl};
+        updatedAt:Math.max(journal.updatedAt ?? journal.createdAt ?? 0,analysis?.startedAt ?? 0),analyzed:analysis?.state==='ready',issueUrl:journal.issue?.url,threadUrl:analysis?.threadUrl,
+        screenshotsPending:journal.state==='published'&&!journal.screenshotsConfirmed
+          ? journal.addScreenshotsLater ? journal.report.attachments.length : journal.screenshotCommentUnverified ? 'verify' : undefined : undefined};
     }));
     return items.sort((a,b)=>b.updatedAt-a.updatedAt);
   }

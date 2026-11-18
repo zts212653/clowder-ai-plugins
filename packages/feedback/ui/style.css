@@ -114,6 +114,8 @@ details{margin:12px 0}summary{color:var(--feedback-accent);min-height:32px;paddi
 .review-route-condition, .review-recheck { margin: 8px 0 0; }
 .review-route-condition > p, .review-recheck > p { margin: 0 0 6px; }
 .review-route-condition .primary { white-space: normal; }
+.review-route-condition .review-cli-help { margin: 6px 0 0; }
+.review-cli-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; }
 #app:not([data-review-dirty=true]) .review-recheck { display: none; }
 #app[data-review-dirty=true] .review-route-retry { display: none; }
 .review-footer { justify-content: flex-start; padding-block: 10px; }

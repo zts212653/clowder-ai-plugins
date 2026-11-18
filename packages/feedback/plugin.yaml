@@ -1,5 +1,5 @@
 pluginId: official.feedback
-version: 0.1.0-alpha.6
+version: 0.1.0-alpha.7
 contractVersion: 0.3.0
 name: 问题反馈
 description:
@@ -19,7 +19,7 @@ configuration:
     kind: string
     required: false
   - key: githubToken
-    label: GitHub 访问令牌（自动提交时需要）
+    label: GitHub 访问令牌（可替代 GitHub CLI 登录）
     kind: secret
     required: false
   - key: gitlabToken

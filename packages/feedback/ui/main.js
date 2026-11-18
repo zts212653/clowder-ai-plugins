@@ -83,7 +83,7 @@ async function startNew(){
   await call({op:'new'});
   Object.assign(state,{feedbackId:crypto.randomUUID(),report:{kind:'bug',title:'',body:'',attachments:[]},journal:undefined,revision:undefined,analysis:undefined,
     stage:'edit',dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,projectRef:'',contextChanged:false,preview:true,
-    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,feedbackNotice:''});
+    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,githubCli:undefined,addScreenshotsLater:false,feedbackNotice:''});
 }
 async function showHistory(){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();state.stage='history';
@@ -101,7 +101,7 @@ async function openRecord(id,value){
   value??=await call({op:'bootstrap',feedbackId:id});
   Object.assign(state,value,{feedbackId:id,report:{...value.journal.report,kind:value.journal.report.kind??(/^feat:/i.test(value.journal.report.title)?'feat':'bug')},
     targetId:value.journal.target.id,analysis:value.analysis,material:value.analysis?.material,hash:value.analysis?.hash,contextChanged:false,preflight:undefined,dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,preview:true,
-    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,feedbackNotice:''});
+    reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,githubCli:undefined,addScreenshotsLater:false,feedbackNotice:''});
   state.clientId=value.journal.clientId??value.analysis?.clientId??state.clientId;state.projectRef=value.journal.projectRef??value.analysis?.projectRef??'';
   const sameContext=value.analysis?.clientId===state.clientId&&(value.analysis?.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||'');
   state.stage=value.journal.state==='published'?'submitted':value.journal.reviewReady||locked()?'review':'edit';
@@ -158,18 +158,22 @@ async function saveReview(checkTarget = true) {
 async function checkRoute() {
   state.automatic=false;
   state.tokenIssue=undefined;
+  state.githubCli=undefined;
   state.routeProblem=undefined;
   state.routeDirty=false;
   try {
     const preflight = await recordCall({ op: 'preflight', digest: state.journal.digest });
     state.preflight = preflight;
-    state.automatic = !preflight.manualReason && (!state.report.attachments.length || preflight.attachments);
-    if (!state.automatic) state.routeProblem = { kind:'manual', text:preflight.manualReason==='target'
-      ? '此目标需要在网页手动创建。'
-      : '当前目标需要手动添加截图。可在「截图」中复制或下载。' };
+    state.automatic = !preflight.manualReason;
+    const addScreenshotsLater = state.automatic && state.report.attachments.length > 0 && !preflight.attachments && !preflight.githubCliAttachments;
+    if (Boolean(state.addScreenshotsLater) !== addScreenshotsLater) state.consent = false;
+    state.addScreenshotsLater = addScreenshotsLater;
+    if (!state.automatic) state.routeProblem = { kind:'manual', text:'此目标需要在网页手动创建。' };
   } catch (error) {
-    if (error.code === 'feedback_token_missing' || error.code === 'feedback_token_invalid') state.tokenIssue = error.code;
-    else state.routeProblem = { kind:'retry', text:error.message + '。也可手动创建。' };
+    if (error.code === 'feedback_token_missing' || error.code === 'feedback_token_invalid') {
+      state.tokenIssue = error.code;
+      state.githubCli = error.githubCli;
+    } else state.routeProblem = { kind:'retry', text:error.message + '。也可手动创建。' };
   }
 }
 async function prepareAnalysis() {
@@ -190,17 +194,26 @@ async function analyze() {
   } catch (error) { state.stage = 'scope'; throw error; }
 }
 async function submit() {
-  if (!state.consent || state.dirty) throw new Error('请先更新报告，并检查完整内容和图片');
+  if (!state.automatic || !state.consent || state.dirty) throw new Error('请先检查提交方式，并确认完整内容和图片');
   state.stage = 'submitting'; render();
   try {
-    if (state.journal.state === 'draft') Object.assign(state, await recordCall({ op: 'approve', digest: state.journal.digest, confirmed: true }));
-    Object.assign(state, await recordCall({ op: 'submit', digest: state.journal.digest }));
+    const { digest } = state.journal;
+    const addScreenshotsLater = Boolean(state.addScreenshotsLater);
+    if (state.journal.state === 'draft' || addScreenshotsLater !== Boolean(state.journal.addScreenshotsLater)) {
+      Object.assign(state, await recordCall({ op: 'approve', digest, revision:state.revision, confirmed: true, addScreenshotsLater }));
+    }
+    Object.assign(state, await recordCall({ op: 'submit', digest, addScreenshotsLater }));
     state.stage = state.journal.state === 'published' ? 'submitted' : 'review';
   } catch (error) {
     state.stage = 'review';
-    if (error.code !== 'feedback_token_missing' && error.code !== 'feedback_token_invalid') throw error;
+    if (error.code !== 'feedback_token_missing' && error.code !== 'feedback_token_invalid') {
+      if (!locked()) await checkRoute();
+      throw error;
+    }
     state.automatic = false;
+    state.consent = false;
     state.tokenIssue = error.code;
+    state.githubCli = error.githubCli;
   }
 }
 function run(action) {
@@ -304,16 +317,29 @@ function renderReview(content, footer) {
     route.append(select);
   } else route.append(el('p',{className:'review-target-name',text:target?.label??''}));
   route.append(note(visibility,'review-visibility'));
+  if (!locked() && state.automatic && state.preflight?.githubAuth) {
+    const {githubAuth, principal} = state.preflight;
+    route.append(note(githubAuth==='cli' ? `使用 GitHub CLI（@${principal}）` : '使用已配置的 GitHub 令牌','review-visibility'));
+  }
   if (!locked() && state.tokenIssue) {
     const provider=target.provider;
     const name=provider==='gitlab'?'GitLab':'GitHub';
     const missing=state.tokenIssue==='feedback_token_missing';
+    const cliHelp = {unavailable:'未找到 GitHub CLI。可先配置令牌，或安装并登录 GitHub CLI。',
+      login:'也可在本机终端运行 gh auth login，登录后回来重新检查。',
+      rejected:'GitHub CLI 登录未获接受。可用 gh auth login 重新登录。'}[state.githubCli];
     route.append(el('div',{className:'review-route-condition'},[
-      note(missing?'自动提交需要访问令牌。':'当前令牌未获接受，请更换后再试。'),
+      note(missing?(cliHelp?'登录 GitHub CLI 或配置访问令牌即可自动提交。':'自动提交需要访问令牌。')
+        :'当前凭据未获接受，请更新后重试。'),
       button(`${missing?'配置':'更换'} ${name} 访问令牌`,async()=>{
         await flushDraft();
         if(await bridge('feedback.configureToken',provider)){state.consent=false;await checkRoute();}
       },'primary'),
+      ...(cliHelp?[note(cliHelp,'hint review-cli-help'),
+        el('div',{className:'review-route-retry review-cli-actions'},[
+          el('a',{className:'text',text:'GitHub CLI 帮助',href:'https://cli.github.com/manual/gh_auth_login',target:'_blank',rel:'noopener noreferrer'}),
+          button('重新检查',checkRoute,'text'),
+        ])]:[]),
     ]));
   } else if (!locked() && state.routeProblem) {
     route.append(el('div',{className:'review-route-condition'},[
@@ -322,6 +348,13 @@ function renderReview(content, footer) {
         button('重新检查',checkRoute),
       ])]:[]),
     ]));
+  }
+  if (!locked() && state.automatic && state.addScreenshotsLater) {
+    const limit = state.preflight?.githubAttachmentLimit;
+    const reason = limit==='permission' ? '自动传图需要仓库写权限。' : limit==='cli' ? '当前 GitHub CLI 不支持自动传图。' : '';
+    route.append(note(`${reason}正文会自动提交。截图保留在这里，创建后可补到同一个 Issue。`,'review-route-condition hint'));
+  } else if (!locked() && state.automatic && state.preflight?.githubCliAttachments) {
+    route.append(note('截图会自动附在同一个 Issue 的评论中。','review-route-condition hint'));
   }
   if (!locked()) route.append(el('div',{className:'review-recheck'},[
     note('报告有改动，保存后可重新检查自动提交条件。'),
@@ -339,7 +372,7 @@ function renderReview(content, footer) {
 
   const actions = el('div',{className:'review-actions'});
   if (!locked() && state.stage !== 'submitting') {
-    actions.append(el('a',{text:'手动创建',className:state.routeProblem?.kind==='manual'?'primary':'secondary',
+    actions.append(el('a',{text:'手动创建',className:state.routeProblem?.kind==='manual'?'primary':'text',
       href:target?.issueCreateUrl,target:'_blank',rel:'noopener noreferrer',
       'data-publish':'manual','aria-disabled':!state.consent||state.dirty||state.busy,
       title:'在目标网页粘贴报告和截图，手动创建 Issue',
@@ -349,7 +382,7 @@ function renderReview(content, footer) {
       },
     }));
     if (state.automatic) {
-      const submitButton=button('提交 Issue',submit,'primary',!state.consent||state.dirty);
+      const submitButton=button(state.addScreenshotsLater?'先提交正文':'提交 Issue',submit,'primary',!state.consent||state.dirty);
       submitButton.dataset.publish='auto';
       actions.append(submitButton);
     }
@@ -366,7 +399,10 @@ function renderReview(content, footer) {
     },'primary'));
   }
   if (!locked() && state.stage !== 'submitting') {
-    footer.append(check(`我已检查报告和截图，同意提交至「${target?.label??''}」`,'consent'));
+    const consent = state.automatic && state.addScreenshotsLater
+      ? `我已检查报告和截图，同意先将正文提交至「${target?.label??''}」，截图随后补加`
+      : `我已检查报告和截图，同意提交至「${target?.label??''}」`;
+    footer.append(check(consent,'consent'));
   }
   footer.append(el('div',{className:'review-footer-row'},[
     !locked()&&state.stage!=='submitting' ? button('返回填写',async()=>{state.stage='edit';state.consent=false;},'text') : el('span'),
@@ -420,9 +456,21 @@ function render() {
     footer.className='review-footer';
     renderReview(content,footer);
   } else if (state.stage === 'submitted') {
-    content.append(el('div', { className: 'success' }, [el('h2', { text: '✓ 反馈已提交，感谢你的帮助' }), note('已回读远端 Issue，标题与报告正文核对通过。'),
-      el('a', { className: 'issue', text: state.journal.issue.url, href: state.journal.issue.url, target: '_blank', rel: 'noopener noreferrer' }),
-      el('a', { className: 'primary', text: '打开 Issue', href: state.journal.issue.url, target: '_blank', rel: 'noopener noreferrer' })]));
+    const { addScreenshotsLater, screenshotCommentUnverified, screenshotsConfirmed } = state.journal;
+    const showPictures = addScreenshotsLater || screenshotCommentUnverified;
+    const issueUrl = state.journal.issue.url;
+    content.append(el('div', { className: 'success' }, [
+      el('h2', { text: showPictures ? 'Issue 已创建'+(screenshotsConfirmed ? ' · 已确认补图' : '，可继续补图') : '✓ 反馈已提交，感谢你的帮助' }),
+      note(screenshotsConfirmed ? '你已确认截图补齐。' :
+        screenshotCommentUnverified ? '自动补图结果待核对。打开 Issue 检查已上传的图片，只补缺少的截图。'
+        : addScreenshotsLater ? `还有 ${state.report.attachments.length} 张截图。复制下方图片，在此 Issue 的评论框粘贴并发送。` : '已回读远端 Issue，标题与报告正文核对通过。'),
+      el('a', { className: 'issue', text: issueUrl, href: issueUrl, target: '_blank', rel: 'noopener noreferrer' }),
+      el('a', { className: 'primary', text: showPictures && !screenshotsConfirmed ? '打开 Issue 补图' : '打开 Issue', href: issueUrl, target: '_blank', rel: 'noopener noreferrer' }),
+    ]));
+    if (showPictures) content.append(pictureCards());
+    if (showPictures && !screenshotsConfirmed) footer.append(button('我已补图', async()=>{
+      Object.assign(state,await recordCall({op:'confirm-screenshots',digest:state.journal.digest}));
+    }));
     footer.append(button('继续反馈', startNew), button('完成', () => bridge('close'), 'primary'));
   }
   app.replaceChildren(header, content, footer);

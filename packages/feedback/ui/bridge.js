@@ -33,7 +33,7 @@ export function bridge(type, input) {
 }
 export const call = async input => {
   const response = await bridge('http', { method: 'POST', path: 'feedback', body: input });
-  if (response.status < 200 || response.status >= 300) throw Object.assign(new Error(response.body?.error ?? '反馈操作未完成'), {code:response.body?.code});
+  if (response.status < 200 || response.status >= 300) throw Object.assign(new Error(response.body?.error ?? '反馈操作未完成'), {code:response.body?.code, githubCli:response.body?.githubCli});
   return response.body;
 };
 export function el(tag, attrs = {}, children = []) {
