@@ -44,7 +44,7 @@ The Host owns installation, caller context, credentials and lifecycle; saving co
 
 ## Compatibility and durable input
 
-The desktop surface requires Host bridge 1.8.0 (plugin contract 0.3.3-candidate.2); an older Host refuses the whole package before installation. The Host controls placement, dragging, transparent hit areas, media admission and capture. The plugin receives no raw streams or provider credentials. Hiding releases media; the ordinary Chat entry restores the cat.
+The desktop surface requires Host bridge 1.8.0 (plugin contract 0.3.3-candidate.3); an older Host refuses the whole package before installation. The Host controls placement, dragging, transparent hit areas, media admission and capture. The plugin receives no raw streams or provider credentials. Hiding releases media; the ordinary Chat entry restores the cat.
 
 Drafts are Host-owned and durable. An unknown send result is read back, never automatically resent. An explicit retry retains the original identity, content and route. A changed canonical conversation invalidates old unconfirmed text rather than replaying it into the new scope. History loading, response phase and body completeness remain separate.
 

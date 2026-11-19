@@ -85,7 +85,7 @@ importers:
   packages/companion:
     devDependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.3.3-candidate.2
+        specifier: 0.3.3-candidate.3
         version: link:../plugin-contract
       '@clowder-ai/plugin-contract-033c0':
         specifier: npm:@clowder-ai/plugin-contract@0.3.3-candidate.0

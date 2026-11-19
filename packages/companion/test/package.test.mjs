@@ -95,7 +95,7 @@ test('the installable package declares one companion body and contains a closed 
 test('livingBody needs the new contract line: an older Host refuses the package and the living skin', async () => {
   const manifest = JSON.parse(await readFile(new URL('plugin.yaml', root), 'utf8'));
   const pkg = JSON.parse(await readFile(new URL('package.json', root)));
-  assert.equal(pkg.devDependencies['@clowder-ai/plugin-contract'], '0.3.3-candidate.2', 'the contract line that carries livingBody');
+  assert.equal(pkg.devDependencies['@clowder-ai/plugin-contract'], '0.3.3-candidate.3', 'the contract line that carries livingBody');
   const current = await import('@clowder-ai/plugin-contract');
   const previous = await import('@clowder-ai/plugin-contract-033c0');
   assert.equal(current.validateManifest(manifest).valid, true);

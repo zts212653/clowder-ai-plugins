@@ -148,7 +148,7 @@ Contract 的 schema、公开类型和 wire registry 是同一份接口真相；S
 
 ## Dot 迁移配套候选声明
 
-本候选对应 Contract `0.3.3-candidate.1` 与 SDK `0.3.0-beta.2-candidate.12`。Contract `0.3.3-candidate.2`（bridge 1.8.0，能力 `livingBody`：桌面窗口可声明 body 页，companion skin 增加 `xianxian-living`）；发布这个 Contract 候选不重发 SDK，SDK 仍解析它自己声明的 Contract 版本。这是待审源码与制品的配套关系，不是已发布 npm 版本或旧 Host 兼容性的承诺；发布状态须另核注册表与 release 记录。
+本候选对应 Contract `0.3.3-candidate.1` 与 SDK `0.3.0-beta.2-candidate.12`。Contract `0.3.3-candidate.3` 在 candidate.2（Workspace 只读预览声明）之上增加 bridge 1.8.0 与能力 `livingBody`（桌面窗口可声明 body 页，companion skin 增加 `xianxian-living`）；发布这个 Contract 候选不重发 SDK，SDK 仍解析它自己声明的 Contract 版本。这是待审源码与制品的配套关系，不是已发布 npm 版本或旧 Host 兼容性的承诺；发布状态须另核注册表与 release 记录。
 
 - 可寻址插件声明顶层 `call`（例如 `{alias: 'dot', displayName: 'Dot'}`），并实现固定的 `activation.deliver(PluginDeliveryInput)`。`call` 不接受包提供的 Host 方法名；输入的 `reason` 区分 addressed 与 subscription，回执 `{deliveryId}` 只确认接收。实例、源消息、寻址和可见性由 Host 验证；需要报告回复结果时，经消息发送接口明确提供对应的 response，不能以 transport ACK 推断完成。
 - Dot 的旧数据 importer 是包的 `./migration` 导出，由 Host 的受限兼容适配器在启用前经 owner-operation 调用。它不是公开 manifest 字段、action、MCP 工具或 webhook 授权；批次只接收明确记录与原图字节，不接收服务端文件路径。一般插件不应声明 `migration.method`。
