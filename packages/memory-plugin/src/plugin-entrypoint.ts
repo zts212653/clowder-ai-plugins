@@ -100,6 +100,7 @@ async function activate(ports: MemoryHostPorts) {
     repository: new FileProfileRepository({ dataDir: memoryData.dataDir }),
   });
   const search = new SearchOperations(storage.db);
+  const projectIndexClaims = new Set<string>();
   return {
     dispose: () => storage.close(),
     actions: {
@@ -111,7 +112,7 @@ async function activate(ports: MemoryHostPorts) {
         if (typeof operation === 'string') {
           if (operation === 'index.status') return dispatchIndexStatus(storage.db, input);
           if (operation.startsWith('index.project.')) {
-            return dispatchProjectIndex(storage, () => memorySource.assertCurrent(), input);
+            return dispatchProjectIndex(storage, projectIndexClaims, () => memorySource.assertCurrent(), input);
           }
           if (operation.startsWith('matter.')) return matter(input);
           if (operation.startsWith('event.')) return dispatchEvent(storage.events, memorySource, input);

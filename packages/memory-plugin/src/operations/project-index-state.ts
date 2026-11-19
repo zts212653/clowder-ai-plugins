@@ -4,6 +4,7 @@ import type { openMemoryStorage } from '../open-memory-storage.js';
 
 export function dispatchProjectIndex(
   storage: Awaited<ReturnType<typeof openMemoryStorage>>,
+  activeClaims: Set<string>,
   assertCurrent: () => Promise<void>,
   request: unknown,
 ) {
@@ -30,6 +31,7 @@ export function dispatchProjectIndex(
       } satisfies MemoryProjectIndexState;
     }
     const { fingerprint } = action.input;
+    if (row.status === 'building' && !activeClaims.has(projectPath)) return { ...row, status: 'stale' };
     return fingerprint && row.status === 'ready' && row.fingerprint !== fingerprint ? { ...row, status: 'stale' } : row;
   }
 
@@ -40,7 +42,7 @@ export function dispatchProjectIndex(
       const { fingerprint } = action.input;
       const current = state.get(projectPath);
       if (current?.snoozed_until && new Date(current.snoozed_until) > new Date(now)) return false;
-      if (current?.status === 'building' || (current?.status === 'ready' && (!fingerprint || current.fingerprint === fingerprint))) {
+      if (activeClaims.has(projectPath) || (current?.status === 'ready' && (!fingerprint || current.fingerprint === fingerprint))) {
         return false;
       }
       const id = createHash('sha256').update(projectPath).digest('hex');
@@ -50,6 +52,7 @@ export function dispatchProjectIndex(
         ON CONFLICT(project_path) DO UPDATE SET status = 'building', fingerprint = excluded.fingerprint,
           error_message = NULL, updated_at = excluded.updated_at
       `).run(id, projectPath, fingerprint, now, now);
+      activeClaims.add(projectPath);
       return true;
     }
     if (action.operation === 'index.project.snooze') {
@@ -71,6 +74,7 @@ export function dispatchProjectIndex(
       db.prepare(`UPDATE index_state SET status = 'failed', error_message = ?, updated_at = ? WHERE project_path = ?`)
         .run(action.input.error, now, projectPath);
     }
+    activeClaims.delete(projectPath);
     return null;
   });
 }

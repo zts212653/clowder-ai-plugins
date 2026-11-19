@@ -290,6 +290,18 @@ test('project index claims and settles legacy state through the activation write
   assert.equal(current.summary_json, '{"projectName":"legacy-test"}');
   assert.equal(typeof await call('snooze'), 'string');
   assert.equal(await call('claim', { fingerprint: 'later-revision' }), false);
+
+  const interruptedPath = join(dataDir, 'interrupted');
+  const claim = { operation: 'index.project.claim', input: { projectPath: interruptedPath, fingerprint: 'new-revision' } };
+  assert.equal(await active.actions['memory.dispatch']!(claim), true);
+  await active.stop({ reason: 'test' });
+  const restarted = await start();
+  t.after(() => restarted.stop({ reason: 'test' }));
+  const interrupted = await restarted.actions['memory.dispatch']!({
+    operation: 'index.project.read', input: { projectPath: interruptedPath },
+  });
+  assert.equal((interrupted as { status: string }).status, 'stale');
+  assert.equal(await restarted.actions['memory.dispatch']!(claim), true);
 });
 
 test('a Host without the authorized memory port fails admission instead of degrading to an empty store', async () => {
