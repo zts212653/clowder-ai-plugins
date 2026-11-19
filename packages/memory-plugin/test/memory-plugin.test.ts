@@ -191,6 +191,8 @@ test('memory.describe carries no business parameters and reports exactly the v1 
       'recall.event',
       'recall.candidate',
       'recall.persist',
+      'recall.anchors',
+      'recall.anchors.refresh',
       'cue.invocation',
       ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
@@ -352,6 +354,13 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
     ALTER TABLE recall_events ADD COLUMN presented INTEGER;
     ALTER TABLE recall_events ADD COLUMN expansion_funnel_json TEXT;
     CREATE UNIQUE INDEX recog_source_event ON recall_events(source_event_id);
+    CREATE TABLE anchor_recall_metrics (
+      anchor TEXT PRIMARY KEY, consumed_count_30d INTEGER, exposure_count_30d INTEGER,
+      last_consumed_at TEXT, dormancy_days INTEGER, updated_at TEXT
+    );
+    CREATE TABLE global_ctr_baseline (
+      doc_kind TEXT PRIMARY KEY, mean_ctr REAL, sample_count INTEGER, updated_at INTEGER
+    );
     INSERT INTO evidence_docs (anchor, title, kind, collection_id, world_id) VALUES
       ('F042', 'Public feature', 'feature', NULL, NULL),
       ('secret-collection', 'Private collection title', 'feature', 'private:owner', NULL),
@@ -417,7 +426,7 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
     candidates: [{ anchor: 'F042', rank: 0, targetRef: { kind: 'doc', sourcePath: 'docs/F042.md' } }],
     consumed: [{ anchor: 'F042', rank: 0, method: 'Read' }],
     reformulated: false, fellBackToGrep: false, abandoned: false, nextGraphResolveAfterRead: false,
-    tokenCost: 0, timestamp: 201,
+    tokenCost: 0, timestamp: Date.now(),
   }] } };
   assert.equal(await dispatch(persist), null);
   const [firstWrite] = persist.input.events;
@@ -429,6 +438,13 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
   assert.equal(persisted.result_status, 'counted');
   assert.deepEqual(JSON.parse(persisted.consumed_json), firstWrite.consumed);
   assert.equal(await dispatch({ operation: 'recall.event', input: { recallId: 'retry', threadId: 'thread-1' } }), null);
+  const anchors = { operation: 'recall.anchors', input: { limit: 10 } };
+  assert.deepEqual(await dispatch(anchors), [{
+    anchor: 'F042', consumedCount30d: 1, exposureCount30d: 1,
+    lastConsumedAt: new Date(firstWrite.timestamp).toISOString(), dormancyDays: 0,
+  }]);
+  assert.deepEqual(await dispatch({ ...anchors, input: { limit: 10, dormancyThreshold: 30, refresh: true } }), []);
+  assert.equal(await dispatch({ operation: 'recall.anchors.refresh', input: {} }), null);
   await assert.rejects(async () => dispatch({ ...persist, input: { events: [{ ...firstWrite, threadId: 'foreign' }] } }));
 });
 

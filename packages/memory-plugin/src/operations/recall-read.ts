@@ -1,5 +1,7 @@
 import {
   memoryCueInvocationRequest,
+  memoryRecallAnchorRequest,
+  type MemoryRecallAnchorRow,
   type MemoryRecallCandidate,
   memoryRecallCandidateRequest,
   type MemoryRecallEvent,
@@ -13,6 +15,8 @@ import type Database from 'better-sqlite3';
 import { MemoryCueEpisodeStore } from '../cue/MemoryCueEpisodeStore.js';
 import { projectInvocationCues } from '../cue/project-invocation-cues.js';
 import type { MemoryHostPorts } from '../host-port.js';
+import type { openMemoryStorage } from '../open-memory-storage.js';
+import { refreshAnchorMetrics } from './recall-metrics-refresh.js';
 
 export function dispatchRecallStats(db: Database.Database, request: unknown): MemoryRecallStatsResult {
   const { input } = memoryRecallStatsRequest.parse(request);
@@ -96,4 +100,27 @@ export async function dispatchCueInvocation(
   const { userId } = await source.caller();
   await source.assertCurrent();
   return projectInvocationCues(new MemoryCueEpisodeStore(db).listByInvocation(userId, input.threadId, input.invocationId));
+}
+
+export async function dispatchRecallAnchors(
+  storage: Awaited<ReturnType<typeof openMemoryStorage>>,
+  source: MemoryHostPorts['memorySource'],
+  request: unknown,
+) {
+  const parsed = memoryRecallAnchorRequest.parse(request);
+  if (parsed.operation === 'recall.anchors.refresh' || parsed.input.refresh) {
+    await storage.runWrite(async () => {
+      await source.assertCurrent();
+      refreshAnchorMetrics(storage.db);
+    });
+  }
+  if (parsed.operation === 'recall.anchors.refresh') return null;
+  const { limit, dormancyThreshold } = parsed.input;
+  const columns = `SELECT anchor, consumed_count_30d AS consumedCount30d, exposure_count_30d AS exposureCount30d,
+    last_consumed_at AS lastConsumedAt, dormancy_days AS dormancyDays FROM anchor_recall_metrics`;
+  return dormancyThreshold === undefined
+    ? storage.db.prepare<[number], MemoryRecallAnchorRow>(`${columns} ORDER BY consumed_count_30d DESC LIMIT ?`).all(limit)
+    : storage.db.prepare<[number, number], MemoryRecallAnchorRow>(
+        `${columns} WHERE dormancy_days >= ? ORDER BY dormancy_days DESC LIMIT ?`,
+      ).all(dormancyThreshold, limit);
 }

@@ -151,3 +151,25 @@ export const memoryRecallPersistRequest = z.object({
   input: z.object({ events: z.array(recallRecord).min(1) }).strict(),
 }).strict();
 export type MemoryRecallPersistRequest = z.infer<typeof memoryRecallPersistRequest>;
+
+export const memoryRecallAnchorRequest = z.discriminatedUnion('operation', [
+  z.object({
+    operation: z.literal('recall.anchors'),
+    input: z.object({
+      limit: z.number().int().min(1).max(100),
+      dormancyThreshold: z.number().int().positive().optional(),
+      refresh: z.boolean().optional(),
+    }).strict(),
+  }).strict(),
+  z.object({ operation: z.literal('recall.anchors.refresh'), input: z.object({}).strict() }).strict(),
+]);
+export type MemoryRecallAnchorRequest = z.infer<typeof memoryRecallAnchorRequest>;
+
+export const memoryRecallAnchorResult = z.array(z.object({
+  anchor: z.string(),
+  consumedCount30d: count,
+  exposureCount30d: count,
+  lastConsumedAt: z.string().nullable(),
+  dormancyDays: z.number().int().nullable(),
+}).strict());
+export type MemoryRecallAnchorRow = z.infer<typeof memoryRecallAnchorResult>[number];

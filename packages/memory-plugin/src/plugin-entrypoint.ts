@@ -31,6 +31,7 @@ import { dispatchProfile } from './operations/profile.js';
 import { dispatchProjectIndex } from './operations/project-index-state.js';
 import {
   dispatchCueInvocation,
+  dispatchRecallAnchors,
   dispatchRecallCandidate,
   dispatchRecallEvent,
   dispatchRecallStats,
@@ -60,6 +61,8 @@ function memoryDescriptor(tasteReady: boolean): MemoryDescriptor {
       'recall.event',
       'recall.candidate',
       'recall.persist',
+      'recall.anchors',
+      'recall.anchors.refresh',
       'cue.invocation',
       ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
@@ -130,6 +133,9 @@ async function activate(ports: MemoryHostPorts) {
           if (operation === 'recall.event') return dispatchRecallEvent(storage.db, input);
           if (operation === 'recall.candidate') return dispatchRecallCandidate(storage.db, input);
           if (operation === 'recall.persist') return dispatchRecallPersist(storage, memorySource, input);
+          if (operation === 'recall.anchors' || operation === 'recall.anchors.refresh') {
+            return dispatchRecallAnchors(storage, memorySource, input);
+          }
           if (operation === 'cue.invocation') return dispatchCueInvocation(storage.db, memorySource, input);
           if (operation.startsWith('index.project.')) {
             return dispatchProjectIndex(storage, projectIndexClaims, () => memorySource.assertCurrent(), input);

@@ -1,6 +1,7 @@
 import { memoryRecallPersistRequest } from '@clowder-ai/plugin-memory-contract/recall';
 import type { MemoryHostPorts } from '../host-port.js';
 import type { openMemoryStorage } from '../open-memory-storage.js';
+import { refreshAnchorMetrics, refreshGlobalCtrBaseline } from './recall-metrics-refresh.js';
 
 export async function dispatchRecallPersist(
   storage: Awaited<ReturnType<typeof openMemoryStorage>>,
@@ -58,6 +59,8 @@ export async function dispatchRecallPersist(
         );
       }
     })();
+    refreshAnchorMetrics(storage.db);
+    refreshGlobalCtrBaseline(storage.db);
     return null;
   });
 }
