@@ -31,18 +31,21 @@ export async function openMemoryStorage({ memoryDatabase, memoryData }: MemoryHo
   // The activation owns one evidence write queue. All evidence-backed services
   // take this same connection instead of opening their own copy of the queue.
   let pending = Promise.resolve();
+  let shutdown: Promise<void> | undefined;
   return {
     db,
     events,
     runWrite<T>(work: () => T | Promise<T>): Promise<T> {
+      if (shutdown) return Promise.reject(new Error('memory_storage_closed'));
       const result = pending.then(work);
       pending = result.then(() => undefined, () => undefined);
       return result;
     },
-    async close() {
-      await pending;
-      events.close();
-      db.close();
+    close() {
+      return (shutdown ??= pending.then(() => {
+        events.close();
+        db.close();
+      }));
     },
   };
 }

@@ -18,6 +18,7 @@ import { profileOutputSchemas } from '@clowder-ai/plugin-memory-contract/profile
 
 import { createMemoryPluginModule } from '../dist/plugin-entrypoint.js';
 import type { MemoryThreadKvPort } from '../src/host-port.js';
+import { openMemoryStorage } from '../dist/open-memory-storage.js';
 
 const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
 let dataDir: string;
@@ -183,6 +184,19 @@ test('memory.describe carries no business parameters and reports exactly the v1 
     ],
     storageFormat: 1,
   });
+});
+
+test('storage drains an admitted write, then rejects writes submitted during shutdown', async () => {
+  const memoryPorts = host(fakeKv().port) as unknown as Parameters<typeof openMemoryStorage>[0];
+  const storage = await openMemoryStorage(memoryPorts);
+  let completeWrite!: () => void;
+  const write = storage.runWrite(() => new Promise<void>((resolve) => { completeWrite = resolve; }));
+  await Promise.resolve();
+  const stopping = storage.close();
+  const late = assert.rejects(storage.runWrite(() => assert.fail('late write ran')), /memory_storage_closed/);
+  completeWrite();
+  await Promise.all([write, stopping, late]);
+  assert.equal(storage.close(), stopping);
 });
 
 test('a Host without the authorized memory port fails admission instead of degrading to an empty store', async () => {

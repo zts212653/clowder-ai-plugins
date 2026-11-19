@@ -38,7 +38,7 @@ export interface MemoryThreadKvPort {
 export interface MemoryHostPorts {
   readonly memoryThreadKv: MemoryThreadKvPort;
   readonly memoryDatabase: { readonly canonicalPath: string; readonly storageFormat: 1 };
-  readonly memoryData: { readonly dataDir: string; readonly eventDbPath: string };
+  readonly memoryData: { readonly dataDir: string; readonly eventDbPath: string; readonly tasteProjectRoot?: string };
   readonly memorySource: MatterSourceReaders & {
     caller(): Promise<MatterCallAuthority>;
     assertCurrent(): Promise<void>;

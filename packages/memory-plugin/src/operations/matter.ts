@@ -8,6 +8,7 @@ export interface MatterCallAuthority {
   userId: string;
   viewer: MatterActor['viewer'];
   publicReply?: boolean;
+  privateOwnerAccess?: boolean;
   threadId: string;
   invocationId: string;
   triggerMessageId?: string;

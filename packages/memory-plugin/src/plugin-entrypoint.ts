@@ -9,6 +9,7 @@ import { entityOutputSchemas } from '@clowder-ai/plugin-memory-contract/entity';
 import { eventOutputSchemas } from '@clowder-ai/plugin-memory-contract/event';
 import { matterOutputSchemas } from '@clowder-ai/plugin-memory-contract/matter';
 import { profileOutputSchemas } from '@clowder-ai/plugin-memory-contract/profile';
+import { tasteBrowseOutputSchemas } from '@clowder-ai/plugin-memory-contract/taste';
 import {
   definePlugin,
   definePluginModule,
@@ -24,6 +25,7 @@ import { dispatchEvent } from './operations/event.js';
 import { ThreadKvOperations } from './operations/kv.js';
 import { createMatterDispatch } from './operations/matter.js';
 import { dispatchProfile } from './operations/profile.js';
+import { createTasteDispatch } from './operations/taste.js';
 import { FileProfileRepository } from './profile/FileProfileRepository.js';
 import { ProfileMemoryLifecycleStore } from './profile/ProfileMemoryLifecycleStore.js';
 
@@ -33,7 +35,7 @@ export const MEMORY_DESCRIBE_METHOD = 'memory.describe';
 /** The single typed business entry point. */
 export const MEMORY_DISPATCH_METHOD = 'memory.dispatch';
 
-function memoryDescriptor(): MemoryDescriptor {
+function memoryDescriptor(tasteReady: boolean): MemoryDescriptor {
   return {
     protocolMajor: MEMORY_PROTOCOL_MAJOR,
     operations: [
@@ -42,6 +44,7 @@ function memoryDescriptor(): MemoryDescriptor {
       ...Object.keys(eventOutputSchemas),
       ...Object.keys(profileOutputSchemas),
       ...Object.keys(entityOutputSchemas),
+      ...(tasteReady ? Object.keys(tasteBrowseOutputSchemas) : []),
     ],
     storageFormat: MEMORY_STORAGE_FORMAT,
   };
@@ -69,7 +72,8 @@ function requireMemoryPorts(host: ModulePluginHostShape): MemoryHostPorts {
   }
   if (
     !isAbsolute(memoryData?.dataDir ?? '') ||
-    (memoryData?.eventDbPath !== ':memory:' && !isAbsolute(memoryData?.eventDbPath ?? ''))
+    (memoryData?.eventDbPath !== ':memory:' && !isAbsolute(memoryData?.eventDbPath ?? '')) ||
+    (memoryData?.tasteProjectRoot !== undefined && !isAbsolute(memoryData.tasteProjectRoot))
   ) {
     throw new TypeError('memory plugin requires the canonical Host Profile and Event data locations');
   }
@@ -82,6 +86,7 @@ async function activate(ports: MemoryHostPorts) {
   const kv = new ThreadKvOperations(ports.memoryThreadKv);
   const matter = createMatterDispatch(storage, memorySource);
   const entity = createEntityDispatch(storage, memorySource);
+  const taste = memoryData.tasteProjectRoot && createTasteDispatch(storage.db, memoryData.tasteProjectRoot, memorySource);
   const profile = new ProfileMemoryLifecycleStore({
     db: storage.db,
     repository: new FileProfileRepository({ dataDir: memoryData.dataDir }),
@@ -91,7 +96,7 @@ async function activate(ports: MemoryHostPorts) {
     actions: {
       // Admission probe. Business-parameter free: a Host must be able to ask
       // "what do you speak?" before it trusts any business call.
-      [MEMORY_DESCRIBE_METHOD]: () => memoryDescriptor(),
+      [MEMORY_DESCRIBE_METHOD]: () => memoryDescriptor(Boolean(taste)),
       [MEMORY_DISPATCH_METHOD]: (input: unknown) => {
         const operation = (input as { operation?: unknown } | null)?.operation;
         if (typeof operation === 'string') {
@@ -99,6 +104,7 @@ async function activate(ports: MemoryHostPorts) {
           if (operation.startsWith('event.')) return dispatchEvent(storage.events, memorySource, input);
           if (operation.startsWith('profile.')) return dispatchProfile(profile, storage, memorySource, input);
           if (operation.startsWith('entity.')) return entity(input);
+          if (operation.startsWith('taste.') && taste) return taste(input);
         }
         return dispatchMemory(kv, input);
       },

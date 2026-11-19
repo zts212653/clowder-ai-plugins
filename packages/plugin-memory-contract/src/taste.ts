@@ -78,3 +78,47 @@ export interface TasteTakeawayCandidate {
   basedOnRevision: string;
   candidateRevision: string;
 }
+
+const tastePayload = z.object({
+  when: z.string(),
+  quotes: z.array(z.string()),
+  takeaway: z.string().optional(),
+  scene: z.string(),
+  tags: z.array(z.string()),
+  dimension: z.enum(TASTE_DIMENSIONS).optional(),
+  catId: z.string().optional(),
+  proposalId: z.string().optional(),
+});
+const tasteBrowseEntry = z.object({
+  ownerUserId: z.string(),
+  visibility: z.enum(['public', 'private']),
+  sourcePath: z.string(),
+  revision: memoryOwnerRevisionSchema,
+  status: z.enum(['active', 'retired']),
+  payload: tastePayload,
+  takeawayCandidate: z.object({
+    status: z.literal('pending_owner_confirmation'),
+    takeaway: z.string(),
+    basedOnRevision: memoryOwnerRevisionSchema,
+    candidateRevision: memoryOwnerRevisionSchema,
+  }).nullable(),
+});
+const tasteMemoryIdSchema = z.string().regex(/^taste-[0-9a-f]{24}$/u);
+export const tasteBrowseDispatchSchema = z.discriminatedUnion('operation', [
+  z.object({ operation: z.literal('taste.list'), input: z.object({}).strict() }).strict(),
+  z.object({
+    operation: z.literal('taste.get'),
+    input: z.object({ memoryId: tasteMemoryIdSchema }).strict(),
+  }).strict(),
+  z.object({
+    operation: z.literal('taste.action_source'),
+    input: z.object({ memoryId: tasteMemoryIdSchema }).strict(),
+  }).strict(),
+]);
+export type TasteBrowseDispatchInput = z.infer<typeof tasteBrowseDispatchSchema>;
+export type TasteBrowseEntry = z.infer<typeof tasteBrowseEntry>;
+export const tasteBrowseOutputSchemas = {
+  'taste.list': tasteBrowseEntry.array(),
+  'taste.get': tasteBrowseEntry.nullable(),
+  'taste.action_source': z.string().nullable(),
+} satisfies Record<TasteBrowseDispatchInput['operation'], z.ZodType>;
