@@ -1,4 +1,5 @@
 import {
+  memoryCueInvocationRequest,
   type MemoryRecallCandidate,
   memoryRecallCandidateRequest,
   type MemoryRecallEvent,
@@ -9,6 +10,8 @@ import {
   type MemoryRecallTimelineResult,
 } from '@clowder-ai/plugin-memory-contract/recall';
 import type Database from 'better-sqlite3';
+import { MemoryCueEpisodeStore } from '../cue/MemoryCueEpisodeStore.js';
+import { projectInvocationCues } from '../cue/project-invocation-cues.js';
 import type { MemoryHostPorts } from '../host-port.js';
 
 export function dispatchRecallStats(db: Database.Database, request: unknown): MemoryRecallStatsResult {
@@ -82,4 +85,15 @@ export function dispatchRecallCandidate(db: Database.Database, request: unknown)
     WHERE anchor = ? AND collection_id IS NULL AND world_id IS NULL
       AND kind IN (SELECT value FROM json_each(?))
   `).get(input.anchor, JSON.stringify(input.kinds)) ?? null;
+}
+
+export async function dispatchCueInvocation(
+  db: Database.Database,
+  source: MemoryHostPorts['memorySource'],
+  request: unknown,
+) {
+  const { input } = memoryCueInvocationRequest.parse(request);
+  const { userId } = await source.caller();
+  await source.assertCurrent();
+  return projectInvocationCues(new MemoryCueEpisodeStore(db).listByInvocation(userId, input.threadId, input.invocationId));
 }

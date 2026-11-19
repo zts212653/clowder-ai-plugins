@@ -30,6 +30,7 @@ import { createMatterDispatch } from './operations/matter.js';
 import { dispatchProfile } from './operations/profile.js';
 import { dispatchProjectIndex } from './operations/project-index-state.js';
 import {
+  dispatchCueInvocation,
   dispatchRecallCandidate,
   dispatchRecallEvent,
   dispatchRecallStats,
@@ -57,6 +58,7 @@ function memoryDescriptor(tasteReady: boolean): MemoryDescriptor {
       'recall.timeline',
       'recall.event',
       'recall.candidate',
+      'cue.invocation',
       ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
@@ -125,6 +127,7 @@ async function activate(ports: MemoryHostPorts) {
           if (operation === 'recall.timeline') return dispatchRecallTimeline(storage.db, memorySource, input);
           if (operation === 'recall.event') return dispatchRecallEvent(storage.db, input);
           if (operation === 'recall.candidate') return dispatchRecallCandidate(storage.db, input);
+          if (operation === 'cue.invocation') return dispatchCueInvocation(storage.db, memorySource, input);
           if (operation.startsWith('index.project.')) {
             return dispatchProjectIndex(storage, projectIndexClaims, () => memorySource.assertCurrent(), input);
           }

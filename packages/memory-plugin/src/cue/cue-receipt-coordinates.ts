@@ -1,21 +1,10 @@
 import { z } from 'zod';
 import { recallScopeV1Schema } from '@clowder-ai/plugin-memory-contract/matter';
+import { memoryCueResolverFamilies as RECALL_RESOLVER_FAMILIES } from '@clowder-ai/plugin-memory-contract/recall';
 
 export const RECALL_OPPORTUNITY_CATALOG_VERSION = 9 as const;
 
-export const RECALL_RESOLVER_FAMILIES = [
-  'person_entity',
-  'operational_precedent',
-  'taste',
-  'profile',
-  'event',
-  'decision',
-  'project_knowledge',
-  'cat_owned_seed',
-  'thread_overview',
-  'matter',
-  'message_evidence',
-] as const;
+export { RECALL_RESOLVER_FAMILIES };
 
 export type RecallResolverFamily = (typeof RECALL_RESOLVER_FAMILIES)[number];
 

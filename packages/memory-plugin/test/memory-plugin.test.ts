@@ -190,6 +190,7 @@ test('memory.describe carries no business parameters and reports exactly the v1 
       'recall.timeline',
       'recall.event',
       'recall.candidate',
+      'cue.invocation',
       ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
@@ -352,6 +353,17 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
       ('fixture-owner', 'owned', 'c1', 'cue1', 200, 'consumption', 'presented', 'explicit_read', 'codex'),
       ('other-owner', 'owned', 'c2', 'cue2', 200, 'consumption', 'presented', 'explicit_read', 'codex'),
       ('fixture-owner', 'foreign', 'c3', 'cue3', 200, 'consumption', 'presented', 'explicit_read', 'codex');
+    ALTER TABLE memory_cue_events ADD COLUMN event_id TEXT DEFAULT 'fixture-event';
+    ALTER TABLE memory_cue_events ADD COLUMN idempotency_key TEXT DEFAULT 'fixture-key';
+    ALTER TABLE memory_cue_events ADD COLUMN opportunity_id TEXT DEFAULT 'preparation-fixture';
+    ALTER TABLE memory_cue_events ADD COLUMN resolver_family TEXT DEFAULT 'taste';
+    ALTER TABLE memory_cue_events ADD COLUMN source_anchor TEXT DEFAULT 'fixture-taste';
+    ALTER TABLE memory_cue_events ADD COLUMN source_revision TEXT DEFAULT 'r1';
+    ALTER TABLE memory_cue_events ADD COLUMN invalidation_reason TEXT;
+    ALTER TABLE memory_cue_events ADD COLUMN catalog_version INTEGER DEFAULT 9;
+    ALTER TABLE memory_cue_events ADD COLUMN resolver_version INTEGER DEFAULT 1;
+    ALTER TABLE memory_cue_events ADD COLUMN created_at TEXT DEFAULT '2026-11-19T00:00:00Z';
+    ALTER TABLE memory_cue_events ADD COLUMN read_details_json TEXT;
   `);
   db.close();
   const active = await start();
@@ -378,6 +390,14 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
   for (const anchor of ['secret-collection', 'secret-world', 'gotcha-internal', 'missing']) {
     assert.equal(await dispatch({ ...title, input: { ...title.input, anchor } }), null);
   }
+  const cue = { operation: 'cue.invocation', input: { threadId: 'owned', invocationId: 'c1' } };
+  assert.deepEqual(await dispatch(cue), [{
+    cueId: 'cue1', resolverFamily: 'taste', sourceAnchor: 'fixture-taste', sourceRevision: 'r1',
+    consumerCatId: 'codex', source: 'pull', status: 'presented_unreported', invalidationReason: null,
+    presentedAt: 200, lastEventAt: 200,
+  }]);
+  assert.deepEqual(await dispatch({ ...cue, input: { ...cue.input, invocationId: 'c2' } }), []);
+  assert.deepEqual(await dispatch({ ...cue, input: { ...cue.input, threadId: 'foreign' } }), []);
 });
 
 test('a Host without the authorized memory port fails admission instead of degrading to an empty store', async () => {

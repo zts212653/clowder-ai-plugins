@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { matterReadDetailsSchema } from './matter.js';
 
 const count = z.number().int().nonnegative();
 const window = z.object({ threadIds: z.array(z.string().min(1)), from: count, to: count }).strict();
@@ -76,3 +77,39 @@ export type MemoryRecallCandidateRequest = z.infer<typeof memoryRecallCandidateR
 
 export const memoryRecallCandidateResult = z.object({ title: z.string(), kind: z.string() }).strict().nullable();
 export type MemoryRecallCandidate = NonNullable<z.infer<typeof memoryRecallCandidateResult>>;
+
+export const memoryCueResolverFamilies = [
+  'person_entity',
+  'operational_precedent',
+  'taste',
+  'profile',
+  'event',
+  'decision',
+  'project_knowledge',
+  'cat_owned_seed',
+  'thread_overview',
+  'matter',
+  'message_evidence',
+] as const;
+
+export const memoryCueInvocationRequest = z.object({
+  operation: z.literal('cue.invocation'),
+  input: z.object({ threadId: z.string().min(1), invocationId: z.string().min(1) }).strict(),
+}).strict();
+export type MemoryCueInvocationRequest = z.infer<typeof memoryCueInvocationRequest>;
+
+export const memoryCueInvocationResult = z.array(z.object({
+  cueId: z.string(),
+  resolverFamily: z.enum(memoryCueResolverFamilies),
+  sourceAnchor: z.string(),
+  sourceRevision: z.string(),
+  consumerCatId: z.string(),
+  source: z.enum(['push', 'pull']).optional(),
+  readDetails: matterReadDetailsSchema.optional(),
+  pushSurface: z.literal('profile_opening').optional(),
+  status: z.enum(['applied', 'dismissed', 'drilled', 'presented_unreported', 'invalidated']),
+  invalidationReason: z.enum(['source_corrected', 'source_forgotten', 'scope_revoked', 'superseded', 'expired']).nullable(),
+  presentedAt: count,
+  lastEventAt: count,
+}).strict());
+export type MemoryCueInvocationEntry = z.infer<typeof memoryCueInvocationResult>[number];
