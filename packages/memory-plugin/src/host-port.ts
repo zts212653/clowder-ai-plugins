@@ -33,18 +33,28 @@ export interface MemoryThreadKvPort {
 }
 
 /**
- * The Host-provisioned memory ports. Supplied on the module host shape; a Host
- * that does not supply them fails admission rather than silently serving an
- * empty memory library.
- *
- * The Host also offers `memoryDatabase` (the resolved evidence-database
- * coordinate). It is deliberately not required here: no operation in this batch
- * opens that database, and demanding an unused port would fail admission on a
- * Host for a capability the plugin never exercises. The evidence-retrieval batch
- * adds it together with its first real consumer.
+ * Host-provisioned memory ports, supplied on the module host shape. A Host that
+ * does not supply them fails admission rather than silently serving an empty
+ * memory library.
  */
 export interface MemoryHostPorts {
   readonly memoryThreadKv: MemoryThreadKvPort;
+  readonly memoryDatabase: MemoryDatabasePort;
+}
+
+/**
+ * The evidence database the Host resolved for this deployment.
+ *
+ * Only the coordinate travels: the plugin runs in a worker thread and cannot be
+ * handed a connection. The plugin opens its own handle on this exact path and
+ * never derives one — `dataPath`, the deployment default, or any other root is
+ * not a substitute, because that path may name a different file entirely.
+ */
+export interface MemoryDatabasePort {
+  /** Absolute path the Host resolved for evidence storage. Diagnostic and open target only. */
+  readonly canonicalPath: string;
+  /** Storage format the Host can still read and roll back to. */
+  readonly storageFormat: number;
 }
 
 /** Parse a stored raw field; unusable records are skipped exactly as the legacy store did. */

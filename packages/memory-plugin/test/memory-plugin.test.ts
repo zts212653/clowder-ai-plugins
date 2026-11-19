@@ -1,113 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import { parse } from 'yaml';
 import { validateManifest } from '@clowder-ai/plugin-contract';
-import type { ModulePluginHostShape } from '@clowder-ai/plugin-sdk';
 import { MEMORY_REQUIRED_OPERATIONS } from '@clowder-ai/plugin-memory-contract';
 
 import { createMemoryPluginModule } from '../src/plugin-entrypoint.js';
-import type { MemoryThreadKvPort } from '../src/host-port.js';
-
-const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
-
-/** In-memory Host port standing in for the authorized Redis hash surface. */
-function fakeKv() {
-  const hashes = new Map<string, Map<string, string>>();
-  const writes: string[] = [];
-  /**
-   * When set, the next compare-and-set reports a losing race once. This is the
-   * concurrent-writer case the plugin's retry exists for, and it must not apply
-   * the mutation on that attempt.
-   */
-  let loseNext = false;
-  const port: MemoryThreadKvPort = {
-    get: async (threadRef, key) => hashes.get(threadRef)?.get(key) ?? null,
-    list: async (threadRef) => Object.fromEntries(hashes.get(threadRef) ?? []),
-    compareAndSet: async (threadRef, expected, mutation) => {
-      if (loseNext) {
-        loseNext = false;
-        return false;
-      }
-      const current = hashes.get(threadRef) ?? new Map<string, string>();
-      const fields = Object.entries(expected);
-      if (current.size !== fields.length || fields.some(([k, v]) => current.get(k) !== v)) return false;
-      current.set(mutation.set.key, mutation.set.value);
-      if (mutation.removeKey !== undefined && mutation.removeKey !== mutation.set.key) {
-        current.delete(mutation.removeKey);
-      }
-      hashes.set(threadRef, current);
-      writes.push(`${threadRef}/${mutation.set.key}`);
-      return true;
-    },
-    delete: async (threadRef, key) => hashes.get(threadRef)?.delete(key) ?? false,
-  };
-  return { port, hashes, writes, loseNextCompareAndSet: () => { loseNext = true; } };
-}
-
-function host(memoryThreadKv?: unknown): ModulePluginHostShape {
-  return {
-    pluginInstanceId: 'memory-instance',
-    config: { get: async () => undefined },
-    secrets: { get: async () => undefined },
-    storage: {
-      get: async () => undefined,
-      list: async () => ({}),
-      set: async () => ({ revision: 1 }),
-      compareAndSet: async () => ({ applied: true, revision: 1 }),
-      delete: async () => ({ deleted: false }),
-    },
-    tasks: {
-      get: async () => null,
-      list: async () => [],
-      create: async () => {
-        throw new Error('unused');
-      },
-      update: async () => null,
-    },
-    threads: {
-      get: async () => null,
-      list: async () => [],
-      readMessages: async () => {
-        throw new Error('unused');
-      },
-      getCats: async () => {
-        throw new Error('unused');
-      },
-      create: async () => {
-        throw new Error('unused');
-      },
-      update: async () => {
-        throw new Error('unused');
-      },
-      addParticipants: async () => {
-        throw new Error('unused');
-      },
-    },
-    messaging: {
-      get: async () => null,
-      send: async () => {
-        throw new Error('unused');
-      },
-      subscribe: async () => {
-        throw new Error('unused');
-      },
-      unsubscribe: async () => {
-        throw new Error('unused');
-      },
-    },
-    streams: {
-      read: async function* () {
-        throw new Error('unused');
-      },
-    },
-    external: { endpoint: 'http://127.0.0.1/unused', token: 'unused' },
-    dataPath: '/tmp/memory-plugin-test-data',
-    log: () => undefined,
-    ...(memoryThreadKv === undefined ? {} : { memoryThreadKv }),
-  } as ModulePluginHostShape;
-}
+import { fakeKv, host, manifest } from './host-fixture.js';
 
 async function start(module = createMemoryPluginModule(), port: unknown = fakeKv().port) {
   return module.create(manifest).start(host(port));
@@ -128,7 +26,7 @@ test('manifest is a valid builtin module that declares its durable memory state'
   assert.ok(declared.has('memory-evidence-index'));
 });
 
-test('memory.describe carries no business parameters and reports exactly the v1 contract', async (t) => {
+test('memory.describe carries no business parameters and reports the offered v1 contract', async (t) => {
   const active = await start();
   t.after(() => active.stop({ reason: 'test' }));
   const descriptor = (await active.actions['memory.describe']!({})) as {
@@ -136,11 +34,11 @@ test('memory.describe carries no business parameters and reports exactly the v1 
     operations: string[];
     storageFormat: number;
   };
-  assert.deepEqual(descriptor, {
-    protocolMajor: 1,
-    operations: [...MEMORY_REQUIRED_OPERATIONS],
-    storageFormat: 1,
-  });
+  assert.equal(descriptor.protocolMajor, 1);
+  assert.equal(descriptor.storageFormat, 1);
+  // The admission floor, plus the families this plugin additionally offers.
+  for (const operation of [...MEMORY_REQUIRED_OPERATIONS, 'search.query'])
+    assert.ok(descriptor.operations.includes(operation), operation);
 });
 
 test('a Host without the authorized memory port fails admission instead of degrading to an empty store', async () => {

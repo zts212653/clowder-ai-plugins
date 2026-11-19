@@ -1,9 +1,4 @@
-import {
-  MEMORY_PROTOCOL_MAJOR,
-  MEMORY_REQUIRED_OPERATIONS,
-  MEMORY_STORAGE_FORMAT,
-  type MemoryDescriptor,
-} from '@clowder-ai/plugin-memory-contract';
+import { memoryDescriptor } from '@clowder-ai/plugin-memory-contract';
 import {
   definePlugin,
   definePluginModule,
@@ -12,9 +7,10 @@ import {
   type PluginModuleEntrypoint,
 } from '@clowder-ai/plugin-sdk';
 
-import type { MemoryHostPorts, MemoryThreadKvPort } from './host-port.js';
+import type { MemoryDatabasePort, MemoryHostPorts, MemoryThreadKvPort } from './host-port.js';
 import { dispatchMemory } from './operations/dispatch.js';
 import { ThreadKvOperations } from './operations/kv.js';
+import { SearchOperations } from './operations/search.js';
 
 /** The internal admission call made between loading actions and declaring healthy. */
 export const MEMORY_DESCRIBE_METHOD = 'memory.describe';
@@ -22,20 +18,15 @@ export const MEMORY_DESCRIBE_METHOD = 'memory.describe';
 /** The single typed business entry point. */
 export const MEMORY_DISPATCH_METHOD = 'memory.dispatch';
 
-function memoryDescriptor(): MemoryDescriptor {
-  return {
-    protocolMajor: MEMORY_PROTOCOL_MAJOR,
-    operations: [...MEMORY_REQUIRED_OPERATIONS],
-    storageFormat: MEMORY_STORAGE_FORMAT,
-  };
-}
-
 /**
- * The Host field this plugin reads, declared here because the published SDK type
- * predates it. Reading one named field is the boundary check; everything below
- * receives an already-typed port.
+ * The Host fields this plugin reads, declared here because the published SDK type
+ * predates them. Reading named fields is the boundary check; everything below
+ * receives already-typed ports.
  */
-type HostWithMemoryThreadKv = ModulePluginHostShape & { readonly memoryThreadKv?: unknown };
+type HostWithMemoryPorts = ModulePluginHostShape & {
+  readonly memoryThreadKv?: unknown;
+  readonly memoryDatabase?: unknown;
+};
 
 /**
  * Accept the Host ports once, at the boundary.
@@ -45,7 +36,7 @@ type HostWithMemoryThreadKv = ModulePluginHostShape & { readonly memoryThreadKv?
  * while hiding every existing record.
  */
 function requireMemoryPorts(host: ModulePluginHostShape): MemoryHostPorts {
-  const memoryThreadKv = (host as HostWithMemoryThreadKv).memoryThreadKv;
+  const memoryThreadKv = (host as HostWithMemoryPorts).memoryThreadKv;
   if (memoryThreadKv === null || typeof memoryThreadKv !== 'object') {
     throw new TypeError('memory plugin requires the authorized Host memoryThreadKv port');
   }
@@ -55,17 +46,29 @@ function requireMemoryPorts(host: ModulePluginHostShape): MemoryHostPorts {
       throw new TypeError(`memory plugin memoryThreadKv port must supply ${method}`);
     }
   }
-  return { memoryThreadKv: memoryThreadKv as MemoryThreadKvPort };
+  const database = (host as HostWithMemoryPorts).memoryDatabase;
+  if (database === null || typeof database !== 'object') {
+    throw new TypeError('memory plugin requires the Host memoryDatabase coordinate');
+  }
+  const coordinate = database as Record<string, unknown>;
+  if (typeof coordinate.canonicalPath !== 'string' || coordinate.canonicalPath.length === 0) {
+    throw new TypeError('memory plugin memoryDatabase port must supply canonicalPath');
+  }
+  return {
+    memoryThreadKv: memoryThreadKv as MemoryThreadKvPort,
+    memoryDatabase: database as MemoryDatabasePort,
+  };
 }
 
 function activate(context: FeatureContext, ports: MemoryHostPorts) {
   const kv = new ThreadKvOperations(ports.memoryThreadKv);
+  const search = new SearchOperations(ports.memoryDatabase);
   return {
     actions: {
       // Admission probe. Business-parameter free: a Host must be able to ask
       // "what do you speak?" before it trusts any business call.
       [MEMORY_DESCRIBE_METHOD]: () => memoryDescriptor(),
-      [MEMORY_DISPATCH_METHOD]: (input: unknown) => dispatchMemory(kv, input),
+      [MEMORY_DISPATCH_METHOD]: (input: unknown) => dispatchMemory(kv, search, input),
     },
   };
 }
