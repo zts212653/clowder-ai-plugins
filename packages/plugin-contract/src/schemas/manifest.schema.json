@@ -186,6 +186,7 @@
             "cloud-conversation-host",
             "ui",
             "content-editor-provider",
+            "content-preview-provider",
             "desktop-window"
           ]
         },
@@ -2032,6 +2033,85 @@
       ],
       "additionalProperties": false
     },
+    "ContentProviderSurface": {
+      "type": "object",
+      "properties": {
+        "entrypoint": {
+          "$ref": "#/$defs/PackageRelativePath"
+        },
+        "integrity": {
+          "type": "string",
+          "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
+        },
+        "sandbox": {
+          "const": "dedicated-origin-iframe",
+          "description": "Host serves the renderer from an origin that has no Host cookies or Host APIs, applies sandbox=allow-scripts allow-same-origin, and sends a frame-ancestors response header restricted to the exact Host origin."
+        },
+        "navigationPolicy": {
+          "const": "navigation-api-deny",
+          "description": "The renderer must install a fail-closed Navigation API listener before upstream code and prevent every self-navigation before its request starts."
+        }
+      },
+      "required": [
+        "entrypoint",
+        "integrity",
+        "sandbox",
+        "navigationPolicy"
+      ],
+      "additionalProperties": false
+    },
+    "ContentPreviewProviderContribution": {
+      "type": "object",
+      "description": "A read-only viewer for authorized file snapshots. This contribution does not grant an editor session or content write operations.",
+      "properties": {
+        "type": {
+          "const": "content-preview-provider"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "formats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "extension": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+$",
+                "maxLength": 32
+              },
+              "mediaType": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$",
+                "maxLength": 255
+              }
+            },
+            "required": [
+              "extension",
+              "mediaType"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "surface": {
+          "$ref": "#/$defs/ContentProviderSurface"
+        },
+        "bridgeVersion": {
+          "const": "1.0.0"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "formats",
+        "surface",
+        "bridgeVersion"
+      ],
+      "additionalProperties": false
+    },
     "ContentEditorProviderContribution": {
       "type": "object",
       "properties": {
@@ -2052,31 +2132,7 @@
           "uniqueItems": true
         },
         "surface": {
-          "type": "object",
-          "properties": {
-            "entrypoint": {
-              "$ref": "#/$defs/PackageRelativePath"
-            },
-            "integrity": {
-              "type": "string",
-              "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
-            },
-            "sandbox": {
-              "const": "dedicated-origin-iframe",
-              "description": "Host serves the renderer from an origin that has no Host cookies or Host APIs, applies sandbox=allow-scripts allow-same-origin, and sends a frame-ancestors response header restricted to the exact Host origin."
-            },
-            "navigationPolicy": {
-              "const": "navigation-api-deny",
-              "description": "The renderer must install a fail-closed Navigation API listener before upstream code and prevent every self-navigation before its request starts."
-            }
-          },
-          "required": [
-            "entrypoint",
-            "integrity",
-            "sandbox",
-            "navigationPolicy"
-          ],
-          "additionalProperties": false
+          "$ref": "#/$defs/ContentProviderSurface"
         },
         "bridgeVersion": {
           "const": "1.0.0"
@@ -2156,6 +2212,9 @@
         },
         {
           "$ref": "#/$defs/ContentEditorProviderContribution"
+        },
+        {
+          "$ref": "#/$defs/ContentPreviewProviderContribution"
         },
         {
           "$ref": "#/$defs/DesktopWindowContribution"
