@@ -181,6 +181,8 @@ test('memory.describe carries no business parameters and reports exactly the v1 
       ...MEMORY_SEARCH_OPERATIONS,
       'index.status',
       'recall.stats',
+      'recall.timeline',
+      'recall.event',
       ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
@@ -305,22 +307,39 @@ test('project index claims and settles legacy state through the activation write
   assert.equal(await restarted.actions['memory.dispatch']!(claim), true);
 });
 
-test('recall statistics count only authorized threads and rows inside the requested window', async (t) => {
+test('recall reads preserve authorized thread scope, time windows and cursor order', async (t) => {
   const binding = `${process.platform}-${process.arch}-abi${process.versions.modules}.node`;
   const nativeBinding = fileURLToPath(new URL(`../dist/native/${binding}`, import.meta.url));
   const db = new Database(evidencePath, { nativeBinding });
   db.exec(`
     CREATE TABLE recall_events (
       source TEXT, push_surface TEXT, tool_name TEXT, inspected INTEGER,
-      outcome TEXT, timestamp INTEGER, thread_id TEXT
+      outcome TEXT, timestamp INTEGER, thread_id TEXT,
+      recall_id TEXT, cat_id TEXT, invocation_id TEXT
     );
     INSERT INTO recall_events VALUES
-      ('pull', NULL, 'search', 1, 'used', 100, 'owned'),
-      ('pull', NULL, 'search', 0, NULL, 199, 'owned'),
-      ('push', 'cue', NULL, 1, NULL, 200, 'owned'),
-      ('pull', NULL, 'search', 1, 'used', 99, 'owned'),
-      ('pull', NULL, 'search', 1, 'used', 201, 'owned'),
-      ('pull', NULL, 'search', 1, 'used', 150, 'foreign');
+      ('pull', NULL, 'search', 1, 'used', 100, 'owned', 'r1', 'codex', 'i1'),
+      ('pull', NULL, 'search', 0, NULL, 199, 'owned', 'r2', 'codex', 'i2'),
+      ('push', 'cue', NULL, 1, NULL, 200, 'owned', 'r3', 'opus', 'i3'),
+      ('pull', NULL, 'search', 1, 'used', 99, 'owned', 'r4', 'codex', 'i4'),
+      ('pull', NULL, 'search', 1, 'used', 201, 'owned', 'r5', 'codex', 'i5'),
+      ('pull', NULL, 'search', 1, 'used', 150, 'foreign', 'r6', 'codex', 'i6');
+    ALTER TABLE recall_events ADD COLUMN query TEXT DEFAULT '';
+    ALTER TABLE recall_events ADD COLUMN mode TEXT;
+    ALTER TABLE recall_events ADD COLUMN scope TEXT;
+    ALTER TABLE recall_events ADD COLUMN candidates_json TEXT DEFAULT '[]';
+    ALTER TABLE recall_events ADD COLUMN consumed_json TEXT DEFAULT '[]';
+    ALTER TABLE recall_events ADD COLUMN source_event_id TEXT;
+    ALTER TABLE recall_events ADD COLUMN result_count INTEGER;
+    ALTER TABLE recall_events ADD COLUMN result_status TEXT;
+    CREATE TABLE memory_cue_events (
+      owner_user_id TEXT, thread_id TEXT, invocation_id TEXT, cue_id TEXT,
+      occurred_at INTEGER, axis TEXT, consumption_outcome TEXT, read_origin TEXT, consumer_cat_id TEXT
+    );
+    INSERT INTO memory_cue_events VALUES
+      ('fixture-owner', 'owned', 'c1', 'cue1', 200, 'consumption', 'presented', 'explicit_read', 'codex'),
+      ('other-owner', 'owned', 'c2', 'cue2', 200, 'consumption', 'presented', 'explicit_read', 'codex'),
+      ('fixture-owner', 'foreign', 'c3', 'cue3', 200, 'consumption', 'presented', 'explicit_read', 'codex');
   `);
   db.close();
   const active = await start();
@@ -333,6 +352,15 @@ test('recall statistics count only authorized threads and rows inside the reques
   ]);
   assert.deepEqual(await dispatch({ ...request, input: { ...request.input, threadIds: [] } }), []);
   await assert.rejects(async () => dispatch({ ...request, input: { ...request.input, from: 201 } }));
+
+  const timeline = { operation: 'recall.timeline', input: { ...request.input, source: 'pull', catId: 'codex', limit: 1 } };
+  const first = await dispatch(timeline) as { at: number; key: string; cue_id: string | null; recall_id: string | null }[];
+  assert.deepEqual(first.map(({ recall_id, cue_id }) => recall_id ?? cue_id), ['cue1', 'r2']);
+  const second = await dispatch({ ...timeline, input: { ...timeline.input, before: { at: first[0].at, key: first[0].key } } }) as typeof first;
+  assert.deepEqual(second.map(({ recall_id, cue_id }) => recall_id ?? cue_id), ['r2', 'r1']);
+  const read = { operation: 'recall.event', input: { recallId: 'r1', threadId: 'owned' } };
+  assert.equal((await dispatch(read) as { recall_id: string; inspected: number }).inspected, 1);
+  assert.equal(await dispatch({ ...read, input: { ...read.input, threadId: 'foreign' } }), null);
 });
 
 test('a Host without the authorized memory port fails admission instead of degrading to an empty store', async () => {

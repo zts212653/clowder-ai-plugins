@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/plugin-memory-contract",
-  "version": "0.1.0-candidate.13",
+  "version": "0.1.0-candidate.14",
   "private": true,
   "description": "Clowder AI memory v1 wire DTOs, validation and explanation. Independent of plugin-contract and the plugin SDK.",
   "license": "MIT",
