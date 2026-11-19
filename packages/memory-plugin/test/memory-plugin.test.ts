@@ -31,7 +31,13 @@ before(() => {
   const binding = `${process.platform}-${process.arch}-abi${process.versions.modules}.node`;
   const nativeBinding = fileURLToPath(new URL(`../dist/native/${binding}`, import.meta.url));
   const db = new Database(evidencePath, { nativeBinding });
-  db.exec('CREATE TABLE schema_version (version INTEGER NOT NULL); INSERT INTO schema_version VALUES (84);');
+  db.exec(`
+    CREATE TABLE schema_version (version INTEGER NOT NULL);
+    INSERT INTO schema_version VALUES (84);
+    CREATE TABLE evidence_docs (
+      anchor TEXT PRIMARY KEY, title TEXT, kind TEXT, collection_id TEXT, world_id TEXT, updated_at TEXT
+    );
+  `);
   db.close();
 });
 
@@ -183,6 +189,7 @@ test('memory.describe carries no business parameters and reports exactly the v1 
       'recall.stats',
       'recall.timeline',
       'recall.event',
+      'recall.candidate',
       ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
@@ -211,8 +218,8 @@ test('index status reads the selected generation and reports persisted vectors w
   const nativeBinding = fileURLToPath(new URL(`../dist/native/${binding}`, import.meta.url));
   const db = new Database(evidencePath, { nativeBinding });
   db.exec(`
-    CREATE TABLE evidence_docs (kind TEXT, updated_at TEXT);
-    INSERT INTO evidence_docs VALUES ('thread', '2026-11-18'), ('lesson', '2026-11-19');
+    INSERT INTO evidence_docs (anchor, kind, updated_at)
+    VALUES ('status-thread', 'thread', '2026-11-18'), ('status-lesson', 'lesson', '2026-11-19');
     CREATE TABLE edges (anchor TEXT);
     INSERT INTO edges VALUES ('one');
     CREATE TABLE evidence_passages (content TEXT);
@@ -332,6 +339,11 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
     ALTER TABLE recall_events ADD COLUMN source_event_id TEXT;
     ALTER TABLE recall_events ADD COLUMN result_count INTEGER;
     ALTER TABLE recall_events ADD COLUMN result_status TEXT;
+    INSERT INTO evidence_docs (anchor, title, kind, collection_id, world_id) VALUES
+      ('F042', 'Public feature', 'feature', NULL, NULL),
+      ('secret-collection', 'Private collection title', 'feature', 'private:owner', NULL),
+      ('secret-world', 'Private world title', 'feature', NULL, 'world-a'),
+      ('gotcha-internal', 'Internal title', 'thread', NULL, NULL);
     CREATE TABLE memory_cue_events (
       owner_user_id TEXT, thread_id TEXT, invocation_id TEXT, cue_id TEXT,
       occurred_at INTEGER, axis TEXT, consumption_outcome TEXT, read_origin TEXT, consumer_cat_id TEXT
@@ -361,6 +373,11 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
   const read = { operation: 'recall.event', input: { recallId: 'r1', threadId: 'owned' } };
   assert.equal((await dispatch(read) as { recall_id: string; inspected: number }).inspected, 1);
   assert.equal(await dispatch({ ...read, input: { ...read.input, threadId: 'foreign' } }), null);
+  const title = { operation: 'recall.candidate', input: { anchor: 'F042', kinds: ['feature', 'lesson'] } };
+  assert.deepEqual(await dispatch(title), { title: 'Public feature', kind: 'feature' });
+  for (const anchor of ['secret-collection', 'secret-world', 'gotcha-internal', 'missing']) {
+    assert.equal(await dispatch({ ...title, input: { ...title.input, anchor } }), null);
+  }
 });
 
 test('a Host without the authorized memory port fails admission instead of degrading to an empty store', async () => {

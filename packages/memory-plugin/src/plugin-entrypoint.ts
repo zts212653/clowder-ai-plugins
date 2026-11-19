@@ -29,7 +29,12 @@ import { ThreadKvOperations } from './operations/kv.js';
 import { createMatterDispatch } from './operations/matter.js';
 import { dispatchProfile } from './operations/profile.js';
 import { dispatchProjectIndex } from './operations/project-index-state.js';
-import { dispatchRecallEvent, dispatchRecallStats, dispatchRecallTimeline } from './operations/recall-read.js';
+import {
+  dispatchRecallCandidate,
+  dispatchRecallEvent,
+  dispatchRecallStats,
+  dispatchRecallTimeline,
+} from './operations/recall-read.js';
 import { SearchOperations } from './operations/search.js';
 import { createTasteDispatch } from './operations/taste.js';
 import { FileProfileRepository } from './profile/FileProfileRepository.js';
@@ -51,6 +56,7 @@ function memoryDescriptor(tasteReady: boolean): MemoryDescriptor {
       'recall.stats',
       'recall.timeline',
       'recall.event',
+      'recall.candidate',
       ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
@@ -118,6 +124,7 @@ async function activate(ports: MemoryHostPorts) {
           if (operation === 'recall.stats') return dispatchRecallStats(storage.db, input);
           if (operation === 'recall.timeline') return dispatchRecallTimeline(storage.db, memorySource, input);
           if (operation === 'recall.event') return dispatchRecallEvent(storage.db, input);
+          if (operation === 'recall.candidate') return dispatchRecallCandidate(storage.db, input);
           if (operation.startsWith('index.project.')) {
             return dispatchProjectIndex(storage, projectIndexClaims, () => memorySource.assertCurrent(), input);
           }

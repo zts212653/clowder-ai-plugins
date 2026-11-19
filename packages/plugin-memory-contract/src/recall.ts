@@ -67,3 +67,12 @@ export const memoryRecallEventResult = z.object({
   inspected: count,
 }).strict().nullable();
 export type MemoryRecallEvent = NonNullable<z.infer<typeof memoryRecallEventResult>>;
+
+export const memoryRecallCandidateRequest = z.object({
+  operation: z.literal('recall.candidate'),
+  input: z.object({ anchor: z.string().min(1), kinds: z.array(z.string().min(1)).min(1) }).strict(),
+}).strict();
+export type MemoryRecallCandidateRequest = z.infer<typeof memoryRecallCandidateRequest>;
+
+export const memoryRecallCandidateResult = z.object({ title: z.string(), kind: z.string() }).strict().nullable();
+export type MemoryRecallCandidate = NonNullable<z.infer<typeof memoryRecallCandidateResult>>;

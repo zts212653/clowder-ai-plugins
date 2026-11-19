@@ -1,4 +1,6 @@
 import {
+  type MemoryRecallCandidate,
+  memoryRecallCandidateRequest,
   type MemoryRecallEvent,
   memoryRecallEventRequest,
   memoryRecallStatsRequest,
@@ -71,4 +73,13 @@ export function dispatchRecallEvent(db: Database.Database, request: unknown) {
       candidates_json, consumed_json, result_count, result_status, timestamp, source, push_surface, inspected
     FROM recall_events WHERE recall_id = ? AND thread_id = ?
   `).get(input.recallId, input.threadId) ?? null;
+}
+
+export function dispatchRecallCandidate(db: Database.Database, request: unknown) {
+  const { input } = memoryRecallCandidateRequest.parse(request);
+  return db.prepare<[string, string], MemoryRecallCandidate>(`
+    SELECT title, kind FROM evidence_docs
+    WHERE anchor = ? AND collection_id IS NULL AND world_id IS NULL
+      AND kind IN (SELECT value FROM json_each(?))
+  `).get(input.anchor, JSON.stringify(input.kinds)) ?? null;
 }
