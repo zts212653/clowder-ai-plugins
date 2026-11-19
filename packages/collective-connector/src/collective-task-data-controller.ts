@@ -40,15 +40,10 @@ function requiredTask(task:PluginTaskReadItem|null):EntrustedTask {
   return task as EntrustedTask;
 }
 
-// Explicit row type: an inferred one names the SDK's nested contract copy, which is not a portable
-// declaration once the workspace SDK moves on and this package resolves its pinned SDK from npm (TS2742).
-export type CollectiveTaskControllerRow={key:string;label:string;detail:string;
-  actions?:ReturnType<typeof operationRowAction>[]};
-
 export async function listCollectiveTaskDataControllerRows(
   ports:Pick<Ports,'pluginInstanceId'|'tasks'|'storage'>,ownerUserId:string,current:()=>Promise<void>,
-):Promise<CollectiveTaskControllerRow[]> {
-  const rows:CollectiveTaskControllerRow[]=[];
+) {
+  const rows=[];
   for(const task of await ports.tasks.list({kind:'work'})){
     await current();
     const work=task.entrustedWork,sourceRef=work?.admission.sourceRefs[0];
