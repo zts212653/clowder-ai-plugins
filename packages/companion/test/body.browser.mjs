@@ -234,6 +234,44 @@ test('reopened, he is as he was: the ball where it lay and the beret still askew
   }
 });
 
+test('reopened with the beret askew over a draft at frame 7, a ball thrown far away puts the draft off; every report still names it', async () => {
+  const snapshot = {
+    schemaVersion: 1, pose: { hub: 'FS', facing: 'right', x: 0.3 }, ball: { x: 0.36, h: 0, ceil: false }, paper: { x: 0.3 },
+    hat: { askew: true }, activity: { kind: 'draft', frame: 7 }, lastSolo: null,
+  };
+  const { page, errors, sent, cat, region } = await openBody({ kind: 'scene', status: 'found', revision: 4, snapshot });
+  try {
+    assert.equal((await cat()).activity, 'draft:7', 'waiting behind the beret');
+    const { ball, center } = await region();
+    const [bx, by] = center(ball);
+    await page.evaluate(() => { window.__clips = []; });
+    await page.mouse.move(bx, by);
+    await page.mouse.down();
+    await page.mouse.move(bx + 120, by - 80, { steps: 2 });
+    await page.mouse.move(bx + 420, by - 220, { steps: 3 });
+    await page.mouse.up();
+    await page.waitForFunction(() => window.__clips.includes('pounce'), null, { timeout: 30000 });
+    // he has the ball, far from the sheet, and sits up again
+    await page.waitForFunction(() => {
+      const c = window.__xxCat();
+      return !c.ball.fresh && !c.askew && /^fs-(?:idle|look)/u.test(c.clip) && Math.abs(c.x - c.paper) > 400;
+    }, null, { timeout: 30000 });
+    // alone, he sets off for the box from the same idle loop that would go back to a draft within reach
+    await page.waitForFunction(() => window.__xxCat().hide, null, { timeout: 30000 });
+    await page.evaluate(() => window.__emit({ kind: 'scene-flush' }));
+    await page.waitForFunction(() => window.__sent.filter(c => c.kind === 'scene.report').length > 0);
+    const state = await cat();
+    assert.equal(state.activity, 'draft:7', `put off, not finished: ${state.clip} at ${state.x}, the sheet at ${state.paper}`);
+    assert.ok(!(await page.evaluate(() => window.__clips)).some(clip => /^fs-draft/u.test(clip)), 'no draft frame played out of reach');
+    const reports = await sent('scene.report');
+    assert.ok(reports.length > 0);
+    for (const report of reports) assert.deepEqual(report.snapshot.activity, { kind: 'draft', frame: 7 }, 'the next reopen still knows the draft');
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
 test('body-area sizes him: the Host\'s standHeight grows and shrinks the drawn cat and his click region; an area without one keeps his size', async () => {
   const { page, errors, cat, region } = await openBody({ kind: 'scene', status: 'not_found' });
   const settle = () => page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));

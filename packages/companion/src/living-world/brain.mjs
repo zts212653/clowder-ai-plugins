@@ -1,6 +1,7 @@
 // F336 Phase C: the small brain (ported from the card engine): called whenever he arrives at a pose, or finishes one loop
 // of an idle. In-session interruptions keep cat.resume for 120 s; a reopened body is restored by scene.mjs instead, and
-// an activity that restore put off for the beret waits in cat.restore, with no clock, until he has put it straight.
+// an activity that restore put off for the beret waits in cat.restore, with no clock, until he has put it straight and
+// it really goes on from its saved frame (a chase, your hand, the box or a sheet out of reach only put it off longer).
 // With the owner's 自主活动 off (e.behaviorEnabled, from the Host's body-preferences) he starts nothing by himself: no
 // activity of his own, no going back to one the ball broke off, no fetching the ball on his own, no daydream or groom on
 // waking. He keeps to his idle and rest poses, still answers your hand and a thrown ball, and whatever is already under
@@ -71,10 +72,10 @@ export function installBrain(e) {
     if (hub === 'SS') {
       const want = cat.want; cat.want = null;
       if (chaseWanted() || ball.held || from === 'ssd-to-ss') return ssGo();
-      // a groom: he turned to the side for it, or he has just woken up and sat up
-      if (WD.clips['ss-groom'] && (want === 'groom' || (ownLife() && from === 'loaf-to-ss' && !pointerRecent(2500) && e.random() < 0.6))) {
-        const at = cat.groomAt || 0; cat.groomAt = 0; cat.restore = null; return play('ss-groom', at);
-      }
+      // a groom: he turned to the side for it, or he has just woken up and sat up (not over a draft a restore put off:
+      // that one is still his to finish); a groom a restore put off goes on from its saved stroke (e.groomStart)
+      const awake = ownLife() && from === 'loaf-to-ss' && !pointerRecent(2500) && (!cat.restore || cat.restore.kind === 'groom') && e.random() < 0.6;
+      if (WD.clips['ss-groom'] && (want === 'groom' || awake)) return play('ss-groom', e.groomStart());
       if (from === 'ss-groom') return play(cat.energy < 0.4 ? 'ss-to-ssd' : 'ss-to-fs');
       return play('ss-idle', (from && WD.clips[from] && WD.clips[from].enterAt) || 0);
     }
@@ -137,21 +138,24 @@ export function installBrain(e) {
       if (ownLife() && bored > 16000 && cat.energy > 0.6 && Math.abs(ball.x - cat.x) > REACH) { ball.fresh = true; say('他自己去找纸团玩了'); }
       if (bored > 8000 && cat.energy < 0.4 && !ball.fresh && canMove()) return play('fs-to-ss'), true;
       if (chaseWanted()) { arrive('FS'); return true; }
-      // the activity a reopen put off for the beret: picked up where it was saved (scene.mjs), however long that took
+      // the activity a reopen put off for the beret: picked up where it was saved (scene.mjs), however long that took;
+      // a draft out of his reach waits (resumeRestored is false and keeps it) until he next sits beside the sheet
       if (cat.restore && canMove() && !ball.held && !ball.fresh && !pointerRecent(3000) && e.resumeRestored()) return true;
       // nobody is playing with him (11-17 一个人在家): something of his own, never the same one twice running; after
       // two of them he goes and gets the ball himself
       const rs = cat.resume && now - cat.resume.at < IN_SESSION_RESUME_MS ? cat.resume : null;
       if (rs && ownLife() && bored > 2500 && canMove() && !ball.held && !ball.fresh && !pointerRecent(3000)) {
-        if (rs.kind === 'groom') { cat.resume = null; cat.want = 'groom'; cat.groomAt = 0; play('fs-to-ss'); say('他接着把毛理完'); return true; }
+        if (rs.kind === 'groom') { cat.resume = null; cat.want = 'groom'; play('fs-to-ss'); say('他接着把毛理完'); return true; }
         const side = e.paperSide();
         if (rs.kind === 'draft' && side) { cat.resume = null; cat.facing = side; play('fs-draft', rs.i); say('他接着研究刚才的草稿'); return true; }
       }
       if (ownLife() && bored > 6000 && canMove() && !ball.held && !ball.fresh && !pointerRecent(5000)) {
         if (cat.soloN >= 2 && cat.energy > 0.6 && Math.abs(ball.x - cat.x) > REACH) { cat.soloN = 0; ball.fresh = true; say('他自己去找纸团玩了'); arrive('FS'); return true; }
+        // an activity a restore put off (out of reach for now) is still his to finish: nothing new in its place, so
+        // the snapshot goes on naming it; the box and the ball are not activities
         const side = e.paperSide(), opts = [];
-        if (side && WD.clips['fs-draft']) opts.push('draft');
-        if (WD.clips['ss-groom']) opts.push('groom');
+        if (!cat.restore && side && WD.clips['fs-draft']) opts.push('draft');
+        if (!cat.restore && WD.clips['ss-groom']) opts.push('groom');
         if (cat.energy > 0.5) opts.push('hide');
         let pick = opts.filter(o => o !== cat.lastSolo);
         if (opts.includes('hide') && !cat.lastHide) pick = ['hide'];   // the first thing he does alone is hide (new, 11-18)

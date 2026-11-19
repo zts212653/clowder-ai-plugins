@@ -4,7 +4,8 @@
 //   resolution keeps him on screen. The in-session cat.resume (120 s, engine clock) stays for in-session interruptions.
 // - restoreScene() puts him straight into the saved pose: no walking there, nothing replayed from the time he was away.
 //   A saved activity goes on where RESUME_AT says, at once or, behind an askew beret, once he has put it straight
-//   (cat.restore: the saved frame, no clock; never the in-session cat.resume).
+//   (cat.restore: the saved frame, no clock; never the in-session cat.resume). It stays pending, and in the snapshot,
+//   until it really goes on from that frame: being put off for a while is not finishing it.
 // - createSceneWatch() names the semantic moments the Host must hear about at once: the ball settles or is picked up,
 //   the beret goes askew or straight, an activity starts, is interrupted or ends, the pose changes.
 import { IN_SESSION_RESUME_MS } from './brain.mjs';
@@ -80,17 +81,24 @@ export function installScene(e) {
     }
     return false;
   }
-  // the activity an askew beret put off (cat.restore), once it is straight: from where it was saved, by the same table as
-  // a direct restore. A groom: he turns to the side and starts the saved stroke (brain.mjs SS clears cat.restore as it
-  // starts, so a ball meanwhile leaves it waiting). A draft: he was put beside the sheet on restore; out of his reach now
-  // (a new work area moved it), he leaves it.
+  // The activity an askew beret put off (cat.restore), once it is straight, from its saved frame by the same table as a
+  // direct restore. It is his to finish until its clip plays from that frame (a ball, your hand, the box, a nap or a sheet
+  // out of reach only put it off). A groom: he turns to the side and groomStart() takes it as the groom starts. A draft:
+  // he was put beside the sheet on restore; chased out of its reach, he goes on with it the next time he sits beside it.
   function resumeRestored() {
     const { kind, frame } = cat.restore;
-    if (kind === 'groom') { cat.want = 'groom'; cat.groomAt = RESUME_AT.groom(frame); play('fs-to-ss'); e.say('他接着把毛理完'); return true; }
-    cat.restore = null;
+    if (kind === 'groom') { cat.want = 'groom'; play('fs-to-ss'); e.say('他接着把毛理完'); return true; }
     const side = e.paperSide();
     if (!side) return false;
+    cat.restore = null;
     cat.facing = side; play('fs-draft', RESUME_AT.draft(frame)); e.say('他接着研究刚才的草稿'); return true;
+  }
+  /** The frame a groom starting now begins at: a groom a restore put off goes on from its saved stroke (and is taken). */
+  function groomStart() {
+    if (!cat.restore || cat.restore.kind !== 'groom') return 0;
+    const at = RESUME_AT.groom(cat.restore.frame);
+    cat.restore = null;
+    return at;
   }
   /** Puts him straight into the saved scene. Anything unreadable keeps what he has; returns false for a foreign snapshot. */
   function restoreScene(snap) {
@@ -100,7 +108,7 @@ export function installScene(e) {
     // what this run had going is let go: no hiding, no hand, no lure, no wall, no leftover hearts
     Object.assign(cat, {
       hide: null, sink: 0, wall: null, y: 0, fix: null, spread: null, lure: null, pet: false, rub: false, rubAfterSniff: false,
-      resume: null, restore: null, want: null, tiltUntil: 0, miss: false, climbLeft: 0, leap: 0, groomAt: 0, nearSince: 0, leftAt: 0, hurry: false,
+      resume: null, restore: null, want: null, tiltUntil: 0, miss: false, climbLeft: 0, leap: 0, nearSince: 0, leftAt: 0, hurry: false,
     });
     hearts.length = 0; paper.grab = null;
     Object.assign(ball, { held: false, pin: false, fresh: false, vx: 0, vh: 0, sq: 0, sqv: 0, sqTo: 0 });
@@ -166,7 +174,7 @@ export function installScene(e) {
     return !!r && x >= r[0] && x <= r[0] + r[2] && y >= r[1] && y <= r[1] + r[3];
   }
 
-  Object.assign(e, { poseHub, hatAskew, activityNow, ballMoment, snapshot, restoreScene, resumeRestored, hitRects, anchorRect, menuHit });
+  Object.assign(e, { poseHub, hatAskew, activityNow, ballMoment, snapshot, restoreScene, resumeRestored, groomStart, hitRects, anchorRect, menuHit });
 }
 
 /** Calls onMoment once per semantic moment; reset() takes the current scene as seen (after a restore). */
