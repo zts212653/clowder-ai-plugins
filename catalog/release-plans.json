@@ -3,6 +3,17 @@
   "releases": [
     {
       "pluginId": "dev.clowder.genoffice-docx",
+      "version": "0.1.0-alpha.4",
+      "integrity": "sha512-GyD56JTv6VtVWvd0UctE88oHTBavrCx8wGc83/L4JSJ7DX/jPrgCQJOYA/yz998V6lf78gdylDWF8LZSW7v3wQ==",
+      "disposition": "defer",
+      "owner": "codex",
+      "reviewBy": "2026-11-26T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/239",
+      "reason": "The mixed editor and read-only preview artifact needs the paired Host admission and installed desktop acceptance.",
+      "condition": "The released Host supports content-preview-provider. Verify a cold installation, real Workspace PDF and PPTX previews, and the existing DOCX editing flow before activating catalog discovery."
+    },
+    {
+      "pluginId": "dev.clowder.genoffice-docx",
       "version": "0.1.0-alpha.3",
       "integrity": "sha512-ptKah/dYt0vrYmXObypafLWKPV7alao2rorfyknL4A/kqSwHKeOOnYr2T/qOmfEY0uFoTZhT+0/XXoT+0rph6g==",
       "disposition": "activate",

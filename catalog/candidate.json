@@ -5,9 +5,9 @@
       "pluginId": "dev.clowder.genoffice-docx",
       "name": "GenOffice",
       "description": {
-        "default": "Edit DOCX documents together in your Clowder workspace. Requires a compatible Host; other Office formats are not yet enabled.",
+        "default": "Edit DOCX together and preview PDF and PPTX in your Clowder workspace. Requires a compatible Host.",
         "translations": {
-          "zh-CN": "在 Clowder 工作空间里共同编辑 DOCX 文档。需要兼容的宿主；其他 Office 格式尚未开放。"
+          "zh-CN": "在 Clowder 工作空间共同编辑 DOCX，只读预览 PDF 和 PPTX。需要兼容的宿主。"
         }
       },
       "icon": {
@@ -25,6 +25,23 @@
         "office"
       ],
       "versions": [
+        {
+          "version": "0.1.0-alpha.4",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/genoffice-docx",
+            "version": "0.1.0-alpha.4",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/genoffice-docx/-/genoffice-docx-0.1.0-alpha.4.tgz",
+            "integrity": "sha512-GyD56JTv6VtVWvd0UctE88oHTBavrCx8wGc83/L4JSJ7DX/jPrgCQJOYA/yz998V6lf78gdylDWF8LZSW7v3wQ==",
+            "shasum": "5cd39293f1626792e5426c876f529de03707166d",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/genoffice-docx"
+            }
+          }
+        },
         {
           "version": "0.1.0-alpha.3",
           "contractVersion": "0.1.0",
