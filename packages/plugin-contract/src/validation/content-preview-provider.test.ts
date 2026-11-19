@@ -19,20 +19,30 @@ const preview = {
   bridgeVersion: '1.0.0',
 };
 
-function manifest(contribution = preview) {
+const editor = {
+  type: 'content-editor-provider',
+  id: 'genoffice-docx',
+  mediaTypes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  surface: { ...preview.surface, entrypoint: 'index.html' },
+  bridgeVersion: '1.0.0',
+  operations: ['load', 'settle', 'comment', 'tracked-change'],
+};
+
+function manifest(...contributions: (typeof preview | typeof editor)[]) {
+  if (contributions.length === 0) contributions = [preview];
   return {
     pluginId: 'dev.clowder.genoffice-docx',
     name: 'GenOffice',
     version: '0.1.0-alpha.4',
     contractVersion: '0.1.0',
     runtime: { transport: 'builtin' },
-    contributions: [contribution],
-    features: [{
-      id: 'preview-office',
-      name: 'Preview Office files',
+    contributions,
+    features: contributions.map(({ id, type }) => ({
+      id,
+      name: id,
       resources: [],
-      contributions: [{ type: contribution.type, id: contribution.id }],
-    }],
+      contributions: [{ type, id }],
+    })),
   };
 }
 
@@ -50,4 +60,32 @@ test('a preview provider cannot declare editor capabilities or a different ifram
   assert.equal(validateManifest(manifest(editor)).valid, false);
   assert.equal(validateManifest(manifest(unsandboxed)).valid, false);
   assert.equal(validateManifest(manifest(wildcard)).valid, false);
+});
+
+test('rejects an extension declared twice even when the MIME or provider differs', () => {
+  const alternatePdf = { extension: 'pdf', mediaType: 'application/x-pdf' };
+  const repeated = { ...preview, formats: [...preview.formats, alternatePdf] };
+  const other = { ...preview, id: 'other-preview', formats: [alternatePdf] };
+
+  for (const value of [manifest(repeated), manifest(preview, other)]) {
+    const result = validateManifest(value);
+    assert.ok(!result.valid);
+    assert.ok(result.errors.some((error) => error.keyword === 'unambiguousFormats'));
+  }
+});
+
+test('bounds a preview provider to 64 declared formats', () => {
+  const formats = Array.from({ length: 65 }, (_, index) => ({
+    extension: 'format' + index,
+    mediaType: 'application/octet-stream',
+  }));
+  assert.ok(validateManifest(manifest({ ...preview, formats: formats.slice(0, 64) })).valid);
+  assert.equal(validateManifest(manifest({ ...preview, formats })).valid, false);
+});
+
+test('keeps DOCX on its editor while admitting separate PDF and PPTX previews', () => {
+  assert.ok(validateManifest(manifest(editor, preview)).valid);
+  const formats = [{ extension: 'docx', mediaType: editor.mediaTypes[0]! }];
+  assert.equal(validateManifest(manifest(editor, { ...preview, formats })).valid, false);
+  assert.equal(validateManifest(manifest({ ...preview, formats })).valid, false);
 });
