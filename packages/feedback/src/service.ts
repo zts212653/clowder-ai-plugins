@@ -33,7 +33,8 @@ export class FeedbackService {
       return (await this.host.storage.compareAndSet(selectionKey, selected?.revision ?? null, id)).applied;
     };
     if (op === 'new') { await remember(null); return {}; }
-    const resumed = op === 'bootstrap' && data.resume === true ? (await this.host.storage.get(selectionKey))?.value as string | null | undefined : undefined;
+    const resumeSelection = op === 'bootstrap' && data.resume === true && data.feedbackId === undefined;
+    const resumed = resumeSelection ? (await this.host.storage.get(selectionKey))?.value as string | null | undefined : undefined;
     const feedbackId = data.feedbackId === undefined ? resumed ?? undefined : text(data.feedbackId,80);
     if (feedbackId !== undefined && !/^[\w-]{1,80}$/.test(feedbackId)) throw new Error('反馈记录 ID 无效');
     if (['bootstrap','history'].includes(op)) await this.records.migrate(context.userId,targets);
@@ -59,11 +60,12 @@ export class FeedbackService {
         this.host.runtimeInfo?.get(),
       ]);
       if (feedbackId && !journal) throw new Error('反馈记录不存在或不属于当前用户');
-      if (feedbackId) await remember(feedbackId);
-      return { targets, journal: journal ? await vault.hydrate(journal) : undefined, revision: current?.revision, items:await this.history(context.userId),
+      const opened = resumeSelection && journal?.state === 'published' ? undefined : journal;
+      if (opened && opened.state !== 'published') await remember(opened.id);
+      return { targets, journal: opened ? await vault.hydrate(opened) : undefined, revision: opened ? current?.revision : undefined, items:await this.history(context.userId),
         clients: members.status === 'fulfilled' ? members.value.filter(member => member.available).map(member => ({ id: member.catId, label: member.displayName, model: member.defaultModel })) : [],
         projectRoot: runtime.status === 'fulfilled' ? runtime.value?.projectRoot : undefined,
-        analysis: feedbackId ? await this.analysis.status(context.userId,true,feedbackId) : undefined };
+        analysis: opened ? await this.analysis.status(context.userId,true,opened.id) : undefined };
     }
     if (['prepare-analysis', 'analyze', 'analysis-status', 'cancel-analysis'].includes(op)) {
       if (!journal || journal.owner !== context.userId) throw new Error('反馈记录不存在');
