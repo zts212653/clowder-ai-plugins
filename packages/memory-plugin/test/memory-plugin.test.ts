@@ -178,6 +178,7 @@ test('memory.describe carries no business parameters and reports exactly the v1 
     operations: [
       ...MEMORY_REQUIRED_OPERATIONS,
       ...MEMORY_SEARCH_OPERATIONS,
+      'index.status',
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
       ...Object.keys(profileOutputSchemas),
@@ -198,6 +199,57 @@ test('storage drains an admitted write, then rejects writes submitted during shu
   completeWrite();
   await Promise.all([write, stopping, late]);
   assert.equal(storage.close(), stopping);
+});
+
+test('index status reads the selected generation and reports persisted vectors without a loaded extension', async (t) => {
+  const binding = `${process.platform}-${process.arch}-abi${process.versions.modules}.node`;
+  const nativeBinding = fileURLToPath(new URL(`../dist/native/${binding}`, import.meta.url));
+  const db = new Database(evidencePath, { nativeBinding });
+  db.exec(`
+    CREATE TABLE evidence_docs (kind TEXT, updated_at TEXT);
+    INSERT INTO evidence_docs VALUES ('thread', '2026-11-18'), ('lesson', '2026-11-19');
+    CREATE TABLE edges (anchor TEXT);
+    INSERT INTO edges VALUES ('one');
+    CREATE TABLE evidence_passages (content TEXT);
+    INSERT INTO evidence_passages VALUES ('old'), ('new');
+    CREATE TABLE embedding_meta_g1 (key TEXT PRIMARY KEY, value TEXT);
+    INSERT INTO embedding_meta_g1 VALUES ('embedding_model_id', 'model-b'),
+      ('last_rebuild_at', '2026-11-17'), ('vector_invalidation_quarantined', '1');
+    CREATE TABLE passage_vectors_g1_rowids (id INTEGER PRIMARY KEY);
+    INSERT INTO passage_vectors_g1_rowids VALUES (1);
+    CREATE TABLE evidence_vectors_g1_rowids (id INTEGER PRIMARY KEY);
+    INSERT INTO evidence_vectors_g1_rowids VALUES (1), (2);
+  `);
+  db.close();
+
+  const active = await start();
+  t.after(() => active.stop({ reason: 'test' }));
+  const dispatch = active.actions['memory.dispatch']!;
+  const status = await dispatch({ operation: 'index.status', input: { generationId: 'g1' } });
+  const expected = {
+    docs_count: 2,
+    threads_count: 1,
+    passages_count: 2,
+    edges_count: 1,
+    vectors_count: 2,
+    passage_vectors_count: 1,
+    passageVectorsReadable: false,
+    generationQuarantined: true,
+    last_rebuild_at: '2026-11-17',
+    last_document_updated_at: '2026-11-19',
+    embedding_model: 'model-b',
+  };
+  assert.deepEqual(status, expected);
+  const previous = await dispatch({ operation: 'index.status', input: { generationId: 'g0' } });
+  assert.deepEqual(previous, {
+    ...expected,
+    vectors_count: 0,
+    passage_vectors_count: 0,
+    generationQuarantined: false,
+    last_rebuild_at: '2026-11-19',
+    embedding_model: null,
+  });
+  await assert.rejects(async () => dispatch({ operation: 'index.status', input: { generationId: 'embedding_meta' } }));
 });
 
 test('a Host without the authorized memory port fails admission instead of degrading to an empty store', async () => {

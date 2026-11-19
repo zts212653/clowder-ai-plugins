@@ -23,6 +23,7 @@ import { openMemoryStorage } from './open-memory-storage.js';
 import { dispatchMemory } from './operations/dispatch.js';
 import { createEntityDispatch } from './operations/entity.js';
 import { dispatchEvent } from './operations/event.js';
+import { dispatchIndexStatus } from './operations/index-status.js';
 import { ThreadKvOperations } from './operations/kv.js';
 import { createMatterDispatch } from './operations/matter.js';
 import { dispatchProfile } from './operations/profile.js';
@@ -43,6 +44,7 @@ function memoryDescriptor(tasteReady: boolean): MemoryDescriptor {
     operations: [
       ...MEMORY_REQUIRED_OPERATIONS,
       ...MEMORY_SEARCH_OPERATIONS,
+      'index.status',
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
       ...Object.keys(profileOutputSchemas),
@@ -104,6 +106,7 @@ async function activate(ports: MemoryHostPorts) {
       [MEMORY_DISPATCH_METHOD]: (input: unknown) => {
         const operation = (input as { operation?: unknown } | null)?.operation;
         if (typeof operation === 'string') {
+          if (operation === 'index.status') return dispatchIndexStatus(storage.db, input);
           if (operation.startsWith('matter.')) return matter(input);
           if (operation.startsWith('event.')) return dispatchEvent(storage.events, memorySource, input);
           if (operation.startsWith('profile.')) return dispatchProfile(profile, storage, memorySource, input);
