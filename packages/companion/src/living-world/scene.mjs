@@ -3,6 +3,8 @@
 //   Positions are fractions of the floor width (the ball's height a fraction of floor-to-ceiling), so a new
 //   resolution keeps him on screen. The in-session cat.resume (120 s, engine clock) stays for in-session interruptions.
 // - restoreScene() puts him straight into the saved pose: no walking there, nothing replayed from the time he was away.
+//   A saved activity goes on where RESUME_AT says, at once or, behind an askew beret, once he has put it straight
+//   (cat.restore: the saved frame, no clock; never the in-session cat.resume).
 // - createSceneWatch() names the semantic moments the Host must hear about at once: the ball settles or is picked up,
 //   the beret goes askew or straight, an activity starts, is interrupted or ends, the pose changes.
 import { IN_SESSION_RESUME_MS } from './brain.mjs';
@@ -42,6 +44,7 @@ export function installScene(e) {
   function activityNow() {
     if (/^fs-draft/.test(cat.clip)) return { kind: 'draft', frame: Math.max(0, cat.i), active: true };
     if (cat.clip === 'ss-groom') return { kind: 'groom', frame: Math.max(0, cat.i), active: true };
+    if (cat.restore) return { kind: cat.restore.kind, frame: cat.restore.frame, active: false };   // saved, waiting for the beret
     const rs = cat.resume;
     if (rs && (rs.kind === 'draft' || rs.kind === 'groom') && e.now() - rs.at < IN_SESSION_RESUME_MS) return { kind: rs.kind, frame: rs.i, active: false };
     return null;
@@ -77,6 +80,18 @@ export function installScene(e) {
     }
     return false;
   }
+  // the activity an askew beret put off (cat.restore), once it is straight: from where it was saved, by the same table as
+  // a direct restore. A groom: he turns to the side and starts the saved stroke (brain.mjs SS clears cat.restore as it
+  // starts, so a ball meanwhile leaves it waiting). A draft: he was put beside the sheet on restore; out of his reach now
+  // (a new work area moved it), he leaves it.
+  function resumeRestored() {
+    const { kind, frame } = cat.restore;
+    if (kind === 'groom') { cat.want = 'groom'; cat.groomAt = RESUME_AT.groom(frame); play('fs-to-ss'); e.say('他接着把毛理完'); return true; }
+    cat.restore = null;
+    const side = e.paperSide();
+    if (!side) return false;
+    cat.facing = side; play('fs-draft', RESUME_AT.draft(frame)); e.say('他接着研究刚才的草稿'); return true;
+  }
   /** Puts him straight into the saved scene. Anything unreadable keeps what he has; returns false for a foreign snapshot. */
   function restoreScene(snap) {
     if (!plain(snap) || snap.schemaVersion !== SCHEMA_VERSION) return false;
@@ -85,7 +100,7 @@ export function installScene(e) {
     // what this run had going is let go: no hiding, no hand, no lure, no wall, no leftover hearts
     Object.assign(cat, {
       hide: null, sink: 0, wall: null, y: 0, fix: null, spread: null, lure: null, pet: false, rub: false, rubAfterSniff: false,
-      resume: null, want: null, tiltUntil: 0, miss: false, climbLeft: 0, leap: 0, groomAt: 0, nearSince: 0, leftAt: 0, hurry: false,
+      resume: null, restore: null, want: null, tiltUntil: 0, miss: false, climbLeft: 0, leap: 0, groomAt: 0, nearSince: 0, leftAt: 0, hurry: false,
     });
     hearts.length = 0; paper.grab = null;
     Object.assign(ball, { held: false, pin: false, fresh: false, vx: 0, vh: 0, sq: 0, sqv: 0, sqTo: 0 });
@@ -103,9 +118,10 @@ export function installScene(e) {
     const clipOf = { draft: 'fs-draft', groom: 'ss-groom' }[kind];
     const frame = kind ? Math.min(WD.clips[clipOf].frames.length - 1, Number.isInteger(activity.frame) && activity.frame >= 0 ? activity.frame : 0) : 0;
     if (field('hat').askew === true && HAT) {
-      // the beret stays askew until he puts it straight himself; an unfinished activity waits for him (in-session resume)
+      // the beret stays askew until he puts it straight himself; an unfinished activity waits for him, with its saved
+      // frame (a draft: he sits beside the sheet now, as below, so his paw reaches it once the beret is straight)
+      if (kind === 'groom' || (kind === 'draft' && sitByPaper(cat.facing))) cat.restore = { kind, frame };
       play('fs-hat', HAT.tiltHold[0]);
-      if (kind) cat.resume = { kind, i: frame, at: e.now(), facing: cat.facing };
     } else if (kind === 'draft' && sitByPaper(cat.facing)) {
       play('fs-draft', RESUME_AT.draft(frame));
     } else if (kind === 'groom') {
@@ -150,7 +166,7 @@ export function installScene(e) {
     return !!r && x >= r[0] && x <= r[0] + r[2] && y >= r[1] && y <= r[1] + r[3];
   }
 
-  Object.assign(e, { poseHub, hatAskew, activityNow, ballMoment, snapshot, restoreScene, hitRects, anchorRect, menuHit });
+  Object.assign(e, { poseHub, hatAskew, activityNow, ballMoment, snapshot, restoreScene, resumeRestored, hitRects, anchorRect, menuHit });
 }
 
 /** Calls onMoment once per semantic moment; reset() takes the current scene as seen (after a restore). */

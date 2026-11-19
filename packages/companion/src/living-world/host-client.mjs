@@ -11,6 +11,8 @@
 // - Size: body-area carries the window size and, from a Host that sizes the cat, standHeight (derived
 //   from ballSize, which this window cannot read). A missing or out-of-contract standHeight leaves
 //   the cat at the height he already has.
+// - Preferences: body-preferences carries the owner's 自主活动 setting (behaviorEnabled), which this window cannot read
+//   either; the Host sends it when the body opens and whenever it changes. Before the first one he lives as if it is on.
 export const SCENE_FIELDS = Object.freeze(['pose', 'ball', 'paper', 'hat', 'activity', 'lastSolo']);
 export const RENEW_MS = 500;
 export const READ_RETRY_FIRST_MS = 1000;
@@ -49,7 +51,7 @@ export function createBodyHostClient({
   const setRepeat = (callback, ms) => timers.setInterval.call(globalThis, callback, ms);
   const clearRepeat = id => timers.clearInterval.call(globalThis, id);
   let mode = 'idle'; // idle → reading → saved | unsaved; stopped after stop()
-  let world; // {snapshot(), onScene(scene), onArea(width, height, standHeight?)}
+  let world; // {snapshot(), onScene(scene), onArea(width, height, standHeight?), onPreferences({behaviorEnabled})}
   let sent = {}; // field → JSON of the value last sent (or read) for this body
   const carried = new Set(); // fields of reports the Host did not take
   let retryMs = READ_RETRY_FIRST_MS;
@@ -148,6 +150,8 @@ export function createBodyHostClient({
     if (event.kind === 'scene-flush') void report();
     else if (event.kind === 'body-area' && positiveInteger(event.width) && positiveInteger(event.height)) {
       world?.onArea(event.width, event.height, standHeight(event.standHeight));
+    } else if (event.kind === 'body-preferences' && typeof event.behaviorEnabled === 'boolean') {
+      world?.onPreferences({ behaviorEnabled: event.behaviorEnabled });
     }
   }
   function onVisibility() {
@@ -158,7 +162,7 @@ export function createBodyHostClient({
 
   return {
     get mode() { return mode; },
-    /** Mount seam: the world supplies snapshots and receives the scene and area. Reads once. */
+    /** Mount seam: the world supplies snapshots and receives the scene, the area and the owner's preferences. Reads once. */
     start(attached) {
       if (mode !== 'idle') throw new Error('The body host client starts once');
       world = attached;

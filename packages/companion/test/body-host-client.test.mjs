@@ -52,17 +52,19 @@ function fixture({ reads = [{ kind: 'scene', status: 'not_found' }], reply = () 
   let current = { schemaVersion: 1, pose: { name: 'SS', facing: 'left' }, hat: { askew: false }, activity: { kind: null, frame: 0 } };
   const scenes = [];
   const areas = [];
+  const preferences = [];
   const world = {
     snapshot: () => structuredClone(current),
     onScene: scene => scenes.push(scene),
     onArea: (width, height, standHeight) => areas.push(standHeight === undefined ? [width, height] : [width, height, standHeight]),
+    onPreferences: value => preferences.push(value),
   };
   const client = createBodyHostClient({ bridge, timers, visibility });
   const emit = event => { for (const callback of listeners) callback(event); };
   const kinds = () => sent.map(command => command.kind);
   const of = kind => sent.filter(command => command.kind === kind);
   const set = next => { current = { ...current, ...next }; };
-  return { client, world, sent, kinds, of, emit, advance, flush, setHidden, set, scenes, areas, now: () => now };
+  return { client, world, sent, kinds, of, emit, advance, flush, setHidden, set, scenes, areas, preferences, now: () => now };
 }
 
 test('only not_found starts a new scene, and the body reports it at once with every field', async () => {
@@ -235,4 +237,19 @@ test('body-area hands the world the Host\'s standHeight, and nothing for a missi
   assert.deepEqual(f.areas, [[1440, 860, 200], [1440, 860, 60], [1440, 860, 480], [1440, 860],
     [1440, 860], [1440, 860], [1440, 860], [1440, 860], [1440, 860], [1440, 860]],
     'the area always moves; only an in-contract height changes his size');
+});
+
+test('body-preferences hands the world the owner\'s 自主活动 setting, and nothing for a value that is not a boolean', async () => {
+  const f = fixture();
+  await f.client.start(f.world);
+  f.emit({ kind: 'body-preferences', behaviorEnabled: false });
+  f.emit({ kind: 'body-preferences', behaviorEnabled: true });
+  for (const behaviorEnabled of ['false', 0, null, undefined]) f.emit({ kind: 'body-preferences', behaviorEnabled });
+  f.emit({ kind: 'body-preferences' });
+  assert.deepEqual(f.preferences, [{ behaviorEnabled: false }, { behaviorEnabled: true }]);
+  assert.deepEqual(f.areas, [], 'a preference is not an area');
+  f.client.stop();
+  f.emit({ kind: 'body-preferences', behaviorEnabled: false });
+  assert.equal(f.preferences.length, 2, 'a stopped body hears nothing more');
+  for (const command of f.sent) assert.match(command.kind, /^(?:body|scene)\./u, 'the body never reads the setting itself');
 });

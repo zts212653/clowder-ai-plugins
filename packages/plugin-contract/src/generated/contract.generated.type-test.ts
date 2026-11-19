@@ -119,6 +119,13 @@ const sizedBodyArea: CompanionEvent = { kind: 'body-area', width: 1440, height: 
 
 // @ts-expect-error the Host sends the cat's standing height in pixels, never the ball size setting itself.
 const invalidBodyAreaSize: CompanionEvent = { kind: 'body-area', width: 1440, height: 875, ballSize: 72 };
+const bodyPreferencesOff: CompanionEvent = { kind: 'body-preferences', behaviorEnabled: false };
+
+// @ts-expect-error the event always carries the setting; a body keeps it on only before the first one.
+const invalidBodyPreferencesEmpty: CompanionEvent = { kind: 'body-preferences' };
+
+// @ts-expect-error the setting is a boolean, never its label or a string.
+const invalidBodyPreferencesString: CompanionEvent = { kind: 'body-preferences', behaviorEnabled: 'false' };
 const openMenu: CompanionEvent = { kind: 'view-open', panel: 'menu' };
 
 // @ts-expect-error the Host opens only the menu; every other panel opens from it.
@@ -342,6 +349,9 @@ void [
   bodyArea,
   sizedBodyArea,
   invalidBodyAreaSize,
+  bodyPreferencesOff,
+  invalidBodyPreferencesEmpty,
+  invalidBodyPreferencesString,
   openMenu,
   invalidOpenChat,
   invalidOpenPointer,

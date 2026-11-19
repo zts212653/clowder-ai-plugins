@@ -265,3 +265,68 @@ test('body-area sizes him: the Host\'s standHeight grows and shrinks the drawn c
     await page.close();
   }
 });
+
+test('autonomous activity off (body-preferences): alone he never sets off by himself, a thrown ball is still chased, and back on his own life resumes', async () => {
+  const off = await openBody({ kind: 'scene', status: 'not_found' });
+  const back = await openBody({ kind: 'scene', status: 'not_found' });
+  const OWN = /^(?:fs-to-st|fs-to-crouch|stalk|pounce|fs-draft|fs-to-ss|ss-groom)/u;
+  try {
+    for (const body of [off, back]) {
+      await body.page.evaluate(() => {
+        window.__emit({ kind: 'body-preferences', behaviorEnabled: false });
+        window.__clips = [];
+        window.__hides = [];
+        window.__fresh = false;
+        const x = window.__xxCat().x;
+        window.__xs = [x, x];
+        setInterval(() => {
+          const cat = window.__xxCat();
+          if (cat.hide && window.__hides.at(-1) !== cat.hide) window.__hides.push(cat.hide);
+          if (cat.ball.fresh) window.__fresh = true;
+          window.__xs = [Math.min(window.__xs[0], cat.x), Math.max(window.__xs[1], cat.x)];
+        }, 15);
+      });
+    }
+    // with it on, a cat nobody plays with sets off for the box after about 6-12 s and fetches the ball after 16 s
+    await off.page.waitForTimeout(18000);
+    for (const [name, body] of [['off', off], ['back', back]]) {
+      const seen = await body.page.evaluate(() => ({ clips: window.__clips, hides: window.__hides, fresh: window.__fresh, xs: window.__xs, behavior: window.__xxCat().behavior }));
+      assert.deepEqual(seen.hides, [], `${name}: no walk to the box`);
+      assert.equal(seen.fresh, false, `${name}: no fetching the ball on his own`);
+      assert.ok(seen.xs[1] - seen.xs[0] <= 2, `${name}: he sits where he is (${seen.xs})`);
+      assert.deepEqual(seen.clips.filter(clip => OWN.test(clip)), [], `${name}: ${seen.clips.join(' > ')}`);
+      assert.equal(seen.behavior, false, name);
+    }
+
+    const chase = (async () => {
+      const { ball, center } = await off.region();
+      const [bx, by] = center(ball);
+      await off.page.evaluate(() => { window.__clips = []; });
+      await off.page.mouse.move(bx, by);
+      await off.page.mouse.down();
+      await off.page.mouse.move(bx - 40, by - 60, { steps: 2 });
+      await off.page.mouse.move(bx - 160, by - 140, { steps: 3 });
+      await off.page.mouse.up();
+      await off.page.waitForFunction(() => window.__clips.includes('pounce'), null, { timeout: 20000 });
+    })();
+    const resume = (async () => {
+      await back.page.evaluate(() => { window.__clips = []; window.__emit({ kind: 'body-preferences', behaviorEnabled: true }); });
+      // bored by now: the box, the ball on his own, a draft or a groom, whichever comes first
+      await back.page.waitForFunction(() => window.__hides.length > 0 || window.__fresh
+        || window.__clips.some(clip => /^(?:fs-draft|fs-to-ss|ss-groom)/u.test(clip)), null, { timeout: 20000 });
+      return back.page.evaluate(() => ({ behavior: window.__xxCat().behavior, hides: window.__hides, fresh: window.__fresh, clips: window.__clips }));
+    })();
+    const [, resumed] = await Promise.all([chase, resume]);
+    assert.equal(resumed.behavior, true);
+    const clips = await off.page.evaluate(() => window.__clips);
+    const getUp = clips.findIndex(clip => /^fs-to-(?:st|crouch)/u.test(clip));
+    assert.ok(getUp >= 0 && getUp < clips.indexOf('pounce'), `off, he still gets up and goes for a thrown ball: ${clips.join(' > ')}`);
+    for (const body of [off, back]) {
+      for (const command of await body.page.evaluate(() => window.__sent)) assert.match(command.kind, /^(?:body|scene)\./u);
+      assert.deepEqual(body.errors, []);
+    }
+  } finally {
+    await off.page.close();
+    await back.page.close();
+  }
+});

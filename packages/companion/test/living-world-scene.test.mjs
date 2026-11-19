@@ -1,33 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { createEngine, DEFAULT_STAND_PX } from '../src/living-world/engine.mjs';
+import { DEFAULT_STAND_PX } from '../src/living-world/engine.mjs';
 import { createSceneWatch, GROOM_STROKES, RESUME_AT } from '../src/living-world/scene.mjs';
 import { createBodyHostClient, SCENE_FIELDS } from '../src/living-world/host-client.mjs';
 import { createEngineClock } from '../src/living-world/world.mjs';
 import { PAPER_START, STAND_H } from '../src/living-world/constants.mjs';
-
-const WORLD = JSON.parse(readFileSync(new URL('../assets/skins/xianxian-living-world/world.json', import.meta.url), 'utf8'));
-const AREA = [1440, 860];
-
-/** The engine on a fake clock and seeded randomness, every atlas present (nothing is drawn). */
-function world({ at = 1000 } = {}) {
-  let t = at;
-  let seed = 11;
-  const engine = createEngine({ data: WORLD, now: () => t, random: () => (seed = (seed * 16807) % 2147483647) / 2147483647 });
-  engine.atlases = [true, true, true];
-  engine.layout(...AREA);
-  const run = (ms, each = () => {}) => { for (const end = t + ms; t < end;) { t += 16; engine.tick(t); each(); } };
-  const ballAt = () => [engine.ball.x * engine.view.k, engine.view.floorY - engine.ball.h * engine.view.k];
-  return { engine, run, ballAt, now: () => t, advance: ms => { t += ms; } };
-}
-
-function saved(overrides = {}) {
-  return {
-    schemaVersion: 1, pose: { hub: 'FS', facing: 'right', x: 0.5 }, ball: { x: 0.7, h: 0, ceil: false }, paper: { x: 0.3 },
-    hat: { askew: false }, activity: { kind: null, frame: 0 }, lastSolo: null, ...overrides,
-  };
-}
+import { AREA, WORLD, saved, world } from './living-world-fixture.mjs';
 
 test('a snapshot holds only the six semantic fields, as plain fractions and names, with no clock', () => {
   const { engine, run } = world();

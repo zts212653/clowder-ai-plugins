@@ -38,7 +38,8 @@ export function createEngine({ data, now = () => performance.now(), random = Mat
   const paper = { x: NaN, grab: null, tilt: -0.035 };
   const hearts = [];
   // atlases: [0] front sit (small, he appears at once), [1] every other floor move, [2] the wall and ceiling chain
-  const e = { WD, K, view, cat, ball, ptr, paper, hearts, atlases: [null, null, null], status: '', now, random };
+  // behaviorEnabled: the owner's 自主活动 setting, which the Host sends as body-preferences; on until it says otherwise
+  const e = { WD, K, view, cat, ball, ptr, paper, hearts, atlases: [null, null, null], status: '', now, random, behaviorEnabled: true };
   installSenses(e); installMotion(e); installBrain(e); installStep(e); installHide(e); installInput(e); installDraw(e); installScene(e);
 
   // The work area or his size can change under him (Dock, display, the size setting): he is put back on the new floor,
@@ -65,6 +66,9 @@ export function createEngine({ data, now = () => performance.now(), random = Mat
     paper.x = clamp(paper.x, PW / 2, view.worldW - PW / 2);
     return true;
   }
+
+  /** Off: he starts nothing by himself (brain.mjs); what is under way plays out, and he still answers you and the ball. */
+  function setBehaviorEnabled(enabled) { e.behaviorEnabled = enabled; }
 
   let prev = 0;
   let acc = 0;
@@ -98,10 +102,10 @@ export function createEngine({ data, now = () => performance.now(), random = Mat
       ball: { ceil: ball.ceil, x: r(ball.x), h: r(ball.h), vx: r(ball.vx), held: ball.held, fresh: ball.fresh, pin: ball.pin, sq: +ball.sq.toFixed(2) },
       status: e.status, worldW: r(view.worldW), paper: r(paper.x), pet: !!cat.pet, hearts: hearts.length, rub: !!cat.rub,
       resume: cat.resume ? cat.resume.kind : null, pose: e.poseHub(), askew: e.hatAskew(), activity: act ? `${act.kind}:${act.frame}` : null,
-      stand: r(STAND_H * view.k),
+      stand: r(STAND_H * view.k), behavior: e.behaviorEnabled,
     };
   }
 
-  Object.assign(e, { layout, tick, debug });
+  Object.assign(e, { layout, setBehaviorEnabled, tick, debug });
   return e;
 }

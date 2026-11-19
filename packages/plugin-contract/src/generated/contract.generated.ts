@@ -2031,6 +2031,9 @@ export type CompanionEvent = {
   readonly height: number;
   readonly standHeight?: number;
 } | {
+  readonly kind: 'body-preferences';
+  readonly behaviorEnabled: boolean;
+} | {
   readonly kind: 'view-open';
   readonly panel: 'menu';
 };

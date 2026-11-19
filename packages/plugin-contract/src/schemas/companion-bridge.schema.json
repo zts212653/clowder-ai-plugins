@@ -2659,6 +2659,16 @@
         },
         {
           "type": "object",
+          "description": "livingBody (bridge 1.8), to the body window: the owner's preferences the body must follow, which the Host holds and the body window cannot read. behaviorEnabled is the autonomous-activity setting (ConciergeConfig behaviorEnabled, the same value settings.read returns). The Host sends it when the body opens and again whenever the setting changes. false: the cat starts nothing by himself (no activity of his own, no fetching the ball on his own, no wandering) and keeps to his idle and rest poses, while still answering the user's hand and a thrown ball; an activity already under way, or a saved one being restored, plays to its natural end. true: his own life resumes. A body that has not been told keeps it on.",
+          "properties": {
+            "kind": { "const": "body-preferences" },
+            "behaviorEnabled": { "type": "boolean" }
+          },
+          "required": ["kind", "behaviorEnabled"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "description": "livingBody (bridge 1.8), to the panel window: the Host's answer to body.menu. The panel opens its ordinary menu exactly as a context click on its own cat would, and its view.layout for it is placed beside the body's last reported anchor; it names no position. Another open panel gives way to the menu as it does for that context click. A panel whose skin is not the living cat ignores it.",
           "properties": {
             "kind": { "const": "view-open" },

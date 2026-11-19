@@ -1,5 +1,10 @@
 // F336 Phase C: the small brain (ported from the card engine): called whenever he arrives at a pose, or finishes one loop
-// of an idle. In-session interruptions keep cat.resume for 120 s; a reopened body is restored by scene.mjs instead.
+// of an idle. In-session interruptions keep cat.resume for 120 s; a reopened body is restored by scene.mjs instead, and
+// an activity that restore put off for the beret waits in cat.restore, with no clock, until he has put it straight.
+// With the owner's 自主活动 off (e.behaviorEnabled, from the Host's body-preferences) he starts nothing by himself: no
+// activity of his own, no going back to one the ball broke off, no fetching the ball on his own, no daydream or groom on
+// waking. He keeps to his idle and rest poses, still answers your hand and a thrown ball, and whatever is already under
+// way (a restored one too) plays to its end.
 import { MAXLEAP, REACH_FROM_WALL } from './constants.mjs';
 
 export const IN_SESSION_RESUME_MS = 120000;
@@ -12,6 +17,7 @@ export function installBrain(e) {
   const chaseWanted = () => e.chaseWanted();
   const pointerRecent = ms => e.pointerRecent(ms);
   const canMove = () => e.canMove();
+  const ownLife = () => e.behaviorEnabled;
 
   function arrive(hub, from) {
     if (hub === 'FS') {
@@ -66,15 +72,15 @@ export function installBrain(e) {
       const want = cat.want; cat.want = null;
       if (chaseWanted() || ball.held || from === 'ssd-to-ss') return ssGo();
       // a groom: he turned to the side for it, or he has just woken up and sat up
-      if (WD.clips['ss-groom'] && (want === 'groom' || (from === 'loaf-to-ss' && !pointerRecent(2500) && e.random() < 0.6))) {
-        const at = cat.groomAt || 0; cat.groomAt = 0; return play('ss-groom', at);
+      if (WD.clips['ss-groom'] && (want === 'groom' || (ownLife() && from === 'loaf-to-ss' && !pointerRecent(2500) && e.random() < 0.6))) {
+        const at = cat.groomAt || 0; cat.groomAt = 0; cat.restore = null; return play('ss-groom', at);
       }
       if (from === 'ss-groom') return play(cat.energy < 0.4 ? 'ss-to-ssd' : 'ss-to-fs');
       return play('ss-idle', (from && WD.clips[from] && WD.clips[from].enterAt) || 0);
     }
     // just woken by himself: head up, a daydream before he sits up (woken by you or the ball: straight up)
     if (hub === 'LOAF') {
-      if (chaseWanted() || ball.held || !cat.dayN || !WD.clips['loaf-daydream']) return play('loaf-to-ss');
+      if (!ownLife() || chaseWanted() || ball.held || !cat.dayN || !WD.clips['loaf-daydream']) return play('loaf-to-ss');
       return play('loaf-daydream');
     }
     if (hub === 'SSD') {
@@ -128,18 +134,20 @@ export function installBrain(e) {
     }
     if (n === 'fs-idle') {
       const bored = now - Math.max(cat.since, ptr.at);
-      if (bored > 16000 && cat.energy > 0.6 && Math.abs(ball.x - cat.x) > REACH) { ball.fresh = true; say('他自己去找纸团玩了'); }
+      if (ownLife() && bored > 16000 && cat.energy > 0.6 && Math.abs(ball.x - cat.x) > REACH) { ball.fresh = true; say('他自己去找纸团玩了'); }
       if (bored > 8000 && cat.energy < 0.4 && !ball.fresh && canMove()) return play('fs-to-ss'), true;
       if (chaseWanted()) { arrive('FS'); return true; }
+      // the activity a reopen put off for the beret: picked up where it was saved (scene.mjs), however long that took
+      if (cat.restore && canMove() && !ball.held && !ball.fresh && !pointerRecent(3000) && e.resumeRestored()) return true;
       // nobody is playing with him (11-17 一个人在家): something of his own, never the same one twice running; after
       // two of them he goes and gets the ball himself
       const rs = cat.resume && now - cat.resume.at < IN_SESSION_RESUME_MS ? cat.resume : null;
-      if (rs && bored > 2500 && canMove() && !ball.held && !ball.fresh && !pointerRecent(3000)) {
+      if (rs && ownLife() && bored > 2500 && canMove() && !ball.held && !ball.fresh && !pointerRecent(3000)) {
         if (rs.kind === 'groom') { cat.resume = null; cat.want = 'groom'; cat.groomAt = 0; play('fs-to-ss'); say('他接着把毛理完'); return true; }
         const side = e.paperSide();
         if (rs.kind === 'draft' && side) { cat.resume = null; cat.facing = side; play('fs-draft', rs.i); say('他接着研究刚才的草稿'); return true; }
       }
-      if (bored > 6000 && canMove() && !ball.held && !ball.fresh && !pointerRecent(5000)) {
+      if (ownLife() && bored > 6000 && canMove() && !ball.held && !ball.fresh && !pointerRecent(5000)) {
         if (cat.soloN >= 2 && cat.energy > 0.6 && Math.abs(ball.x - cat.x) > REACH) { cat.soloN = 0; ball.fresh = true; say('他自己去找纸团玩了'); arrive('FS'); return true; }
         const side = e.paperSide(), opts = [];
         if (side && WD.clips['fs-draft']) opts.push('draft');

@@ -113,7 +113,7 @@ test('livingBody needs the new contract line: an older Host refuses the package 
     assert.equal(previous.validateCompanionCommand(command), false, `${command.kind} is new in this line`);
   }
   for (const event of [{ kind: 'scene-flush' }, { kind: 'body-area', width: 1440, height: 875 },
-    { kind: 'view-open', panel: 'menu' }]) {
+    { kind: 'body-preferences', behaviorEnabled: false }, { kind: 'view-open', panel: 'menu' }]) {
     assert.equal(current.validateCompanionEvent(event), true, event.kind);
     assert.equal(previous.validateCompanionEvent(event), false, `${event.kind} is new in this line`);
   }

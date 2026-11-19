@@ -2,7 +2,8 @@
 // Seam: `mount(canvas, host, {data, atlasUrls})`. The card engine runs on an engine clock that stops while the window
 // is hidden. Each animation frame steps him, but the canvas is repainted only when what it shows changes; the
 // clickable region and the anchor go to the host client, which sends them only when they change. A semantic moment
-// (scene.mjs) reports the scene at once; a context click on him opens the ordinary companion menu.
+// (scene.mjs) reports the scene at once; a context click on him opens the ordinary companion menu. The owner's 自主活动
+// setting arrives as body-preferences and goes to the engine (off: he starts nothing by himself).
 import { createEngine, DEFAULT_STAND_PX } from './engine.mjs';
 import { createSceneWatch } from './scene.mjs';
 
@@ -126,6 +127,7 @@ export function mount(canvas, host, { data, atlasUrls, window: view = globalThis
       watch.reset();   // a restored scene is what the archive already holds
     },
     onArea: resize,
+    onPreferences({ behaviorEnabled }) { engine.setBehaviorEnabled(behaviorEnabled); },
   });
   resize(Math.max(1, view.innerWidth), Math.max(1, view.innerHeight));
   watch.reset();

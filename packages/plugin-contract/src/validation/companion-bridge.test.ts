@@ -969,6 +969,23 @@ test('livingBody: the Host asks for a flush and announces the body area', () => 
   }
 });
 
+test('livingBody: the Host tells the body the owner\'s autonomous-activity setting, which the body cannot read', () => {
+  for (const behaviorEnabled of [true, false]) {
+    assert.equal(validateCompanionEvent({ kind: 'body-preferences', behaviorEnabled }), true, String(behaviorEnabled));
+  }
+  for (const [invalid, reason] of [
+    [{ kind: 'body-preferences' }, 'the event always carries the setting'],
+    [{ kind: 'body-preferences', behaviorEnabled: 'false' }, 'a boolean, never a string'],
+    [{ kind: 'body-preferences', behaviorEnabled: 0 }, 'a boolean, never a number'],
+    [{ kind: 'body-preferences', behaviorEnabled: null }, 'unknown is not a value: the Host sends what it holds'],
+    [{ kind: 'body-preferences', behaviorEnabled: false, ballSize: 72 }, 'the size travels as body-area standHeight'],
+    [{ kind: 'body-preferences', behaviorEnabled: false, skin: 'xianxian-living' }, 'only the preferences the body follows'],
+    [{ kind: 'body-preferences', behaviorEnabled: false, catId: 'opus' }, 'no cat selector'],
+    [{ kind: 'body-preferences', autoPlay: false }, 'the setting keeps its settings name'],
+  ] as const) assert.equal(validateCompanionEvent(invalid), false, reason);
+  assert.equal(validateCompanionCommand({ kind: 'body-preferences', behaviorEnabled: false }), false, 'a Host event, never a page command');
+});
+
 test('livingBody: the Host answers body.menu by telling the panel window to open its menu', () => {
   assert.equal(validateCompanionEvent({ kind: 'view-open', panel: 'menu' }), true);
   for (const [invalid, reason] of [
