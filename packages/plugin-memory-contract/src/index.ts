@@ -18,7 +18,17 @@ export const MEMORY_STORAGE_FORMAT = 1;
 /** Operations a v1 memory plugin must serve to be admitted. */
 export const MEMORY_REQUIRED_OPERATIONS = ['kv.put', 'kv.get', 'kv.list', 'kv.delete'] as const;
 
-export type MemoryOperation = (typeof MEMORY_REQUIRED_OPERATIONS)[number];
+/**
+ * Operations a plugin may additionally serve.
+ *
+ * Retrieval is beyond the admission floor on purpose: a Host that never reads
+ * the evidence store must not fail admission because this plugin also offers
+ * search. The Host still needs the operations list to decide whether a call it
+ * intends to make is supported.
+ */
+export const MEMORY_SEARCH_OPERATIONS = ['search.query'] as const;
+
+export type MemoryOperation = (typeof MEMORY_REQUIRED_OPERATIONS)[number] | (typeof MEMORY_SEARCH_OPERATIONS)[number];
 
 /** What the plugin reports through `memory.describe`; it carries no business parameters. */
 export interface MemoryDescriptor {
@@ -61,11 +71,84 @@ export interface KvDeleteInput {
 const MAX_THREAD_REF = 100;
 const MAX_KEY = 100;
 const MAX_VALUE = 10000;
+/** Host ceilings for retrieval, unchanged from the live search route. */
+const MAX_QUERY = 2000;
+const MAX_RESULTS = 20;
+
+/** Which data layer a retrieval targets. Mirrors the live route's `scope`. */
+export const SEARCH_SCOPES = ['docs', 'memory', 'threads', 'sessions', 'all'] as const;
+/** Retrieval mode. `hybrid` is fusion; a plugin may degrade and must say so. */
+export const SEARCH_MODES = ['lexical', 'semantic', 'hybrid'] as const;
+/** `summary` returns ranked documents; `raw` adds passage detail for the same hits. */
+export const SEARCH_DEPTHS = ['summary', 'raw'] as const;
+
+/**
+ * Retrieval request.
+ *
+ * Deliberately narrower than the Host's internal `SearchOptions`: these are the
+ * options the live HTTP route and the internal recall consumer actually pass.
+ * Anything the caller could use to widen its own reach — authorization grants,
+ * cancellations, deadlines — is Host-side and absent here by construction.
+ */
+export interface SearchOptionsDto {
+  readonly limit?: number;
+  readonly scope?: (typeof SEARCH_SCOPES)[number];
+  readonly mode?: (typeof SEARCH_MODES)[number];
+  readonly depth?: (typeof SEARCH_DEPTHS)[number];
+  readonly threadId?: string;
+  readonly dateFrom?: string;
+  readonly dateTo?: string;
+  /** Include the scoring breakdown on each hit. */
+  readonly explain?: boolean;
+}
+
+export interface SearchInput {
+  readonly query: string;
+  readonly options: SearchOptionsDto;
+}
+
+/**
+ * One ranked retrieval hit.
+ *
+ * The fields are the ones the live response envelope builds from a store item
+ * and both consumers read. Storage internals (pack scope, projection state,
+ * contradiction bookkeeping) stay out: the plugin owns them behind this shape.
+ */
+export interface SearchHitDto {
+  readonly anchor: string;
+  readonly kind: string;
+  readonly title: string;
+  readonly snippet: string;
+  /** 1-based rank in this result set. */
+  readonly rank: number;
+  readonly status?: string;
+  readonly sourcePath?: string;
+  readonly sourceHash?: string;
+  readonly updatedAt?: string;
+  readonly authority?: string;
+  readonly matchReason?: string;
+  readonly retrievalScore?: number;
+  readonly rankingFactors?: {
+    readonly bm25Score?: number;
+    readonly consumptionPrior?: number;
+    readonly mmrPenalty?: number;
+  };
+}
+
+export interface SearchResultDto {
+  readonly query: string;
+  readonly hits: readonly SearchHitDto[];
+  /** False when the plugin answered from a degraded path; the Host surfaces this. */
+  readonly degraded: boolean;
+  readonly degradeReason?: string;
+  /** The mode actually executed, which may be narrower than the requested one. */
+  readonly effectiveMode?: (typeof SEARCH_MODES)[number];
+}
 
 export function memoryDescriptor(): MemoryDescriptor {
   return {
     protocolMajor: MEMORY_PROTOCOL_MAJOR,
-    operations: [...MEMORY_REQUIRED_OPERATIONS],
+    operations: [...MEMORY_REQUIRED_OPERATIONS, ...MEMORY_SEARCH_OPERATIONS],
     storageFormat: MEMORY_STORAGE_FORMAT,
   };
 }
@@ -138,7 +221,34 @@ export type DispatchInput =
   | { readonly operation: 'kv.put'; readonly input: KvPutInput }
   | { readonly operation: 'kv.get'; readonly input: KvGetInput }
   | { readonly operation: 'kv.list'; readonly input: KvListInput }
-  | { readonly operation: 'kv.delete'; readonly input: KvDeleteInput };
+  | { readonly operation: 'kv.delete'; readonly input: KvDeleteInput }
+  | { readonly operation: 'search.query'; readonly input: SearchInput };
+
+/**
+ * Parse a retrieval request once, at the boundary.
+ *
+ * `authorizedCollections`, `signal`, `deadlineAt` and friends are rejected as
+ * unknown fields rather than ignored: a caller that sends them is asking the
+ * plugin to trust a self-declared grant, and the honest answer is no.
+ */
+export function parseSearchInput(value: unknown): SearchInput {
+  const input = requireRecord(value, 'search.query input');
+  expectOnlyFields(input, ['query', 'options']);
+  const query = requireBoundedString(input, 'query', MAX_QUERY);
+  const raw = input.options === undefined ? {} : requireRecord(input.options, 'search.query options');
+  expectOnlyFields(raw, ['limit', 'scope', 'mode', 'depth', 'threadId', 'dateFrom', 'dateTo', 'explain']);
+  const options: SearchOptionsDto = {
+    ...(raw.limit === undefined ? {} : { limit: requireLimit(raw.limit) }),
+    ...(raw.scope === undefined ? {} : { scope: requireChoice(raw.scope, 'scope', SEARCH_SCOPES) }),
+    ...(raw.mode === undefined ? {} : { mode: requireChoice(raw.mode, 'mode', SEARCH_MODES) }),
+    ...(raw.depth === undefined ? {} : { depth: requireChoice(raw.depth, 'depth', SEARCH_DEPTHS) }),
+    ...(raw.threadId === undefined ? {} : { threadId: requireBoundedString(raw, 'threadId', MAX_THREAD_REF) }),
+    ...(raw.dateFrom === undefined ? {} : { dateFrom: requireBoundedString(raw, 'dateFrom', MAX_KEY) }),
+    ...(raw.dateTo === undefined ? {} : { dateTo: requireBoundedString(raw, 'dateTo', MAX_KEY) }),
+    ...(raw.explain === undefined ? {} : { explain: requireBoolean(raw, 'explain') }),
+  };
+  return { query, options };
+}
 
 /** Parse the operation discriminator and its typed input once, at the Host boundary. */
 export function parseDispatch(value: unknown): DispatchInput {
@@ -153,6 +263,8 @@ export function parseDispatch(value: unknown): DispatchInput {
       return { operation: 'kv.list', input: parseKvList(envelope.input) };
     case 'kv.delete':
       return { operation: 'kv.delete', input: parseKvDelete(envelope.input) };
+    case 'search.query':
+      return { operation: 'search.query', input: parseSearchInput(envelope.input) };
     default:
       throw new TypeError(`unknown memory operation: ${String(envelope.operation)}`);
   }
@@ -172,6 +284,30 @@ function requireBoundedString(input: Record<string, unknown>, field: string, max
   if (typeof value !== 'string' || value.length === 0) throw new TypeError(`${field} must be a non-empty string`);
   if (value.length > max) throw new TypeError(`${field} exceeds ${max} characters`);
   return value;
+}
+
+function requireBoolean(input: Record<string, unknown>, field: string): boolean {
+  const value = input[field];
+  if (typeof value !== 'boolean') throw new TypeError(`${field} must be a boolean`);
+  return value;
+}
+
+function requireLimit(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > MAX_RESULTS) {
+    throw new TypeError(`limit must be an integer between 1 and ${MAX_RESULTS}`);
+  }
+  return value;
+}
+
+function requireChoice<const T extends readonly string[]>(
+  value: unknown,
+  field: string,
+  allowed: T,
+): T[number] {
+  if (typeof value !== 'string' || !(allowed as readonly string[]).includes(value)) {
+    throw new TypeError(`${field} must be one of: ${allowed.join(', ')}`);
+  }
+  return value as T[number];
 }
 
 /** Reject smuggled fields so a narrower operation cannot receive a wider payload. */

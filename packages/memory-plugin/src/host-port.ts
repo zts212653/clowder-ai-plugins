@@ -37,13 +37,31 @@ export interface MemoryThreadKvPort {
 /** Existing data coordinates and invocation-bound grants supplied to the official worker. */
 export interface MemoryHostPorts {
   readonly memoryThreadKv: MemoryThreadKvPort;
-  readonly memoryDatabase: { readonly canonicalPath: string; readonly storageFormat: 1 };
+  readonly memoryDatabase: MemoryDatabasePort;
   readonly memoryData: { readonly dataDir: string; readonly eventDbPath: string };
   readonly memorySource: MatterSourceReaders & {
     caller(): Promise<MatterCallAuthority>;
     assertCurrent(): Promise<void>;
     publishMatterChange(): Promise<void>;
   };
+}
+
+/**
+ * The evidence database the Host resolved for this deployment.
+ *
+ * Only the coordinate travels: the plugin runs in a worker thread and cannot be
+ * handed a connection. The plugin opens its own handle on this exact path and
+ * never derives one — `dataPath`, the deployment default, or any other root is
+ * not a substitute, because that path may name a different file entirely.
+ *
+ * `storageFormat` stays the literal `1` so a Host that resolves a different
+ * format cannot be admitted by widening the type here.
+ */
+export interface MemoryDatabasePort {
+  /** Absolute path the Host resolved for evidence storage. Diagnostic and open target only. */
+  readonly canonicalPath: string;
+  /** Storage format the Host can still read and roll back to. */
+  readonly storageFormat: 1;
 }
 
 /** Parse a stored raw field; unusable records are skipped exactly as the legacy store did. */

@@ -24,7 +24,7 @@
     "assets"
   ],
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "build": "pnpm clean && tsc -p tsconfig.build.json && node scripts/bundle-entrypoint.mjs",
