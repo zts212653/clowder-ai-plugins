@@ -473,7 +473,7 @@ importers:
         specifier: 0.3.3-candidate.1
         version: link:../plugin-contract
       '@clowder-ai/plugin-memory-contract':
-        specifier: 0.1.0-candidate.7
+        specifier: 0.1.0-candidate.8
         version: link:../plugin-memory-contract
       '@types/better-sqlite3':
         specifier: 7.6.13

@@ -11,6 +11,7 @@ import { parse } from 'yaml';
 import { validateManifest } from '@clowder-ai/plugin-contract';
 import type { ModulePluginHostShape } from '@clowder-ai/plugin-sdk';
 import { MEMORY_REQUIRED_OPERATIONS } from '@clowder-ai/plugin-memory-contract';
+import { entityOutputSchemas } from '@clowder-ai/plugin-memory-contract/entity';
 import { eventOutputSchemas } from '@clowder-ai/plugin-memory-contract/event';
 import { matterOutputSchemas } from '@clowder-ai/plugin-memory-contract/matter';
 import { profileOutputSchemas } from '@clowder-ai/plugin-memory-contract/profile';
@@ -178,6 +179,7 @@ test('memory.describe carries no business parameters and reports exactly the v1 
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
       ...Object.keys(profileOutputSchemas),
+      ...Object.keys(entityOutputSchemas),
     ],
     storageFormat: 1,
   });

@@ -5,6 +5,7 @@ import {
   MEMORY_STORAGE_FORMAT,
   type MemoryDescriptor,
 } from '@clowder-ai/plugin-memory-contract';
+import { entityOutputSchemas } from '@clowder-ai/plugin-memory-contract/entity';
 import { eventOutputSchemas } from '@clowder-ai/plugin-memory-contract/event';
 import { matterOutputSchemas } from '@clowder-ai/plugin-memory-contract/matter';
 import { profileOutputSchemas } from '@clowder-ai/plugin-memory-contract/profile';
@@ -18,6 +19,7 @@ import {
 import type { MemoryHostPorts } from './host-port.js';
 import { openMemoryStorage } from './open-memory-storage.js';
 import { dispatchMemory } from './operations/dispatch.js';
+import { createEntityDispatch } from './operations/entity.js';
 import { dispatchEvent } from './operations/event.js';
 import { ThreadKvOperations } from './operations/kv.js';
 import { createMatterDispatch } from './operations/matter.js';
@@ -39,6 +41,7 @@ function memoryDescriptor(): MemoryDescriptor {
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
       ...Object.keys(profileOutputSchemas),
+      ...Object.keys(entityOutputSchemas),
     ],
     storageFormat: MEMORY_STORAGE_FORMAT,
   };
@@ -78,6 +81,7 @@ async function activate(ports: MemoryHostPorts) {
   const { memorySource, memoryData } = ports;
   const kv = new ThreadKvOperations(ports.memoryThreadKv);
   const matter = createMatterDispatch(storage, memorySource);
+  const entity = createEntityDispatch(storage, memorySource);
   const profile = new ProfileMemoryLifecycleStore({
     db: storage.db,
     repository: new FileProfileRepository({ dataDir: memoryData.dataDir }),
@@ -94,6 +98,7 @@ async function activate(ports: MemoryHostPorts) {
           if (operation.startsWith('matter.')) return matter(input);
           if (operation.startsWith('event.')) return dispatchEvent(storage.events, memorySource, input);
           if (operation.startsWith('profile.')) return dispatchProfile(profile, storage, memorySource, input);
+          if (operation.startsWith('entity.')) return entity(input);
         }
         return dispatchMemory(kv, input);
       },

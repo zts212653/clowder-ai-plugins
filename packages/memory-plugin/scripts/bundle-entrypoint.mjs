@@ -29,10 +29,15 @@ await build({
   outdir: dist,
   outbase: dist,
   bundle: true,
+  splitting: true,
   format: 'esm',
   platform: 'node',
   target: 'es2022',
   external: ['@clowder-ai/plugin-sdk', 'better-sqlite3'],
+  // ESM bundles can still contain CommonJS packages that load Node built-ins.
+  banner: {
+    js: "import { createRequire as requireFromBundle } from 'node:module';\nconst require = requireFromBundle(import.meta.url);",
+  },
   allowOverwrite: true,
   logLevel: 'warning',
 });
