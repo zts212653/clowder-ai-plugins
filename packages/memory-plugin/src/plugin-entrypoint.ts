@@ -2,6 +2,7 @@ import { isAbsolute } from 'node:path';
 import {
   MEMORY_PROTOCOL_MAJOR,
   MEMORY_REQUIRED_OPERATIONS,
+  MEMORY_SEARCH_OPERATIONS,
   MEMORY_STORAGE_FORMAT,
   type MemoryDescriptor,
 } from '@clowder-ai/plugin-memory-contract';
@@ -25,6 +26,7 @@ import { dispatchEvent } from './operations/event.js';
 import { ThreadKvOperations } from './operations/kv.js';
 import { createMatterDispatch } from './operations/matter.js';
 import { dispatchProfile } from './operations/profile.js';
+import { SearchOperations } from './operations/search.js';
 import { createTasteDispatch } from './operations/taste.js';
 import { FileProfileRepository } from './profile/FileProfileRepository.js';
 import { ProfileMemoryLifecycleStore } from './profile/ProfileMemoryLifecycleStore.js';
@@ -40,6 +42,7 @@ function memoryDescriptor(tasteReady: boolean): MemoryDescriptor {
     protocolMajor: MEMORY_PROTOCOL_MAJOR,
     operations: [
       ...MEMORY_REQUIRED_OPERATIONS,
+      ...MEMORY_SEARCH_OPERATIONS,
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
       ...Object.keys(profileOutputSchemas),
@@ -91,6 +94,7 @@ async function activate(ports: MemoryHostPorts) {
     db: storage.db,
     repository: new FileProfileRepository({ dataDir: memoryData.dataDir }),
   });
+  const search = new SearchOperations(storage.db);
   return {
     dispose: () => storage.close(),
     actions: {
@@ -106,7 +110,7 @@ async function activate(ports: MemoryHostPorts) {
           if (operation.startsWith('entity.')) return entity(input);
           if (operation.startsWith('taste.') && taste) return taste(input);
         }
-        return dispatchMemory(kv, input);
+        return dispatchMemory(kv, search, input);
       },
     },
   };

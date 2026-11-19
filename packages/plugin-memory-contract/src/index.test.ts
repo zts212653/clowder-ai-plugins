@@ -21,7 +21,10 @@ test('descriptor is business-parameter free and reports the v1 wire contract', (
   assert.equal(descriptor.protocolMajor, 1);
   assert.equal(descriptor.storageFormat, MEMORY_STORAGE_FORMAT);
   assert.equal(descriptor.storageFormat, 1);
-  assert.deepEqual([...descriptor.operations].sort(), [...MEMORY_REQUIRED_OPERATIONS].sort());
+  // `describe` reports what this plugin offers, which is a superset of the
+  // admission floor: the Host needs the offered set to know what it may call.
+  for (const operation of MEMORY_REQUIRED_OPERATIONS)
+    assert.ok((descriptor.operations as readonly string[]).includes(operation), operation);
 });
 
 test('the v1 required operation set is exactly the first real consumers', () => {

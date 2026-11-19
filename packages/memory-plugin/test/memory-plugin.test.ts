@@ -10,7 +10,7 @@ import Database from 'better-sqlite3';
 import { parse } from 'yaml';
 import { validateManifest } from '@clowder-ai/plugin-contract';
 import type { ModulePluginHostShape } from '@clowder-ai/plugin-sdk';
-import { MEMORY_REQUIRED_OPERATIONS } from '@clowder-ai/plugin-memory-contract';
+import { MEMORY_REQUIRED_OPERATIONS, MEMORY_SEARCH_OPERATIONS } from '@clowder-ai/plugin-memory-contract';
 import { entityOutputSchemas } from '@clowder-ai/plugin-memory-contract/entity';
 import { eventOutputSchemas } from '@clowder-ai/plugin-memory-contract/event';
 import { matterOutputSchemas } from '@clowder-ai/plugin-memory-contract/matter';
@@ -177,6 +177,7 @@ test('memory.describe carries no business parameters and reports exactly the v1 
     protocolMajor: 1,
     operations: [
       ...MEMORY_REQUIRED_OPERATIONS,
+      ...MEMORY_SEARCH_OPERATIONS,
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
       ...Object.keys(profileOutputSchemas),
