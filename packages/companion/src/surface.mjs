@@ -27,6 +27,7 @@ import { AppAssistController } from './app-assist-controller.mjs';
 import { bindAppAssistCountdown } from './app-assist-countdown.mjs';
 import { DeskDeliveryController } from './desk-delivery-controller.mjs';
 import { DeskDeliveryView } from './desk-delivery-view.mjs';
+import { LIVING_BODY } from './package-line.mjs';
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
 const status = text => {
@@ -332,6 +333,7 @@ if (!window.clowderCompanion) {
   settingsView = new SettingsView({
     document,
     client,
+    livingBody: LIVING_BODY,
     close: () => void controls.show('menu'),
     callActive: () => conversation.active,
     expectHostStop: () => conversation.expectHostStop(),
@@ -344,6 +346,7 @@ if (!window.clowderCompanion) {
       $('anchor').dataset.ballSize = String(values.ballSize);
       $('anchor').dataset.compact = String(values.ballSize <= COMPACT_BALL_SIZE);
       label('menu-size-toggle', compactSizeAction(values.ballSize).label);
+      motion.setSkin(values.skin);
       motion.setBehaviorEnabled(values.behaviorEnabled);
       $('documents').hidden = true;
       decisionPanel?.refreshBadge();

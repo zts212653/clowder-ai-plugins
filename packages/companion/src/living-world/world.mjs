@@ -72,14 +72,21 @@ export function mount(canvas, host, { data, atlasUrls, window: view = globalThis
   function schedule() {
     if (!frameId && !hidden()) frameId = view.requestAnimationFrame(frame);
   }
-  function resize(width, height) {
+  // body-area: the window's size and, from a Host that sizes him, how tall he stands; a size the Host has not named
+  // keeps the last one (the default before any).
+  let area;
+  let standHeight = standPx;
+  function resize(width, height, stand = standHeight) {
     const dpr = Math.min(2, view.devicePixelRatio || 1);
+    if (area && area.width === width && area.height === height && area.stand === stand && area.dpr === dpr) return;
+    area = { width, height, stand, dpr };
+    standHeight = stand;
     engine.view.dpr = dpr;
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     canvas.width = Math.max(1, Math.round(width * dpr));
     canvas.height = Math.max(1, Math.round(height * dpr));
-    engine.layout(width, height);
+    engine.layout(width, height, stand);
     shownKey = undefined;   // resizing the canvas cleared it
     paint(clock.now());
     publish();

@@ -1,10 +1,12 @@
 import { SettingsController } from './settings-controller.mjs';
+import { LIVING_SKIN } from './pet-motion-assets.mjs';
 
 const skinLabels = {
   'xianxian-codex': '宪宪 v1',
   'yanyan-codex': '砚砚 v1',
   'ragdoll-v1': '布偶猫',
   'yarn-ball': '猫猫球',
+  [LIVING_SKIN]: '宪宪（活猫）',
 };
 const fieldLabels = {
   dutyCatProfileId: '陪伴者',
@@ -18,9 +20,11 @@ const fieldLabels = {
 };
 
 export class SettingsView {
-  constructor({ document, client, close, callActive, onValues,
+  constructor({ document, client, close, callActive, onValues, livingBody = false,
     expectHostStop = () => false, settleExpectedHostStop = async () => {}, layoutChanged = () => {} }) {
     this.document = document;
+    // Only a package on the livingBody contract line offers the living cat; on any other line the option stays hidden.
+    this.livingBody = livingBody === true;
     this.$ = id => document.getElementById(id);
     this.close = close;
     this.callActive = callActive;
@@ -69,6 +73,7 @@ export class SettingsView {
     for (const id of Object.keys(skinLabels)) {
       this.$(`settings-skin-${id}`).onclick = () => void this.controller.requestUpdate('skin', id);
     }
+    this.$(`settings-skin-${LIVING_SKIN}`).hidden = !this.livingBody;
     this.$('settings-reset').onclick = () => void this.controller.resetPosition();
     this.$('settings-disable-open').onclick = () => this.controller.requestDisable();
     this.$('settings-confirm-cancel').onclick = () => this.controller.navigate(

@@ -37,7 +37,7 @@
       "bridgeVersion": "1.8.0",
       "surface": {
         "entrypoint": "renderer/index.html",
-        "integrity": "sha256-R425ilNu5hQtVtI0oFF8s+WBb+bWbDIXfUDn9y/Ve2c="
+        "integrity": "sha256-YJjSElnuiUD+Ou5LqJb/uG7WW8isd19/pK7/JWIj6cU="
       },
       "body": {
         "entrypoint": "renderer/body.html",

@@ -55,7 +55,7 @@ function fixture({ reads = [{ kind: 'scene', status: 'not_found' }], reply = () 
   const world = {
     snapshot: () => structuredClone(current),
     onScene: scene => scenes.push(scene),
-    onArea: (width, height) => areas.push([width, height]),
+    onArea: (width, height, standHeight) => areas.push(standHeight === undefined ? [width, height] : [width, height, standHeight]),
   };
   const client = createBodyHostClient({ bridge, timers, visibility });
   const emit = event => { for (const callback of listeners) callback(event); };
@@ -221,4 +221,18 @@ test('anchor and menu are plain body commands; the work area is passed to the wo
   f.emit({ kind: 'media-stopped', reason: 'hidden' });
   assert.deepEqual(f.areas, [[1280, 690]]);
   for (const command of f.sent) assert.match(command.kind, /^(?:body|scene)\./u, 'a body speaks only body.* and scene.*');
+});
+
+test('body-area hands the world the Host\'s standHeight, and nothing for a missing or out-of-contract one', async () => {
+  const f = fixture();
+  await f.client.start(f.world);
+  f.emit({ kind: 'body-area', width: 1440, height: 860, standHeight: 200 });
+  f.emit({ kind: 'body-area', width: 1440, height: 860, standHeight: 60 });
+  f.emit({ kind: 'body-area', width: 1440, height: 860, standHeight: 480 });
+  f.emit({ kind: 'body-area', width: 1440, height: 860 });
+  for (const standHeight of [59, 481, 150.5, '150', null, Number.NaN]) f.emit({ kind: 'body-area', width: 1440, height: 860, standHeight });
+  f.emit({ kind: 'body-area', width: 0, height: 860, standHeight: 200 });
+  assert.deepEqual(f.areas, [[1440, 860, 200], [1440, 860, 60], [1440, 860, 480], [1440, 860],
+    [1440, 860], [1440, 860], [1440, 860], [1440, 860], [1440, 860], [1440, 860]],
+    'the area always moves; only an in-contract height changes his size');
 });

@@ -72,17 +72,29 @@ test('packed static desktop window declarations and current SDK work without wor
     run(process.execPath, [join(repo, 'packages/plugin-contract/node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json'], consumer);
     const contract = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/plugin-contract/package.json'), 'utf8'));
     const sdk = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/plugin-sdk/package.json'), 'utf8'));
-    assert.equal(sdk.dependencies['@clowder-ai/plugin-contract'], contract.version);
+    const companionPackage = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/companion/package.json'), 'utf8'));
+    assert.equal(contract.version, companionPackage.devDependencies['@clowder-ai/plugin-contract'],
+      'the packed contract is the line the companion declares (livingBody, bridge 1.8)');
+    // The SDK keeps its own published contract pin until its next release; it must resolve exactly that pin.
+    const sdkContract = sdk.dependencies['@clowder-ai/plugin-contract'];
+    const nested = join(consumer, 'node_modules/@clowder-ai/plugin-sdk/node_modules/@clowder-ai/plugin-contract/package.json');
+    const resolved = sdkContract === contract.version ? contract
+      : JSON.parse(await readFile(nested, 'utf8'));
+    assert.equal(resolved.version, sdkContract, 'the SDK runs against the contract it was built for');
     const probe = `
       import assert from 'node:assert/strict';
       import { validateManifest } from '@clowder-ai/plugin-contract';
       import companion from '@clowder-ai/companion/manifest' with { type: 'json' };
       import { activateDefinedFeature, createFeatureContextSession, definePlugin, FeatureContextRevokedError } from '@clowder-ai/plugin-sdk';
       import { createCompanionClient } from '@clowder-ai/plugin-sdk/companion';
-      import { validateCompanionCommand, validateCompanionReply } from '@clowder-ai/plugin-contract';
+      import { validateCompanionCommand, validateCompanionEvent, validateCompanionReply } from '@clowder-ai/plugin-contract';
       assert.equal(validateManifest(companion).valid, true);
       assert.equal(companion.pluginId, 'official.companion');
-      assert.equal(companion.contributions[0].bridgeVersion, '1.7.0');
+      assert.equal(companion.contributions[0].bridgeVersion, '1.8.0');
+      assert.equal(companion.contributions[0].body.entrypoint, 'renderer/body.html', 'livingBody: the body page beside the surface');
+      assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'skin', value: 'xianxian-living' }), true);
+      assert.equal(validateCompanionEvent({ kind: 'body-area', width: 1440, height: 860, standHeight: 150 }), true);
+      assert.equal(validateCompanionEvent({ kind: 'body-area', width: 1440, height: 860, standHeight: 481 }), false);
       assert.equal(validateCompanionCommand({ kind: 'desk.settle', scopeRef: 'desk-a', deliveryRef: 'delivery-a', action: 'dismiss' }), true);
       assert.equal(validateCompanionCommand({ kind: 'desk.settle', scopeRef: 'desk-a', deliveryRef: 'delivery-a', action: 'open' }), false);
       assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'desk', width: 344, height: 328 }), true);

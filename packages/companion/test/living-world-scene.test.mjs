@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { createEngine } from '../src/living-world/engine.mjs';
+import { createEngine, DEFAULT_STAND_PX } from '../src/living-world/engine.mjs';
 import { createSceneWatch, GROOM_STROKES, RESUME_AT } from '../src/living-world/scene.mjs';
 import { createBodyHostClient, SCENE_FIELDS } from '../src/living-world/host-client.mjs';
 import { createEngineClock } from '../src/living-world/world.mjs';
-import { PAPER_START } from '../src/living-world/constants.mjs';
+import { PAPER_START, STAND_H } from '../src/living-world/constants.mjs';
 
 const WORLD = JSON.parse(readFileSync(new URL('../assets/skins/xianxian-living-world/world.json', import.meta.url), 'utf8'));
 const AREA = [1440, 860];
@@ -229,6 +229,31 @@ test('a new work area keeps him, the ball and the paper on screen', () => {
   const [x, y, width, height] = engine.catRect();
   assert.ok(x >= 0 && x + width <= 800 && y + height <= 600, JSON.stringify([x, y, width, height]));
   for (const value of [snap.pose.x, snap.ball.x, snap.paper.x]) assert.ok(value > 0 && value < 1);
+});
+
+test('his standing height follows layout: the default until named, kept when not named again, capped to stay clickable', () => {
+  const { engine } = world();
+  const standing = () => engine.catRect()[3] / (engine.WD.frames[engine.curFrame()][3] / engine.WD.scale) * STAND_H;
+  assert.equal(engine.view.k, DEFAULT_STAND_PX / STAND_H, 'before the Host names a height he stands at the default');
+  assert.equal(Math.round(standing()), DEFAULT_STAND_PX);
+  const before = { cat: engine.cat.x, ball: engine.ball.x, paper: engine.paper.x };
+  engine.layout(...AREA, 200);
+  assert.equal(engine.view.k, 200 / STAND_H);
+  assert.equal(Math.round(standing()), 200, 'his drawn sprite scales with the named height');
+  assert.deepEqual({ cat: engine.cat.x, paper: engine.paper.x }, { cat: before.cat, paper: before.paper },
+    'canon positions stay, so the box and his paper keep their places around him');
+  assert.ok(engine.ball.x <= before.ball && (engine.ball.x + engine.K.BR) * engine.view.k <= AREA[0] + 1e-6,
+    'a ball the bigger cat\'s shorter floor no longer holds is put back on it');
+  engine.layout(1280, 700);
+  assert.equal(engine.view.k, 200 / STAND_H, 'a new work area without a height keeps the one he has');
+  const [x, y, width, height] = engine.catRect();
+  assert.ok(x >= 0 && x + width <= 1280 && y + height <= 700, JSON.stringify([x, y, width, height]));
+  engine.layout(1280, 720, 480);
+  const largest = Math.max(...WORLD.frames.map(([, , w, h]) => (w / WORLD.scale) * (h / WORLD.scale))) + WORLD.ballD ** 2;
+  assert.ok(STAND_H * engine.view.k < 480, `on a small screen the biggest setting is capped (${Math.round(STAND_H * engine.view.k)} px)`);
+  assert.ok(largest * engine.view.k ** 2 <= 0.15 * 1280 * 720, 'his largest frame and the ball stay inside the Host\'s 15% click budget');
+  engine.layout(3008, 1660, 480);
+  assert.equal(engine.view.k, 480 / STAND_H, 'a screen big enough holds him at the named height');
 });
 
 test('the engine clock does not count the time the window was hidden', () => {

@@ -74,6 +74,10 @@ test('the installable package declares one companion body and contains a closed 
     entrypoint: 'renderer/body.html', integrity: `sha256-${createHash('sha256').update(bodyHtml).digest('base64')}`,
   }, 'the living body entry sits beside the surface and is pinned by its own bytes');
   assert.doesNotMatch(bodyHtml.toString(), /<script(?![^>]*\bsrc=)/u, 'the static-surface policy admits no inline script');
+  const { LIVING_BODY } = await import(new URL('renderer/package-line.mjs', root));
+  assert.equal(LIVING_BODY, true, 'the panel learns its line from its own declaration: a body entry is admitted only on the livingBody line');
+  assert.match(markup, /<button id="settings-skin-xianxian-living" type="button" data-setting-control hidden>宪宪（活猫）<\/button>/u,
+    'the living option sits with the other skins and stays hidden until the panel knows its line');
   const names = [...await readdir(new URL('renderer/', root)),
     ...(await readdir(new URL('renderer/living-world/', root))).map(name => `living-world/${name}`),
     ...(await readdir(new URL('renderer/skins/xianxian-living-world/', root))).map(name => `skins/xianxian-living-world/${name}`)];

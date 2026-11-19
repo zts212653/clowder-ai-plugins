@@ -14,8 +14,12 @@ import { installInput } from './input.mjs';
 import { installDraw } from './draw.mjs';
 import { installScene } from './scene.mjs';
 
-/** His standing height on the desktop, in CSS px (the card used 31.5% of its room's height). */
+/** His standing height on the desktop, in CSS px (the card used 31.5% of its room's height), until the Host's body-area
+ * names one (standHeight, derived from the ballSize setting). */
 export const DEFAULT_STAND_PX = 150;
+// The Host refuses, whole, a click region over 15% of the work area: his largest frame plus the ball stay within 14% of
+// it, so the biggest size setting on a small screen makes him as big as the screen allows, never unclickable.
+export const HIT_SHARE_BUDGET = 0.14;
 // the floor line sits this many canon px above the work area's bottom edge, so the shadows, the near edge of his draft
 // and the foot of the box (all drawn a little in front of the line) are not cut off by the edge
 export const FLOOR_PAD = 16;
@@ -26,6 +30,8 @@ export function createEngine({ data, now = () => performance.now(), random = Mat
   const WD = data;
   const K = deriveConstants(WD);
   const view = { W: 0, H: 0, dpr: 1, k: standPx / STAND_H, floorY: 0, worldW: 1600, CEIL: 900, HANGY: 300 };
+  // canon px² of his largest frame and of the ball's box: what the click region can cover at most
+  const largestHit = Math.max(...WD.frames.map(([, , w, h]) => (w / WD.scale) * (h / WD.scale))) + (2 * K.BR) ** 2;
   const cat = { x: NaN, y: 0, facing: 1, clip: 'fs-idle', i: 0, acc: 0, energy: 1, loops: 0, pauseUntil: 0, leap: 0, lookI: 0, since: 0, last: '', wall: null, mir: 1, spread: null, fix: null, climbExtra: 0, climbLeft: 0, miss: false, playedAt: -1e9 };
   const ball = { x: NaN, h: K.BR, vx: 0, vh: 0, held: false, fresh: false, spin: 0, relAt: -1e9, pin: false, pinOff: 0, sq: 0, sqv: 0, sqTo: 0, ceil: false };
   const ptr = { x: 0, y: 0, at: -1e9, down: false, hist: [] };
@@ -35,12 +41,15 @@ export function createEngine({ data, now = () => performance.now(), random = Mat
   const e = { WD, K, view, cat, ball, ptr, paper, hearts, atlases: [null, null, null], status: '', now, random };
   installSenses(e); installMotion(e); installBrain(e); installStep(e); installHide(e); installInput(e); installDraw(e); installScene(e);
 
-  // The work area can change under him (Dock, display): he is put back on the new floor, never off screen. On the wall
-  // or the ceiling he lets go and sits on the floor where he was, since that wall or ceiling has moved.
-  function layout(width, height) {
+  // The work area or his size can change under him (Dock, display, the size setting): he is put back on the new floor,
+  // never off screen. On the wall or the ceiling he lets go and sits on the floor where he was, since that wall or ceiling
+  // has moved. Positions stay in canon px, so the box, the paper and the ball keep their places around him.
+  function layout(width, height, nextStandPx = standPx) {
     if (!(width >= 20 && height >= 20)) return false;
+    if (Number.isFinite(nextStandPx) && nextStandPx > 0) standPx = nextStandPx;
+    const k = Math.min(standPx, STAND_H * Math.sqrt(HIT_SHARE_BUDGET * width * height / largestHit)) / STAND_H;
     const moved = view.W > 0;
-    view.W = width; view.H = height; view.k = standPx / STAND_H;
+    view.W = width; view.H = height; view.k = k;
     view.floorY = height - FLOOR_PAD * view.k; view.worldW = width / view.k; view.CEIL = view.floorY / view.k; view.HANGY = view.CEIL - HANG_PAW;
     if (moved && cat.wall && e.clip().wall) {
       Object.assign(cat, { wall: null, y: 0, fix: null, spread: null, climbLeft: 0, facing: cat.x < view.worldW / 2 ? 1 : -1 });
@@ -89,6 +98,7 @@ export function createEngine({ data, now = () => performance.now(), random = Mat
       ball: { ceil: ball.ceil, x: r(ball.x), h: r(ball.h), vx: r(ball.vx), held: ball.held, fresh: ball.fresh, pin: ball.pin, sq: +ball.sq.toFixed(2) },
       status: e.status, worldW: r(view.worldW), paper: r(paper.x), pet: !!cat.pet, hearts: hearts.length, rub: !!cat.rub,
       resume: cat.resume ? cat.resume.kind : null, pose: e.poseHub(), askew: e.hatAskew(), activity: act ? `${act.kind}:${act.frame}` : null,
+      stand: r(STAND_H * view.k),
     };
   }
 

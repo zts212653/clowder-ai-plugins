@@ -8,10 +8,16 @@
 //   scene-flush is always answered with a fresh snapshot, even when nothing changed.
 // - Clicks: body.hit only when the region changes; a 500 ms body.hit.renew timer that does not
 //   depend on repainting keeps the lease, and stops while the page is hidden.
+// - Size: body-area carries the window size and, from a Host that sizes the cat, standHeight (derived
+//   from ballSize, which this window cannot read). A missing or out-of-contract standHeight leaves
+//   the cat at the height he already has.
 export const SCENE_FIELDS = Object.freeze(['pose', 'ball', 'paper', 'hat', 'activity', 'lastSolo']);
 export const RENEW_MS = 500;
 export const READ_RETRY_FIRST_MS = 1000;
 export const READ_RETRY_MAX_MS = 30000;
+/** The contract's bounds on body-area.standHeight (CSS px). */
+export const STAND_HEIGHT_MIN = 60;
+export const STAND_HEIGHT_MAX = 480;
 
 const rectKeys = ['x', 'y', 'width', 'height'];
 const sameRect = (a, b) => Boolean(a && b) && rectKeys.every(key => a[key] === b[key]);
@@ -19,6 +25,7 @@ const sameRects = (a, b) => a.length === b.length && a.every((rect, index) => sa
 const copyRect = rect => ({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
 const encode = value => (value === undefined ? undefined : JSON.stringify(value));
 const positiveInteger = value => Number.isInteger(value) && value > 0;
+const standHeight = value => (Number.isInteger(value) && value >= STAND_HEIGHT_MIN && value <= STAND_HEIGHT_MAX ? value : undefined);
 
 function documentVisibility(doc) {
   if (!doc) return { hidden: () => false, subscribe: () => () => {} };
@@ -42,7 +49,7 @@ export function createBodyHostClient({
   const setRepeat = (callback, ms) => timers.setInterval.call(globalThis, callback, ms);
   const clearRepeat = id => timers.clearInterval.call(globalThis, id);
   let mode = 'idle'; // idle → reading → saved | unsaved; stopped after stop()
-  let world; // {snapshot(), onScene(scene), onArea(width, height)}
+  let world; // {snapshot(), onScene(scene), onArea(width, height, standHeight?)}
   let sent = {}; // field → JSON of the value last sent (or read) for this body
   const carried = new Set(); // fields of reports the Host did not take
   let retryMs = READ_RETRY_FIRST_MS;
@@ -140,7 +147,7 @@ export function createBodyHostClient({
     if (mode === 'stopped' || !event || typeof event !== 'object') return;
     if (event.kind === 'scene-flush') void report();
     else if (event.kind === 'body-area' && positiveInteger(event.width) && positiveInteger(event.height)) {
-      world?.onArea(event.width, event.height);
+      world?.onArea(event.width, event.height, standHeight(event.standHeight));
     }
   }
   function onVisibility() {

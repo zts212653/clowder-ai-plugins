@@ -233,3 +233,35 @@ test('reopened, he is as he was: the ball where it lay and the beret still askew
     await unsaved.page.close();
   }
 });
+
+test('body-area sizes him: the Host\'s standHeight grows and shrinks the drawn cat and his click region; an area without one keeps his size', async () => {
+  const { page, errors, cat, region } = await openBody({ kind: 'scene', status: 'not_found' });
+  const settle = () => page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+  try {
+    assert.equal((await cat()).stand, 150, 'before the Host names a height he stands at the default');
+    const small = (await region()).body;
+    await page.evaluate(() => window.__emit({ kind: 'body-area', width: 1440, height: 860, standHeight: 260 }));
+    await settle();
+    assert.equal((await cat()).stand, 260);
+    const large = (await region()).body;
+    const ratio = large.height / small.height;
+    assert.ok(ratio > 1.6 && ratio < 1.87, `his sprite grows with his height (${small.height} → ${large.height}, ×${ratio.toFixed(2)})`);
+    assert.ok(AREA.height - large.y - large.height <= 24, 'still standing on the floor');
+
+    await page.setViewportSize({ width: 1200, height: 800 });
+    await page.evaluate(() => window.__emit({ kind: 'body-area', width: 1200, height: 800 }));
+    await settle();
+    const kept = await cat();
+    assert.deepEqual([kept.stand, kept.room.join('x')], [260, '1200x800'], 'a new work area without a height keeps the one he has');
+    const moved = (await region()).body;
+    assert.ok(moved.x >= 0 && moved.x + moved.width <= 1200 && moved.y + moved.height <= 800, JSON.stringify(moved));
+
+    await page.evaluate(() => window.__emit({ kind: 'body-area', width: 1200, height: 800, standHeight: 90 }));
+    await settle();
+    assert.equal((await cat()).stand, 90, 'the smallest size setting makes him small');
+    assert.ok((await region()).body.height < small.height, 'and his click region with him');
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+});

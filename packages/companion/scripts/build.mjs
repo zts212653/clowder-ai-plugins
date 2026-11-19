@@ -29,6 +29,9 @@ window.surface.integrity = sri(await readFile(new URL(window.surface.entrypoint,
 if (window.body) window.body.integrity = sri(await readFile(new URL(window.body.entrypoint, root)));
 const validation = validateManifest(manifest);
 if (!validation.valid) throw new Error(JSON.stringify(validation.errors));
+// livingBody: the panel offers the living cat only when this package declares a body entry, which the contract admits
+// only on its livingBody line (bridge 1.8.0); the Host admits these exact bytes on that line alone.
+await writeFile(new URL('package-line.mjs', renderer), `// Built by scripts/build.mjs from plugin.yaml.\nexport const LIVING_BODY = ${Boolean(window.body)};\n`);
 // Refresh derived coordinates and emit the same declaration for module consumers.
 const serialized = `${JSON.stringify(manifest, null, 2)}\n`;
 await writeFile(new URL('manifest.json', root), serialized);
