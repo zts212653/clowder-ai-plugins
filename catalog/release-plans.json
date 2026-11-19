@@ -316,6 +316,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/234",
       "reason": "Registration reads keep their dependent requests together and reuse the account login, so tracking registration fits the Host shared MCP budget; packaged for the home instance, public catalog activation stays separate.",
       "condition": "Upgrade the same home instance under existing upgrade authority, then retry the original failed registration ID. Before public discovery, verify supported public Host compatibility and canonical registry bytes."
+    },
+    {
+      "pluginId": "official.companion",
+      "version": "0.1.0-alpha.38",
+      "integrity": "sha512-xIMaPK6NVhdh2ghaSagNuAyq0H1iVr1VW0GAguOEL45ydMVqqmaHxhx96PqFXmluoknkKk3UBKKYJ6PGGKM8zQ==",
+      "disposition": "defer",
+      "owner": "opus55",
+      "reviewBy": "2026-11-25T04:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/240",
+      "reason": "The living cat as a second companion body (contract 0.3.3-candidate.2, livingBody) is packaged, but it only works with a Host that pins candidate.2 and opens the body window; that Host half is still on the cat-cafe branch.",
+      "condition": "Publish contract 0.3.3-candidate.2 and SDK 0.3.0-beta.2-candidate.14 first. Upgrade the home instance only after the cat-cafe Host PR pinning candidate.2 merges, and pass the real-host acceptance of F336 Phase C slice 1 before public discovery; verify canonical registry bytes."
     }
   ]
 }
