@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/memory-plugin",
-  "version": "0.1.0-candidate.7",
+  "version": "0.1.0-candidate.8",
   "private": true,
   "description": "Official Clowder AI memory plugin: thread KV, evidence retrieval and memory business ownership.",
   "license": "MIT",

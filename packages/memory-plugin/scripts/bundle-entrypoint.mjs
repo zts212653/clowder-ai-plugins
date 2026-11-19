@@ -33,6 +33,15 @@ await build({
   platform: 'node',
   target: 'es2022',
   external: ['@clowder-ai/plugin-sdk', 'better-sqlite3'],
+  // Any transitively-inlined CommonJS dependency otherwise compiles to an
+  // esbuild `__require` shim whose definition is `typeof require !== "undefined"
+  // ? require : throw`. The emitted file is ESM, where no `require` binding
+  // exists, so every such dependency died on its first Node builtin import and
+  // the Host saw only `503 RUNTIME_START_FAILED`. Binding a real `require` up
+  // front keeps inlined packages loadable regardless of their module format.
+  banner: {
+    js: "import { createRequire as __createRequire } from 'node:module';\nconst require = __createRequire(import.meta.url);",
+  },
   allowOverwrite: true,
   logLevel: 'warning',
 });
