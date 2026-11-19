@@ -308,7 +308,7 @@
     },
     {
       "pluginId": "official.companion",
-      "version": "0.1.0-alpha.40",
+      "version": "0.1.0-alpha.41",
       "integrity": "sha512-+uAVkER19bgE6R+9a4QzezGoic3rdNIj0Oz8ieYp54N1qEIagjjYIDhf+ss6uYP9t8y12ZBSwuKtCQGTo9b+WQ==",
       "disposition": "defer",
       "owner": "mindfn",
