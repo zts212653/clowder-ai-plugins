@@ -1,0 +1,4 @@
+/* F336 Phase C: the living body covers the primary work area; only the cat is visible. */
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+body { user-select: none; -webkit-user-select: none; cursor: default; }
+#world { display: block; position: fixed; inset: 0 auto auto 0; touch-action: none; }

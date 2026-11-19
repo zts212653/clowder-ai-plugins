@@ -203,6 +203,7 @@ function fixture() {
     syncTravel(value) { motionCalls.push({ travel: value }); }
     setPendingDecision(value) { motionCalls.push({ pendingDecision: value }); } signal(value) { motionCalls.push(value); }
     setBehaviorEnabled(value) { motionCalls.push({ behaviorEnabled: value }); }
+    setSkin(value) { motionCalls.push({ skin: value }); }
     move() {} stopMove() {} close() {} }
   class NativeWindowTravel { constructor(options) { travelObserver = options; } start() {} setManual() {} close() {} }
   class LivingBody {}
@@ -217,7 +218,7 @@ function fixture() {
     DecisionPanel, decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity,
     FoldedChatUnread, COMPACT_BALL_SIZE, compactSizeAction, WorkOverviewView, MeetingStatus, meetingPresentation, renderMeetingStatus,
     VisibleTextPresentation, CallControlsPresentation, CallDuration, AppAssistController, bindAppAssistCountdown,
-    DeskDeliveryController, DeskDeliveryView,
+    DeskDeliveryController, DeskDeliveryView, LIVING_BODY: true,
     ConversationHistory, ReplyLetterController, ReplyLetterView, HostConversationDraft, ConversationSurface,
     explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, queueMicrotask,
