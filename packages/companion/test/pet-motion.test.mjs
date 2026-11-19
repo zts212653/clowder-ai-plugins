@@ -284,3 +284,38 @@ test('edge posture remains visible while listening stays an orthogonal signal', 
   assert.equal(shown.at(-1).action, 'staged_thought', 'truthful work still preempts the edge posture');
   motion.close();
 });
+
+test('the living skin leaves the panel without a body: nothing is drawn or timed until another skin comes back', () => {
+  let now = 0, nextId = 0;
+  const timers = new Map();
+  const calls = [];
+  const body = { show(action) { calls.push(['show', action]); }, hide() { calls.push(['hide']); }, close() {} };
+  const element = { dataset: {}, style: {} };
+  const motion = new PetMotion(element, { livingBody: body, reducedMotion: false, autoPlay: true, now: () => now,
+    setTimer(callback, delay) { const id = ++nextId; timers.set(id, { at: now + delay, callback }); return id; },
+    clearTimer(id) { timers.delete(id); } });
+  motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });
+  assert.deepEqual(calls.at(-1), ['show', 'idle']);
+  assert.ok(timers.size > 0, 'the ball rests and plays on its own');
+
+  motion.setSkin('xianxian-living');
+  motion.setContext({ skin: undefined, phase: 'idle', nativeActivity: 'none', muted: false });
+  assert.equal(element.dataset.skin, 'xianxian-living', 'the stylesheet hides the panel body for this skin, even before a state names it');
+  assert.equal(element.style.backgroundImage, 'none');
+  assert.deepEqual(calls.at(-1), ['hide'], 'the ball\'s living layers are put away');
+  assert.equal(timers.size, 0, 'no frame, rest or play timer keeps running behind the living cat');
+  const shown = calls.length;
+  motion.signal('received');
+  motion.signal('play');
+  motion.setPendingDecision(true);
+  motion.setContext({ skin: 'xianxian-living', phase: 'talking', nativeActivity: 'reasoning', muted: false });
+  motion.syncSnapshot({ work: null, travel: null, delivery: { resultId: 'result-1', status: 'applied', expiresAt: 10_000 } });
+  assert.equal(calls.slice(shown).some(([kind]) => kind === 'show'), false, 'calls, work and decisions draw nothing here');
+  assert.equal(timers.size, 1, 'only the Host delivery fact keeps its own expiry, so a stale one cannot play later');
+
+  motion.setPendingDecision(false);
+  motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });
+  assert.equal(element.dataset.skin, 'xianxian-codex');
+  assert.equal(calls.at(-1)[0], 'show', 'switching back brings the ball back');
+  motion.close();
+});
