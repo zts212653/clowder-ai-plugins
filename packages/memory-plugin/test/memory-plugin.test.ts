@@ -13,6 +13,7 @@ import type { ModulePluginHostShape } from '@clowder-ai/plugin-sdk';
 import { MEMORY_REQUIRED_OPERATIONS, MEMORY_SEARCH_OPERATIONS } from '@clowder-ai/plugin-memory-contract';
 import { entityOutputSchemas } from '@clowder-ai/plugin-memory-contract/entity';
 import { eventOutputSchemas } from '@clowder-ai/plugin-memory-contract/event';
+import { memoryProjectIndexResponses } from '@clowder-ai/plugin-memory-contract/maintenance';
 import { matterOutputSchemas } from '@clowder-ai/plugin-memory-contract/matter';
 import { profileOutputSchemas } from '@clowder-ai/plugin-memory-contract/profile';
 
@@ -179,6 +180,7 @@ test('memory.describe carries no business parameters and reports exactly the v1 
       ...MEMORY_REQUIRED_OPERATIONS,
       ...MEMORY_SEARCH_OPERATIONS,
       'index.status',
+      ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
       ...Object.keys(profileOutputSchemas),
@@ -250,6 +252,44 @@ test('index status reads the selected generation and reports persisted vectors w
     embedding_model: null,
   });
   await assert.rejects(async () => dispatch({ operation: 'index.status', input: { generationId: 'embedding_meta' } }));
+});
+
+test('project index claims and settles legacy state through the activation writer', async (t) => {
+  const binding = `${process.platform}-${process.arch}-abi${process.versions.modules}.node`;
+  const nativeBinding = fileURLToPath(new URL(`../dist/native/${binding}`, import.meta.url));
+  const db = new Database(evidencePath, { nativeBinding });
+  db.exec(`
+    CREATE TABLE index_state (
+      id TEXT PRIMARY KEY, project_path TEXT NOT NULL UNIQUE, status TEXT NOT NULL DEFAULT 'missing',
+      fingerprint TEXT NOT NULL DEFAULT '', last_scan_at TEXT, snoozed_until TEXT,
+      docs_indexed INTEGER DEFAULT 0, docs_total INTEGER DEFAULT 0,
+      error_message TEXT, summary_json TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+  `);
+  db.prepare(`
+    INSERT INTO index_state (id, project_path, status, fingerprint, docs_indexed, created_at, updated_at)
+    VALUES ('legacy-project-id', ?, 'ready', 'old-revision', 4, '2026-11-18', '2026-11-18')
+  `).run(dataDir);
+  db.close();
+
+  const active = await start();
+  t.after(() => active.stop({ reason: 'test' }));
+  const call = (action: string, options = {}) =>
+    active.actions['memory.dispatch']!({ operation: `index.project.${action}`, input: { projectPath: dataDir, ...options } });
+  const old = await call('read', { fingerprint: 'new-revision' });
+  assert.equal((old as { status: string }).status, 'stale');
+  assert.deepEqual(await Promise.all([
+    call('claim', { fingerprint: 'new-revision' }),
+    call('claim', { fingerprint: 'new-revision' }),
+  ]), [true, false]);
+  await call('settle', { status: 'ready', docsIndexed: 7, summaryJson: '{"projectName":"legacy-test"}' });
+  const current = await call('read') as { id: string; status: string; docs_indexed: number; summary_json: string };
+  assert.equal(current.id, 'legacy-project-id');
+  assert.equal(current.status, 'ready');
+  assert.equal(current.docs_indexed, 7);
+  assert.equal(current.summary_json, '{"projectName":"legacy-test"}');
+  assert.equal(typeof await call('snooze'), 'string');
+  assert.equal(await call('claim', { fingerprint: 'later-revision' }), false);
 });
 
 test('a Host without the authorized memory port fails admission instead of degrading to an empty store', async () => {

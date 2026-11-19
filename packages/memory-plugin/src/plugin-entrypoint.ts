@@ -8,6 +8,7 @@ import {
 } from '@clowder-ai/plugin-memory-contract';
 import { entityOutputSchemas } from '@clowder-ai/plugin-memory-contract/entity';
 import { eventOutputSchemas } from '@clowder-ai/plugin-memory-contract/event';
+import { memoryProjectIndexResponses } from '@clowder-ai/plugin-memory-contract/maintenance';
 import { matterOutputSchemas } from '@clowder-ai/plugin-memory-contract/matter';
 import { profileOutputSchemas } from '@clowder-ai/plugin-memory-contract/profile';
 import { tasteBrowseOutputSchemas } from '@clowder-ai/plugin-memory-contract/taste';
@@ -27,6 +28,7 @@ import { dispatchIndexStatus } from './operations/index-status.js';
 import { ThreadKvOperations } from './operations/kv.js';
 import { createMatterDispatch } from './operations/matter.js';
 import { dispatchProfile } from './operations/profile.js';
+import { dispatchProjectIndex } from './operations/project-index-state.js';
 import { SearchOperations } from './operations/search.js';
 import { createTasteDispatch } from './operations/taste.js';
 import { FileProfileRepository } from './profile/FileProfileRepository.js';
@@ -45,6 +47,7 @@ function memoryDescriptor(tasteReady: boolean): MemoryDescriptor {
       ...MEMORY_REQUIRED_OPERATIONS,
       ...MEMORY_SEARCH_OPERATIONS,
       'index.status',
+      ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
       ...Object.keys(profileOutputSchemas),
@@ -107,6 +110,9 @@ async function activate(ports: MemoryHostPorts) {
         const operation = (input as { operation?: unknown } | null)?.operation;
         if (typeof operation === 'string') {
           if (operation === 'index.status') return dispatchIndexStatus(storage.db, input);
+          if (operation.startsWith('index.project.')) {
+            return dispatchProjectIndex(storage, () => memorySource.assertCurrent(), input);
+          }
           if (operation.startsWith('matter.')) return matter(input);
           if (operation.startsWith('event.')) return dispatchEvent(storage.events, memorySource, input);
           if (operation.startsWith('profile.')) return dispatchProfile(profile, storage, memorySource, input);

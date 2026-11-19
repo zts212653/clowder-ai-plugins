@@ -25,3 +25,44 @@ export const memoryIndexStatusResult = z
   })
   .strict();
 export type MemoryIndexStatusResult = z.infer<typeof memoryIndexStatusResult>;
+
+const projectPath = z.string().min(1);
+const indexState = z.object({
+  id: z.string(),
+  project_path: projectPath,
+  status: z.enum(['missing', 'stale', 'building', 'ready', 'failed']),
+  fingerprint: z.string(),
+  last_scan_at: z.string().nullable(),
+  snoozed_until: z.string().nullable(),
+  docs_indexed: count.nullable(),
+  docs_total: count.nullable(),
+  error_message: z.string().nullable(),
+  summary_json: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+}).strict();
+export type MemoryProjectIndexState = z.infer<typeof indexState>;
+
+const projectIndexSettlement = z.discriminatedUnion('status', [
+  z.object({ projectPath, status: z.literal('ready'), docsIndexed: count, summaryJson: z.string() }).strict(),
+  z.object({ projectPath, status: z.literal('failed'), error: z.string() }).strict(),
+]);
+export const memoryProjectIndexRequest = z.discriminatedUnion('operation', [
+  z.object({
+    operation: z.literal('index.project.read'),
+    input: z.object({ projectPath, fingerprint: z.string().optional() }).strict(),
+  }).strict(),
+  z.object({
+    operation: z.literal('index.project.claim'),
+    input: z.object({ projectPath, fingerprint: z.string() }).strict(),
+  }).strict(),
+  z.object({ operation: z.literal('index.project.settle'), input: projectIndexSettlement }).strict(),
+  z.object({ operation: z.literal('index.project.snooze'), input: z.object({ projectPath }).strict() }).strict(),
+]);
+export type MemoryProjectIndexRequest = z.infer<typeof memoryProjectIndexRequest>;
+export const memoryProjectIndexResponses = {
+  'index.project.read': indexState,
+  'index.project.claim': z.boolean(),
+  'index.project.settle': z.null(),
+  'index.project.snooze': z.string(),
+} satisfies Record<MemoryProjectIndexRequest['operation'], z.ZodType>;
