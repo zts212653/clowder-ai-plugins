@@ -19,4 +19,6 @@ export const visualAlias = { fetching: 'working', studying: 'staged_thought', de
 export const workAction = { reasoning: 'staged_thought', tool: 'working', workspace: 'fetching', screen_reading: 'studying' };
 export const signals = { connected: 'waving', received: 'jumping', failed: 'failed' };
 export const staticSkins = { 'ragdoll-v1': 'ragdoll-v1.png', 'yarn-ball': 'yarn-ball.png' };
+/** livingBody: the Host's own body window draws this cat, so the panel draws no ball for it. */
+export const LIVING_SKIN = 'xianxian-living';
 export const validId = value => typeof value === 'string' && value.length > 0 && value.length <= 256;

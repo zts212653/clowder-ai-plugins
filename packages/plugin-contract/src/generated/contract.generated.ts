@@ -67,7 +67,7 @@ export type ResourceReference = {
   readonly id: string;
 };
 export type ContributionReference = {
-  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'external-request' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'desktop-window';
+  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'external-request' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'content-preview-provider' | 'desktop-window';
   readonly id: string;
 };
 export type PackageRelativePath = string;
@@ -473,7 +473,11 @@ export type DesktopWindowContribution = {
     readonly entrypoint: PackageRelativePath & `${string}.html`;
     readonly integrity: string;
   };
-  readonly bridgeVersion: '1.0.0' | '1.1.0' | '1.2.0' | '1.3.0' | '1.4.0' | '1.5.0' | '1.6.0' | '1.7.0';
+  readonly bridgeVersion: '1.0.0' | '1.1.0' | '1.2.0' | '1.3.0' | '1.4.0' | '1.5.0' | '1.6.0' | '1.7.0' | '1.8.0';
+  readonly body?: {
+    readonly entrypoint: PackageRelativePath & `${string}.html`;
+    readonly integrity: string;
+  };
   readonly presentation: {
     readonly width: number;
     readonly height: number;
@@ -483,21 +487,32 @@ export type DesktopWindowContribution = {
     readonly skipTaskbar: boolean;
   };
 };
+export type ContentProviderSurface = {
+  readonly entrypoint: PackageRelativePath;
+  readonly integrity: string;
+  readonly sandbox: 'dedicated-origin-iframe';
+  readonly navigationPolicy: 'navigation-api-deny';
+};
+export type ContentPreviewProviderContribution = {
+  readonly type: 'content-preview-provider';
+  readonly id: string;
+  readonly formats: readonly ({
+    readonly extension: string;
+    readonly mediaType: string;
+  })[];
+  readonly surface: ContentProviderSurface;
+  readonly bridgeVersion: '1.0.0';
+};
 export type ContentEditorProviderContribution = {
   readonly type: 'content-editor-provider';
   readonly id: string;
   readonly mediaTypes: readonly ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-  readonly surface: {
-    readonly entrypoint: PackageRelativePath;
-    readonly integrity: string;
-    readonly sandbox: 'dedicated-origin-iframe';
-    readonly navigationPolicy: 'navigation-api-deny';
-  };
+  readonly surface: ContentProviderSurface;
   readonly bridgeVersion: '1.0.0';
   readonly semanticMaterializer?: SemanticMaterializerDeclaration;
   readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];
 };
-export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | ExternalRequestContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
+export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | ExternalRequestContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | ContentPreviewProviderContribution | DesktopWindowContribution;
 export type PluginFeature = {
   readonly id: string;
   readonly name: string;
@@ -1259,6 +1274,35 @@ export type CompanionScreenFrame = {
   readonly sourceLabel: string;
   readonly observedAt: number;
 };
+export type CompanionBodyRect = {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+};
+export type CompanionSceneField = 'pose' | 'ball' | 'paper' | 'hat' | 'activity' | 'lastSolo';
+export type CompanionSceneSnapshot = {
+  readonly schemaVersion: 1;
+  readonly pose?: unknown;
+  readonly ball?: unknown;
+  readonly paper?: unknown;
+  readonly hat?: unknown;
+  readonly activity?: unknown;
+  readonly lastSolo?: unknown;
+};
+export type CompanionScene = {
+  readonly kind: 'scene';
+  readonly status: 'found';
+  readonly revision: number;
+  readonly snapshot: CompanionSceneSnapshot;
+} | {
+  readonly kind: 'scene';
+  readonly status: 'not_found';
+} | {
+  readonly kind: 'scene';
+  readonly status: 'error';
+  readonly reason: 'corrupt' | 'unavailable';
+};
 export type CompanionCommand = {
   readonly kind: 'state';
 } | {
@@ -1350,7 +1394,7 @@ export type CompanionCommand = {
 } | {
   readonly kind: 'settings.update';
   readonly field: 'skin';
-  readonly value: 'yarn-ball' | 'ragdoll-v1' | 'yanyan-codex' | 'xianxian-codex';
+  readonly value: 'yarn-ball' | 'ragdoll-v1' | 'yanyan-codex' | 'xianxian-codex' | 'xianxian-living';
 } | {
   readonly kind: 'settings.update';
   readonly field: 'ballSize';
@@ -1431,6 +1475,22 @@ export type CompanionCommand = {
   readonly text: string;
   readonly clientMessageId: CompanionClientMessageId;
   readonly submissionRevision: number;
+} | {
+  readonly kind: 'body.hit';
+  readonly rects: readonly CompanionBodyRect[];
+} | {
+  readonly kind: 'body.hit.renew';
+} | {
+  readonly kind: 'body.anchor';
+  readonly rect: CompanionBodyRect;
+} | {
+  readonly kind: 'body.menu';
+} | {
+  readonly kind: 'scene.get';
+} | {
+  readonly kind: 'scene.report';
+  readonly snapshot: CompanionSceneSnapshot;
+  readonly dirty: readonly CompanionSceneField[];
 };
 export type CompanionActor = {
   readonly catId: string;
@@ -1721,7 +1781,7 @@ export type CompanionDecisionTrial = {
 export type CompanionSettingField = 'dutyCatProfileId' | 'skin' | 'ballSize' | 'behaviorEnabled' | 'proactivePolicy' | 'personaTone' | 'householdReadsAllowed' | 'appAssistEnabled';
 export type CompanionSettingsValues = {
   readonly dutyCatProfileId: string;
-  readonly skin: 'yarn-ball' | 'ragdoll-v1' | 'yanyan-codex' | 'xianxian-codex';
+  readonly skin: 'yarn-ball' | 'ragdoll-v1' | 'yanyan-codex' | 'xianxian-codex' | 'xianxian-living';
   readonly ballSize: number;
   readonly behaviorEnabled: boolean;
   readonly proactivePolicy: 'ambient' | 'quiet-badge';
@@ -1904,7 +1964,7 @@ export type CompanionConversationBodyV2 = {
 export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
 export type CompanionReply = {
   readonly kind: 'ok';
-} | CompanionState | CompanionWorkOverview | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionDeliveryReceiptV2 | CompanionConversationDraftV1 | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | CompanionAppAssistSettlement | CompanionDeskSettlement | CompanionDeskThumbnail | CompanionDeskAvatar | {
+} | CompanionState | CompanionWorkOverview | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionDeliveryReceiptV2 | CompanionConversationDraftV1 | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | CompanionAppAssistSettlement | CompanionDeskSettlement | CompanionDeskThumbnail | CompanionDeskAvatar | CompanionScene | {
   readonly kind: 'selection';
   readonly selectionId: CompanionSelectionId;
 } | CompanionConversationPageV2 | CompanionConversationBodyV2 | {
@@ -1974,6 +2034,19 @@ export type CompanionEvent = {
   readonly turnId?: string;
 } | {
   readonly kind: 'view-dismiss';
+} | {
+  readonly kind: 'scene-flush';
+} | {
+  readonly kind: 'body-area';
+  readonly width: number;
+  readonly height: number;
+  readonly standHeight?: number;
+} | {
+  readonly kind: 'body-preferences';
+  readonly behaviorEnabled: boolean;
+} | {
+  readonly kind: 'view-open';
+  readonly panel: 'menu';
 };
 export const DOCX_MATERIALIZATION_TEXT_PATTERN = '^[\\u0009\\u000A\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';
 export const DOCX_MATERIALIZATION_AUTHOR_PATTERN = '^[\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';
