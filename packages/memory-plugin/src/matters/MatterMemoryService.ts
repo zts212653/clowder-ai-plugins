@@ -42,7 +42,7 @@ export interface MatterMemoryDeps extends MatterSourceReaders {
   runWrite: <T>(operation: () => T | Promise<T>) => Promise<T>;
   assertCurrent: () => Promise<void>;
   appendMatterRead(input: { scope: RecallScopeV1; consumerCatId: string; details: MatterReadDetails }): void;
-  onChanged?: (ownerUserId: string) => void;
+  onChanged?: () => void | Promise<void>;
 }
 function publicMatter({
   ownerUserId: _owner,
@@ -315,7 +315,7 @@ export class MatterMemoryService {
         accessGuard,
         before ?? undefined,
       );
-      this.deps.onChanged?.(actor.userId);
+      await this.deps.onChanged?.();
       return result;
     });
   }

@@ -34,6 +34,7 @@
   },
   "dependencies": {
     "@clowder-ai/plugin-memory-contract": "workspace:*",
+    "js-tiktoken": "1.0.21",
     "zod": "3.25.76"
   },
   "devDependencies": {

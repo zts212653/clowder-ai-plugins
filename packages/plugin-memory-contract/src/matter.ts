@@ -279,6 +279,7 @@ const matterReadOptions = z
   .strict();
 
 export const matterDispatchSchema = z.discriminatedUnion('operation', [
+  z.object({ operation: z.literal('matter.opening'), input: z.object({}).strict() }).strict(),
   z.object({ operation: z.literal('matter.catalog'), input: z.object({
     query: z.string().max(200).optional(),
     cursor: z.string().max(2000).optional(),
@@ -303,6 +304,9 @@ export const matterDispatchSchema = z.discriminatedUnion('operation', [
 ]);
 
 export type MatterDispatchInput = z.infer<typeof matterDispatchSchema>;
+
+export const MATTER_DIRECTORY_UNAVAILABLE =
+  '[事情目录]\n当前目录不可用；需要时调用 cat_cafe_search_evidence（不带 query）重读。目录失败不阻挡本轮工作。\n[/事情目录]';
 
 export const matterBusinessFailureSchema = z.object({
   status: z.literal('rejected'),
@@ -379,6 +383,7 @@ const matterWriteSnapshot = z.object({
 });
 
 export const matterOutputSchemas = {
+  'matter.opening': z.string(),
   'matter.catalog': matterCatalog,
   'matter.read': matterPage,
   'matter.read_for_invocation': matterPage,

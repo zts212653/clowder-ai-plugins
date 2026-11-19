@@ -1,5 +1,7 @@
 import { matterDispatchSchema } from '@clowder-ai/plugin-memory-contract/matter';
-import type { MatterMemoryService } from '../matters/MatterMemoryService.js';
+import { MemoryCueEpisodeStore } from '../cue/MemoryCueEpisodeStore.js';
+import { MatterMemoryService, type MatterMemoryDeps } from '../matters/MatterMemoryService.js';
+import { matterOpeningDirectory } from '../matters/matter-opening-directory.js';
 import { type MatterActor, MatterMemoryError } from '../matters/matter-source.js';
 
 export interface MatterCallAuthority {
@@ -11,6 +13,23 @@ export interface MatterCallAuthority {
   triggerMessageId?: string;
 }
 
+export function createMatterDispatch(
+  store: Pick<MatterMemoryDeps, 'db' | 'runWrite'>,
+  source: Omit<MatterMemoryDeps, 'db' | 'runWrite' | 'appendMatterRead' | 'onChanged'> & {
+    caller(): Promise<MatterCallAuthority>;
+    publishMatterChange(): Promise<void>;
+  },
+) {
+  const cueStore = new MemoryCueEpisodeStore(store.db);
+  const service = new MatterMemoryService({
+    ...source,
+    ...store,
+    appendMatterRead: (input) => cueStore.appendMatterRead(input),
+    onChanged: source.publishMatterChange,
+  });
+  return (value: unknown) => dispatchMatter(service, source.caller, value);
+}
+
 export async function dispatchMatter(
   service: MatterMemoryService,
   caller: () => Promise<MatterCallAuthority>,
@@ -18,9 +37,17 @@ export async function dispatchMatter(
 ) {
   const request = matterDispatchSchema.parse(value);
   const { userId, viewer, publicReply, threadId, invocationId, triggerMessageId } = await caller();
-  const actor = { userId, viewer, publicReply, invocation: { threadId, triggerMessageId } };
+  const actor = {
+    userId,
+    viewer,
+    publicReply,
+    ...(viewer.type === 'cat' ? { invocation: { threadId, triggerMessageId } } : {}),
+  };
   try {
     switch (request.operation) {
+      case 'matter.opening':
+        if (viewer.type !== 'cat') throw new MatterMemoryError('not_available');
+        return await matterOpeningDirectory(service, userId, viewer.catId, threadId, { invocationId });
       case 'matter.catalog':
         return await service.catalog(actor, { ...request.input, ...(viewer.type === 'cat' ? { threadId } : {}) });
       case 'matter.read':
