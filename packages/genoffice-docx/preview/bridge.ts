@@ -8,6 +8,7 @@
 import {
   isConnectMessage,
   isSnapshotMessage,
+  PREVIEW_BRIDGE_VERSION,
   PREVIEW_MEDIA_TYPES,
   readBootstrap,
   type PreviewBootstrap,
@@ -66,10 +67,7 @@ export function startPreviewBridge(options: PreviewBridgeOptions): () => void {
     if (!isConnectMessage(event.data, bootstrap.handshakeNonce)) return;
     if (connected) return;
     const port = event.ports[0];
-    if (!port || event.ports.length !== 1) {
-      fail('preview_port_missing');
-      return;
-    }
+    if (!port || event.ports.length !== 1) return;
     connected = true;
     window.removeEventListener('message', onMessage);
     if (timer) clearTimeout(timer);
@@ -90,7 +88,12 @@ export function startPreviewBridge(options: PreviewBridgeOptions): () => void {
 
   window.addEventListener('message', onMessage);
   window.parent.postMessage(
-    { v: 1, kind: 'cat-cafe-content-preview-ready', handshakeNonce: bootstrap.handshakeNonce },
+    {
+      v: 1,
+      kind: 'cat-cafe-content-preview-ready',
+      bridgeVersion: PREVIEW_BRIDGE_VERSION,
+      handshakeNonce: bootstrap.handshakeNonce,
+    },
     bootstrap.parentOrigin,
   );
 

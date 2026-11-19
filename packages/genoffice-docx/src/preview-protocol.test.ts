@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   isConnectMessage,
+  PREVIEW_BRIDGE_VERSION,
   isSnapshotMessage,
   PREVIEW_MEDIA_TYPES,
   previewFormatFor,
@@ -10,7 +11,8 @@ import {
 } from './preview-protocol.js';
 
 const ORIGIN = 'https://host.example';
-const NONCE = 'abcDEF1234567890';
+const NONCE = 'handshake_0123456789abcdef0123456789abcdef';
+const OTHER_NONCE = 'handshake_fedcba9876543210fedcba9876543210';
 const PDF = PREVIEW_MEDIA_TYPES.pdf;
 const PPTX = PREVIEW_MEDIA_TYPES.pptx;
 
@@ -36,6 +38,22 @@ test('reads the Host fragment and rejects ambiguous coordinates', () => {
     () => readBootstrap(`#cat-cafe-parent-origin=${encodeURIComponent(ORIGIN)}`, 'https://renderer.example'),
     /preview_handshake_invalid/,
   );
+  const alternate = 'handshake_' + 'V-_1'.repeat(8);
+  assert.equal(
+    readBootstrap(
+      '#cat-cafe-parent-origin=' + encodeURIComponent(ORIGIN) + '&cat-cafe-handshake=' + alternate,
+      'https://renderer.example',
+    ).handshakeNonce,
+    alternate,
+  );
+  assert.throws(
+    () =>
+      readBootstrap(
+        `#cat-cafe-parent-origin=${encodeURIComponent(ORIGIN)}&cat-cafe-handshake=abcDEF1234567890`,
+        'https://renderer.example',
+      ),
+    /preview_handshake_invalid/,
+  );
   assert.throws(
     () =>
       readBootstrap(
@@ -46,10 +64,17 @@ test('reads the Host fragment and rejects ambiguous coordinates', () => {
   );
 });
 
-test('connect requires the exact kind and nonce', () => {
-  const message = { v: 1, kind: 'cat-cafe-content-preview-connect', handshakeNonce: NONCE };
+test('connect requires the exact kind, nonce and bridge version', () => {
+  const message = {
+    v: 1,
+    kind: 'cat-cafe-content-preview-connect',
+    handshakeNonce: NONCE,
+    bridgeVersion: PREVIEW_BRIDGE_VERSION,
+  };
   assert.equal(isConnectMessage(message, NONCE), true);
-  assert.equal(isConnectMessage(message, 'otherNonce12345'), false);
+  assert.equal(isConnectMessage(message, OTHER_NONCE), false);
+  assert.equal(isConnectMessage({ ...message, bridgeVersion: undefined }, NONCE), false);
+  assert.equal(isConnectMessage({ ...message, bridgeVersion: '2.0.0' }, NONCE), false);
   assert.equal(isConnectMessage({ ...message, kind: 'cat-cafe-content-preview-ready' }, NONCE), false);
   assert.equal(isConnectMessage({ ...message, v: 2 }, NONCE), false);
 });

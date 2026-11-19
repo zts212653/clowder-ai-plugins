@@ -25,7 +25,7 @@ export const PREVIEW_MEDIA_TYPES = {
 
 export type PreviewFormat = keyof typeof PREVIEW_MEDIA_TYPES;
 
-const NONCE_PATTERN = /^[A-Za-z0-9_-]{8,128}$/u;
+const NONCE_PATTERN = /^handshake_[A-Za-z0-9_-]{32,128}$/u;
 const MAX_FILE_NAME = 512;
 
 /** Parse and validate the fragment the Host appends to the surface URL. */
@@ -44,12 +44,18 @@ export function readBootstrap(hash: string, currentOrigin: string): PreviewBoots
 export function isConnectMessage(
   value: unknown,
   handshakeNonce: string,
-): value is { readonly v: 1; readonly kind: 'cat-cafe-content-preview-connect'; readonly handshakeNonce: string } {
+): value is {
+  readonly v: 1;
+  readonly kind: 'cat-cafe-content-preview-connect';
+  readonly handshakeNonce: string;
+  readonly bridgeVersion: string;
+} {
   if (!isRecord(value)) return false;
   return (
     value.v === 1 &&
     value.kind === 'cat-cafe-content-preview-connect' &&
-    value.handshakeNonce === handshakeNonce
+    value.handshakeNonce === handshakeNonce &&
+    value.bridgeVersion === PREVIEW_BRIDGE_VERSION
   );
 }
 

@@ -40,7 +40,7 @@ contributions:
         mediaType: application/vnd.openxmlformats-officedocument.presentationml.presentation
     surface:
       entrypoint: renderer/preview/index.html
-      integrity: sha256-5opfjKJlOjxpxvQpRfsniPuzzOpy9CoHHWJxiCG60lg=
+      integrity: sha256-zd5tMWw7v0NFivjz6Ex/hwQ9hCCkaobnyYRVpOfHgWc=
       sandbox: dedicated-origin-iframe
       navigationPolicy: navigation-api-deny
     bridgeVersion: 1.0.0
