@@ -566,3 +566,17 @@ test('console cards recover existing drafts and expose read failures as lastErro
   const unavailable = await consoleRequest(router, 'read', missing);
   assert.equal(unavailable.status, 200); assert.match(unavailable.body.lastError, /not found/); assert.equal('error' in unavailable.body, false);
 });
+
+test('a console card first read with no repository configured takes the default once one is, keeping its edits', async () => {
+  const deps = options(), config = deps.drafts.config as { defaultRepo: string; repoAllowlist: string[] };
+  config.defaultRepo = ''; config.repoAllowlist = [];
+  const router = await createCommunityHttpRouter(deps);
+  try {
+    const input = { ...cardInput(), block: { id: 'block', meta: { proposedTitle: 'Proposed title', proposedBody: 'Proposed public body' } } };
+    assert.equal((await consoleRequest(router, 'read', input)).body.targetRepo, '');
+    await consoleRequest(router, 'edit', { mid: 'message', b: 'block', field: 'title', value: 'Edited title' });
+    config.defaultRepo = 'org/repo'; config.repoAllowlist = ['org/repo'];
+    const after = await consoleRequest(router, 'read', input);
+    assert.equal(after.body.targetRepo, 'org/repo'); assert.equal(after.body.titleValue, 'Edited title'); assert.equal(after.body.canCreate, true);
+  } finally { await router.stop(); }
+});

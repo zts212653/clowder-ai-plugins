@@ -162,6 +162,9 @@ export function registerConsoleRoutes(app: FastifyInstance, scope: CommunityRequ
       titleValue: b.block.meta.proposedTitle, bodyMarkdown: b.block.meta.proposedBody, targetRepo: b.block.meta.proposedRepo || config.defaultRepo,
       labels: b.block.meta.proposedLabels, url: '', lastError: '', lastAction: 'read' };
     if (!s.threadId && b.threadId) s.threadId = b.threadId;
+    // Before a draft exists the target follows the configured repositories: a card first read with none configured, or
+    // whose target was since removed, takes the default; edited title and body stay as they are.
+    if (!s.draftId && !config.repos.includes(s.targetRepo)) s.targetRepo = config.defaultRepo;
     if (s.draftId) {
       try {
         const result = await call('issue-drafts/by-id/' + encodeURIComponent(s.draftId));
