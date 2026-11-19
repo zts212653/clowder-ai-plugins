@@ -75,12 +75,7 @@ test('packed static desktop window declarations and current SDK work without wor
     const companionPackage = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/companion/package.json'), 'utf8'));
     assert.equal(contract.version, companionPackage.devDependencies['@clowder-ai/plugin-contract'],
       'the packed contract is the line the companion declares (livingBody, bridge 1.8)');
-    // The SDK keeps its own published contract pin until its next release; it must resolve exactly that pin.
-    const sdkContract = sdk.dependencies['@clowder-ai/plugin-contract'];
-    const nested = join(consumer, 'node_modules/@clowder-ai/plugin-sdk/node_modules/@clowder-ai/plugin-contract/package.json');
-    const resolved = sdkContract === contract.version ? contract
-      : JSON.parse(await readFile(nested, 'utf8'));
-    assert.equal(resolved.version, sdkContract, 'the SDK runs against the contract it was built for');
+    assert.equal(sdk.dependencies['@clowder-ai/plugin-contract'], contract.version);
     const probe = `
       import assert from 'node:assert/strict';
       import { validateManifest } from '@clowder-ai/plugin-contract';
