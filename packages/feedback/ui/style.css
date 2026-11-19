@@ -163,6 +163,9 @@ details{margin:12px 0}summary{color:var(--feedback-accent);min-height:32px;paddi
 .issue-confirmed { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 16px; }
 .issue-confirmed h2, .supplemental h2 { margin: 0; font-size: 16px; }
 .issue-confirmed a { color: var(--feedback-accent); font-size: 13px; }
+.published-report > * { width: 100%; max-width: 640px; margin-inline: auto; }
+.published-report .published-heading { flex-wrap: wrap; margin-bottom: 0; }
+.published-heading h2 { min-width: 0; overflow-wrap: anywhere; }
 .supplemental { border-top: 1px solid var(--feedback-border); padding-top: 16px; }
 .supplemental-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(120px,1fr)); gap: 10px; margin-block: 12px; }
 .supplemental-card { border: 1px solid var(--feedback-border); border-radius: 8px; padding: 6px; }

@@ -104,8 +104,8 @@ async function openRecord(id,value){
     reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,githubCli:undefined,screenshotSelection:[],screenshotPreview:undefined,feedbackNotice:''});
   state.clientId=value.journal.clientId??value.analysis?.clientId??state.clientId;state.projectRef=value.journal.projectRef??value.analysis?.projectRef??'';
   const sameContext=value.analysis?.clientId===state.clientId&&(value.analysis?.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||'');
-  state.stage=value.journal.state==='published'?'submitted':value.journal.reviewReady||locked()?'review':'edit';
-  if(sameContext&&['prepared','preparing','starting','running','blocked'].includes(value.analysis?.state)){
+  state.stage=value.journal.state==='published'?'published-report':value.journal.reviewReady||locked()?'review':'edit';
+  if(value.journal.state!=='published'&&sameContext&&['prepared','preparing','starting','running','blocked'].includes(value.analysis?.state)){
     state.material=value.analysis.material;state.hash=value.analysis.hash;state.stage=value.analysis.state==='prepared'?'scope':'analyzing';
     if(state.stage==='analyzing')analysisTimer=setTimeout(refreshAnalysis,1500);
   }else if(value.analysis?.state==='ready'&&!locked()){
@@ -113,7 +113,7 @@ async function openRecord(id,value){
     if(matches){state.report.title=value.analysis.title;state.report.body=value.analysis.body;await saveReview(false);}
   }
   if(state.stage==='review'&&!locked())await checkRoute();
-  if(['failed','interrupted'].includes(value.analysis?.state))state.error=value.analysis.error;
+  if(value.journal.state!=='published'&&['failed','interrupted'].includes(value.analysis?.state))state.error=value.analysis.error;
 }
 function locked() { return ['writing', 'unknown', 'published', 'upload_failed'].includes(state.journal?.state); }
 function issueMayExist() { return ['writing', 'unknown'].includes(state.journal?.state); }
@@ -499,7 +499,7 @@ function render() {
   const scroll = app.dataset.stage === state.stage ? app.querySelector('.content')?.scrollTop ?? 0 : 0;
   const stageIndex = state.stage === 'edit' ? 0 : ['configure','scope', 'analyzing'].includes(state.stage) ? 1 : ['review','handoff', 'submitting'].includes(state.stage) ? 2 : 3;
   const header = el('header', {}, [el('div',{className:'heading-row'},[
-    el('div',{},[el('h1',{text:state.stage==='history'?'反馈记录':'问题反馈'}),note(state.stage==='edit'?'描述问题，图片可选。':state.stage==='history'?'草稿、分析和投递进度都在这里。':['填写问题','分析与脱敏','检查与提交','反馈完成'][stageIndex])]),
+    el('div',{},[el('h1',{text:state.stage==='history'?'反馈记录':'问题反馈'}),note(state.stage==='edit'?'描述问题，图片可选。':state.stage==='history'?'草稿、分析和投递进度都在这里。':state.stage==='published-report'?'投递时的报告':state.stage==='published-screenshots'?'补充截图':['填写问题','分析与脱敏','检查与提交','反馈完成'][stageIndex])]),
     el('div',{className:'feedback-nav'},[button('新建反馈',startNew,'text'),button('反馈记录',showHistory,'secondary')])])]);
   const content = el('section', { className: 'content' }); const footer = el('footer');
   if (state.error) content.append(el('p', { role: 'alert', className: 'error', text: state.error }));
@@ -562,9 +562,19 @@ function render() {
     content.className='content review-content';
     footer.className='review-footer';
     renderReview(content,footer);
-  } else if (state.stage === 'submitted') {
+  } else if (state.stage === 'published-report') {
+    const { issue, report } = state.journal;
+    content.className = 'content review-content published-report';
+    content.append(el('div',{className:'issue-confirmed published-heading'},[
+      el('h2',{text:report.title}),
+      ...(issue?[el('a',{text:`打开 Issue #${issue.id}`,href:issue.url,target:'_blank',rel:'noopener noreferrer'})]:[]),
+    ]),report.body.trim()?reportReader(report.body,el):note('这条反馈没有正文。','hint'));
+    footer.append(button('返回记录',showHistory,'text'));
+    if (issue) footer.append(button('补充截图',async()=>{state.stage='published-screenshots';}));
+  } else if (state.stage === 'submitted' || state.stage === 'published-screenshots') {
     renderPublishedScreenshots(content);
-    footer.append(button('继续反馈', startNew,'text'), button('完成', () => bridge('close')));
+    if (state.stage === 'published-screenshots') footer.append(button('返回投递报告',async()=>{state.stage='published-report';}));
+    else footer.append(button('继续反馈', startNew,'text'), button('完成', () => bridge('close')));
   }
   app.replaceChildren(header, content, footer);
   app.dataset.stage = state.stage; content.scrollTop = state.error?0:scroll;

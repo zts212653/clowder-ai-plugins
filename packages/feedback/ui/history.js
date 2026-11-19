@@ -16,7 +16,7 @@ export function feedbackHistory(items,{open,deleteId,requestDelete,cancelDelete,
       ])
       : el('div',{className:'history-actions'},[
         el('button',{type:'button',className:'secondary',text:item.status==='published'?'查看反馈':item.status==='draft'?'继续填写':item.status==='ready'||item.status==='manual'?'继续投递':item.status==='unknown'?'核对结果':'查看进度',disabled:busy,onClick:()=>open(item.id)}),
-        ...(item.issueUrl?[el('a',{href:item.issueUrl,target:'_blank',rel:'noopener noreferrer',text:'打开 Issue'})]:[]),
+        ...(item.issueUrl?[el('a',{href:item.issueUrl,target:'_blank',rel:'noopener noreferrer',text:item.issueId?`打开 Issue #${item.issueId}`:'打开 Issue'})]:[]),
         ...(item.deleteRevision!==undefined?[el('button',{type:'button',className:'text history-delete',text:'删除草稿',disabled:busy,'data-delete-draft':'',onClick:()=>requestDelete(item)})]:[]),
       ]),
   ])));

@@ -6,7 +6,7 @@ import type { HydratedJournal } from '../src/types.js';
 import { createHash } from 'node:crypto';
 import { pngFixture } from './png-fixture.js';
 
-type Result = { journal?: HydratedJournal; revision?: number; items?: { id: string; title: string; status: string }[] };
+type Result = { journal?: HydratedJournal; revision?: number; items?: { id: string; title: string; status: string; issueId?: string; issueUrl?: string }[] };
 const report = (kind = 'bug', body = '发生了一个问题') => ({kind, title: '简短标题', body, attachments: []});
 
 test('unfinished and uncertain feedback do not occupy a new feedback, and opening defaults to blank', async () => {
@@ -117,6 +117,9 @@ test('deletion protects published records, reports awaiting delivery and records
   const digest = delivery.journal!.digest;
   await call({op:'approve',feedbackId:'ready',digest,confirmed:true});
   const published = await call({op:'submit',feedbackId:'ready',digest});
+  const publishedItem = (await call({op:'history'})).items!.find(item => item.id === 'ready')!;
+  assert.equal(publishedItem.issueId, '12');
+  assert.equal(publishedItem.issueUrl, published.journal!.issue!.url);
   await assert.rejects(call({op:'delete-draft',feedbackId:'ready',revision:published.revision,confirmed:true}),/草稿/);
   const analyzed = await call({op:'save',feedbackId:'analyzed',draftOnly:true,targetId:'clowder',report:report()});
   await f.host.storage.compareAndSet(analysisKey(f.ctx.userId,'analyzed'),null,{state:'prepared'});
