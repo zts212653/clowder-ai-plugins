@@ -19,7 +19,7 @@ export async function mountPdfPreview(
 ): Promise<void> {
   const workerUrl = new URL('./pdf.worker.js', window.location.href).href;
   const resourceUrl = new URL('./pdf-resources.js', workerUrl).href;
-  const [{ WorkerMessageHandler }, { default: resources }] = await Promise.all([
+  const [{ WorkerMessageHandler, previewImageBudgetPages }, { default: resources }] = await Promise.all([
     import(/* @vite-ignore */ workerUrl),
     import(/* @vite-ignore */ resourceUrl) as Promise<{ default: Record<string, Record<string, string>> }>,
   ]);
@@ -143,6 +143,7 @@ export async function mountPdfPreview(
     document.documentElement.dataset.previewPages = String(doc.numPages);
     document.documentElement.dataset.previewPage = String(pageNumber);
     if (token !== renderToken) return;
+    if (previewImageBudgetPages.has(page.pageNumber - 1)) throw new PreviewRenderError('preview_limit_exceeded');
     if (missingResources) throw new PreviewRenderError('preview_format_unsupported');
     onRendered();
   };

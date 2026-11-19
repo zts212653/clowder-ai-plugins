@@ -68,9 +68,15 @@ run(process.execPath, [viteBin, 'build', '--config', 'vite.config.ts', '--base',
 
 await rm(rendererRoot, { recursive: true, force: true });
 await cp(join(appRoot, 'preview', 'dist'), rendererRoot, { recursive: true });
-await copyFile(
-  join(sourceRoot, 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.min.mjs'),
+// PDF.js can resolve page.render() after rejecting the image operator stream.
+// Record the budget rejection inside the same fake-worker module as the evaluator.
+const pdfWorker = await readFile(join(sourceRoot, 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.min.mjs'), 'utf8');
+const imageLimitMarker = '"Image exceeded maximum allowed size and was removed.";';
+if (pdfWorker.split(imageLimitMarker).length !== 2) throw new Error('Frozen PDF.js image budget branch changed');
+const workerWithImageBudget = pdfWorker.replace(imageLimitMarker, imageLimitMarker + 'previewImageBudgetPages.add(this.pageIndex);');
+await writeFile(
   join(rendererRoot, 'pdf.worker.js'),
+  workerWithImageBudget + '\nexport const previewImageBudgetPages = new Set();\n',
 );
 await copyFile(join(packageRoot, 'src', 'host-policy.css'), join(rendererRoot, 'host-policy.css'));
 
