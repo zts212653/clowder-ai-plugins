@@ -12,11 +12,21 @@ import { readEntry, type MemoryThreadKvPort } from '../host-port.js';
 export const MAX_KEYS_PER_THREAD = 50;
 
 /**
+ * How many times a write re-reads and retries before reporting contention.
+ *
+ * A losing compare-and-set is a real outcome of the design, not an error: the
+ * Host executes the mutation only against the snapshot the plugin decided on.
+ * Contention on one thread's 50-field hash is rare, so a short bounded retry
+ * settles it without waiting on the caller.
+ */
+const MAX_WRITE_ATTEMPTS = 5;
+
+/**
  * Thread KV business rules, migrated from the Host's `RedisMemoryStore`.
  *
- * The Host port supplies authorization and physical keys; every rule that
- * decides *what* is stored lives here, so a compatible replacement plugin can
- * change implementation without changing the durable record shape.
+ * The Host port supplies authorization and the physical hash coordinates; every
+ * rule that decides *what* is stored lives here, so a compatible replacement
+ * plugin can change implementation without changing the durable record shape.
  */
 export class ThreadKvOperations {
   constructor(
@@ -25,14 +35,6 @@ export class ThreadKvOperations {
   ) {}
 
   async put(input: KvPutInput): Promise<MemoryEntryDto> {
-    const existing = await this.port.readAll(input.threadRef);
-    const isNewKey = !Object.hasOwn(existing, input.key);
-
-    if (isNewKey && Object.keys(existing).length >= MAX_KEYS_PER_THREAD) {
-      const oldest = oldestKey(existing);
-      if (oldest !== undefined) await this.port.remove(input.threadRef, oldest);
-    }
-
     const entry: MemoryEntryDto = {
       key: input.key,
       value: input.value,
@@ -40,17 +42,31 @@ export class ThreadKvOperations {
       updatedBy: input.updatedBy,
       updatedAt: this.now(),
     };
-    await this.port.write(input.threadRef, input.key, JSON.stringify(entry));
-    return entry;
+    const json = JSON.stringify(entry);
+
+    for (let attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
+      const expected = await this.port.list(input.threadRef);
+      // Only a new key evicts, and only at the ceiling — overwriting an existing
+      // key never shrinks the thread.
+      const evict =
+        !Object.hasOwn(expected, input.key) && Object.keys(expected).length >= MAX_KEYS_PER_THREAD
+          ? oldestKey(expected)
+          : undefined;
+      const applied = await this.port.compareAndSet(input.threadRef, expected, {
+        set: { key: input.key, value: json },
+        ...(evict === undefined ? {} : { removeKey: evict }),
+      });
+      if (applied) return entry;
+    }
+    throw new Error('memory_thread_kv_write_contended');
   }
 
   async get(input: KvGetInput): Promise<MemoryEntryDto | null> {
-    const all = await this.port.readAll(input.threadRef);
-    return readEntry(all[input.key]);
+    return readEntry(await this.port.get(input.threadRef, input.key));
   }
 
   async list(input: KvListInput): Promise<readonly MemoryEntryDto[]> {
-    const all = await this.port.readAll(input.threadRef);
+    const all = await this.port.list(input.threadRef);
     return Object.values(all)
       .map(readEntry)
       .filter((entry): entry is MemoryEntryDto => entry !== null)
@@ -58,7 +74,7 @@ export class ThreadKvOperations {
   }
 
   delete(input: KvDeleteInput): Promise<boolean> {
-    return this.port.remove(input.threadRef, input.key);
+    return this.port.delete(input.threadRef, input.key);
   }
 }
 

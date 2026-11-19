@@ -12,7 +12,7 @@ import {
   type PluginModuleEntrypoint,
 } from '@clowder-ai/plugin-sdk';
 
-import type { MemoryHostPorts } from './host-port.js';
+import type { MemoryHostPorts, MemoryThreadKvPort } from './host-port.js';
 import { dispatchMemory } from './operations/dispatch.js';
 import { ThreadKvOperations } from './operations/kv.js';
 
@@ -31,32 +31,35 @@ function memoryDescriptor(): MemoryDescriptor {
 }
 
 /**
- * Accept the Host ports once, at the boundary. A Host that does not supply them
- * is not compatible, and saying so is the only truthful answer: degrading to an
- * empty store would look healthy while hiding every existing record.
+ * The Host field this plugin reads, declared here because the published SDK type
+ * predates it. Reading one named field is the boundary check; everything below
+ * receives an already-typed port.
+ */
+type HostWithMemoryThreadKv = ModulePluginHostShape & { readonly memoryThreadKv?: unknown };
+
+/**
+ * Accept the Host ports once, at the boundary.
+ *
+ * A Host that does not supply them is not compatible, and saying so is the only
+ * truthful answer: degrading to an empty store would look healthy on both sides
+ * while hiding every existing record.
  */
 function requireMemoryPorts(host: ModulePluginHostShape): MemoryHostPorts {
-  const candidate = (host as ModulePluginHostShape & { memoryPorts?: unknown }).memoryPorts;
-  if (candidate === null || typeof candidate !== 'object') {
-    throw new TypeError('memory plugin requires Host-supplied authorized memory ports');
+  const memoryThreadKv = (host as HostWithMemoryThreadKv).memoryThreadKv;
+  if (memoryThreadKv === null || typeof memoryThreadKv !== 'object') {
+    throw new TypeError('memory plugin requires the authorized Host memoryThreadKv port');
   }
-  const port = (candidate as { threadKv?: unknown }).threadKv;
-  if (port === null || typeof port !== 'object') {
-    throw new TypeError('memory plugin requires the authorized Host threadKv port');
+  const shaped = memoryThreadKv as Record<string, unknown>;
+  for (const method of ['get', 'list', 'compareAndSet', 'delete'] as const) {
+    if (typeof shaped[method] !== 'function') {
+      throw new TypeError(`memory plugin memoryThreadKv port must supply ${method}`);
+    }
   }
-  const shaped = port as { readAll?: unknown; write?: unknown; remove?: unknown };
-  if (
-    typeof shaped.readAll !== 'function' ||
-    typeof shaped.write !== 'function' ||
-    typeof shaped.remove !== 'function'
-  ) {
-    throw new TypeError('memory plugin threadKv port must supply readAll, write and remove');
-  }
-  return candidate as MemoryHostPorts;
+  return { memoryThreadKv: memoryThreadKv as MemoryThreadKvPort };
 }
 
 function activate(context: FeatureContext, ports: MemoryHostPorts) {
-  const kv = new ThreadKvOperations(ports.threadKv);
+  const kv = new ThreadKvOperations(ports.memoryThreadKv);
   return {
     actions: {
       // Admission probe. Business-parameter free: a Host must be able to ask
@@ -77,8 +80,7 @@ export function createMemoryPluginModule(): PluginModuleEntrypoint {
         definePlugin({
           manifest,
           activate: {
-            memory: (context: FeatureContext) =>
-              activate(context, ports ?? failClosed('memory plugin requires Host-supplied authorized memory ports')),
+            memory: (context: FeatureContext) => activate(context, requireBoundPorts(ports)),
           },
         }),
       ).create(manifest);
@@ -93,8 +95,11 @@ export function createMemoryPluginModule(): PluginModuleEntrypoint {
   };
 }
 
-function failClosed(reason: string): never {
-  throw new TypeError(reason);
+function requireBoundPorts(ports: MemoryHostPorts | undefined): MemoryHostPorts {
+  if (ports === undefined) {
+    throw new TypeError('memory plugin requires Host-supplied authorized memory ports');
+  }
+  return ports;
 }
 
 export default createMemoryPluginModule();
