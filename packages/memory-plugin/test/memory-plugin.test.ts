@@ -180,6 +180,7 @@ test('memory.describe carries no business parameters and reports exactly the v1 
       ...MEMORY_REQUIRED_OPERATIONS,
       ...MEMORY_SEARCH_OPERATIONS,
       'index.status',
+      'recall.stats',
       ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
       ...Object.keys(eventOutputSchemas),
@@ -302,6 +303,36 @@ test('project index claims and settles legacy state through the activation write
   });
   assert.equal((interrupted as { status: string }).status, 'stale');
   assert.equal(await restarted.actions['memory.dispatch']!(claim), true);
+});
+
+test('recall statistics count only authorized threads and rows inside the requested window', async (t) => {
+  const binding = `${process.platform}-${process.arch}-abi${process.versions.modules}.node`;
+  const nativeBinding = fileURLToPath(new URL(`../dist/native/${binding}`, import.meta.url));
+  const db = new Database(evidencePath, { nativeBinding });
+  db.exec(`
+    CREATE TABLE recall_events (
+      source TEXT, push_surface TEXT, tool_name TEXT, inspected INTEGER,
+      outcome TEXT, timestamp INTEGER, thread_id TEXT
+    );
+    INSERT INTO recall_events VALUES
+      ('pull', NULL, 'search', 1, 'used', 100, 'owned'),
+      ('pull', NULL, 'search', 0, NULL, 199, 'owned'),
+      ('push', 'cue', NULL, 1, NULL, 200, 'owned'),
+      ('pull', NULL, 'search', 1, 'used', 99, 'owned'),
+      ('pull', NULL, 'search', 1, 'used', 201, 'owned'),
+      ('pull', NULL, 'search', 1, 'used', 150, 'foreign');
+  `);
+  db.close();
+  const active = await start();
+  t.after(() => active.stop({ reason: 'test' }));
+  const dispatch = active.actions['memory.dispatch']!;
+  const request = { operation: 'recall.stats', input: { threadIds: ['owned'], from: 100, to: 200 } };
+  assert.deepEqual(await dispatch(request), [
+    { source: 'push', surface: 'cue', presented: 1, inspected: 1, used: 0 },
+    { source: 'pull', surface: 'search', presented: 2, inspected: 1, used: 1 },
+  ]);
+  assert.deepEqual(await dispatch({ ...request, input: { ...request.input, threadIds: [] } }), []);
+  await assert.rejects(async () => dispatch({ ...request, input: { ...request.input, from: 201 } }));
 });
 
 test('a Host without the authorized memory port fails admission instead of degrading to an empty store', async () => {
