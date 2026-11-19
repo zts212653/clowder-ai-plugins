@@ -1,6 +1,5 @@
-import { DatabaseSync, type SqlValue } from 'node:sqlite';
-
-import type { MemoryDatabasePort } from '../host-port.js';
+/** A value the shared connection accepts as a bound parameter. */
+type SqlValue = string | number | bigint | null | Uint8Array;
 
 /** Filters every retrieval pass applies; resolved once from the caller's scope. */
 export interface SearchFilters {
@@ -67,22 +66,28 @@ export interface EvidenceDatabase {
   exactAnchor(query: string, filters: SearchFilters): DocRow[];
   fts(ftsQuery: string, filters: SearchFilters, limit: number): DocRow[];
   lexicalBackfill(words: readonly string[], filters: SearchFilters, limit: number): DocRow[];
-  close(): void;
 }
 
-export function openEvidenceDatabase(port: MemoryDatabasePort): EvidenceDatabase {
-  let db: InstanceType<typeof DatabaseSync>;
-  try {
-    db = new DatabaseSync(port.canonicalPath, { readOnly: true });
-    // Fail loudly if the Host's schema is not there, instead of answering "no hits":
-    // an empty answer and a missing database are indistinguishable to a caller.
-    db.prepare('SELECT anchor FROM evidence_docs LIMIT 1').get();
-  } catch (error) {
-    throw new Error(
-      `memory plugin cannot read the evidence database at ${port.canonicalPath}: ${(error as Error).message}`,
-      { cause: error },
-    );
-  }
+/**
+ * The subset of the shared connection this reader uses.
+ *
+ * Deliberately loose: better-sqlite3 (the activation's connection) and
+ * node:sqlite (the standalone test fixture) both satisfy it, and the single
+ * conversion to a row shape happens below in `rows`.
+ */
+export interface EvidenceConnection {
+  prepare(sql: string): { all(...params: unknown[]): unknown[]; get(...params: unknown[]): unknown };
+}
+
+/**
+ * Build the reader over the activation's shared evidence connection.
+ *
+ * Retrieval does not open its own handle. One activation owns exactly one
+ * connection and one write queue (`openMemoryStorage`); a second connection
+ * would be a second writer against the same file, and the queue that serializes
+ * evidence writes would no longer cover every writer it is meant to.
+ */
+export function createEvidenceReader(db: EvidenceConnection): EvidenceDatabase {
   // The driver types every row as a loose record; the projections above select
   // exactly these columns from the Host's own schema, so this is the one place
   // that conversion happens.
@@ -115,9 +120,6 @@ export function openEvidenceDatabase(port: MemoryDatabasePort): EvidenceDatabase
         WHERE (${conditions.join(' OR ')})${whereClause(filters, params)} LIMIT ?`;
       params.push(limit);
       return rows(sql, params);
-    },
-    close() {
-      db.close();
     },
   };
 }

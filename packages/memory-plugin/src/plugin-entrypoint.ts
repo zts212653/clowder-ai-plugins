@@ -85,7 +85,7 @@ async function activate(ports: MemoryHostPorts) {
     db: storage.db,
     repository: new FileProfileRepository({ dataDir: memoryData.dataDir }),
   });
-  const search = new SearchOperations(ports.memoryDatabase);
+  const search = new SearchOperations(storage.db);
   return {
     dispose: () => storage.close(),
     actions: {

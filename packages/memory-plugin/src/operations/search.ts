@@ -1,7 +1,11 @@
 import type { SearchHitDto, SearchInput, SearchResultDto } from '@clowder-ai/plugin-memory-contract';
 
-import type { MemoryDatabasePort } from '../host-port.js';
-import { type SearchFilters, openEvidenceDatabase, type EvidenceDatabase } from './evidence-database.js';
+import {
+  createEvidenceReader,
+  type EvidenceConnection,
+  type EvidenceDatabase,
+  type SearchFilters,
+} from './evidence-database.js';
 import { buildProgressiveFtsQueries, splitLexicalBackfillWords } from './fts.js';
 
 /** Rows a lexical pass may consider before the plugin applies the caller's limit. */
@@ -61,33 +65,35 @@ export function searchFilters(options: SearchInput['options']): SearchFilters {
 }
 
 /**
- * Evidence retrieval over the Host-resolved database.
+ * Evidence retrieval over the activation's shared evidence connection.
  *
  * Retrieval here is lexical only. Semantic and hybrid ranking need the Host's
  * embedding pipeline, which this plugin does not own yet; asking for either
  * degrades to lexical and says so, because a caller that believes it received
  * semantic ranking reads the result differently.
+ *
+ * The connection is handed in, never opened here: one activation owns one
+ * connection and one write queue, so this reader must not become a second
+ * writer against the same file.
  */
 export class SearchOperations {
-  constructor(private readonly database: MemoryDatabasePort) {}
+  readonly #reader: EvidenceDatabase;
+
+  constructor(db: EvidenceConnection) {
+    this.#reader = createEvidenceReader(db);
+  }
 
   async query(input: SearchInput): Promise<SearchResultDto> {
     const requestedMode = input.options.mode ?? 'lexical';
     const degraded = requestedMode !== 'lexical';
     const limit = input.options.limit ?? 5;
-    const filters = searchFilters(input.options);
-    const db = openEvidenceDatabase(this.database);
-    try {
-      const rows = this.#rank(db, input.query.trim(), filters, limit);
-      return {
-        query: input.query,
-        hits: rows.map(toHit),
-        degraded,
-        ...(degraded ? { degradeReason: 'raw_lexical_only', effectiveMode: 'lexical' as const } : {}),
-      };
-    } finally {
-      db.close();
-    }
+    const rows = this.#rank(this.#reader, input.query.trim(), searchFilters(input.options), limit);
+    return {
+      query: input.query,
+      hits: rows.map(toHit),
+      degraded,
+      ...(degraded ? { degradeReason: 'raw_lexical_only', effectiveMode: 'lexical' as const } : {}),
+    };
   }
 
   #rank(db: EvidenceDatabase, query: string, filters: SearchFilters, limit: number): DocRow[] {

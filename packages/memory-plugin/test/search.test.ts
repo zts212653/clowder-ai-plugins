@@ -6,7 +6,7 @@ import test from 'node:test';
 
 import type { MemoryDescriptor, SearchResultDto } from '@clowder-ai/plugin-memory-contract';
 
-import { createMemoryPluginModule } from '../src/plugin-entrypoint.js';
+import { createMemoryPluginModule } from '../dist/plugin-entrypoint.js';
 import { fakeKv, host, manifest, seedEvidenceDatabase } from './host-fixture.js';
 
 /** The actions the Host invokes; bound here so the assertions stay typed. */
@@ -21,7 +21,7 @@ async function withPlugin(run: (actions: MemoryActions) => Promise<void>) {
   seedEvidenceDatabase(canonicalPath);
   const activation = (await createMemoryPluginModule()
     .create(manifest)
-    .start(host(fakeKv().port, { canonicalPath, storageFormat: 1 }))) as unknown as {
+    .start(host(fakeKv().port, canonicalPath, root))) as unknown as {
     actions: MemoryActions;
     stop?: (input: unknown) => Promise<void>;
   };
@@ -121,17 +121,11 @@ test('an invalid query is rejected at the boundary without touching the database
   });
 });
 
-test('a missing evidence database fails loudly instead of answering "no hits"', async () => {
-  const activation = (await createMemoryPluginModule()
-    .create(manifest)
-    .start(
-      host(fakeKv().port, {
-        canonicalPath: join(tmpdir(), 'definitely-absent', 'evidence.sqlite'),
-        storageFormat: 1,
-      }),
-    )) as unknown as { actions: MemoryActions };
+test('a missing evidence database fails at activation instead of answering "no hits"', async () => {
   await assert.rejects(
-    search(activation.actions, { query: 'anything' }),
-    /cannot read the evidence database/,
+    createMemoryPluginModule()
+      .create(manifest)
+      .start(host(fakeKv().port, join(tmpdir(), 'definitely-absent', 'evidence.sqlite'))),
+    /directory does not exist|unable to open|fileMustExist/i,
   );
 });

@@ -1,139 +1,36 @@
 import { readFile } from 'node:fs/promises';
-import { DatabaseSync } from 'node:sqlite';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
+import Database from 'better-sqlite3';
 import { parse } from 'yaml';
 import type { ModulePluginHostShape } from '@clowder-ai/plugin-sdk';
 
-import type { MemoryDatabasePort, MemoryThreadKvPort } from '../src/host-port.js';
+import type { MemoryThreadKvPort } from '../src/host-port.js';
 
 export const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
 
-/**
- * The evidence coordinate stands in for the Host-resolved path. The plugin only
- * stores it at activation and opens it on a retrieval call, so KV tests never
- * touch the file.
- */
-export const unusedDatabase: MemoryDatabasePort = {
-  canonicalPath: '/tmp/memory-plugin-unused-evidence.sqlite',
-  storageFormat: 1,
-};
+/** A directory the fixture may name for data locations; retrieval never writes it. */
+export const dataDir = join(tmpdir(), 'memory-plugin-search-fixture');
 
-/** In-memory Host port standing in for the authorized Redis hash surface. */
-export function fakeKv() {
-  const hashes = new Map<string, Map<string, string>>();
-  const writes: string[] = [];
-  /**
-   * When set, the next compare-and-set reports a losing race once. This is the
-   * concurrent-writer case the plugin's retry exists for, and it must not apply
-   * the mutation on that attempt.
-   */
-  let loseNext = false;
-  const port: MemoryThreadKvPort = {
-    get: async (threadRef, key) => hashes.get(threadRef)?.get(key) ?? null,
-    list: async (threadRef) => Object.fromEntries(hashes.get(threadRef) ?? []),
-    compareAndSet: async (threadRef, expected, mutation) => {
-      if (loseNext) {
-        loseNext = false;
-        return false;
-      }
-      const current = hashes.get(threadRef) ?? new Map<string, string>();
-      const fields = Object.entries(expected);
-      if (current.size !== fields.length || fields.some(([k, v]) => current.get(k) !== v)) return false;
-      current.set(mutation.set.key, mutation.set.value);
-      if (mutation.removeKey !== undefined && mutation.removeKey !== mutation.set.key) {
-        current.delete(mutation.removeKey);
-      }
-      hashes.set(threadRef, current);
-      writes.push(`${threadRef}/${mutation.set.key}`);
-      return true;
-    },
-    delete: async (threadRef, key) => hashes.get(threadRef)?.delete(key) ?? false,
-  };
-  return {
-    port,
-    hashes,
-    writes,
-    loseNextCompareAndSet: () => {
-      loseNext = true;
-    },
-  };
-}
-
-export function host(
-  memoryThreadKv?: unknown,
-  memoryDatabase: unknown = unusedDatabase,
-): ModulePluginHostShape {
-  return {
-    pluginInstanceId: 'memory-instance',
-    config: { get: async () => undefined },
-    secrets: { get: async () => undefined },
-    storage: {
-      get: async () => undefined,
-      list: async () => ({}),
-      set: async () => ({ revision: 1 }),
-      compareAndSet: async () => ({ applied: true, revision: 1 }),
-      delete: async () => ({ deleted: false }),
-    },
-    tasks: {
-      get: async () => null,
-      list: async () => [],
-      create: async () => {
-        throw new Error('unused');
-      },
-      update: async () => null,
-    },
-    threads: {
-      get: async () => null,
-      list: async () => [],
-      readMessages: async () => {
-        throw new Error('unused');
-      },
-      getCats: async () => {
-        throw new Error('unused');
-      },
-      create: async () => {
-        throw new Error('unused');
-      },
-      update: async () => {
-        throw new Error('unused');
-      },
-      addParticipants: async () => {
-        throw new Error('unused');
-      },
-    },
-    messaging: {
-      get: async () => null,
-      send: async () => {
-        throw new Error('unused');
-      },
-      subscribe: async () => {
-        throw new Error('unused');
-      },
-      unsubscribe: async () => {
-        throw new Error('unused');
-      },
-    },
-    streams: {
-      read: async function* () {
-        throw new Error('unused');
-      },
-    },
-    external: { endpoint: 'http://127.0.0.1/unused', token: 'unused' },
-    dataPath: '/tmp/memory-plugin-test-data',
-    log: () => undefined,
-    ...(memoryThreadKv === undefined ? {} : { memoryThreadKv }),
-    ...(memoryDatabase === undefined ? {} : { memoryDatabase }),
-  } as ModulePluginHostShape;
-}
+/** The native binding the activation itself loads, so the fixture uses the same engine. */
+const nativeBinding = fileURLToPath(
+  new URL(`../dist/native/${process.platform}-${process.arch}-abi${process.versions.modules}.node`, import.meta.url),
+);
 
 /**
- * Create the evidence tables and FTS index exactly as the Host's own store
- * creates them, so retrieval is exercised against the real schema and the real
- * FTS5 semantics rather than a stand-in that happens to have similar columns.
+ * Create the evidence database the activation requires: schema 84, the document
+ * and FTS tables every retrieval pass reads, and a couple of rows to rank.
+ *
+ * Built with the same engine and native binding the activation loads, because a
+ * database created by a different engine would not prove the real path works.
  */
 export function seedEvidenceDatabase(databasePath: string): void {
-  const db = new DatabaseSync(databasePath);
+  const db = new Database(databasePath, { nativeBinding });
   db.exec(`
+    CREATE TABLE schema_version (version INTEGER NOT NULL);
+    INSERT INTO schema_version VALUES (84);
     CREATE TABLE evidence_docs (
       anchor TEXT PRIMARY KEY, kind TEXT NOT NULL, status TEXT NOT NULL, title TEXT NOT NULL,
       summary TEXT, keywords TEXT, source_path TEXT, source_hash TEXT, superseded_by TEXT,
@@ -199,11 +96,11 @@ export function seedEvidenceDatabase(databasePath: string): void {
       'backstop',
     ],
     [
-      'thread-absent-thread',
+      'thread-absent',
       'thread',
       'active',
       'Unrelated thread digest',
-      'A thread that the filter below must not match',
+      'A thread that a filter for another id must not match',
       '["thread"]',
       '2026-11-03T00:00:00.000Z',
       'observed',
@@ -215,3 +112,130 @@ export function seedEvidenceDatabase(databasePath: string): void {
            SELECT rowid, title, summary, keywords FROM evidence_docs`);
   db.close();
 }
+
+/** In-memory Host port standing in for the authorized Redis hash surface. */
+export function fakeKv() {
+  const hashes = new Map<string, Map<string, string>>();
+  const writes: string[] = [];
+  /**
+   * When set, the next compare-and-set reports a losing race once. This is the
+   * concurrent-writer case the plugin's retry exists for, and it must not apply
+   * the mutation on that attempt.
+   */
+  let loseNext = false;
+  const port: MemoryThreadKvPort = {
+    get: async (threadRef, key) => hashes.get(threadRef)?.get(key) ?? null,
+    list: async (threadRef) => Object.fromEntries(hashes.get(threadRef) ?? []),
+    compareAndSet: async (threadRef, expected, mutation) => {
+      if (loseNext) {
+        loseNext = false;
+        return false;
+      }
+      const current = hashes.get(threadRef) ?? new Map<string, string>();
+      const fields = Object.entries(expected);
+      if (current.size !== fields.length || fields.some(([k, v]) => current.get(k) !== v)) return false;
+      current.set(mutation.set.key, mutation.set.value);
+      if (mutation.removeKey !== undefined && mutation.removeKey !== mutation.set.key) {
+        current.delete(mutation.removeKey);
+      }
+      hashes.set(threadRef, current);
+      writes.push(`${threadRef}/${mutation.set.key}`);
+      return true;
+    },
+    delete: async (threadRef, key) => hashes.get(threadRef)?.delete(key) ?? false,
+  };
+  return {
+    port,
+    hashes,
+    writes,
+    loseNextCompareAndSet: () => {
+      loseNext = true;
+    },
+  };
+}
+
+export function host(
+  memoryThreadKv: unknown,
+  evidencePath: string,
+  dataDirectory: string = dataDir,
+): ModulePluginHostShape {
+  return {
+    pluginInstanceId: 'memory-instance',
+    config: { get: async () => undefined },
+    secrets: { get: async () => undefined },
+    storage: {
+      get: async () => undefined,
+      list: async () => ({}),
+      set: async () => ({ revision: 1 }),
+      compareAndSet: async () => ({ applied: true, revision: 1 }),
+      delete: async () => ({ deleted: false }),
+    },
+    tasks: {
+      get: async () => null,
+      list: async () => [],
+      create: async () => {
+        throw new Error('unused');
+      },
+      update: async () => null,
+    },
+    threads: {
+      get: async () => null,
+      list: async () => [],
+      readMessages: async () => {
+        throw new Error('unused');
+      },
+      getCats: async () => {
+        throw new Error('unused');
+      },
+      create: async () => {
+        throw new Error('unused');
+      },
+      update: async () => {
+        throw new Error('unused');
+      },
+      addParticipants: async () => {
+        throw new Error('unused');
+      },
+    },
+    messaging: {
+      get: async () => null,
+      send: async () => {
+        throw new Error('unused');
+      },
+      subscribe: async () => {
+        throw new Error('unused');
+      },
+      unsubscribe: async () => {
+        throw new Error('unused');
+      },
+    },
+    streams: {
+      read: async function* () {
+        throw new Error('unused');
+      },
+    },
+    external: { endpoint: 'http://127.0.0.1/unused', token: 'unused' },
+    dataPath: '/tmp/memory-plugin-test-data',
+    log: () => undefined,
+    memoryDatabase: { canonicalPath: evidencePath, storageFormat: 1 },
+    memoryData: { dataDir: dataDirectory, eventDbPath: ':memory:' },
+    // Retrieval never reads a Matter source, but the port set is required as a
+    // whole: a plugin that silently started without it would look healthy while
+    // the Matter paths it also serves were unusable.
+    memorySource: {
+      caller: async () => ({
+        userId: 'fixture-owner',
+        viewer: { type: 'user' },
+        threadId: 'thread-1',
+        invocationId: 'test',
+      }),
+      assertCurrent: async () => undefined,
+      publishMatterChange: async () => undefined,
+      canReadThread: async () => true,
+      readMessage: async () => null,
+      currentTrigger: async () => ({ status: 'ordinary' as const }),
+    },
+    ...(memoryThreadKv === undefined ? {} : { memoryThreadKv }),
+  } as ModulePluginHostShape;
+}
+
