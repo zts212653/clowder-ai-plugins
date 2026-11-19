@@ -3,6 +3,9 @@ import type {
   CompanionAppAssistState,
   CompanionCommand,
   CompanionDeskState,
+  CompanionEvent,
+  CompanionReply,
+  CompanionScene,
   ConfigurationField,
   DataDeclaration,
   ExpectedVerdict,
@@ -106,6 +109,21 @@ const invalidDeskAvatarRead: CompanionCommand = { kind: 'desk.avatar.read', scop
 
 // @ts-expect-error desk settlement actions are closed.
 const invalidDeskAction: CompanionCommand = { kind: 'desk.settle', scopeRef: 'desk-a', deliveryRef: 'delivery-a', action: 'accept' };
+
+const bodyHit: CompanionCommand = { kind: 'body.hit', rects: [{ x: 600, y: 700, width: 120, height: 90 }] };
+const sceneReport: CompanionCommand = { kind: 'scene.report', snapshot: { schemaVersion: 1, hat: { askew: true } }, dirty: ['hat'] };
+const sceneNotFound: CompanionScene = { kind: 'scene', status: 'not_found' };
+const sceneAnswer: CompanionReply = { kind: 'scene', status: 'found', revision: 3, snapshot: { schemaVersion: 1 } };
+const bodyArea: CompanionEvent = { kind: 'body-area', width: 1440, height: 875 };
+
+// @ts-expect-error a body names rects in its own window, never a display or desktop position.
+const invalidBodyHit: CompanionCommand = { kind: 'body.hit', rects: [{ x: 0, y: 0, width: 10, height: 10, displayId: 1 }] };
+
+// @ts-expect-error scene fields are a closed set the body page owns.
+const invalidSceneDirty: CompanionCommand = { kind: 'scene.report', snapshot: { schemaVersion: 1 }, dirty: ['clock'] };
+
+// @ts-expect-error an unreadable archive carries no snapshot to adopt.
+const invalidSceneError: CompanionScene = { kind: 'scene', status: 'error', reason: 'corrupt', snapshot: { schemaVersion: 1 } };
 
 const lifecycleCache: DataDeclaration = {
   name: 'compiled-cache',
@@ -306,6 +324,14 @@ void [
   invalidDeskAction,
   deskAvatarRead,
   invalidDeskAvatarRead,
+  bodyHit,
+  sceneReport,
+  sceneNotFound,
+  sceneAnswer,
+  bodyArea,
+  invalidBodyHit,
+  invalidSceneDirty,
+  invalidSceneError,
   lifecycleCache,
   retainedUserData,
   invalidLifecycleUserData,

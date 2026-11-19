@@ -123,6 +123,29 @@ function supportsConfigurationVariants(contractVersion: string): boolean {
   return prerelease === undefined;
 }
 
+/** Bridge literals whose desktop window may carry a living body entry (capability livingBody). */
+const LIVING_BODY_BRIDGES = new Set(['1.8.0']);
+const directoryOf = (path: string) => path.slice(0, path.lastIndexOf('/') + 1);
+
+/** The Host serves only the surface entry's directory, so a body must be a distinct page beside it. */
+function livingBodyProblem(manifest: PluginManifest): { path: string; message: string } | undefined {
+  for (const [index, contribution] of (manifest.contributions ?? []).entries()) {
+    if (contribution.type !== 'desktop-window' || contribution.body === undefined) continue;
+    const path = `/contributions/${index}/body`;
+    if (!LIVING_BODY_BRIDGES.has(contribution.bridgeVersion)) {
+      return { path, message: 'a living body entry requires desktop bridge 1.8.0' };
+    }
+    const { entrypoint } = contribution.body;
+    if (entrypoint === contribution.surface.entrypoint) {
+      return { path: `${path}/entrypoint`, message: 'the living body must be its own page, not the surface entry' };
+    }
+    if (directoryOf(entrypoint) !== directoryOf(contribution.surface.entrypoint)) {
+      return { path: `${path}/entrypoint`, message: 'the living body must sit in the surface entry directory' };
+    }
+  }
+  return undefined;
+}
+
 /**
  * Validates an untrusted plugin manifest against the contract-owned schema.
  *
@@ -166,6 +189,8 @@ export function validateManifest(value: unknown): ManifestValidationResult {
       if (!(major > 0 || minor > 3 || (minor === 3 && patch >= 2)))
         return semanticError('/contractVersion', '#/sharedFactory', 'sharedFactoryBoundary', 'shared MCP factories require contract 0.3.2 or newer');
     }
+    const livingProblem = livingBodyProblem(manifest);
+    if (livingProblem) return semanticError(livingProblem.path, '#/$defs/DesktopWindowContribution/body', 'livingBody', livingProblem.message);
     const outputProblem = projectOutputProblem(manifest);
     if (outputProblem) return semanticError('/projectOutputs', '#/projectOutputs', 'projectOutputBoundary', outputProblem);
     const declaredTypes = new Set<string>();

@@ -124,6 +124,72 @@
       ],
       "additionalProperties": false
     },
+    "CompanionBodyRect": {
+      "type": "object",
+      "description": "livingBody (bridge 1.8): a rect in the body window's CSS pixels, origin at its top-left. The Host additionally requires it to lie wholly inside the window and converts it to screen coordinates itself; a page never names a desktop position.",
+      "properties": {
+        "x": { "type": "number", "minimum": 0, "maximum": 16384 },
+        "y": { "type": "number", "minimum": 0, "maximum": 16384 },
+        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 16384 },
+        "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 16384 }
+      },
+      "required": ["x", "y", "width", "height"],
+      "additionalProperties": false
+    },
+    "CompanionSceneField": {
+      "description": "livingBody (bridge 1.8): one semantic part of the living cat's scene. Only the body page knows what a field means; Host and API bound the envelope.",
+      "enum": ["pose", "ball", "paper", "hat", "activity", "lastSolo"]
+    },
+    "CompanionSceneSnapshot": {
+      "type": "object",
+      "description": "livingBody (bridge 1.8): the living cat's semantic scene, saved by the Host with no expiry. It holds no process clock and is never discounted by offline time. Each field is plain JSON (finite numbers, at most 8 levels deep); the whole snapshot is at most 16 KiB of UTF-8 JSON.",
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "pose": {},
+        "ball": {},
+        "paper": {},
+        "hat": {},
+        "activity": {},
+        "lastSolo": {}
+      },
+      "required": ["schemaVersion"],
+      "additionalProperties": false
+    },
+    "CompanionScene": {
+      "description": "livingBody (bridge 1.8): the scene.get answer. Only not_found lets a body start a new scene; after error a body keeps playing but must not report, and reads again later. A found scene may already carry state the Host still holds for an earlier body, at revision 0 while the archive itself is still empty.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "scene" },
+            "status": { "const": "found" },
+            "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+            "snapshot": { "$ref": "#/$defs/CompanionSceneSnapshot" }
+          },
+          "required": ["kind", "status", "revision", "snapshot"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "scene" },
+            "status": { "const": "not_found" }
+          },
+          "required": ["kind", "status"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "scene" },
+            "status": { "const": "error" },
+            "reason": { "enum": ["corrupt", "unavailable"] }
+          },
+          "required": ["kind", "status", "reason"],
+          "additionalProperties": false
+        }
+      ]
+    },
     "CompanionCommand": {
       "oneOf": [
         {
@@ -564,7 +630,7 @@
           "properties": {
             "kind": { "const": "settings.update" },
             "field": { "const": "skin" },
-            "value": { "enum": ["yarn-ball", "ragdoll-v1", "yanyan-codex", "xianxian-codex"] }
+            "value": { "enum": ["yarn-ball", "ragdoll-v1", "yanyan-codex", "xianxian-codex", "xianxian-living"] }
           },
           "required": ["kind", "field", "value"],
           "additionalProperties": false
@@ -792,6 +858,73 @@
             "clientMessageId",
             "submissionRevision"
           ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "livingBody (bridge 1.8), body window only: where the cat is clickable, sent only when the region changes. The Host also refuses, whole, an update that leaves the window or covers more than 15% of the work area, and keeps the previous one.",
+          "properties": {
+            "kind": { "const": "body.hit" },
+            "rects": {
+              "type": "array",
+              "maxItems": 8,
+              "items": { "$ref": "#/$defs/CompanionBodyRect" }
+            }
+          },
+          "required": ["kind", "rects"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "livingBody (bridge 1.8), body window only: renews the current region every 500 ms on a timer independent of repainting, and only while the page is visible. Without an update or renewal for 1.5 s the desktop under the cat is clickable again.",
+          "properties": {
+            "kind": { "const": "body.hit.renew" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "livingBody (bridge 1.8), body window only: the cat's visible body rect, sent when it changes. The Host places the panel beside it and never moves the cat.",
+          "properties": {
+            "kind": { "const": "body.anchor" },
+            "rect": { "$ref": "#/$defs/CompanionBodyRect" }
+          },
+          "required": ["kind", "rect"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "livingBody (bridge 1.8), body window only: a context click on the cat asks the Host to open the ordinary companion menu beside the last reported anchor.",
+          "properties": {
+            "kind": { "const": "body.menu" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "livingBody (bridge 1.8), body window only: reads the saved scene once per body; answered by CompanionScene.",
+          "properties": {
+            "kind": { "const": "scene.get" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "livingBody (bridge 1.8), body window only: the newest scene after a semantic change, or the answer to a scene-flush event. dirty names the fields this body changed since its read; the Host writes them, never replays a stale whole snapshot. A body whose read failed must not report.",
+          "properties": {
+            "kind": { "const": "scene.report" },
+            "snapshot": { "$ref": "#/$defs/CompanionSceneSnapshot" },
+            "dirty": {
+              "type": "array",
+              "maxItems": 6,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/CompanionSceneField" }
+            }
+          },
+          "required": ["kind", "snapshot", "dirty"],
           "additionalProperties": false
         }
       ]
@@ -1619,7 +1752,7 @@
       "type": "object",
       "properties": {
         "dutyCatProfileId": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
-        "skin": { "enum": ["yarn-ball", "ragdoll-v1", "yanyan-codex", "xianxian-codex"] },
+        "skin": { "enum": ["yarn-ball", "ragdoll-v1", "yanyan-codex", "xianxian-codex", "xianxian-living"] },
         "ballSize": { "type": "integer", "minimum": 43, "maximum": 192 },
         "behaviorEnabled": { "type": "boolean" },
         "proactivePolicy": { "enum": ["ambient", "quiet-badge"] },
@@ -2131,6 +2264,9 @@
           "$ref": "#/$defs/CompanionDeskAvatar"
         },
         {
+          "$ref": "#/$defs/CompanionScene"
+        },
+        {
           "type": "object",
           "properties": {
             "kind": {
@@ -2498,6 +2634,26 @@
           "required": [
             "kind"
           ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "livingBody (bridge 1.8), to the body window: before a body swap, hide or quit the Host asks for the newest scene and waits briefly; the body answers with scene.report.",
+          "properties": {
+            "kind": { "const": "scene-flush" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "livingBody (bridge 1.8), to the body window: the primary work area changed and the window now has this size in CSS pixels; floor, walls and ceiling are re-mapped to it.",
+          "properties": {
+            "kind": { "const": "body-area" },
+            "width": { "type": "integer", "minimum": 1, "maximum": 16384 },
+            "height": { "type": "integer", "minimum": 1, "maximum": 16384 }
+          },
+          "required": ["kind", "width", "height"],
           "additionalProperties": false
         }
       ]

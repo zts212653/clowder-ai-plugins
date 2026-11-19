@@ -878,3 +878,100 @@ test('desk avatars are read by delivery reference only and return a small bounde
   ] as const) assert.equal(validateCompanionReply({ ...avatar, image: invalidImage }), false, reason);
   assert.equal(validateCompanionReply({ ...avatar, itemRef: 'item-sheet' }), false);
 });
+
+test('livingBody: the body window names clickable rects in its own window and never a desktop position', () => {
+  const cat = { x: 600, y: 760, width: 140, height: 110 };
+  assert.equal(validateCompanionCommand({ kind: 'body.hit', rects: [cat] }), true);
+  assert.equal(validateCompanionCommand({ kind: 'body.hit', rects: [] }), true, 'an empty region releases every click');
+  assert.equal(validateCompanionCommand({ kind: 'body.hit', rects: Array.from({ length: 8 }, () => cat) }), true);
+  assert.equal(validateCompanionCommand({ kind: 'body.hit', rects: Array.from({ length: 9 }, () => cat) }), false);
+  for (const rect of [{ ...cat, x: -1 }, { ...cat, width: 0 }, { ...cat, height: -4 }, { ...cat, x: 1e9 },
+    { ...cat, screenX: 10 }, { x: 1, y: 1, width: 1 }, { ...cat, x: '600' }]) {
+    assert.equal(validateCompanionCommand({ kind: 'body.hit', rects: [rect] }), false, JSON.stringify(rect));
+    assert.equal(validateCompanionCommand({ kind: 'body.anchor', rect }), false, JSON.stringify(rect));
+  }
+  assert.equal(validateCompanionCommand({ kind: 'body.hit.renew' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'body.anchor', rect: cat }), true);
+  assert.equal(validateCompanionCommand({ kind: 'body.menu' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'scene.get' }), true);
+  for (const command of [{ kind: 'body.hit.renew' }, { kind: 'body.menu' }, { kind: 'scene.get' },
+    { kind: 'body.anchor', rect: cat }]) {
+    for (const field of ['windowId', 'generation', 'catId', 'x', 'url']) {
+      assert.equal(validateCompanionCommand({ ...command, [field]: 'other' }), false, `${command.kind} ${field}`);
+    }
+  }
+});
+
+test('livingBody: scene reports are bounded semantic snapshots with named dirty fields', () => {
+  const snapshot = {
+    schemaVersion: 1,
+    pose: { name: 'LOAF', facing: 'left' }, ball: { x: 0.4, h: 0, ceil: false }, paper: { x: 0.8 },
+    hat: { askew: true }, activity: { kind: 'groom', frame: 12 }, lastSolo: 'draft',
+  };
+  assert.equal(validateCompanionCommand({ kind: 'scene.report', snapshot, dirty: ['hat', 'activity'] }), true);
+  assert.equal(validateCompanionCommand({ kind: 'scene.report', snapshot: { schemaVersion: 1 }, dirty: [] }), true);
+  const deep = (levels: number): unknown => (levels === 0 ? 1 : { next: deep(levels - 1) });
+  for (const [label, report] of [
+    ['unknown field', { snapshot: { ...snapshot, clock: 1 }, dirty: [] }],
+    ['future schema', { snapshot: { ...snapshot, schemaVersion: 2 }, dirty: [] }],
+    ['missing schema', { snapshot: { hat: { askew: true } }, dirty: ['hat'] }],
+    ['unknown dirty', { snapshot, dirty: ['clock'] }],
+    ['repeated dirty', { snapshot, dirty: ['hat', 'hat'] }],
+    ['missing dirty', { snapshot }],
+    ['non-finite number', { snapshot: { ...snapshot, ball: { x: Number.NaN } }, dirty: ['ball'] }],
+    ['too deep', { snapshot: { ...snapshot, activity: deep(8) }, dirty: ['activity'] }],
+    ['too large', { snapshot: { ...snapshot, lastSolo: 'x'.repeat(16 * 1024) }, dirty: ['lastSolo'] }],
+    ['class instance', { snapshot: { ...snapshot, hat: new Date(0) }, dirty: ['hat'] }],
+    ['extra selector', { snapshot, dirty: [], catId: 'opus' }],
+  ] as const) {
+    assert.equal(validateCompanionCommand({ kind: 'scene.report', ...report }), false, label);
+  }
+  assert.equal(validateCompanionCommand({ kind: 'scene.report', snapshot: { ...snapshot, activity: deep(7) }, dirty: [] }), true,
+    'eight levels from the snapshot itself are still storable');
+});
+
+test('livingBody: scene reads keep found, not_found and error apart', () => {
+  const snapshot = { schemaVersion: 1, hat: { askew: true } };
+  assert.equal(validateCompanionReply({ kind: 'scene', status: 'found', revision: 4, snapshot }), true);
+  assert.equal(validateCompanionReply({ kind: 'scene', status: 'found', revision: 0, snapshot }), true,
+    'state the Host still holds over an empty archive is found at revision 0');
+  assert.equal(validateCompanionReply({ kind: 'scene', status: 'not_found' }), true);
+  assert.equal(validateCompanionReply({ kind: 'scene', status: 'error', reason: 'corrupt' }), true);
+  assert.equal(validateCompanionReply({ kind: 'scene', status: 'error', reason: 'unavailable' }), true);
+  for (const invalid of [
+    { kind: 'scene', status: 'found', revision: 4 },
+    { kind: 'scene', status: 'found', revision: -1, snapshot },
+    { kind: 'scene', status: 'found', revision: 1.5, snapshot },
+    { kind: 'scene', status: 'found', revision: 2, snapshot: { schemaVersion: 1, clock: 3 } },
+    { kind: 'scene', status: 'not_found', snapshot },
+    { kind: 'scene', status: 'error', reason: 'timeout' },
+    { kind: 'scene', status: 'error', reason: 'corrupt', snapshot },
+    { kind: 'scene', status: 'missing' },
+  ]) assert.equal(validateCompanionReply(invalid), false, JSON.stringify(invalid));
+  assert.equal(validateCompanionReply({ kind: 'error', code: 'session_required' }), true,
+    'a report before a successful read is refused with an existing code');
+});
+
+test('livingBody: the Host asks for a flush and announces the body area', () => {
+  assert.equal(validateCompanionEvent({ kind: 'scene-flush' }), true);
+  assert.equal(validateCompanionEvent({ kind: 'scene-flush', reason: 'quit' }), false);
+  assert.equal(validateCompanionEvent({ kind: 'body-area', width: 1440, height: 875 }), true);
+  for (const area of [{ width: 0, height: 875 }, { width: 1440.5, height: 875 }, { width: 1440 },
+    { width: 1440, height: 875, x: 0 }]) {
+    assert.equal(validateCompanionEvent({ kind: 'body-area', ...area }), false, JSON.stringify(area));
+  }
+});
+
+test('livingBody: the living skin is a setting value of this line', () => {
+  assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'skin', value: 'xianxian-living' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'skin', value: 'xianxian-living-v2' }), false);
+  assert.equal(validateCompanionReply({
+    kind: 'settings', status: 'available',
+    values: {
+      dutyCatProfileId: 'fable-5', skin: 'xianxian-living', ballSize: 72, behaviorEnabled: true,
+      proactivePolicy: 'quiet-badge', personaTone: '温暖', householdReadsAllowed: true, appAssistEnabled: false,
+    },
+    companions: [{ catProfileId: 'fable-5', displayName: '宪宪', available: true }],
+    selectedCompanionStatus: 'available',
+  }), true);
+});
