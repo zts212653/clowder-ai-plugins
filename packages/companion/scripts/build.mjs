@@ -9,6 +9,12 @@ await rm(renderer, { recursive: true, force: true });
 await mkdir(renderer, { recursive: true });
 await cp(new URL('src/', root), renderer, { recursive: true });
 await cp(new URL('assets/skins/', root), new URL('skins/', renderer), { recursive: true });
+// livingBody: the world data travels as a module beside its atlases (the static surface admits no fetch: connect-src 'none').
+const livingWorld = new URL('skins/xianxian-living-world/', renderer);
+const worldText = (await readFile(new URL('world.json', livingWorld), 'utf8')).trim();
+JSON.parse(worldText);   // the JSON text itself is the module's literal, so every number (-0 included) is kept as built
+await writeFile(new URL('world.mjs', livingWorld), `// Built by scripts/build.mjs from assets/skins/xianxian-living-world/world.json.\nexport default ${worldText};\n`);
+await rm(new URL('world.json', livingWorld));
 const client = await readFile(fileURLToPath(import.meta.resolve('@clowder-ai/plugin-sdk/companion')), 'utf8');
 if (/\b(?:import|require)\s*\(/u.test(client) || /\bfrom\s*['"]/u.test(client)) throw new Error('Companion browser client gained runtime imports; audit its dependency closure');
 await writeFile(new URL('client.mjs', renderer), client.replace(/\/\/# sourceMappingURL=.*$/mu, ''));

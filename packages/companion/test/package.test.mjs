@@ -75,7 +75,8 @@ test('the installable package declares one companion body and contains a closed 
   }, 'the living body entry sits beside the surface and is pinned by its own bytes');
   assert.doesNotMatch(bodyHtml.toString(), /<script(?![^>]*\bsrc=)/u, 'the static-surface policy admits no inline script');
   const names = [...await readdir(new URL('renderer/', root)),
-    ...(await readdir(new URL('renderer/living-world/', root))).map(name => `living-world/${name}`)];
+    ...(await readdir(new URL('renderer/living-world/', root))).map(name => `living-world/${name}`),
+    ...(await readdir(new URL('renderer/skins/xianxian-living-world/', root))).map(name => `skins/xianxian-living-world/${name}`)];
   for (const name of names) {
     if (!/\.(html|css|mjs)$/.test(name)) continue;
     const file = new URL(`renderer/${name}`, root);
@@ -119,6 +120,22 @@ test('public imagery provenance pins only distributable assets, without private 
     const content = await readFile(new URL(file.destination, root));
     assert.equal(createHash('sha256').update(content).digest('hex'), file.sha256);
     assert.doesNotMatch(file.destination, /pet\.json/);
+  }
+  assert.doesNotMatch(JSON.stringify(lock.livingWorld), /\/Users\/|\/api\/workspace\/file\/raw/u);
+  assert.equal(lock.livingWorld.scale, 0.6);
+  assert.deepEqual(lock.livingWorld.files.map(file => file.destination.split('/').at(-1)),
+    ['world.json', 'world-atlas-0.webp', 'world-atlas-1.webp', 'world-atlas-2.webp'], 'the living body\'s world data and its three atlases');
+  for (const file of lock.livingWorld.files) {
+    const content = await readFile(new URL(file.destination, root));
+    assert.equal(createHash('sha256').update(content).digest('hex'), file.sha256, file.destination);
+    if (file.destination.endsWith('.json')) {
+      const { default: packed } = await import(new URL('renderer/skins/xianxian-living-world/world.mjs', root));
+      assert.deepEqual(packed, JSON.parse(content), 'the world data reaches the renderer as a module (the static surface admits no fetch)');
+      assert.equal(packed.scale, lock.livingWorld.scale);
+      continue;
+    }
+    const packed = await readFile(new URL(file.destination.replace(/^assets\//u, 'renderer/'), root));
+    assert.deepEqual(packed, content, `${file.destination} must reach the installable renderer`);
   }
   assert.match(lock.livingSkin.manifestSha256, /^[a-f0-9]{64}$/u);
   assert.equal(lock.livingSkin.files.length, 22, '12 layers, nine clips and layer geometry travel together');
