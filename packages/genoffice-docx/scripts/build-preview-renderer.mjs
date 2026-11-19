@@ -52,10 +52,9 @@ await rm(appRoot, { recursive: true, force: true });
 await cp(join(packageRoot, 'preview'), join(appRoot, 'preview'), { recursive: true });
 // Mirror the package layout so `../src/preview-protocol` resolves inside the build tree.
 await mkdir(join(appRoot, 'src'), { recursive: true });
-await copyFile(
-  join(packageRoot, 'src', 'preview-protocol.ts'),
-  join(appRoot, 'src', 'preview-protocol.ts'),
-);
+for (const name of ['preview-protocol.ts', 'preview-errors.ts', 'preview-archive.ts']) {
+  await copyFile(join(packageRoot, 'src', name), join(appRoot, 'src', name));
+}
 
 run(process.execPath, [
   join(sourceRoot, 'node_modules', 'typescript', 'bin', 'tsc'),
@@ -74,6 +73,30 @@ await copyFile(
   join(rendererRoot, 'pdf.worker.js'),
 );
 await copyFile(join(packageRoot, 'src', 'host-policy.css'), join(rendererRoot, 'host-policy.css'));
+
+const pdfRoot = join(sourceRoot, 'node_modules', 'pdfjs-dist');
+const codecRoot = join(rendererRoot, 'pdf-codecs');
+await mkdir(codecRoot, { recursive: true });
+const resources = {};
+for (const [kind, directory, pattern] of [
+  ['cMapUrl', 'cmaps', /\.bcmap$/u],
+  ['standardFontDataUrl', 'standard_fonts', /\.(?:pfb|ttf)$/u],
+]) {
+  const base = join(pdfRoot, directory);
+  const names = (await readdir(base)).sort();
+  resources[kind] = Object.fromEntries(await Promise.all(names.filter((name) => pattern.test(name))
+    .map(async (name) => [name, (await readFile(join(base, name))).toString('base64')])));
+  for (const name of names.filter((name) => name.startsWith('LICENSE'))) {
+    await copyFile(join(base, name), join(codecRoot, `${directory}-${name}.txt`));
+  }
+}
+await writeFile(join(rendererRoot, 'pdf-resources.js'), `export default ${JSON.stringify(resources)};\n`);
+for (const name of ['openjpeg_nowasm_fallback.js', 'jbig2_nowasm_fallback.js']) {
+  await copyFile(join(pdfRoot, 'wasm', name), join(codecRoot, name));
+}
+for (const name of ['LICENSE_OPENJPEG', 'LICENSE_PDFJS_OPENJPEG', 'LICENSE_JBIG2', 'LICENSE_PDFJS_JBIG2']) {
+  await copyFile(join(pdfRoot, 'wasm', name), join(codecRoot, `${name}.txt`));
+}
 
 const indexPath = join(rendererRoot, 'index.html');
 const hardened = injectPreviewPolicy(await readFile(indexPath, 'utf8'), {

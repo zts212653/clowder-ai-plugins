@@ -4,21 +4,50 @@
  */
 import * as pdfjs from 'pdfjs-dist';
 import type { PDFPageProxy, RenderTask } from 'pdfjs-dist';
+import { PreviewRenderError } from '../src/preview-errors';
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.25;
+const MAX_IMAGE_PIXELS = 50_000_000;
+const MAX_CANVAS_BYTES = 128 * 1024 * 1024;
 
 export async function mountPdfPreview(
   stage: HTMLElement,
   bytes: ArrayBuffer,
+  onRendered: (error?: unknown) => void,
 ): Promise<void> {
   const workerUrl = new URL('./pdf.worker.js', window.location.href).href;
-  const { WorkerMessageHandler } = await import(/* @vite-ignore */ workerUrl);
+  const resourceUrl = new URL('./pdf-resources.js', workerUrl).href;
+  const [{ WorkerMessageHandler }, { default: resources }] = await Promise.all([
+    import(/* @vite-ignore */ workerUrl),
+    import(/* @vite-ignore */ resourceUrl) as Promise<{ default: Record<string, Record<string, string>> }>,
+  ]);
   Object.assign(globalThis, { pdfjsWorker: { WorkerMessageHandler } });
 
+  let missingResources = false;
   const loading = pdfjs.getDocument({
     data: new Uint8Array(bytes),
+    cMapUrl: './',
+    standardFontDataUrl: './',
+    wasmUrl: new URL('./pdf-codecs/', workerUrl).href,
+    useWorkerFetch: false,
+    useWasm: false,
+    stopAtErrors: true,
+    maxImageSize: MAX_IMAGE_PIXELS,
+    canvasMaxAreaInBytes: MAX_CANVAS_BYTES,
+    BinaryDataFactory: class {
+      async fetch({ kind, filename }: { kind: string; filename: string }): Promise<Uint8Array> {
+        if (!Object.hasOwn(resources, kind) || !Object.hasOwn(resources[kind]!, filename)) {
+          missingResources = true;
+          throw new Error('PDF resource not included in the preview package');
+        }
+        const decoded = atob(resources[kind]![filename]!);
+        const bytes = new Uint8Array(decoded.length);
+        for (let i = 0; i < bytes.length; i++) bytes[i] = decoded.charCodeAt(i);
+        return bytes;
+      }
+    },
   });
   const doc = await loading.promise;
 
@@ -68,6 +97,8 @@ export async function mountPdfPreview(
 
   const render = async (): Promise<void> => {
     const token = ++renderToken;
+    toolbar.querySelector<HTMLButtonElement>('[data-action="prev"]')!.disabled = pageNumber <= 1;
+    toolbar.querySelector<HTMLButtonElement>('[data-action="next"]')!.disabled = pageNumber >= doc.numPages;
     renderTask?.cancel();
     renderTask = null;
     const page = await doc.getPage(pageNumber);
@@ -75,6 +106,9 @@ export async function mountPdfPreview(
     const scale = fitScale(page) * zoom;
     const viewport = page.getViewport({ scale });
     const ratio = Math.min(2, window.devicePixelRatio || 1);
+    if (viewport.width * viewport.height * ratio * ratio * 4 > MAX_CANVAS_BYTES) {
+      throw new PreviewRenderError('preview_limit_exceeded');
+    }
     canvas.width = Math.floor(viewport.width * ratio);
     canvas.height = Math.floor(viewport.height * ratio);
     canvas.style.width = `${viewport.width}px`;
@@ -108,16 +142,27 @@ export async function mountPdfPreview(
     zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
     document.documentElement.dataset.previewPages = String(doc.numPages);
     document.documentElement.dataset.previewPage = String(pageNumber);
-    toolbar.querySelector<HTMLButtonElement>('[data-action="prev"]')!.disabled = pageNumber <= 1;
-    toolbar.querySelector<HTMLButtonElement>('[data-action="next"]')!.disabled =
-      pageNumber >= doc.numPages;
+    if (token !== renderToken) return;
+    if (missingResources) throw new PreviewRenderError('preview_format_unsupported');
+    onRendered();
+  };
+  const renderCurrentPage = () => {
+    const request = render();
+    const expected = renderToken;
+    return request.catch((error: unknown) => {
+      if (expected !== renderToken) return;
+      canvas.width = 0;
+      canvas.height = 0;
+      textLayer.replaceChildren();
+      onRendered(error);
+    });
   };
 
   const go = (delta: number) => {
     const next = Math.min(Math.max(pageNumber + delta, 1), doc.numPages);
     if (next === pageNumber) return;
     pageNumber = next;
-    void render();
+    void renderCurrentPage();
   };
 
   toolbar.addEventListener('click', (event) => {
@@ -132,11 +177,11 @@ export async function mountPdfPreview(
         break;
       case 'zoom-in':
         zoom = Math.min(MAX_ZOOM, Math.round((zoom + ZOOM_STEP) * 100) / 100);
-        void render();
+        void renderCurrentPage();
         break;
       case 'zoom-out':
         zoom = Math.max(MIN_ZOOM, Math.round((zoom - ZOOM_STEP) * 100) / 100);
-        void render();
+        void renderCurrentPage();
         break;
       default:
         break;
@@ -161,7 +206,7 @@ export async function mountPdfPreview(
         if (request !== searchRequest) return;
         if (!content.includes(query)) continue;
         pageNumber = candidate;
-        await render();
+        await renderCurrentPage();
         if (request === searchRequest) searchResult.textContent = `找到，第 ${candidate} 页`;
         return;
       }
@@ -181,11 +226,11 @@ export async function mountPdfPreview(
     if (event.key === 'ArrowRight' || event.key === 'PageDown') go(1);
     if (event.key === '+' || event.key === '=') {
       zoom = Math.min(MAX_ZOOM, Math.round((zoom + ZOOM_STEP) * 100) / 100);
-      void render();
+      void renderCurrentPage();
     }
     if (event.key === '-') {
       zoom = Math.max(MIN_ZOOM, Math.round((zoom - ZOOM_STEP) * 100) / 100);
-      void render();
+      void renderCurrentPage();
     }
   };
   window.addEventListener('keydown', onKeyDown);
@@ -193,7 +238,7 @@ export async function mountPdfPreview(
   let resizeTimer: ReturnType<typeof setTimeout> | null = null;
   const observer = new ResizeObserver(() => {
     if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => void render(), 150);
+    resizeTimer = setTimeout(() => void renderCurrentPage(), 150);
   });
   observer.observe(viewportNode);
 
@@ -211,6 +256,6 @@ export async function mountPdfPreview(
     { once: true },
   );
 
-  await render();
+  await renderCurrentPage();
 }
 
