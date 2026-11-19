@@ -176,8 +176,10 @@ export function registerConsoleRoutes(app: FastifyInstance, scope: CommunityRequ
     }
     if (!stored || JSON.stringify(s) !== JSON.stringify(stored.value)) await save(s, stored?.revision ?? null);
     const f = 'issue-' + s.mid + '-' + s.sourceId + '-', editable = s.phase === 'editing' && !(s.lastAction === 'read' && s.lastError);
+    // The report stays readable and copyable in every phase, including after a failed create or publish.
     return { ...s, repos: config.repos, repoId: f + 'repo', titleId: f + 'title', bodyId: f + 'body', canEdit: editable,
-      canCreate: editable && !s.draftId, canPublish: editable && !!s.draftId, canCancel: editable,
+      report: s.titleValue + '\n\n' + s.bodyMarkdown,
+      canCreate: editable && !s.draftId && config.repos.includes(s.targetRepo), canPublish: editable && !!s.draftId, canCancel: editable,
       state: editable ? (s.draftId ? 'draft' : '') : s.phase };
   });
   for (const action of ['edit','create','publish','cancel','retry'] as const) app.post(base + '/draft/' + action, async request => {

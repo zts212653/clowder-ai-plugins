@@ -580,3 +580,29 @@ test('a console card first read with no repository configured takes the default 
     assert.equal(after.body.targetRepo, 'org/repo'); assert.equal(after.body.titleValue, 'Edited title'); assert.equal(after.body.canCreate, true);
   } finally { await router.stop(); }
 });
+
+test('a console card whose draft is gone after publishing still reads back and copies the edited report, also after a refresh', async t => {
+  const deps: CommunityHttpRouterOptions = { ...options(), messageThread: async () => 'thread' }; const router = await createCommunityHttpRouter(deps); t.after(() => router.stop()); const addr = { mid: 'message', b: 'block' };
+  await consoleRequest(router, 'read', cardInput()); await consoleRequest(router, 'create', addr);
+  const id = (await consoleRequest(router, 'read', cardInput())).body.draftId;
+  await consoleRequest(router, 'edit', { ...addr, field: 'bodyMarkdown', value: 'Unique edited body' });
+  assert.match(id, /^[a-f0-9]{64}$/);
+  const get = deps.storage.get.bind(deps.storage);
+  deps.storage.get = async key => key.includes(id) && !key.startsWith('community.console.card.') ? undefined : get(key);
+  await consoleRequest(router, 'publish', addr);
+  for (const read of [await consoleRequest(router, 'read', cardInput()), await consoleRequest(router, 'read', cardInput())]) {
+    assert.match(read.body.lastError, /not found/); assert.equal(read.body.canEdit, false);
+    assert.equal(read.body.bodyMarkdown, 'Unique edited body'); assert.match(read.body.report, /Unique edited body/);
+  }
+});
+
+test('a console card with no repository configured offers no create but still copies the report', async t => {
+  const deps = options(), config = deps.drafts.config as { defaultRepo: string; repoAllowlist: string[] };
+  config.defaultRepo = ''; config.repoAllowlist = [];
+  const router = await createCommunityHttpRouter(deps); t.after(() => router.stop());
+  await consoleRequest(router, 'read', cardInput());
+  await consoleRequest(router, 'edit', { mid: 'message', b: 'block', field: 'bodyMarkdown', value: 'Unique edited body' });
+  for (const read of [await consoleRequest(router, 'read', cardInput()), await consoleRequest(router, 'read', cardInput())]) {
+    assert.equal(read.body.canCreate, false); assert.equal(read.body.canEdit, true); assert.match(read.body.report, /Unique edited body/);
+  }
+});

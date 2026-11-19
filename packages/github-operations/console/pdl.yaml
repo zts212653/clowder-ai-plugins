@@ -103,6 +103,12 @@ templates:
                         mid: $.card.mid
                         b: $.card.sourceId
                         field: bodyMarkdown
+            - type: text
+              text: $.card.titleValue
+              when: "!$.card.canEdit"
+            - type: markdown
+              text: $.card.bodyMarkdown
+              when: "!$.card.canEdit"
             - type: kv
               from:
                 - k: draftId
@@ -150,6 +156,11 @@ templates:
                     url: $.card.url
                   when: $.card.url
                   disabled: $.pending
+                - type: button
+                  label: t:github.issueDraft.copy
+                  act: copy
+                  args:
+                    v: $.card.report
                 - type: grow
                 - type: button
                   label: t:common.cancel

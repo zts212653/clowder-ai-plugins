@@ -9,6 +9,7 @@ issueDraft:
   create: Create draft
   publish: Publish
   published: Published
+  copy: Copy report
 chatCards:
   field:
     repo: Repository
