@@ -72,6 +72,6 @@ test('snapshot accepts one declared media type with real bytes only', () => {
 
 test('format dispatch maps only declared media types', () => {
   assert.equal(previewFormatFor(PDF), 'pdf');
-  assert.equal(previewFormatFor(PPTX), null);
+  assert.equal(previewFormatFor(PPTX), 'pptx');
   assert.equal(previewFormatFor('application/zip'), null);
 });

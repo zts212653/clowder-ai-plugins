@@ -19,7 +19,6 @@ export async function mountPdfPreview(
 
   const loading = pdfjs.getDocument({
     data: new Uint8Array(bytes),
-    isEvalSupported: false,
   });
   const doc = await loading.promise;
 
@@ -87,10 +86,8 @@ export async function mountPdfPreview(
     textLayer.style.setProperty('--scale-factor', String(viewport.scale));
     textLayer.replaceChildren();
 
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('preview_canvas_unavailable');
     const task = page.render({
-      canvasContext: context,
+      canvas,
       viewport,
       transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
     });

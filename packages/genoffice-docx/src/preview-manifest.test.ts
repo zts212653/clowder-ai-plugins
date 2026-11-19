@@ -26,7 +26,10 @@ test('preview contribution coexists with the unchanged DOCX editor', async () =>
   assert.ok(preview, 'preview contribution must be declared');
   assert.equal(preview.type, 'content-preview-provider');
   assert.ok(Array.isArray(preview.formats));
-  assert.deepEqual(preview.formats[0], { extension: 'pdf', mediaType: PDF });
+  assert.deepEqual(preview.formats, [
+    { extension: 'pdf', mediaType: PDF },
+    { extension: 'pptx', mediaType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
+  ]);
   assert.equal('operations' in preview, false);
   assert.equal('semanticMaterializer' in preview, false);
   const surface = preview.surface as Record<string, unknown>;

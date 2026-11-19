@@ -7,14 +7,15 @@ Clowder AI: it contributes a `content-editor-provider` surface so a compatible
 Host can open Word documents (`application/vnd.openxmlformats-officedocument.wordprocessingml.document`)
 for collaborative editing — load, settle, comment, and tracked-change
 operations — inside a dedicated-origin sandboxed iframe with a semantic
-materializer worker.
+materializer worker. A compatible Host can also open read-only PDF and PPTX previews from the Workspace file tree. Both formats support paging and zoom. PDFs with a text layer also support selection and search. Complex fonts, SmartArt, 3D and some embedded objects may render differently from PowerPoint. The file menu can open the original in the system default application.
 
 ## What the plugin declares
 
-- One feature, `edit-docx`, contributing the `genoffice-docx` content editor
+- The `edit-docx` feature, contributing the `genoffice-docx` content editor
   provider (`renderer/index.html`, integrity-bound entrypoint,
   `sandbox: dedicated-origin-iframe`, `navigationPolicy: navigation-api-deny`,
   bridge version 1.0.0).
+- The `preview-office` feature declares PDF and PPTX on a separate read-only iframe entrypoint.
 - `manifest.json` is a generated package export and must remain mechanically
   identical to `plugin.yaml`.
 

@@ -269,7 +269,7 @@ async function discoverRendererSourceGlobs(root) {
       // A package without a readable manifest cannot join the renderer graph.
     }
   }
-  const queue = ['apps/docs/src', 'apps/genoffice-preview-237/preview'];
+  const queue = ['apps/docs/src', 'apps/slides/src/renderer', 'apps/genoffice-preview-237/preview'];
   const seen = new Set(queue);
   const specifier = /\b(?:from\s*|import\s*\(\s*|import\s+|require\s*\(\s*)['"]([^'"\n]+)['"]/g;
   while (queue.length > 0) {

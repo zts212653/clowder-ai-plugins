@@ -57,6 +57,13 @@ await copyFile(
   join(appRoot, 'src', 'preview-protocol.ts'),
 );
 
+run(process.execPath, [
+  join(sourceRoot, 'node_modules', 'typescript', 'bin', 'tsc'),
+  '--noEmit', '--strict', '--skipLibCheck', '--target', 'ES2022', '--module', 'ESNext',
+  '--moduleResolution', 'Bundler', '--jsx', 'react-jsx', '--lib', 'ES2022,DOM,DOM.Iterable',
+  join(appRoot, 'preview', 'main.ts'), join(appRoot, 'preview', 'vite.config.ts'),
+  join(sourceRoot, 'packages', 'pptx-render', 'src', 'bidi-js.d.ts'),
+], appRoot);
 const viteBin = join(sourceRoot, 'node_modules', 'vite', 'bin', 'vite.js');
 run(process.execPath, [viteBin, 'build', '--config', 'vite.config.ts', '--base', './', '--sourcemap'], join(appRoot, 'preview'));
 

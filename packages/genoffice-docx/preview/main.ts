@@ -1,6 +1,5 @@
 import './styles.css';
 import { startPreviewBridge, type PreviewBridgeError } from './bridge';
-import { mountPdfPreview } from './pdf';
 import { previewFormatFor } from '../src/preview-protocol';
 
 const root = document.getElementById('root');
@@ -35,7 +34,10 @@ startPreviewBridge({
       return;
     }
     setStatus(`正在渲染 ${snapshot.fileName}`);
-    void mountPdfPreview(stage, snapshot.bytes)
+    const mount = format === 'pdf'
+      ? import('./pdf').then(({ mountPdfPreview }) => mountPdfPreview(stage, snapshot.bytes))
+      : import('./pptx').then(({ mountPptxPreview }) => mountPptxPreview(stage, snapshot.bytes));
+    void mount
       .then(() => setStatus(snapshot.fileName))
       .catch((error: unknown) => showError(error instanceof Error ? error : new Error(String(error))));
   },

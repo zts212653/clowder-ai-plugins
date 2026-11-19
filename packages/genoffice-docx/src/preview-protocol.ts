@@ -20,6 +20,7 @@ export interface PreviewSnapshot {
 
 export const PREVIEW_MEDIA_TYPES = {
   pdf: 'application/pdf',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 } as const;
 
 export type PreviewFormat = keyof typeof PREVIEW_MEDIA_TYPES;
