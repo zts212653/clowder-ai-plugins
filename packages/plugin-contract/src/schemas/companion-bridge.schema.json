@@ -895,7 +895,7 @@
         },
         {
           "type": "object",
-          "description": "livingBody (bridge 1.8), body window only: a context click on the cat asks the Host to open the ordinary companion menu beside the last reported anchor.",
+          "description": "livingBody (bridge 1.8), body window only: a context click on the cat asks the Host to open the ordinary companion menu beside the last reported anchor. The Host answers ok and sends the view-open event (panel menu) to the panel window, which opens the menu itself.",
           "properties": {
             "kind": { "const": "body.menu" }
           },
@@ -2655,6 +2655,16 @@
             "standHeight": { "type": "integer", "minimum": 60, "maximum": 480 }
           },
           "required": ["kind", "width", "height"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "livingBody (bridge 1.8), to the panel window: the Host's answer to body.menu. The panel opens its ordinary menu exactly as a context click on its own cat would, and its view.layout for it is placed beside the body's last reported anchor; it names no position. Another open panel gives way to the menu as it does for that context click. A panel whose skin is not the living cat ignores it.",
+          "properties": {
+            "kind": { "const": "view-open" },
+            "panel": { "const": "menu" }
+          },
+          "required": ["kind", "panel"],
           "additionalProperties": false
         }
       ]

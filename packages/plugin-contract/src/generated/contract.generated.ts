@@ -2030,6 +2030,9 @@ export type CompanionEvent = {
   readonly width: number;
   readonly height: number;
   readonly standHeight?: number;
+} | {
+  readonly kind: 'view-open';
+  readonly panel: 'menu';
 };
 export const DOCX_MATERIALIZATION_TEXT_PATTERN = '^[\\u0009\\u000A\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';
 export const DOCX_MATERIALIZATION_AUTHOR_PATTERN = '^[\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';

@@ -384,6 +384,10 @@ if (!window.clowderCompanion) {
   const unsubscribe = client.subscribe(event => {
     if (event.kind === 'media-stopped') void conversation.hostStopped(event.reason);
     if (event.kind === 'view-dismiss') controls.dismiss();
+    // livingBody: a context click on the cat in the Host's body window (body.menu) reaches this window as view-open and
+    // opens the menu exactly as a context click on #pet does; its view.layout is placed beside the body's anchor.
+    // The ball has its own context click, so any other skin ignores it.
+    if (event.kind === 'view-open' && event.panel === 'menu' && motion.bodyless()) void controls.show('menu');
   });
   const statusMonitor = setInterval(() => void conversation.refresh(), 1000), transcriptMonitor = setInterval(() => void readCallTranscript(), 1000);
   const decisionMonitor = setInterval(() => { if (controls.panel !== 'decisions') void decisionPanel.read(); }, 15000), workMonitor = setInterval(() => { if (controls.panel === 'menu') void workView.load(); }, 15000);

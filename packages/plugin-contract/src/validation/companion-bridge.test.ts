@@ -969,6 +969,20 @@ test('livingBody: the Host asks for a flush and announces the body area', () => 
   }
 });
 
+test('livingBody: the Host answers body.menu by telling the panel window to open its menu', () => {
+  assert.equal(validateCompanionEvent({ kind: 'view-open', panel: 'menu' }), true);
+  for (const [invalid, reason] of [
+    [{ kind: 'view-open' }, 'the panel is named'],
+    [{ kind: 'view-open', panel: 'chat' }, 'only the menu: other panels open from it'],
+    [{ kind: 'view-open', panel: 'none' }, 'closing is view-dismiss'],
+    [{ kind: 'view-open', panel: 'menu', pointer: { x: 600, y: 760 } }, 'no position: the Host places the panel beside the body anchor'],
+    [{ kind: 'view-open', panel: 'menu', x: 600, y: 760 }, 'no position fields'],
+    [{ kind: 'view-open', panel: 'menu', windowId: 'body' }, 'no window selector'],
+    [{ kind: 'view-open', panel: 'menu', catId: 'opus' }, 'no cat selector'],
+  ] as const) assert.equal(validateCompanionEvent(invalid), false, reason);
+  assert.equal(validateCompanionCommand({ kind: 'view-open', panel: 'menu' }), false, 'a Host event, never a page command');
+});
+
 test('livingBody: the living skin is a setting value of this line', () => {
   assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'skin', value: 'xianxian-living' }), true);
   assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'skin', value: 'xianxian-living-v2' }), false);

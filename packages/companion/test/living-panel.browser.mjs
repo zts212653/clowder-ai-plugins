@@ -114,3 +114,74 @@ test('choosing 宪宪（活猫） removes the panel\'s own cat, switching back r
     await page.close();
   }
 });
+
+/** The Host's answer to body.menu (a context click on the living cat in the body window). */
+const hostOpensMenu = page => page.evaluate(() => window.__previewEmit({ kind: 'view-open', panel: 'menu' }));
+const menuLayouts = page => page.evaluate(() => window.__requests.filter(command => command.kind === 'view.layout'
+  && command.panel === 'menu').length);
+
+test('a context click on the living cat opens the panel\'s own menu where the Host places it, and another panel gives way', async () => {
+  const { page, errors } = await openPanel();
+  try {
+    await page.click('#pet');
+    await page.click('#menu-settings');
+    await page.click('#settings-look-open');
+    await page.click('#settings-skin-xianxian-living');
+    await page.waitForFunction(() => document.getElementById('pet').dataset.skin === 'xianxian-living');
+    await page.evaluate(() => {
+      // the Host places the menu beside the body's last anchor (placePanelForBody), not where the panel would put it
+      const bridge = window.clowderCompanion;
+      const request = bridge.request.bind(bridge);
+      bridge.request = async command => {
+        const reply = await request(command);
+        return command.kind === 'view.layout' && command.panel === 'menu'
+          ? { ...reply, panel: { ...reply.panel, x: 40, y: 24 } } : reply;
+      };
+      window.__requests = [];
+    });
+    assert.equal(await page.locator('#settings').isVisible(), true, 'settings is still open when the cat is right-clicked');
+
+    await hostOpensMenu(page);
+    await page.waitForFunction(() => !document.getElementById('menu').hidden);
+    assert.equal(await page.locator('#settings').isHidden(), true, 'the open panel gives way to the menu, as for a context click');
+    assert.equal(await menuLayouts(page), 1, 'the menu asks the Host for its layout through the ordinary view.layout path');
+    assert.deepEqual(await page.evaluate(() => {
+      const menu = document.getElementById('menu');
+      return { left: menu.style.left, top: menu.style.top };
+    }), { left: '40px', top: '24px' }, 'the menu stands where the Host placed it, beside the cat');
+
+    await hostOpensMenu(page);
+    await page.waitForTimeout(200);
+    assert.equal(await page.locator('#menu').isVisible(), true, 'a second context click keeps the menu open, it does not toggle');
+
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.getElementById('menu').hidden);
+    await hostOpensMenu(page);
+    await page.waitForFunction(() => !document.getElementById('menu').hidden);
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test('with a ball skin the panel ignores view-open: the ball has its own context click', async () => {
+  const { page, errors } = await openPanel();
+  try {
+    await hostOpensMenu(page);
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('#menu').isHidden(), true);
+    assert.equal(await menuLayouts(page), 0, 'no layout is requested for a menu nobody asked for');
+
+    await page.click('#pet');
+    await page.click('#menu-settings');
+    await page.waitForFunction(() => !document.getElementById('settings').hidden);
+    await page.evaluate(() => { window.__requests = []; });
+    await hostOpensMenu(page);
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('#settings').isVisible(), true, 'an open panel stays open');
+    assert.equal(await menuLayouts(page), 0);
+    assert.deepEqual(errors, []);
+  } finally {
+    await page.close();
+  }
+});

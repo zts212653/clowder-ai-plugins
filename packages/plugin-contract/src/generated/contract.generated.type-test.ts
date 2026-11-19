@@ -119,6 +119,13 @@ const sizedBodyArea: CompanionEvent = { kind: 'body-area', width: 1440, height: 
 
 // @ts-expect-error the Host sends the cat's standing height in pixels, never the ball size setting itself.
 const invalidBodyAreaSize: CompanionEvent = { kind: 'body-area', width: 1440, height: 875, ballSize: 72 };
+const openMenu: CompanionEvent = { kind: 'view-open', panel: 'menu' };
+
+// @ts-expect-error the Host opens only the menu; every other panel opens from it.
+const invalidOpenChat: CompanionEvent = { kind: 'view-open', panel: 'chat' };
+
+// @ts-expect-error the panel is placed beside the body anchor; the event names no position.
+const invalidOpenPointer: CompanionEvent = { kind: 'view-open', panel: 'menu', pointer: { x: 600, y: 760 } };
 
 // @ts-expect-error a body names rects in its own window, never a display or desktop position.
 const invalidBodyHit: CompanionCommand = { kind: 'body.hit', rects: [{ x: 0, y: 0, width: 10, height: 10, displayId: 1 }] };
@@ -335,6 +342,9 @@ void [
   bodyArea,
   sizedBodyArea,
   invalidBodyAreaSize,
+  openMenu,
+  invalidOpenChat,
+  invalidOpenPointer,
   invalidBodyHit,
   invalidSceneDirty,
   invalidSceneError,
