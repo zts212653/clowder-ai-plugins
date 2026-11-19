@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analysisKey, digest } from '../src/config.js';
+import { analysisKey, digest, feedbackKey } from '../src/config.js';
 import { fixture } from './service-fixture.js';
 import type { HydratedJournal } from '../src/types.js';
 import { createHash } from 'node:crypto';
@@ -87,4 +87,53 @@ test('unmatched legacy analysis becomes its own history item and never overwrite
   assert.equal(old.journal!.report.body,'原正文');
   const again=await f.service.dispatch({op:'bootstrap'},f.ctx) as Result;assert.equal(again.items!.length,2);
   assert.deepEqual((await f.host.storage.get(analysisKey(f.ctx.userId)))!.value,legacy);
+});
+
+test('confirmed draft deletion removes only that record and blocks stale editors from restoring it', async () => {
+  const f = fixture();
+  const call = (input: unknown, userId = f.ctx.userId) => f.service.dispatch(input,{...f.ctx,userId}) as Promise<Result>;
+  const keep = await call({op:'save',feedbackId:'keep',draftOnly:true,targetId:'clowder',report:report()});
+  const doomed = await call({op:'save',feedbackId:'doomed',draftOnly:true,targetId:'clowder',report:report()});
+  const request = {op:'delete-draft',feedbackId:'doomed',revision:doomed.revision};
+  await assert.rejects(call(request));
+  await assert.rejects(call({...request,confirmed:true},'another-owner'));
+  await assert.rejects(call({...request,revision:-1,confirmed:true}));
+  assert.equal((await call({op:'bootstrap',resume:true})).journal?.id,'doomed');
+  const closed = await call({...request,confirmed:true});
+  assert.deepEqual(closed.items?.map(item=>item.id),['keep']);
+  assert.equal((await call({op:'bootstrap',resume:true})).journal,undefined);
+  assert.equal((await call({op:'bootstrap',feedbackId:'keep'})).journal?.id,keep.journal?.id);
+  await assert.rejects(call({op:'bootstrap',feedbackId:'doomed'}));
+  await assert.rejects(call({op:'save',feedbackId:'doomed',revision:doomed.revision,draftOnly:true,targetId:'clowder',report:report()}));
+  assert.deepEqual((await call({op:'history'})).items?.map(item=>item.id),['keep']);
+  assert.equal(f.creates(),0);
+});
+
+test('deletion protects published records, reports awaiting delivery and records with an analysis', async () => {
+  const f = fixture();
+  const call = (input: unknown) => f.service.dispatch(input,f.ctx) as Promise<Result>;
+  const delivery = await call({op:'save',feedbackId:'ready',targetId:'clowder',report:report()});
+  await assert.rejects(call({op:'delete-draft',feedbackId:'ready',revision:delivery.revision,confirmed:true}),/草稿/);
+  const digest = delivery.journal!.digest;
+  await call({op:'approve',feedbackId:'ready',digest,confirmed:true});
+  const published = await call({op:'submit',feedbackId:'ready',digest});
+  await assert.rejects(call({op:'delete-draft',feedbackId:'ready',revision:published.revision,confirmed:true}),/草稿/);
+  const analyzed = await call({op:'save',feedbackId:'analyzed',draftOnly:true,targetId:'clowder',report:report()});
+  await f.host.storage.compareAndSet(analysisKey(f.ctx.userId,'analyzed'),null,{state:'prepared'});
+  await assert.rejects(call({op:'delete-draft',feedbackId:'analyzed',revision:analyzed.revision,confirmed:true}),/草稿/);
+  assert.deepEqual((await call({op:'history'})).items?.map(item=>item.status).sort(),['prepared','published']);
+  assert.equal(f.creates(),1);
+});
+
+test('a deleted legacy draft is never restored from the old single-slot record', async () => {
+  const f = fixture();
+  const legacy = await fixture().call({op:'save',draftOnly:true,targetId:'clowder',report:report()});
+  await f.host.storage.compareAndSet(`feedback:${digest(f.ctx.userId)}`,null,legacy.journal);
+  const open = (input: unknown) => f.service.dispatch(input,f.ctx) as Promise<Result>;
+  const id = legacy.journal.id;
+  const first = await open({op:'bootstrap',feedbackId:id});
+  await open({op:'delete-draft',feedbackId:id,revision:first.revision,confirmed:true});
+  assert.deepEqual((await open({op:'history'})).items,[]);
+  assert.equal((await open({op:'bootstrap',resume:true})).journal,undefined);
+  assert.deepEqual((await f.host.storage.get(feedbackKey(f.ctx.userId,id)))?.value,{deleted:true});
 });

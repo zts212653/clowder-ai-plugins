@@ -86,7 +86,7 @@ async function startNew(){
     reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,githubCli:undefined,screenshotSelection:[],screenshotPreview:undefined,feedbackNotice:''});
 }
 async function showHistory(){
-  analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();state.stage='history';
+  analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();state.stage='history';state.draftToDelete=undefined;
   state.items=(await call({op:'history'})).items;historyTimer=setTimeout(refreshHistory,2000);
 }
 async function refreshHistory(){
@@ -509,7 +509,32 @@ function render() {
     if(state.saveErrorCode==='revision_conflict')footer.append(button('另存为新草稿',()=>saveDraft(true)));
   }
   if (state.stage === 'history') {
-    content.append(feedbackHistory(state.items,id=>run(()=>openRecord(id))));
+    if(state.feedbackNotice)content.append(el('p',{role:'status',className:'hint',text:state.feedbackNotice}));
+    content.append(feedbackHistory(state.items,{
+      open:id=>run(()=>openRecord(id)),deleteId:state.draftToDelete?.id,busy:state.busy,
+      requestDelete:({id,deleteRevision})=>{
+        state.draftToDelete={id,revision:deleteRevision};
+        render();app.querySelector('[data-cancel-draft-delete]')?.focus();
+      },
+      cancelDelete:()=>{
+        const {id}=state.draftToDelete;
+        state.draftToDelete=undefined;
+        render();app.querySelector(`[data-feedback-id="${id}"] [data-delete-draft]`)?.focus();
+      },
+      confirmDelete:()=>run(async()=>{
+        const {id,revision}=state.draftToDelete;
+        // Invalidate any history refresh already in flight before adopting the deletion result.
+        analysisEpoch++;clearTimeout(historyTimer);
+        try{
+          const value=await recordCall({op:'delete-draft',revision,confirmed:true},id);
+          state.items=value.items;
+          state.feedbackNotice='草稿已删除';
+        }finally{
+          state.draftToDelete=undefined;
+          historyTimer=setTimeout(refreshHistory,2000);
+        }
+      }),
+    }));
     footer.append(button('刷新记录',showHistory),button('新建反馈',startNew,'primary'));
   } else if (state.stage === 'edit') {
     content.append(...feedbackForm(state,{input,note,button,pictureCards,addFiles,invalidate,run,render}));

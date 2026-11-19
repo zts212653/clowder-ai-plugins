@@ -2,11 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { attachments } from './attachments.js';
 import { AttachmentVault } from './attachment-vault.js';
 import { FeedbackAnalysis } from './analysis.js';
-import { digest, feedbackKey, feedbackTitle, profiles, record, text } from './config.js';
+import { analysisKey, digest, feedbackKey, feedbackTitle, profiles, record, text } from './config.js';
 import { FeedbackRecords } from './records.js';
 import { marker, provider } from './providers.js';
 import { sanitize } from './sanitize.js';
-import type { Host, Journal, OwnerContext, Profile, Provider, Report, StoredAttachment } from './types.js';
+import type { Host, Journal, OwnerContext, Profile, Provider, Report, StoredAttachment, StoredFeedback } from './types.js';
 
 type ProviderFactory = (target: Profile) => Provider;
 export class RevisionConflictError extends Error { readonly code = 'revision_conflict'; }
@@ -42,7 +42,10 @@ export class FeedbackService {
     if (op !== 'save' && op !== 'bootstrap' && !feedbackId) throw new Error('请先选择反馈记录');
     const key = feedbackKey(context.userId, feedbackId ?? randomUUID());
     const current = await this.host.storage.get(key);
-    const journal = current?.value as Journal | undefined;
+    const stored = current?.value as StoredFeedback | undefined;
+    const deleted = Boolean(stored && 'deleted' in stored);
+    const journal = stored && !('deleted' in stored) ? stored : undefined;
+    if (deleted && op !== 'bootstrap') throw new Error('该草稿已删除，请返回反馈记录');
     const vault = new AttachmentVault(this.host.dataPath);
     const present = async (value: Journal, revision: number | undefined, extra = {}) => ({ journal: await vault.hydrate(value), revision, ...extra });
     const write = async (value: Journal) => {
@@ -59,13 +62,27 @@ export class FeedbackService {
         this.host.members?.list() ?? Promise.resolve([]),
         this.host.runtimeInfo?.get(),
       ]);
-      if (feedbackId && !journal) throw new Error('反馈记录不存在或不属于当前用户');
+      if (feedbackId && !journal && !(resumeSelection && deleted)) throw new Error('反馈记录不存在或不属于当前用户');
       const opened = resumeSelection && journal?.state === 'published' ? undefined : journal;
       if (opened && opened.state !== 'published') await remember(opened.id);
       return { targets, journal: opened ? await vault.hydrate(opened) : undefined, revision: opened ? current?.revision : undefined, items:await this.history(context.userId),
         clients: members.status === 'fulfilled' ? members.value.filter(member => member.available).map(member => ({ id: member.catId, label: member.displayName, model: member.defaultModel })) : [],
         projectRoot: runtime.status === 'fulfilled' ? runtime.value?.projectRoot : undefined,
         analysis: opened ? await this.analysis.status(context.userId,true,opened.id) : undefined };
+    }
+    if (op === 'delete-draft') {
+      if (!journal || journal.owner !== context.userId) throw new Error('草稿不存在或不属于当前用户');
+      if (data.confirmed !== true) throw new Error('请确认删除此草稿');
+      if (data.revision !== current?.revision) throw new RevisionConflictError('草稿已有更新，请刷新记录后再删除');
+      if (journal.state !== 'draft' || journal.reviewReady || journal.handoffAt || journal.issue ||
+          await this.host.storage.get(analysisKey(context.userId,journal.id))) {
+        throw new Error('只有尚未进入分析或提交的草稿可以删除');
+      }
+      await context.assertCurrent();
+      // A tombstone discards the draft content while fencing stale autosaves and legacy migration.
+      const result = await this.host.storage.compareAndSet(key,current?.revision ?? null,{deleted:true});
+      if (!result.applied) throw new RevisionConflictError('草稿已有更新，请刷新记录后再删除');
+      return {items:await this.history(context.userId)};
     }
     if (['prepare-analysis', 'analyze', 'analysis-status', 'cancel-analysis'].includes(op)) {
       if (!journal || journal.owner !== context.userId) throw new Error('反馈记录不存在');
@@ -234,14 +251,14 @@ export class FeedbackService {
 
   private async history(userId: string) {
     const journals=await this.records.list(userId);
-    const items=await Promise.all(journals.map(async journal=>{
+    const items=await Promise.all(journals.map(async ({journal,revision})=>{
       const analysis=await this.analysis.status(userId,false,journal.id).catch(()=>({state:'unavailable',threadUrl:undefined,startedAt:undefined}));
       const status=journal.supersededBy ? 'retained' : journal.state==='published' ? 'published'
         : ['writing','unknown','upload_failed'].includes(journal.state) ? journal.state
         : journal.handoffAt ? 'manual' : ['preparing','prepared','starting','running','blocked'].includes(analysis?.state ?? '') ? analysis!.state
         : ['failed','interrupted','cancelled','unavailable'].includes(analysis?.state ?? '') ? analysis!.state
         : analysis?.state==='ready' || journal.reviewReady ? 'ready' : 'draft';
-      return {id:journal.id,title:journal.report.title,kind:journal.report.kind ?? (/^feat:/i.test(journal.report.title)?'feat':'bug'),status,
+      return {id:journal.id,title:journal.report.title,...(status==='draft'&&journal.state==='draft'?{deleteRevision:revision}:{}),kind:journal.report.kind ?? (/^feat:/i.test(journal.report.title)?'feat':'bug'),status,
         updatedAt:Math.max(journal.updatedAt ?? journal.createdAt ?? 0,analysis?.startedAt ?? 0),analyzed:analysis?.state==='ready',issueUrl:journal.issue?.url,threadUrl:analysis?.threadUrl,
         screenshotsPending:journal.state==='published' && (journal.screenshotAttempt || (journal.screenshotCommentUnverified && !journal.screenshotsConfirmed))
           ? 'verify' : undefined};

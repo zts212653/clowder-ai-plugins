@@ -49,6 +49,7 @@ export interface Journal {
   clientId?: string; projectRef?: string;
   createdAt?: number; updatedAt?: number; reviewReady?: boolean; handoffAt?: number; supersededBy?: string;
 }
+export type StoredFeedback = Journal | { deleted: true };
 export type HydratedJournal = Omit<Journal, 'report' | 'screenshotItems'> & { report: Report; screenshotItems?: Attachment[] };
 export interface Provider {
   preflight(signal: AbortSignal, hasPictures?: boolean): Promise<{ principal: string; visibility: string; attachments: boolean; githubCliAttachments?: boolean; githubAuth?: 'cli' | 'token'; githubAttachmentLimit?: 'permission' | 'cli' }>;
