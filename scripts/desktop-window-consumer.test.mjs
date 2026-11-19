@@ -72,7 +72,10 @@ test('packed static desktop window declarations and current SDK work without wor
     run(process.execPath, [join(repo, 'packages/plugin-contract/node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json'], consumer);
     const contract = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/plugin-contract/package.json'), 'utf8'));
     const sdk = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/plugin-sdk/package.json'), 'utf8'));
-    assert.equal(sdk.dependencies['@clowder-ai/plugin-contract'], contract.version);
+    const sourceContract = JSON.parse(await readFile(join(repo, 'packages/plugin-contract/package.json'), 'utf8'));
+    const sourceSdk = JSON.parse(await readFile(join(repo, 'packages/plugin-sdk/package.json'), 'utf8'));
+    assert.equal(contract.version, sourceContract.version);
+    assert.deepEqual(sdk.dependencies, sourceSdk.dependencies);
     const probe = `
       import assert from 'node:assert/strict';
       import { validateManifest } from '@clowder-ai/plugin-contract';
