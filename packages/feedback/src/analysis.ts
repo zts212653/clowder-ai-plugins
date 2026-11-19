@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { collectEvidence } from './collect-evidence.js';
 import { analysisKey, digest, feedbackTitle, record, text } from './config.js';
+import { diagnosticEnvironment } from './diagnostic-environment.js';
 import { instructions, recipeVersion } from './recipe.js';
 import { sanitize } from './sanitize.js';
 import { parseReport } from './report.js';
@@ -118,10 +119,24 @@ export class FeedbackAnalysis {
       const project = thread.projectRef ?? environment.projectRoot;
       await this.update(key, current => ({ ...current, threadId: thread.id, threadUrl: thread.deepLinkUrl, projectRef: project }), pending.id);
       await this.host.storage.compareAndSet(`analysis-thread:${thread.id}`, null, { key, id: pending.id });
-      const roots = data.logs === true ? [{ path: environment.logDirectory, projectRoot: undefined }, { path: join(project, 'logs'), projectRoot: project }] : [];
-      const collected = await Promise.allSettled(roots.map(root => collectEvidence(root.path, Date.now(), root.projectRoot)));
-      const evidence = collected.map((result, index) => `E${index + 3} ${index === 0 ? '当前实例日志' : '所选项目 logs 目录'}\n${result.status === 'fulfilled' ? result.value : '无法读取此来源；覆盖存在缺口。'}`).join('\n\n');
-      const material = sanitize(`E1 环境\nClowder ${environment.version}\n${environment.platform} ${environment.architecture} Node ${environment.nodeVersion}\n\nE2 用户现象\n${title}\n${body}\n\n${evidence || (report.kind==='feat'?'功能建议未采集故障日志。':'此次没有采集日志材料。')}`, [project, environment.projectRoot, environment.logDirectory]);
+      const diagnostics = await diagnosticEnvironment(environment, project);
+      const now = Date.now();
+      const evidence = data.logs === true ? await Promise.all([
+        { name: '当前实例 API 日志', collection: collectEvidence(environment.logDirectory, now) },
+        ...(diagnostics.desktopLogRoot ? [{
+          name: '当前桌面启动日志（main.log / desktop.log）',
+          collection: collectEvidence(diagnostics.desktopLogRoot, now, dirname(diagnostics.desktopLogRoot), ['main.log', 'desktop.log']),
+        }] : []),
+        { name: '所选项目 logs 目录（可选来源）', collection: collectEvidence(join(project, 'logs'), now, project) },
+      ].map(async ({ name, collection }, index) => {
+        const result = await collection.catch((error: NodeJS.ErrnoException) => error.code === 'ENOENT'
+          ? '此来源不存在；覆盖存在缺口。' : '无法读取此来源；覆盖存在缺口。');
+        const excerpt = result.length > 8_000 ? `${result.slice(0, 8_000).replace(/\n[^\n]*$/, '')}\n[本来源摘要已截断]` : result;
+        return `E${index + 3} ${name}\n${excerpt}`;
+      })) : [report.kind === 'feat' ? '功能建议未采集故障日志。' : '此次没有采集日志材料。'];
+      const guide = report.kind === 'feat' ? '' : `随包排查指南（仅供推理）\n${await diagnostics.guide()}\n\n`;
+      const material = sanitize(`E1 环境\n${diagnostics.facts}\n\n${guide}E2 用户现象\n${title}\n${body}\n\n${evidence.join('\n\n')}`,
+        [project, environment.projectRoot, environment.logDirectory, diagnostics.desktopLogRoot ?? '', diagnostics.runtimeRoot ?? '', diagnostics.selectedRoot ?? '']);
       await context.assertCurrent();
       const run = await this.update(key, current => ({ ...current, hash: digest({ material, recipeVersion, threadId: thread.id }), material, state: 'prepared', error: undefined }), pending.id);
       return { material, hash: run.hash, recipeVersion, analysis: await this.status(context.userId,false,feedbackId) };
