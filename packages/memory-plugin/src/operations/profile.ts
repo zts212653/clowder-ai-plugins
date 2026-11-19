@@ -1,6 +1,9 @@
 import { profileDispatchSchema } from '@clowder-ai/plugin-memory-contract/profile';
 import type { ProfileMemoryLifecycleStore, StoredProfileMemoryEntry } from '../profile/ProfileMemoryLifecycleStore.js';
+import { readProfileUsage } from '../profile/ProfileUsageReader.js';
 import { renderUserCapsuleSection } from '../profile/profile-contract.js';
+import { readProfileProvenance } from '../profile/profile-provenance.js';
+import type { openMemoryStorage } from '../open-memory-storage.js';
 
 function projectEntry({ path: _path, profileDir: _profileDir, targetPath: _targetPath, ...entry }: StoredProfileMemoryEntry) {
   return entry;
@@ -8,7 +11,7 @@ function projectEntry({ path: _path, profileDir: _profileDir, targetPath: _targe
 
 export async function dispatchProfile(
   store: ProfileMemoryLifecycleStore,
-  runWrite: <T>(work: () => Promise<T>) => Promise<T>,
+  storage: Pick<Awaited<ReturnType<typeof openMemoryStorage>>, 'db' | 'runWrite'>,
   source: {
     caller(): Promise<{ userId: string; viewer: { type: 'cat' | 'user' } }>;
     assertCurrent(): Promise<void>;
@@ -25,10 +28,19 @@ export async function dispatchProfile(
       const entry = store.get(ownerUserId, request.input.memoryId);
       return entry ? projectEntry(entry) : null;
     }
+    case 'profile.provenance':
+    case 'profile.usage': {
+      const entry = store.get(ownerUserId, request.input.memoryId);
+      if (!entry) return { outcome: 'not_available' as const };
+      if (entry.revision !== request.input.revision) return { outcome: 'stale_revision' as const };
+      return request.operation === 'profile.provenance'
+        ? { outcome: 'found' as const, coordinates: readProfileProvenance(entry) }
+        : { outcome: 'found' as const, usage: readProfileUsage(storage.db, ownerUserId, entry) };
+    }
     case 'profile.action_evidence':
       return store.getOwnerActionEvidence(ownerUserId, request.input.memoryId, request.input.requestId);
     case 'profile.mutate':
-      return runWrite(async () => {
+      return storage.runWrite(async () => {
         const { memoryId, command } = request.input;
         if (memoryId === 'capsule' && command.action === 'replace_content') {
           try {

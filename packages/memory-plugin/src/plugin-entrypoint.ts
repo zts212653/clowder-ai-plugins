@@ -93,7 +93,7 @@ async function activate(ports: MemoryHostPorts) {
         if (typeof operation === 'string') {
           if (operation.startsWith('matter.')) return matter(input);
           if (operation.startsWith('event.')) return dispatchEvent(storage.events, memorySource, input);
-          if (operation.startsWith('profile.')) return dispatchProfile(profile, storage.runWrite, memorySource, input);
+          if (operation.startsWith('profile.')) return dispatchProfile(profile, storage, memorySource, input);
         }
         return dispatchMemory(kv, input);
       },
