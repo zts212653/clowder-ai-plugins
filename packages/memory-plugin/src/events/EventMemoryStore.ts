@@ -18,9 +18,8 @@ import type {
   EventConfidence,
   EventMemoryRecord,
   EventTrigger,
-  StoredEventMemory,
-} from './event-memory-record.js';
-import { generateEventId, isEventMemoryRecord, isValidOwnerUserId } from './event-memory-record.js';
+  StoredEventMemoryLifecycle,
+} from '@clowder-ai/plugin-memory-contract/event';
 import type Database from 'better-sqlite3';
 import { installEventMemoryForgetFence } from './event-memory-forget-fence.js';
 
@@ -53,10 +52,7 @@ export type MarkEventResult =
 
 export type EventMemoryLifecycleStatus = 'active' | 'retired';
 
-export interface StoredEventMemoryLifecycle extends StoredEventMemory {
-  status: EventMemoryLifecycleStatus;
-  updatedAt: number;
-}
+export type { StoredEventMemoryLifecycle } from '@clowder-ai/plugin-memory-contract/event';
 
 export type EventMemoryMutationResult =
   | { outcome: 'applied'; event: StoredEventMemoryLifecycle }
@@ -270,18 +266,13 @@ export class EventMemoryStore implements IEventMemoryStore {
   }
 
   markEvent(record: EventMemoryRecord, ownerUserId: string): MarkEventResult {
-    // 砚砚 (non-blocking): validate untrusted payloads (backfill / tool writers)
-    // with the shared guard before they hit SQLite.
-    if (!isEventMemoryRecord(record)) {
-      throw new Error('EventMemoryStore.markEvent: record failed isEventMemoryRecord guard');
-    }
     // Owner scope is REQUIRED (cloud-review P1 / 砚砚): no unknown/default fallback — a
     // writer that can't resolve its authenticated owner must fail, not write unscoped.
-    if (!isValidOwnerUserId(ownerUserId)) {
+    if (ownerUserId.length === 0) {
       throw new Error('EventMemoryStore.markEvent: ownerUserId is required (no fallback)');
     }
     const db = this.ensureOpen();
-    const eventId = generateEventId();
+    const eventId = `evt_${Date.now().toString(36)}${Math.random().toString(36).substring(2, 10)}`;
     // INSERT OR IGNORE against UNIQUE(ownerUserId, threadId, messageId, type): atomically
     // idempotent, so concurrent backfill / live writes on the same coordinate can't
     // double-write.

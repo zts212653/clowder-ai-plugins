@@ -13,6 +13,10 @@
     "./matter": {
       "types": "./dist/matter.d.ts",
       "import": "./dist/matter.js"
+    },
+    "./event": {
+      "types": "./dist/event.d.ts",
+      "import": "./dist/event.js"
     }
   },
   "main": "./dist/index.js",
