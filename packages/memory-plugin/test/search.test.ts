@@ -109,7 +109,7 @@ test('a semantic-only request degrades honestly instead of pretending it ranked 
     const result = await search(actions, { query: 'Chrysanthemum migration', options: { mode: 'semantic' } });
     assert.equal(result.degraded, true);
     assert.equal(result.effectiveMode, 'lexical');
-    assert.equal(result.degradeReason, 'raw_lexical_only');
+    assert.equal(result.degradeReason, 'passage_embedding_unavailable');
     assert.ok(result.hits.length >= 1, 'the lexical fallback still answers');
   });
 });

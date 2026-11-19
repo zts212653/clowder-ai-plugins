@@ -50,9 +50,10 @@ export interface MemoryHostPorts {
  * The evidence database the Host resolved for this deployment.
  *
  * Only the coordinate travels: the plugin runs in a worker thread and cannot be
- * handed a connection. The plugin opens its own handle on this exact path and
- * never derives one — `dataPath`, the deployment default, or any other root is
- * not a substitute, because that path may name a different file entirely.
+ * handed a connection. The activation opens exactly one handle on this path
+ * (`openMemoryStorage`) and every evidence consumer shares it; the plugin never
+ * derives a path of its own — `dataPath`, the deployment default, or any other
+ * root is not a substitute, because that path may name a different file entirely.
  *
  * `storageFormat` stays the literal `1` so a Host that resolves a different
  * format cannot be admitted by widening the type here.

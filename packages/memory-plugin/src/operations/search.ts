@@ -68,9 +68,11 @@ export function searchFilters(options: SearchInput['options']): SearchFilters {
  * Evidence retrieval over the activation's shared evidence connection.
  *
  * Retrieval here is lexical only. Semantic and hybrid ranking need the Host's
- * embedding pipeline, which this plugin does not own yet; asking for either
- * degrades to lexical and says so, because a caller that believes it received
- * semantic ranking reads the result differently.
+ * embedding pipeline (query vectors) and its `sqlite-vec` index, neither of
+ * which this plugin is handed yet; asking for either degrades to lexical and
+ * says so with the same reason the Host reports for the same condition, because
+ * a caller that believes it received semantic ranking reads the result
+ * differently.
  *
  * The connection is handed in, never opened here: one activation owns one
  * connection and one write queue, so this reader must not become a second
@@ -92,7 +94,7 @@ export class SearchOperations {
       query: input.query,
       hits: rows.map(toHit),
       degraded,
-      ...(degraded ? { degradeReason: 'raw_lexical_only', effectiveMode: 'lexical' as const } : {}),
+      ...(degraded ? { degradeReason: 'passage_embedding_unavailable', effectiveMode: 'lexical' as const } : {}),
     };
   }
 
