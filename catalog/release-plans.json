@@ -309,7 +309,7 @@
     {
       "pluginId": "official.companion",
       "version": "0.1.0-alpha.41",
-      "integrity": "sha512-+uAVkER19bgE6R+9a4QzezGoic3rdNIj0Oz8ieYp54N1qEIagjjYIDhf+ss6uYP9t8y12ZBSwuKtCQGTo9b+WQ==",
+      "integrity": "sha512-yOJJy8lotrZr4HZioxJSMHGo4oNwrhhH/hhyPR8b/nVuigRf3BTZJZCOqNhl5lYjJEGcaIgNSSZhChWwzaNIxw==",
       "disposition": "defer",
       "owner": "mindfn",
       "reviewBy": "2026-11-30T08:00:00Z",
@@ -320,7 +320,7 @@
     {
       "pluginId": "official.companion.personal-chrome",
       "version": "0.1.0-alpha.11",
-      "integrity": "sha512-tLvdV6ppYp5n3k3CauWizNfMCFQVXBBn9QCB70ewQjIfwNwPzYGzhGhNkbpkR42lZ9/Apsnlx6UY76rzD08oxg==",
+      "integrity": "sha512-baikQc5Yigho1S3QRUZl2slRp7cVBbKAV0goVlNLKOmGufLtRZlfhJdzorb1nwMVjhe0baL68hObxKW9xSQj0A==",
       "disposition": "defer",
       "owner": "mindfn",
       "reviewBy": "2026-11-30T08:00:00Z",
@@ -342,7 +342,7 @@
     {
       "pluginId": "official.collective-connector",
       "version": "0.1.0-alpha.27",
-      "integrity": "sha512-DDYuoi2hie2aKIZqwtuoblrxiT6PJz3v0Kc4EgABehYAhETMx/1T2IUN7KxugnqrSSKK9dw2AsfBC5KMmKAJqQ==",
+      "integrity": "sha512-yv9nfbQ3ZTfo0+aBOgVQd52sjcItpnBn6foo2E8D8NSNUIFs9MbH9pqTwQ0vRKzoOBBdD74TVpzE//wb6Uk0mQ==",
       "disposition": "defer",
       "owner": "mindfn",
       "reviewBy": "2026-11-30T08:00:00Z",
@@ -353,7 +353,7 @@
     {
       "pluginId": "official.github-operations",
       "version": "0.1.0-alpha.47",
-      "integrity": "sha512-l8Y0N0mxOOr6kNPFuUozpSnC3z5g7YNRPBNKL9MBuc74ZXTyzIrAv/0FYFCHbaFeW0opd4RZnbKvDePSfRLryA==",
+      "integrity": "sha512-/gWnzIYL694RadzdSsP9GqVkrEVYmMa+Kyw8cMUavTUoCi080yHiv2wDfZwsuOM6S0FWGGXq7xMUJ/T+kqQI/w==",
       "disposition": "defer",
       "owner": "mindfn",
       "reviewBy": "2026-11-30T08:00:00Z",
