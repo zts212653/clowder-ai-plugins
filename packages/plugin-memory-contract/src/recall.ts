@@ -113,3 +113,41 @@ export const memoryCueInvocationResult = z.array(z.object({
   lastEventAt: count,
 }).strict());
 export type MemoryCueInvocationEntry = z.infer<typeof memoryCueInvocationResult>[number];
+
+const recallRecord = z.object({
+  recallId: z.string().min(1),
+  catId: z.string().min(1),
+  invocationId: z.string().min(1),
+  threadId: z.string().min(1),
+  toolName: z.enum(['search_evidence', 'graph_resolve', 'list_recent', 'session_bootstrap', 'cold_context']),
+  source: z.enum(['pull', 'push']),
+  pushSurface: z.enum(['session_bootstrap', 'cold_context']).optional(),
+  presentationKind: z.enum(['pointer', 'body']).optional(),
+  presented: z.boolean(),
+  inspected: z.boolean(),
+  outcome: z.enum(['used', 'ignored']),
+  query: z.string(),
+  mode: z.string().optional(),
+  scope: z.string().optional(),
+  candidates: z.array(z.object({ anchor: z.string(), rank: count }).passthrough()),
+  resultCount: count.optional(),
+  resultStatus: z.string().optional(),
+  consumed: z.array(z.object({ anchor: z.string(), rank: count, method: z.string() }).passthrough()),
+  reformulated: z.boolean(),
+  fellBackToGrep: z.boolean(),
+  abandoned: z.boolean(),
+  nextGraphResolveAfterRead: z.boolean(),
+  tokenCost: z.number().finite().nonnegative(),
+  timestamp: count,
+  shadowRankingJson: z.string().nullable().optional(),
+  resultSetId: z.string().optional(),
+  attributionClarity: z.enum(['clean', 'ambiguous']).optional(),
+  sourceEventId: z.string().optional(),
+  expansionFunnel: z.unknown().optional(),
+}).strict();
+
+export const memoryRecallPersistRequest = z.object({
+  operation: z.literal('recall.persist'),
+  input: z.object({ events: z.array(recallRecord).min(1) }).strict(),
+}).strict();
+export type MemoryRecallPersistRequest = z.infer<typeof memoryRecallPersistRequest>;

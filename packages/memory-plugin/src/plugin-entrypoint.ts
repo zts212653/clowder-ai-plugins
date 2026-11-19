@@ -36,6 +36,7 @@ import {
   dispatchRecallStats,
   dispatchRecallTimeline,
 } from './operations/recall-read.js';
+import { dispatchRecallPersist } from './operations/recall-write.js';
 import { SearchOperations } from './operations/search.js';
 import { createTasteDispatch } from './operations/taste.js';
 import { FileProfileRepository } from './profile/FileProfileRepository.js';
@@ -58,6 +59,7 @@ function memoryDescriptor(tasteReady: boolean): MemoryDescriptor {
       'recall.timeline',
       'recall.event',
       'recall.candidate',
+      'recall.persist',
       'cue.invocation',
       ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
@@ -127,6 +129,7 @@ async function activate(ports: MemoryHostPorts) {
           if (operation === 'recall.timeline') return dispatchRecallTimeline(storage.db, memorySource, input);
           if (operation === 'recall.event') return dispatchRecallEvent(storage.db, input);
           if (operation === 'recall.candidate') return dispatchRecallCandidate(storage.db, input);
+          if (operation === 'recall.persist') return dispatchRecallPersist(storage, memorySource, input);
           if (operation === 'cue.invocation') return dispatchCueInvocation(storage.db, memorySource, input);
           if (operation.startsWith('index.project.')) {
             return dispatchProjectIndex(storage, projectIndexClaims, () => memorySource.assertCurrent(), input);

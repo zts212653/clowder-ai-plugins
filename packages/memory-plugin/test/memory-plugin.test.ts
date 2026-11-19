@@ -190,6 +190,7 @@ test('memory.describe carries no business parameters and reports exactly the v1 
       'recall.timeline',
       'recall.event',
       'recall.candidate',
+      'recall.persist',
       'cue.invocation',
       ...Object.keys(memoryProjectIndexResponses),
       ...Object.keys(matterOutputSchemas),
@@ -340,6 +341,17 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
     ALTER TABLE recall_events ADD COLUMN source_event_id TEXT;
     ALTER TABLE recall_events ADD COLUMN result_count INTEGER;
     ALTER TABLE recall_events ADD COLUMN result_status TEXT;
+    ALTER TABLE recall_events ADD COLUMN reformulated INTEGER;
+    ALTER TABLE recall_events ADD COLUMN fell_back_to_grep INTEGER;
+    ALTER TABLE recall_events ADD COLUMN abandoned INTEGER;
+    ALTER TABLE recall_events ADD COLUMN next_graph_resolve_after_read INTEGER;
+    ALTER TABLE recall_events ADD COLUMN token_cost INTEGER;
+    ALTER TABLE recall_events ADD COLUMN shadow_ranking_json TEXT;
+    ALTER TABLE recall_events ADD COLUMN result_set_id TEXT;
+    ALTER TABLE recall_events ADD COLUMN attribution_clarity TEXT;
+    ALTER TABLE recall_events ADD COLUMN presented INTEGER;
+    ALTER TABLE recall_events ADD COLUMN expansion_funnel_json TEXT;
+    CREATE UNIQUE INDEX recog_source_event ON recall_events(source_event_id);
     INSERT INTO evidence_docs (anchor, title, kind, collection_id, world_id) VALUES
       ('F042', 'Public feature', 'feature', NULL, NULL),
       ('secret-collection', 'Private collection title', 'feature', 'private:owner', NULL),
@@ -398,6 +410,26 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
   }]);
   assert.deepEqual(await dispatch({ ...cue, input: { ...cue.input, invocationId: 'c2' } }), []);
   assert.deepEqual(await dispatch({ ...cue, input: { ...cue.input, threadId: 'foreign' } }), []);
+  const persist = { operation: 'recall.persist', input: { events: [{
+    recallId: 'new-recall', sourceEventId: 'stable-r1', threadId: 'thread-1', catId: 'codex', invocationId: 'test',
+    toolName: 'search_evidence', query: 'indexed witness', source: 'pull', presented: true, inspected: true,
+    outcome: 'used', resultCount: 1, resultStatus: 'counted',
+    candidates: [{ anchor: 'F042', rank: 0, targetRef: { kind: 'doc', sourcePath: 'docs/F042.md' } }],
+    consumed: [{ anchor: 'F042', rank: 0, method: 'Read' }],
+    reformulated: false, fellBackToGrep: false, abandoned: false, nextGraphResolveAfterRead: false,
+    tokenCost: 0, timestamp: 201,
+  }] } };
+  assert.equal(await dispatch(persist), null);
+  const [firstWrite] = persist.input.events;
+  assert.equal(await dispatch({ ...persist, input: { events: [{ ...firstWrite, recallId: 'retry', query: 'must not replace' }] } }), null);
+  const persisted = await dispatch({ operation: 'recall.event', input: { recallId: 'new-recall', threadId: 'thread-1' } }) as {
+    query: string; result_status: string; consumed_json: string;
+  };
+  assert.equal(persisted.query, 'indexed witness');
+  assert.equal(persisted.result_status, 'counted');
+  assert.deepEqual(JSON.parse(persisted.consumed_json), firstWrite.consumed);
+  assert.equal(await dispatch({ operation: 'recall.event', input: { recallId: 'retry', threadId: 'thread-1' } }), null);
+  await assert.rejects(async () => dispatch({ ...persist, input: { events: [{ ...firstWrite, threadId: 'foreign' }] } }));
 });
 
 test('a Host without the authorized memory port fails admission instead of degrading to an empty store', async () => {
