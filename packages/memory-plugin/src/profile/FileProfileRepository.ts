@@ -23,7 +23,7 @@ export interface ProfileScope {
 
 export interface FileProfileRepositoryOptions {
   dataDir: string;
-  relationshipKeyForCat: (catId: string) => string | undefined;
+  relationshipKeyForCat?: (catId: string) => string | undefined;
 }
 
 export interface ProfileFileSnapshot {
@@ -50,7 +50,7 @@ export function isProfileMemoryTombstoneContent(content: string): boolean {
  */
 export class FileProfileRepository {
   readonly dataDir: string;
-  private readonly relationshipKeyForCat: (catId: string) => string | undefined;
+  private readonly relationshipKeyForCat?: (catId: string) => string | undefined;
 
   constructor(options: FileProfileRepositoryOptions) {
     this.dataDir = resolve(options.dataDir);
@@ -83,7 +83,7 @@ export class FileProfileRepository {
   scope(userId: string, catId: string): ProfileScope {
     profileUserRelativePath(userId);
     assertProfilePathSegment('catId', catId);
-    const relationshipKey = this.relationshipKeyForCat(catId);
+    const relationshipKey = this.relationshipKeyForCat?.(catId);
     if (!relationshipKey) {
       throw new Error(`No relationship key configured for catId "${catId}"; refusing catId fallback`);
     }
@@ -100,7 +100,7 @@ export class FileProfileRepository {
     profileUserRelativePath(userId);
     assertProfilePathSegment('catId', catId);
     const relationshipKey = relationshipKeyFromPrimerRelativePath(targetPath);
-    const currentRelationshipKey = this.relationshipKeyForCat(catId);
+    const currentRelationshipKey = this.relationshipKeyForCat?.(catId);
     if (!currentRelationshipKey) {
       throw new Error(`No relationship key configured for catId "${catId}"; refusing pinned primer approval`);
     }

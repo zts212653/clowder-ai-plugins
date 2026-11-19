@@ -1,4 +1,6 @@
 import type { MemoryEntryDto } from '@clowder-ai/plugin-memory-contract';
+import type { MatterSourceReaders } from './matters/matter-source.js';
+import type { MatterCallAuthority } from './operations/matter.js';
 
 /**
  * Host-authorized thread KV surface.
@@ -32,19 +34,16 @@ export interface MemoryThreadKvPort {
   delete(threadRef: string, key: string): Promise<boolean>;
 }
 
-/**
- * The Host-provisioned memory ports. Supplied on the module host shape; a Host
- * that does not supply them fails admission rather than silently serving an
- * empty memory library.
- *
- * The Host also offers `memoryDatabase` (the resolved evidence-database
- * coordinate). It is deliberately not required here: no operation in this batch
- * opens that database, and demanding an unused port would fail admission on a
- * Host for a capability the plugin never exercises. The evidence-retrieval batch
- * adds it together with its first real consumer.
- */
+/** Existing data coordinates and invocation-bound grants supplied to the official worker. */
 export interface MemoryHostPorts {
   readonly memoryThreadKv: MemoryThreadKvPort;
+  readonly memoryDatabase: { readonly canonicalPath: string; readonly storageFormat: 1 };
+  readonly memoryData: { readonly dataDir: string; readonly eventDbPath: string };
+  readonly memorySource: MatterSourceReaders & {
+    caller(): Promise<MatterCallAuthority>;
+    assertCurrent(): Promise<void>;
+    publishMatterChange(): Promise<void>;
+  };
 }
 
 /** Parse a stored raw field; unusable records are skipped exactly as the legacy store did. */

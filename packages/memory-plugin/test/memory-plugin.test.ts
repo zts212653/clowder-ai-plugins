@@ -1,16 +1,41 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, rmdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import test from 'node:test';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test, { after, before } from 'node:test';
+import { fileURLToPath } from 'node:url';
 
+import Database from 'better-sqlite3';
 import { parse } from 'yaml';
 import { validateManifest } from '@clowder-ai/plugin-contract';
 import type { ModulePluginHostShape } from '@clowder-ai/plugin-sdk';
 import { MEMORY_REQUIRED_OPERATIONS } from '@clowder-ai/plugin-memory-contract';
+import { eventOutputSchemas } from '@clowder-ai/plugin-memory-contract/event';
+import { matterOutputSchemas } from '@clowder-ai/plugin-memory-contract/matter';
+import { profileOutputSchemas } from '@clowder-ai/plugin-memory-contract/profile';
 
-import { createMemoryPluginModule } from '../src/plugin-entrypoint.js';
+import { createMemoryPluginModule } from '../dist/plugin-entrypoint.js';
 import type { MemoryThreadKvPort } from '../src/host-port.js';
 
 const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
+let dataDir: string;
+let evidencePath: string;
+
+before(() => {
+  dataDir = mkdtempSync(join(tmpdir(), 'clowder-memory-module-'));
+  evidencePath = join(dataDir, 'evidence.sqlite');
+  const binding = `${process.platform}-${process.arch}-abi${process.versions.modules}.node`;
+  const nativeBinding = fileURLToPath(new URL(`../dist/native/${binding}`, import.meta.url));
+  const db = new Database(evidencePath, { nativeBinding });
+  db.exec('CREATE TABLE schema_version (version INTEGER NOT NULL); INSERT INTO schema_version VALUES (84);');
+  db.close();
+});
+
+after(() => {
+  rmSync(evidencePath, { force: true });
+  rmdirSync(dataDir);
+});
 
 /** In-memory Host port standing in for the authorized Redis hash surface. */
 function fakeKv() {
@@ -105,6 +130,16 @@ function host(memoryThreadKv?: unknown): ModulePluginHostShape {
     external: { endpoint: 'http://127.0.0.1/unused', token: 'unused' },
     dataPath: '/tmp/memory-plugin-test-data',
     log: () => undefined,
+    memoryDatabase: { canonicalPath: evidencePath, storageFormat: 1 },
+    memoryData: { dataDir, eventDbPath: ':memory:' },
+    memorySource: {
+      caller: async () => ({ userId: 'fixture-owner', viewer: { type: 'user' }, threadId: 'thread-1', invocationId: 'test' }),
+      assertCurrent: async () => undefined,
+      publishMatterChange: async () => undefined,
+      canReadThread: async () => true,
+      readMessage: async () => null,
+      currentTrigger: async () => ({ status: 'ordinary' }),
+    },
     ...(memoryThreadKv === undefined ? {} : { memoryThreadKv }),
   } as ModulePluginHostShape;
 }
@@ -138,7 +173,12 @@ test('memory.describe carries no business parameters and reports exactly the v1 
   };
   assert.deepEqual(descriptor, {
     protocolMajor: 1,
-    operations: [...MEMORY_REQUIRED_OPERATIONS],
+    operations: [
+      ...MEMORY_REQUIRED_OPERATIONS,
+      ...Object.keys(matterOutputSchemas),
+      ...Object.keys(eventOutputSchemas),
+      ...Object.keys(profileOutputSchemas),
+    ],
     storageFormat: 1,
   });
 });
@@ -150,6 +190,26 @@ test('a Host without the authorized memory port fails admission instead of degra
   await assert.rejects(
     async () => start(createMemoryPluginModule(), { get: 'nope', list: 'nope', delete: 'nope' }),
     /memoryThreadKv/i,
+  );
+});
+
+test('the built worker writes and reads Event state through its authorized source scope', async (t) => {
+  const active = await start();
+  t.after(() => active.stop({ reason: 'test' }));
+  const dispatch = active.actions['memory.dispatch']!;
+  const saved = eventOutputSchemas['event.mark'].parse(await dispatch({
+    operation: 'event.mark',
+    input: {
+      type: 'test_event', trigger: 'lesson_settle', cat: 'codex', threadId: 'thread-1', messageId: 'message-1',
+      timestamp: 1700000000000, summary: 'Event through the built worker',
+      cognitiveTransition: null, relatedHarness: null, confidence: 'high',
+    },
+  }));
+  assert.equal(saved.inserted, true);
+  assert.equal(saved.event?.ownerUserId, 'fixture-owner');
+  assert.deepEqual(
+    await dispatch({ operation: 'event.get', input: { eventId: saved.event?.eventId } }),
+    saved.event,
   );
 });
 

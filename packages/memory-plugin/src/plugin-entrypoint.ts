@@ -1,20 +1,29 @@
+import { isAbsolute } from 'node:path';
 import {
   MEMORY_PROTOCOL_MAJOR,
   MEMORY_REQUIRED_OPERATIONS,
   MEMORY_STORAGE_FORMAT,
   type MemoryDescriptor,
 } from '@clowder-ai/plugin-memory-contract';
+import { eventOutputSchemas } from '@clowder-ai/plugin-memory-contract/event';
+import { matterOutputSchemas } from '@clowder-ai/plugin-memory-contract/matter';
+import { profileOutputSchemas } from '@clowder-ai/plugin-memory-contract/profile';
 import {
   definePlugin,
   definePluginModule,
-  type FeatureContext,
   type ModulePluginHostShape,
   type PluginModuleEntrypoint,
 } from '@clowder-ai/plugin-sdk';
 
-import type { MemoryHostPorts, MemoryThreadKvPort } from './host-port.js';
+import type { MemoryHostPorts } from './host-port.js';
+import { openMemoryStorage } from './open-memory-storage.js';
 import { dispatchMemory } from './operations/dispatch.js';
+import { dispatchEvent } from './operations/event.js';
 import { ThreadKvOperations } from './operations/kv.js';
+import { createMatterDispatch } from './operations/matter.js';
+import { dispatchProfile } from './operations/profile.js';
+import { FileProfileRepository } from './profile/FileProfileRepository.js';
+import { ProfileMemoryLifecycleStore } from './profile/ProfileMemoryLifecycleStore.js';
 
 /** The internal admission call made between loading actions and declaring healthy. */
 export const MEMORY_DESCRIBE_METHOD = 'memory.describe';
@@ -25,47 +34,69 @@ export const MEMORY_DISPATCH_METHOD = 'memory.dispatch';
 function memoryDescriptor(): MemoryDescriptor {
   return {
     protocolMajor: MEMORY_PROTOCOL_MAJOR,
-    operations: [...MEMORY_REQUIRED_OPERATIONS],
+    operations: [
+      ...MEMORY_REQUIRED_OPERATIONS,
+      ...Object.keys(matterOutputSchemas),
+      ...Object.keys(eventOutputSchemas),
+      ...Object.keys(profileOutputSchemas),
+    ],
     storageFormat: MEMORY_STORAGE_FORMAT,
   };
 }
 
-/**
- * The Host field this plugin reads, declared here because the published SDK type
- * predates it. Reading one named field is the boundary check; everything below
- * receives an already-typed port.
- */
-type HostWithMemoryThreadKv = ModulePluginHostShape & { readonly memoryThreadKv?: unknown };
-
-/**
- * Accept the Host ports once, at the boundary.
- *
- * A Host that does not supply them is not compatible, and saying so is the only
- * truthful answer: degrading to an empty store would look healthy on both sides
- * while hiding every existing record.
- */
 function requireMemoryPorts(host: ModulePluginHostShape): MemoryHostPorts {
-  const memoryThreadKv = (host as HostWithMemoryThreadKv).memoryThreadKv;
-  if (memoryThreadKv === null || typeof memoryThreadKv !== 'object') {
-    throw new TypeError('memory plugin requires the authorized Host memoryThreadKv port');
-  }
-  const shaped = memoryThreadKv as Record<string, unknown>;
-  for (const method of ['get', 'list', 'compareAndSet', 'delete'] as const) {
-    if (typeof shaped[method] !== 'function') {
-      throw new TypeError(`memory plugin memoryThreadKv port must supply ${method}`);
+  const ports = host as ModulePluginHostShape & {
+    memoryDatabase?: Partial<MemoryHostPorts['memoryDatabase']>;
+    memoryData?: Partial<MemoryHostPorts['memoryData']>;
+    memoryThreadKv?: Partial<MemoryHostPorts['memoryThreadKv']>;
+    memorySource?: Partial<MemoryHostPorts['memorySource']>;
+  };
+  for (const [name, methods] of [
+    ['memoryThreadKv', ['get', 'list', 'compareAndSet', 'delete']],
+    ['memorySource', ['caller', 'assertCurrent', 'publishMatterChange', 'canReadThread', 'readMessage', 'currentTrigger']],
+  ] as const) {
+    const port = ports[name] as Record<string, unknown> | undefined;
+    if (!port || methods.some((method) => typeof port[method] !== 'function')) {
+      throw new TypeError(`memory plugin requires the authorized Host ${name} port`);
     }
   }
-  return { memoryThreadKv: memoryThreadKv as MemoryThreadKvPort };
+  const { memoryDatabase, memoryData } = ports;
+  if (memoryDatabase?.storageFormat !== MEMORY_STORAGE_FORMAT || !isAbsolute(memoryDatabase.canonicalPath ?? '')) {
+    throw new TypeError('memory plugin requires the canonical Host evidence DB and storage format');
+  }
+  if (
+    !isAbsolute(memoryData?.dataDir ?? '') ||
+    (memoryData?.eventDbPath !== ':memory:' && !isAbsolute(memoryData?.eventDbPath ?? ''))
+  ) {
+    throw new TypeError('memory plugin requires the canonical Host Profile and Event data locations');
+  }
+  return ports as ModulePluginHostShape & MemoryHostPorts;
 }
 
-function activate(context: FeatureContext, ports: MemoryHostPorts) {
+async function activate(ports: MemoryHostPorts) {
+  const storage = await openMemoryStorage(ports);
+  const { memorySource, memoryData } = ports;
   const kv = new ThreadKvOperations(ports.memoryThreadKv);
+  const matter = createMatterDispatch(storage, memorySource);
+  const profile = new ProfileMemoryLifecycleStore({
+    db: storage.db,
+    repository: new FileProfileRepository({ dataDir: memoryData.dataDir }),
+  });
   return {
+    dispose: () => storage.close(),
     actions: {
       // Admission probe. Business-parameter free: a Host must be able to ask
       // "what do you speak?" before it trusts any business call.
       [MEMORY_DESCRIBE_METHOD]: () => memoryDescriptor(),
-      [MEMORY_DISPATCH_METHOD]: (input: unknown) => dispatchMemory(kv, input),
+      [MEMORY_DISPATCH_METHOD]: (input: unknown) => {
+        const operation = (input as { operation?: unknown } | null)?.operation;
+        if (typeof operation === 'string') {
+          if (operation.startsWith('matter.')) return matter(input);
+          if (operation.startsWith('event.')) return dispatchEvent(storage.events, memorySource, input);
+          if (operation.startsWith('profile.')) return dispatchProfile(profile, storage.runWrite, memorySource, input);
+        }
+        return dispatchMemory(kv, input);
+      },
     },
   };
 }
@@ -80,7 +111,7 @@ export function createMemoryPluginModule(): PluginModuleEntrypoint {
         definePlugin({
           manifest,
           activate: {
-            memory: (context: FeatureContext) => activate(context, requireBoundPorts(ports)),
+            memory: () => activate(requireBoundPorts(ports)),
           },
         }),
       ).create(manifest);

@@ -1,5 +1,6 @@
-import { readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { copyFile, mkdir, readdir } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
@@ -31,7 +32,23 @@ await build({
   format: 'esm',
   platform: 'node',
   target: 'es2022',
-  external: ['@clowder-ai/plugin-sdk'],
+  external: ['@clowder-ai/plugin-sdk', 'better-sqlite3'],
   allowOverwrite: true,
   logLevel: 'warning',
 });
+
+// The Host installs dependencies with lifecycle scripts disabled. Stage the
+// tested native binary inside our archive so activation never builds or fetches it.
+const require = createRequire(import.meta.url);
+const sqlitePackage = dirname(require.resolve('better-sqlite3/package.json'));
+const nativeDir = join(dist, 'native');
+const localName = `${process.platform}-${process.arch}-abi${process.versions.modules}.node`;
+await mkdir(nativeDir, { recursive: true });
+const verifiedBindings = process.env.CLOWDER_MEMORY_NATIVE_DIR;
+if (verifiedBindings) {
+  const names = (await readdir(verifiedBindings)).filter((name) => /^[a-z0-9]+-[a-z0-9]+-abi[0-9]+\.node$/u.test(name));
+  if (!names.includes(localName)) throw new Error(`Missing locally testable SQLite binary ${localName}`);
+  await Promise.all(names.map((name) => copyFile(join(verifiedBindings, name), join(nativeDir, name))));
+} else {
+  await copyFile(join(sqlitePackage, 'build', 'Release', 'better_sqlite3.node'), join(nativeDir, localName));
+}
