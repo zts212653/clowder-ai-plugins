@@ -307,6 +307,72 @@
       "condition": "Keep the same home instance and original subscriptions under existing upgrade authority. Before public discovery, verify supported public Host compatibility and canonical registry bytes."
     },
     {
+      "pluginId": "official.companion",
+      "version": "0.1.0-alpha.41",
+      "integrity": "sha512-yOJJy8lotrZr4HZioxJSMHGo4oNwrhhH/hhyPR8b/nVuigRf3BTZJZCOqNhl5lYjJEGcaIgNSSZhChWwzaNIxw==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host, and upstream's living cat as a second companion body (livingBody, bridge 1.8).",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and the Host half of F336 Phase C (opening the body window) has merged, then this exact archive passes the real-host acceptance of F336 Phase C slice 1 on it; verify canonical registry bytes."
+    },
+    {
+      "pluginId": "official.companion.personal-chrome",
+      "version": "0.1.0-alpha.11",
+      "integrity": "sha512-baikQc5Yigho1S3QRUZl2slRp7cVBbKAV0goVlNLKOmGufLtRZlfhJdzorb1nwMVjhe0baL68hObxKW9xSQj0A==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
+    },
+    {
+      "pluginId": "official.feedback",
+      "version": "0.1.0-alpha.3",
+      "integrity": "sha512-OyPZksC5Y0K5tr/cwKhGX2SEmOzA0ABFZCQT2xkwyPFcLZp6O3mEATAmy1M62TrtGOV8m7RDu6flXiGa4g9uyw==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
+    },
+    {
+      "pluginId": "official.collective-connector",
+      "version": "0.1.0-alpha.27",
+      "integrity": "sha512-yv9nfbQ3ZTfo0+aBOgVQd52sjcItpnBn6foo2E8D8NSNUIFs9MbH9pqTwQ0vRKzoOBBdD74TVpzE//wb6Uk0mQ==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
+    },
+    {
+      "pluginId": "official.github-operations",
+      "version": "0.1.0-alpha.47",
+      "integrity": "sha512-hwcPXItrjtovQB+cu+iKY1MEHdEY/myZSRXcKNhOQ4PmgedNi8DwRnsbpmLMD1Wo+kH62P0vIWE38ofeQU915g==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
+    },
+    {
+      "pluginId": "official.quick-phrases",
+      "version": "0.1.0-alpha.4",
+      "integrity": "sha512-WOcfPhjib4EGqVbuRlRxol1v5XSXlzTRjBjz9blmHl0YhEtbhfVxc/SQWMoXhj3JTafPZv+IhlPpiTvh8+rlRw==",
+      "disposition": "defer",
+      "owner": "mindfn",
+      "reviewBy": "2026-11-30T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/227",
+      "reason": "This release carries its console declarations (console/pdl.yaml) for the PDL console Host.",
+      "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
+    },
+    {
       "pluginId": "official.github-operations",
       "version": "0.1.0-alpha.46",
       "integrity": "sha512-ioRVw4gpBXoWLKuCxRk7zFpn+ad/V69pACEjbZCiRPciTnSOYP5WhDtdcg3HlRCRPuysmib89S1OMAmCqvqLqg==",
@@ -316,17 +382,6 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/234",
       "reason": "Registration reads keep their dependent requests together and reuse the account login, so tracking registration fits the Host shared MCP budget; packaged for the home instance, public catalog activation stays separate.",
       "condition": "Upgrade the same home instance under existing upgrade authority, then retry the original failed registration ID. Before public discovery, verify supported public Host compatibility and canonical registry bytes."
-    },
-    {
-      "pluginId": "official.companion",
-      "version": "0.1.0-alpha.38",
-      "integrity": "sha512-Rfi8xNXa1eRvqCkeOiNmQHJAKIxTCAfnml5ggPu03h010w+M1QxsJ1hLutIxIMTYdhQLJWYiYfmYtH6yI0wh8w==",
-      "disposition": "defer",
-      "owner": "opus55",
-      "reviewBy": "2026-11-25T04:00:00Z",
-      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/240",
-      "reason": "The living cat as a second companion body (contract 0.3.3-candidate.3, livingBody) is packaged, but it only works with a Host that pins candidate.3 and opens the body window; that Host half is still on the cat-cafe branch.",
-      "condition": "Publish contract 0.3.3-candidate.3 first; no SDK publish is needed (the companion has no runtime SDK dependency, and the SDK keeps its own contract pin). Upgrade the home instance only after the cat-cafe Host PR pinning candidate.3 merges, and pass the real-host acceptance of F336 Phase C slice 1 before public discovery; verify canonical registry bytes."
     }
   ]
 }

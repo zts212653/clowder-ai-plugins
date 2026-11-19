@@ -1,5 +1,5 @@
 pluginId: official.companion.personal-chrome
-version: 0.1.0-alpha.10
+version: 0.1.0-alpha.11
 contractVersion: 0.1.0
 name: Personal Chrome Companion
 icon:
@@ -50,6 +50,26 @@ test:
   action:
     method: personal-chrome-host.test
 contributions:
+  - type: webhook
+    id: personal-chrome-console-recovery
+    path: personal-chrome/recovery
+    methods: [ POST ]
+    action: { method: personal-chrome-host.console.http }
+  - type: webhook
+    id: personal-chrome-console-pick
+    path: personal-chrome/pick
+    methods: [ POST ]
+    action: { method: personal-chrome-host.console.http }
+  - type: webhook
+    id: personal-chrome-console-refresh
+    path: personal-chrome/refresh
+    methods: [ POST ]
+    action: { method: personal-chrome-host.console.http }
+  - type: webhook
+    id: personal-chrome-console-refresh-titles
+    path: personal-chrome/refresh-titles
+    methods: [ POST ]
+    action: { method: personal-chrome-host.console.http }
   - type: cloud-conversation-host
     id: personal-chrome-chatgpt-host
     provider: chatgpt
@@ -65,6 +85,10 @@ features:
     name: Personal Chrome conversation host
     resources: []
     contributions:
+      - { type: webhook, id: personal-chrome-console-recovery }
+      - { type: webhook, id: personal-chrome-console-pick }
+      - { type: webhook, id: personal-chrome-console-refresh }
+      - { type: webhook, id: personal-chrome-console-refresh-titles }
       - type: cloud-conversation-host
         id: personal-chrome-chatgpt-host
 runtime:

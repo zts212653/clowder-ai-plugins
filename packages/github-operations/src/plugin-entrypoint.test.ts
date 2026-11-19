@@ -1585,6 +1585,7 @@ function host() {
   withIndexedMemoryStorage(storage);
   const runtimeHost: ModulePluginHostShape = {
     storage,
+    external: { endpoint: 'https://host.invalid/api/plugins/external', token: 'fixture-external-token' },
     config: { get: async () => undefined },
     secrets: { get: async () => undefined },
     tasks: {

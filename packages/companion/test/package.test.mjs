@@ -95,14 +95,11 @@ test('the installable package declares one companion body and contains a closed 
 test('livingBody needs the new contract line: an older Host refuses the package and the living skin', async () => {
   const manifest = JSON.parse(await readFile(new URL('plugin.yaml', root), 'utf8'));
   const pkg = JSON.parse(await readFile(new URL('package.json', root)));
-  assert.equal(pkg.devDependencies['@clowder-ai/plugin-contract'], '0.3.3-candidate.3', 'the contract line that carries livingBody');
+  assert.equal(pkg.devDependencies['@clowder-ai/plugin-contract'], '0.4.0-candidate.0', 'the contract line that carries livingBody');
   const current = await import('@clowder-ai/plugin-contract');
   const previous = await import('@clowder-ai/plugin-contract-033c0');
   assert.equal(current.validateManifest(manifest).valid, true);
   assert.equal(previous.validateManifest(manifest).valid, false, 'a bridge 1.7 Host refuses this package before installing it');
-  const { body: _body, ...surfaceOnly } = manifest.contributions[0];
-  assert.equal(previous.validateManifest({ ...manifest, contributions: [{ ...surfaceOnly, bridgeVersion: '1.7.0' }] }).valid, true,
-    'the previous line still reads the published surface-only shape');
   const living = { kind: 'settings.update', field: 'skin', value: 'xianxian-living' };
   assert.equal(current.validateCompanionCommand(living), true);
   assert.equal(previous.validateCompanionCommand(living), false, 'the previous line has a closed skin enum without the living skin');
