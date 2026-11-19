@@ -32,7 +32,7 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "build": "pnpm --filter @clowder-ai/plugin-contract build && pnpm clean && tsc -p tsconfig.build.json && node scripts/generate-manifest.mjs",
+    "build": "pnpm clean && tsc -p tsconfig.build.json && node --import tsx scripts/generate-manifest.mjs",
     "build:renderer": "pnpm build && node scripts/fetch-verify-source.mjs && node scripts/build-renderer.mjs",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
     "test": "pnpm --filter @clowder-ai/plugin-contract build && node --import tsx --test src/**/*.test.ts",

@@ -105,7 +105,7 @@ manifest.setIn(['contributions', 0, 'semanticMaterializer'], {
   protocolVersion: '1.0.0',
 });
 await writeFile(manifestPath, String(manifest));
-run(process.execPath, [join(packageRoot, 'scripts', 'generate-manifest.mjs')], packageRoot);
+run(process.execPath, ['--import', 'tsx', join(packageRoot, 'scripts', 'generate-manifest.mjs')], packageRoot);
 
 await copyFile(join(sourceRoot, 'LICENSE'), join(packageRoot, 'LICENSE'));
 await copyFile(join(sourceRoot, 'NOTICE'), join(packageRoot, 'NOTICE'));

@@ -105,7 +105,7 @@ for (let i = 0; i < contributions.items.length; i += 1) {
 if (index < 0) throw new Error(`plugin.yaml has no content-preview-provider ${contributionId}`);
 manifest.setIn(['contributions', index, 'surface', 'integrity'], integrity);
 await writeFile(manifestPath, String(manifest));
-run(process.execPath, [join(packageRoot, 'scripts', 'generate-manifest.mjs')], packageRoot);
+run(process.execPath, ['--import', 'tsx', join(packageRoot, 'scripts', 'generate-manifest.mjs')], packageRoot);
 
 const entries = (await walkFiles(rendererRoot)).map((path) => `package/renderer/preview/${path}`);
 assertPackEntries(entries);
