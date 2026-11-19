@@ -24,10 +24,10 @@ export async function diagnosticEnvironment(
     desktopRoot: process.env.CAT_CAFE_DESKTOP_STARTUP_ID ? process.env.CAT_CAFE_RUNTIME_ROOT : undefined,
   },
 ) {
-  // The plugin worker inherits the API process arguments. The selected project
-  // can be unrelated to the running deployment.
+  // A thread worker reports its own bootstrap as argv[1]. Both entries identify
+  // the running API tree independently of the selected project.
   const entrypoint = launch.entrypoint ?? '';
-  const entry = /[\\/]packages[\\/]api[\\/](src|dist)[\\/]index(?:\.desktop)?\.(?:js|ts)$/i.exec(entrypoint);
+  const entry = /[\\/]packages[\\/]api[\\/](src|dist)[\\/](?:index(?:\.desktop)?|domains[\\/]plugin[\\/]execution-worker[\\/]bootstrap)\.(?:js|ts)$/i.exec(entrypoint);
   const [runtimeRoot, desktopRoot, selectedRoot] = await Promise.all([
     entry && isAbsolute(entrypoint)
       ? realpath(resolve(entrypoint.slice(0, entry.index + 1))).catch(() => undefined) : undefined,

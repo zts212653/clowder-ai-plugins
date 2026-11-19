@@ -87,7 +87,7 @@ test('plugin collects bounded log evidence and redacts it before any member invo
 test('an installed desktop collects current startup clues without source or arbitrary sibling logs', async t => {
   const f = analysisFixture();
   const runtimeRoot = join(f.host.dataPath, 'installed-app');
-  const entrypoint = join(runtimeRoot, 'packages/api/dist/index.desktop.js');
+  const entrypoint = join(runtimeRoot, 'packages/api/dist/domains/plugin/execution-worker/bootstrap.js');
   const logRoot = join(f.host.dataPath, 'relocated/data/logs');
   const logDirectory = join(logRoot, 'api');
   const projectRoot = join(f.host.dataPath, 'unrelated-project');
