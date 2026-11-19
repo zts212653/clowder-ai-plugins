@@ -779,6 +779,7 @@ requests:
     method: POST
     body:
       mid: "@mid"
+      threadId: "@threadId"
       block: "@block"
       title: "@title"
   edit:

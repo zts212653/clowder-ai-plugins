@@ -17,7 +17,9 @@ const pr = z.object({ prNumber: z.number().nullable(), title: z.string(), author
   externalReview: z.object({ currentHeadSha: z.string().nullish(), lifecycle: z.string().nullish(), lastDeliveredHeadSha: z.string().nullish(), cloud: signal, ci: signal }).nullish() });
 const boardSchema = z.object({ repo: z.string(), issues: z.array(issue), prItems: z.array(pr) });
 const draft = z.object({ draftId: z.string(), title: z.string(), bodyMarkdown: z.string(), targetRepo: z.string(), labels: z.array(z.string()).optional(), status: z.string(), githubIssueUrl: z.string().optional() });
-const cardSchema = z.object({ title: z.string(), mid: z.string().min(1).max(500), sourceId: z.string().min(1).max(256),
+// threadId: the conversation the card is drawn in, as the console reads it; a card the Host posted (not this plugin) can't be
+// looked up through messaging, so the console's own coordinate is kept with the card.
+const cardSchema = z.object({ title: z.string(), mid: z.string().min(1).max(500), threadId: z.string().max(500).default(''), sourceId: z.string().min(1).max(256),
   draftId: z.string(), phase: z.string(), titleValue: z.string(), bodyMarkdown: z.string(), targetRepo: z.string(), labels: z.array(z.string()),
   url: z.string(), lastError: z.string(), lastAction: z.enum(['read', 'edit', 'create', 'publish', 'cancel']).default('read') });
 type Card = z.infer<typeof cardSchema>;
@@ -151,14 +153,17 @@ export function registerConsoleRoutes(app: FastifyInstance, scope: CommunityRequ
     if (d.status === 'publishing') { s.lastAction = 'publish'; s.lastError ||= 'Publication outcome uncertain. Retry to reconcile the original issue.'; }
   };
   app.post(base + '/draft/read', async request => {
-    const b = z.object({ mid: address.shape.mid, title: z.string().default(''), block: z.object({ id: address.shape.b, meta: z.object({
+    const b = z.object({ mid: address.shape.mid, threadId: z.string().max(500).default(''), title: z.string().default(''), block: z.object({ id: address.shape.b, meta: z.object({
       draftId: z.string().optional(), proposedTitle: z.string().default(''), proposedBody: z.string().default(''), proposedRepo: z.string().optional(), proposedLabels: z.array(z.string()).default([]),
     }) }) }).parse(request.body);
     const config = z.object({ repos: z.array(z.string()), defaultRepo: z.string() }).parse(await call('issue-drafts/config'));
     const key = keyFor(b.mid, b.block.id), stored = await options.storage.get(key);
-    const s: Card = stored ? cardSchema.parse(stored.value) : { title: b.title, mid: b.mid, sourceId: b.block.id, draftId: b.block.meta.draftId ?? '', phase: 'editing',
+    const s: Card = stored ? cardSchema.parse(stored.value) : { title: b.title, mid: b.mid, threadId: b.threadId, sourceId: b.block.id, draftId: b.block.meta.draftId ?? '', phase: 'editing',
       titleValue: b.block.meta.proposedTitle, bodyMarkdown: b.block.meta.proposedBody, targetRepo: b.block.meta.proposedRepo || config.defaultRepo,
       labels: b.block.meta.proposedLabels, url: '', lastError: '', lastAction: 'read' };
+    if (!s.threadId && b.threadId) s.threadId = b.threadId;
+    // A card first read before any repository was configured picks up the default once one is.
+    if (!s.draftId && !s.targetRepo && config.defaultRepo) s.targetRepo = config.defaultRepo;
     if (s.draftId) {
       try {
         const result = await call('issue-drafts/by-id/' + encodeURIComponent(s.draftId));
@@ -197,7 +202,7 @@ export function registerConsoleRoutes(app: FastifyInstance, scope: CommunityRequ
         revision = (await savedCard(b.mid, b.b)).row.revision;
         const result = op === 'create' ? await call('issue-drafts', 'POST', {
           sourceType: 'cat_initiated', sourceId: s.sourceId, title: s.titleValue, bodyMarkdown: s.bodyMarkdown, targetRepo: s.targetRepo, labels: s.labels,
-          threadId: await options.messageThread?.(s.mid), messageId: s.mid,
+          threadId: s.threadId || await options.messageThread?.(s.mid), messageId: s.mid,
         }) : await call('issue-drafts/by-id/' + encodeURIComponent(s.draftId) + '/' + op, 'POST', op === 'publish' ? { title: s.titleValue, bodyMarkdown: s.bodyMarkdown } : {});
         receipt(s, result.draft); s.lastError = '';
         if (op === 'create') { const d = draft.parse(result.draft); s.titleValue = d.title; s.bodyMarkdown = d.bodyMarkdown; }
