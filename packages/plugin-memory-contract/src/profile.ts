@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { hardForgetActionSchema, memoryOwnerRequestIdSchema, memoryOwnerRevisionSchema, ownerActionBase } from './owner-actions.js';
+import { hardForgetActionSchema, memoryOwnerRevisionSchema, ownerActionBase } from './owner-actions.js';
 import { profileUsageSummarySchema } from './profile-usage.js';
 export type { ProfileUsageSummary } from './profile-usage.js';
 
@@ -31,6 +31,7 @@ export type ProfileMemoryEntry = z.infer<typeof profileEntrySchema>;
 
 const profileIdentity = z.object({ memoryId: z.string().min(1).max(200) }).strict();
 const profileRevisionIdentity = profileIdentity.extend({ revision: memoryOwnerRevisionSchema });
+const profileCommand = profileIdentity.extend({ command: profileMemoryOwnerActionSchema });
 
 const profileProvenanceCoordinate = z.object({
   label: z.string().optional(),
@@ -45,8 +46,8 @@ export const profileDispatchSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('profile.get'), input: profileIdentity }).strict(),
   z.object({ operation: z.literal('profile.provenance'), input: profileRevisionIdentity }).strict(),
   z.object({ operation: z.literal('profile.usage'), input: profileRevisionIdentity }).strict(),
-  z.object({ operation: z.literal('profile.mutate'), input: profileIdentity.extend({ command: profileMemoryOwnerActionSchema }) }).strict(),
-  z.object({ operation: z.literal('profile.action_evidence'), input: profileIdentity.extend({ requestId: memoryOwnerRequestIdSchema }) }).strict(),
+  z.object({ operation: z.literal('profile.mutate'), input: profileCommand }).strict(),
+  z.object({ operation: z.literal('profile.recover'), input: profileCommand }).strict(),
 ]);
 
 export type ProfileDispatchInput = z.infer<typeof profileDispatchSchema>;
@@ -67,10 +68,11 @@ export const profileOutputSchemas = {
     z.object({ outcome: z.literal('applied'), entry: profileEntrySchema }),
     z.object({ outcome: z.enum(['forgotten', 'not_available', 'stale_revision', 'idempotency_conflict', 'invalid_content']) }),
   ]),
-  'profile.action_evidence': z.object({
-    action: z.enum(['replace_content', 'hard_forget']),
-    commandDigest: memoryOwnerRevisionSchema,
-    applied: z.boolean(),
-    revision: memoryOwnerRevisionSchema.optional(),
-  }).nullable(),
+  'profile.recover': z.discriminatedUnion('action', [
+    z.object({ action: z.literal('replace_content'), revision: memoryOwnerRevisionSchema }),
+    z.object({ action: z.literal('hard_forget') }),
+  ]).nullable(),
 } satisfies Record<ProfileDispatchInput['operation'], z.ZodType>;
+
+export type ProfileMemoryMutation = z.infer<(typeof profileOutputSchemas)['profile.mutate']>;
+export type ProfileMemoryRecovery = z.infer<(typeof profileOutputSchemas)['profile.recover']>;

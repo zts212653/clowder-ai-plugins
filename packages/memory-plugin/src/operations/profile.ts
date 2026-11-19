@@ -37,8 +37,20 @@ export async function dispatchProfile(
         ? { outcome: 'found' as const, coordinates: readProfileProvenance(entry) }
         : { outcome: 'found' as const, usage: readProfileUsage(storage.db, ownerUserId, entry) };
     }
-    case 'profile.action_evidence':
-      return store.getOwnerActionEvidence(ownerUserId, request.input.memoryId, request.input.requestId);
+    case 'profile.recover':
+      return storage.runWrite(async () => {
+        const { memoryId, command } = request.input;
+        const evidence = store.getOwnerActionEvidence(ownerUserId, memoryId, command.requestId);
+        if (!evidence?.applied || evidence.action !== command.action || evidence.commandDigest !== store.commandDigest(command)) {
+          return null;
+        }
+        if (command.action === 'hard_forget') {
+          await source.assertCurrent();
+          store.finishHardForgetCleanup(ownerUserId, memoryId, command.requestId);
+          return { action: command.action };
+        }
+        return evidence.revision ? { action: command.action, revision: evidence.revision } : null;
+      });
     case 'profile.mutate':
       return storage.runWrite(async () => {
         const { memoryId, command } = request.input;
