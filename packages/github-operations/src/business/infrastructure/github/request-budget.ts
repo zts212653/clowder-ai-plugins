@@ -38,7 +38,7 @@ export class GitHubRequestDeferredError extends Error {
   }
 }
 
-function diagnostic(error: unknown): string {
+export function diagnostic(error: unknown): string {
   if (!error || typeof error !== 'object') return String(error);
   const fields = error as { message?: unknown; stdout?: unknown; stderr?: unknown };
   return [fields.message, fields.stdout, fields.stderr].filter((value) => typeof value === 'string').join('\n');

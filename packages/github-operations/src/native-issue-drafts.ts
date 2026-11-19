@@ -2,6 +2,7 @@ import { storageEntries } from './storage-pages.js';
 import { createHash, randomUUID } from 'node:crypto';
 import type { FeatureContext, PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { previewPublicIssue } from './community-read-model.js';
+import { diagnostic } from './business/infrastructure/github/request-budget.js';
 
 export interface PublishedIssue { number: number; url: string }
 export interface NativeIssueDraft {
@@ -151,8 +152,16 @@ export class NativeIssueDraftRuntime {
         this.abort.signal.throwIfAborted();
         issue = recovering ? await this.publisher.find(draft, this.abort.signal) : await this.publisher.create(draft, this.abort.signal);
         if (issue) issue = validateIssue(draft.repo, issue);
-      } catch {
-        // POST may have succeeded. Never roll back to draft or issue a second
+      } catch (error) {
+        // A definite refusal (4xx other than timeout / rate limit) means GitHub created nothing — for the reconciling
+        // lookup too: a repository this credential can't read or that has Issues off couldn't have taken the POST.
+        // The draft goes back to draft with the reason, to be fixed and published again.
+        const status = Number(/\(HTTP (\d{3})\)/.exec(diagnostic(error))?.[1]);
+        if (status >= 400 && status < 500 && status !== 408 && status !== 429) {
+          await this.save(id, entry.revision, { ...draft, status: 'draft' });
+          throw new Error(refusalReason(status, draft.repo));
+        }
+        // Otherwise the POST may have succeeded. Never roll back to draft or issue a second
         // POST after timeout, shutdown, process death or ambiguous response.
         issue = null;
       }
@@ -164,4 +173,13 @@ export class NativeIssueDraftRuntime {
   private async save(id: string, revision: Awaited<ReturnType<PluginStorageHost['set']>>['revision'], draft: NativeIssueDraft) {
     if (!(await this.context.storage.compareAndSet(this.prefix + id, revision, draft)).applied) throw new Error('native draft changed concurrently');
   }
+}
+
+/** Why GitHub refused a publication, in the owner's words. */
+function refusalReason(status: number, repo: string): string {
+  if (status === 401 || status === 403) return `GitHub 拒绝了发布：当前凭证没有向 ${repo} 提交 Issue 的权限。`;
+  if (status === 404) return `GitHub 找不到仓库 ${repo}，或当前凭证无权访问它。`;
+  if (status === 410) return `仓库 ${repo} 已关闭 Issues。`;
+  if (status === 422) return 'GitHub 拒绝了这份内容（HTTP 422），请检查标题和正文后再发布。';
+  return `GitHub 拒绝了发布（HTTP ${status}）。`;
 }
