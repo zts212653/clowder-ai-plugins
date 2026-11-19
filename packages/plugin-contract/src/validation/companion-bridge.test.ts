@@ -955,10 +955,17 @@ test('livingBody: scene reads keep found, not_found and error apart', () => {
 test('livingBody: the Host asks for a flush and announces the body area', () => {
   assert.equal(validateCompanionEvent({ kind: 'scene-flush' }), true);
   assert.equal(validateCompanionEvent({ kind: 'scene-flush', reason: 'quit' }), false);
-  assert.equal(validateCompanionEvent({ kind: 'body-area', width: 1440, height: 875 }), true);
+  assert.equal(validateCompanionEvent({ kind: 'body-area', width: 1440, height: 875 }), true,
+    'a Host that does not size the cat leaves standHeight out; the body stands at its own default');
+  for (const standHeight of [60, 150, 400, 480]) {
+    assert.equal(validateCompanionEvent({ kind: 'body-area', width: 1440, height: 875, standHeight }), true, String(standHeight));
+  }
   for (const area of [{ width: 0, height: 875 }, { width: 1440.5, height: 875 }, { width: 1440 },
-    { width: 1440, height: 875, x: 0 }]) {
+    { width: 1440, height: 875, x: 0 }, { width: 1440, height: 875, ballSize: 72 }]) {
     assert.equal(validateCompanionEvent({ kind: 'body-area', ...area }), false, JSON.stringify(area));
+  }
+  for (const standHeight of [59, 481, 150.5, -150, '150', null, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.equal(validateCompanionEvent({ kind: 'body-area', width: 1440, height: 875, standHeight }), false, String(standHeight));
   }
 });
 

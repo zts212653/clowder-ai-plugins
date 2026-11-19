@@ -115,6 +115,10 @@ const sceneReport: CompanionCommand = { kind: 'scene.report', snapshot: { schema
 const sceneNotFound: CompanionScene = { kind: 'scene', status: 'not_found' };
 const sceneAnswer: CompanionReply = { kind: 'scene', status: 'found', revision: 3, snapshot: { schemaVersion: 1 } };
 const bodyArea: CompanionEvent = { kind: 'body-area', width: 1440, height: 875 };
+const sizedBodyArea: CompanionEvent = { kind: 'body-area', width: 1440, height: 875, standHeight: 150 };
+
+// @ts-expect-error the Host sends the cat's standing height in pixels, never the ball size setting itself.
+const invalidBodyAreaSize: CompanionEvent = { kind: 'body-area', width: 1440, height: 875, ballSize: 72 };
 
 // @ts-expect-error a body names rects in its own window, never a display or desktop position.
 const invalidBodyHit: CompanionCommand = { kind: 'body.hit', rects: [{ x: 0, y: 0, width: 10, height: 10, displayId: 1 }] };
@@ -329,6 +333,8 @@ void [
   sceneNotFound,
   sceneAnswer,
   bodyArea,
+  sizedBodyArea,
+  invalidBodyAreaSize,
   invalidBodyHit,
   invalidSceneDirty,
   invalidSceneError,

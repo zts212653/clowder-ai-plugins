@@ -2647,11 +2647,12 @@
         },
         {
           "type": "object",
-          "description": "livingBody (bridge 1.8), to the body window: the primary work area changed and the window now has this size in CSS pixels; floor, walls and ceiling are re-mapped to it.",
+          "description": "livingBody (bridge 1.8), to the body window: the window's size in CSS pixels and how tall the cat stands, sent when the body opens and whenever the primary work area or the size setting changes; floor, walls and ceiling are re-mapped to it. standHeight is how tall the cat stands in CSS pixels, derived by the Host from the ballSize setting, which the body window cannot read; a body that has not been told one stands at its own default height, and an event without it keeps the height he has.",
           "properties": {
             "kind": { "const": "body-area" },
             "width": { "type": "integer", "minimum": 1, "maximum": 16384 },
-            "height": { "type": "integer", "minimum": 1, "maximum": 16384 }
+            "height": { "type": "integer", "minimum": 1, "maximum": 16384 },
+            "standHeight": { "type": "integer", "minimum": 60, "maximum": 480 }
           },
           "required": ["kind", "width", "height"],
           "additionalProperties": false
