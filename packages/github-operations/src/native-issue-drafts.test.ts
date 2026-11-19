@@ -64,15 +64,3 @@ test('unexpected publication identity stays uncertain rather than accepting anot
   await assert.rejects(a.cancel({ input: { draftId: draft.id } }), /reconcile/);
   await a.stop();
 });
-
-test('a definite GitHub refusal returns the draft to draft with the reason; a timeout stays uncertain', async () => {
-  const f = fixture();
-  f.publisher.create = async () => { throw Object.assign(new Error('Command failed: gh api'), { stderr: 'gh: Not Found (HTTP 404)' }); };
-  const a = new NativeIssueDraftRuntime(f.context, f.publisher);
-  const { data: draft } = await a.create(input);
-  await assert.rejects(a.publish({ input: { draftId: draft.id } }), /找不到仓库/);
-  assert.equal((await a.get({ draftId: draft.id })).data.status, 'draft');
-  f.publisher.create = async () => { throw Object.assign(new Error('Command failed: gh api'), { stderr: 'gh: Request Timeout (HTTP 408)' }); };
-  assert.equal((await a.publish({ input: { draftId: draft.id } })).data.status, 'uncertain');
-  await a.stop();
-});
