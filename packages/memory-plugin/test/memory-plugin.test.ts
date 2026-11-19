@@ -37,6 +37,10 @@ before(() => {
     CREATE TABLE evidence_docs (
       anchor TEXT PRIMARY KEY, title TEXT, kind TEXT, collection_id TEXT, world_id TEXT, updated_at TEXT
     );
+    CREATE TABLE edges (
+      from_anchor TEXT, to_anchor TEXT, relation TEXT,
+      traversal_count INTEGER, last_traversed_at TEXT
+    );
   `);
   db.close();
 });
@@ -224,8 +228,7 @@ test('index status reads the selected generation and reports persisted vectors w
   db.exec(`
     INSERT INTO evidence_docs (anchor, kind, updated_at)
     VALUES ('status-thread', 'thread', '2026-11-18'), ('status-lesson', 'lesson', '2026-11-19');
-    CREATE TABLE edges (anchor TEXT);
-    INSERT INTO edges VALUES ('one');
+    INSERT INTO edges (from_anchor, to_anchor, relation) VALUES ('one', 'two', 'ref');
     CREATE TABLE evidence_passages (content TEXT);
     INSERT INTO evidence_passages VALUES ('old'), ('new');
     CREATE TABLE embedding_meta_g1 (key TEXT PRIMARY KEY, value TEXT);
@@ -361,6 +364,17 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
     CREATE TABLE global_ctr_baseline (
       doc_kind TEXT PRIMARY KEY, mean_ctr REAL, sample_count INTEGER, updated_at INTEGER
     );
+    CREATE TABLE task_trajectories (
+      trajectory_id TEXT PRIMARY KEY, invocation_id TEXT, thread_id TEXT, cat_id TEXT, task_context TEXT,
+      search_event_ids_json TEXT, files_read_json TEXT, files_modified_json TEXT, output_verified INTEGER,
+      output_verified_signals_json TEXT, total_token_cost INTEGER, duration INTEGER, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE lifecycle_traces (
+      trace_id TEXT PRIMARY KEY, kind TEXT, category TEXT, source_family TEXT, recall_id TEXT, source_event_id TEXT,
+      thread_id TEXT, target_anchor TEXT, query_text TEXT, claim_kind TEXT, check_source TEXT, verdict TEXT,
+      payload_json TEXT, observed_at INTEGER, created_at TEXT, UNIQUE(source_event_id, kind)
+    );
+    INSERT INTO edges (from_anchor, to_anchor, relation) VALUES ('origin', 'F042', 'feature_ref');
     INSERT INTO evidence_docs (anchor, title, kind, collection_id, world_id) VALUES
       ('F042', 'Public feature', 'feature', NULL, NULL),
       ('secret-collection', 'Private collection title', 'feature', 'private:owner', NULL),
@@ -427,7 +441,10 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
     consumed: [{ anchor: 'F042', rank: 0, method: 'Read' }],
     reformulated: false, fellBackToGrep: false, abandoned: false, nextGraphResolveAfterRead: false,
     tokenCost: 0, timestamp: Date.now(),
-  }] } };
+  }],
+    trajectory: { filesRead: ['docs/F042.md'], filesModified: [], duration: 10 },
+    traversals: [{ from: 'origin', to: 'F042', relation: 'feature_ref' }],
+  } };
   assert.equal(await dispatch(persist), null);
   const [firstWrite] = persist.input.events;
   assert.equal(await dispatch({ ...persist, input: { events: [{ ...firstWrite, recallId: 'retry', query: 'must not replace' }] } }), null);
@@ -445,6 +462,22 @@ test('recall reads preserve authorized thread scope, time windows and cursor ord
   }]);
   assert.deepEqual(await dispatch({ ...anchors, input: { limit: 10, dormancyThreshold: 30, refresh: true } }), []);
   assert.equal(await dispatch({ operation: 'recall.anchors.refresh', input: {} }), null);
+  await dispatch({ ...persist, input: { events: [{
+    ...firstWrite, recallId: 'no-hit', sourceEventId: 'no-hit-tool', query: 'known zero',
+    resultCount: 0, resultStatus: 'no_results', candidates: [], consumed: [],
+  }] } });
+  const persistedDb = new Database(evidencePath, { nativeBinding, readonly: true, fileMustExist: true });
+  try {
+    const trajectory = persistedDb.prepare('SELECT search_event_ids_json, files_read_json FROM task_trajectories').get();
+    assert.deepEqual(trajectory, { search_event_ids_json: '["new-recall"]', files_read_json: '["docs/F042.md"]' });
+    assert.equal(persistedDb.prepare("SELECT traversal_count FROM edges WHERE to_anchor='F042'").pluck().get(), 1);
+    assert.deepEqual(persistedDb.prepare('SELECT kind,category FROM lifecycle_traces ORDER BY kind').all(), [
+      { kind: 'unmet_demand', category: 'true_zero' },
+      { kind: 'verification', category: null },
+    ]);
+  } finally {
+    persistedDb.close();
+  }
   await assert.rejects(async () => dispatch({ ...persist, input: { events: [{ ...firstWrite, threadId: 'foreign' }] } }));
 });
 

@@ -148,7 +148,15 @@ const recallRecord = z.object({
 
 export const memoryRecallPersistRequest = z.object({
   operation: z.literal('recall.persist'),
-  input: z.object({ events: z.array(recallRecord).min(1) }).strict(),
+  input: z.object({
+    events: z.array(recallRecord).min(1),
+    trajectory: z.object({
+      filesRead: z.array(z.string()),
+      filesModified: z.array(z.string()),
+      duration: count,
+    }).strict().optional(),
+    traversals: z.array(z.object({ from: z.string(), to: z.string(), relation: z.string() }).strict()).optional(),
+  }).strict(),
 }).strict();
 export type MemoryRecallPersistRequest = z.infer<typeof memoryRecallPersistRequest>;
 

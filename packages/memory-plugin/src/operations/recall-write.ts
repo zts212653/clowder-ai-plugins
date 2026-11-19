@@ -2,6 +2,7 @@ import { memoryRecallPersistRequest } from '@clowder-ai/plugin-memory-contract/r
 import type { MemoryHostPorts } from '../host-port.js';
 import type { openMemoryStorage } from '../open-memory-storage.js';
 import { refreshAnchorMetrics, refreshGlobalCtrBaseline } from './recall-metrics-refresh.js';
+import { persistRecallProjections } from './recall-projections-write.js';
 
 export async function dispatchRecallPersist(
   storage: Awaited<ReturnType<typeof openMemoryStorage>>,
@@ -26,7 +27,7 @@ export async function dispatchRecallPersist(
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     storage.db.transaction(() => {
-      for (const event of input.events) {
+      const inserted = input.events.filter((event) =>
         stmt.run(
           event.recallId,
           event.catId,
@@ -56,11 +57,12 @@ export async function dispatchRecallPersist(
           event.outcome,
           event.sourceEventId ?? null,
           event.expansionFunnel ? JSON.stringify(event.expansionFunnel) : null,
-        );
-      }
+        ).changes > 0,
+      );
+      if (inserted.length) persistRecallProjections(storage.db, inserted, input);
+      refreshAnchorMetrics(storage.db);
+      refreshGlobalCtrBaseline(storage.db);
     })();
-    refreshAnchorMetrics(storage.db);
-    refreshGlobalCtrBaseline(storage.db);
     return null;
   });
 }
