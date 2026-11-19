@@ -1,0 +1,5 @@
+title: Memory
+intro: The memory plugin stores thread memory, evidence search and personal
+  memory. Its console ships with the plugin and upgrades without reinstalling
+  the Host.
+capability: Memory capability
