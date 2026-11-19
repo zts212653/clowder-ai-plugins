@@ -1,0 +1,3061 @@
+diff --git a/src/account.rs b/src/account.rs
+index 1e30863..bb5670f 100644
+--- a/src/account.rs
++++ b/src/account.rs
+@@ -8 +7,0 @@ use std::{
+-    future::Future,
+@@ -597 +596,2 @@ impl NativeClient {
+-    pub fn export_account_state(&self) -> Result<AccountState> {
++    #[cfg(test)]
++    pub(crate) fn export_account_state(&self) -> Result<AccountState> {
+@@ -640 +640,2 @@ impl NativeClient {
+-    pub async fn quiesce_and_export(&self) -> Result<AccountState> {
++    #[cfg(test)]
++    pub(crate) async fn quiesce_and_export(&self) -> Result<AccountState> {
+@@ -754,14 +754,0 @@ mod operations;
+-async fn wait_for_poll<R, C, S>(reply: R, cancellation: C, stopped: S) -> Result<Vec<u8>>
+-where
+-    R: Future<Output = Result<Vec<u8>>>,
+-    C: Future<Output = ()>,
+-    S: Future<Output = ()>,
+-{
+-    tokio::select! {
+-        biased;
+-        () = stopped => Err(crate::calls::host_transport::CallLiveSyncInterrupted.into()),
+-        () = cancellation => Err(crate::calls::host_transport::CallLiveSyncInterrupted.into()),
+-        result = reply => result,
+-    }
+-}
+-
+diff --git a/src/account_operations.rs b/src/account_operations.rs
+index 8d38e83..cbab1c6 100644
+--- a/src/account_operations.rs
++++ b/src/account_operations.rs
+@@ -56,35 +55,0 @@ impl NativeClient {
+-    pub async fn download_avatars(&self, usernames: &[String]) -> Result<Vec<crate::AvatarBytes>> {
+-        let usernames = usernames.to_vec();
+-        self.account_request(move |transport, state, _| {
+-            transport.download_avatars_snapshot(state, &usernames)
+-        })
+-        .await
+-    }
+-
+-    pub async fn download_voice_chunk(
+-        &self,
+-        server_message_id: u64,
+-        total_length: u32,
+-        offset: u32,
+-    ) -> Result<crate::VoiceChunk> {
+-        self.account_request(move |transport, state, _| {
+-            transport.download_voice_chunk_snapshot(state, server_message_id, total_length, offset)
+-        })
+-        .await
+-    }
+-
+-    pub async fn cdn_config(&self) -> Result<crate::media::CdnConfig> {
+-        self.account_request(|transport, state, _| transport.cdn_config_snapshot(state))
+-            .await
+-    }
+-
+-    pub async fn large_cdn_config(
+-        &self,
+-        route: crate::media::LargeCdnRoute,
+-    ) -> Result<crate::media::CdnConfig> {
+-        self.account_request(move |transport, state, _| {
+-            transport.large_cdn_config_snapshot(state, route)
+-        })
+-        .await
+-    }
+-
+@@ -157,30 +121,0 @@ impl NativeClient {
+-    pub async fn group_mutation_raw(&self, request: &crate::GroupRpc) -> Result<Vec<u8>> {
+-        let request = request.clone();
+-        self.account_request(move |transport, state, _| {
+-            transport.group_mutation_raw_snapshot(state, &request)
+-        })
+-        .await
+-    }
+-
+-    pub async fn recall_message(
+-        &self,
+-        request: &crate::MessageRecall,
+-    ) -> Result<crate::MessageRecallReply> {
+-        let request = request.clone();
+-        self.account_request(move |transport, state, _| {
+-            transport.recall_message_snapshot(state, &request)
+-        })
+-        .await
+-    }
+-
+-    pub async fn notify_read_session(
+-        &self,
+-        notification: &crate::SessionReadNotification,
+-    ) -> Result<crate::SessionReadReply> {
+-        let notification = notification.clone();
+-        self.account_request(move |transport, state, _| {
+-            transport.notify_read_session_snapshot(state, &notification)
+-        })
+-        .await
+-    }
+-
+@@ -201,149 +135,0 @@ impl NativeClient {
+-    pub async fn send_share(
+-        &self,
+-        destination: &str,
+-        client_id: &str,
+-        created_at: u32,
+-        content: &str,
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let (destination, client_id, content) = (
+-            destination.to_owned(),
+-            client_id.to_owned(),
+-            content.to_owned(),
+-        );
+-        self.account_request(move |transport, state, _| {
+-            transport.send_share_snapshot(state, &destination, &client_id, created_at, &content)
+-        })
+-        .await
+-    }
+-
+-    pub async fn send_quote(
+-        &self,
+-        destination: &str,
+-        client_id: &str,
+-        created_at: u32,
+-        content: &str,
+-        source: Option<&str>,
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let (destination, client_id, content) = (
+-            destination.to_owned(),
+-            client_id.to_owned(),
+-            content.to_owned(),
+-        );
+-        let source = source.map(str::to_owned);
+-        self.account_request(move |transport, state, _| {
+-            transport.send_quote_with_source_snapshot(
+-                state,
+-                &destination,
+-                &client_id,
+-                created_at,
+-                &content,
+-                source.as_deref(),
+-            )
+-        })
+-        .await
+-    }
+-
+-    pub async fn reserve_file_upload(
+-        &self,
+-        destination: &str,
+-        progress_client_id: &str,
+-        file_name: &str,
+-        plaintext_bytes: usize,
+-        md5: &str,
+-    ) -> Result<crate::file_upload::FileUploadReservation> {
+-        let (destination, progress_client_id, file_name, md5) = (
+-            destination.to_owned(),
+-            progress_client_id.to_owned(),
+-            file_name.to_owned(),
+-            md5.to_owned(),
+-        );
+-        self.account_request(move |transport, state, _| {
+-            transport.reserve_file_upload_snapshot(
+-                state,
+-                &destination,
+-                &progress_client_id,
+-                &file_name,
+-                plaintext_bytes,
+-                &md5,
+-            )
+-        })
+-        .await
+-    }
+-
+-    pub async fn send_file(
+-        &self,
+-        destination: &str,
+-        client_id: &str,
+-        created_at: u32,
+-        upload: &crate::media::UploadedMedia,
+-        reservation: Option<&crate::file_upload::FileUploadReservation>,
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let (destination, client_id) = (destination.to_owned(), client_id.to_owned());
+-        let upload = upload.clone();
+-        let reservation = reservation.cloned();
+-        self.account_request(move |transport, state, _| {
+-            transport.send_file_with_reservation_snapshot(
+-                state,
+-                &destination,
+-                &client_id,
+-                created_at,
+-                &upload,
+-                reservation.as_ref(),
+-            )
+-        })
+-        .await
+-    }
+-
+-    /// Submit the uploaded standard and thumbnail copies, including an original when present.
+-    pub async fn send_image(
+-        &self,
+-        destination: &str,
+-        client_id: &str,
+-        upload: &crate::media::UploadedImage,
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let (destination, client_id) = (destination.to_owned(), client_id.to_owned());
+-        let upload = upload.clone();
+-        self.account_request(move |transport, state, _| {
+-            transport.send_image_snapshot(state, &destination, &client_id, &upload)
+-        })
+-        .await
+-    }
+-
+-    pub async fn send_video(
+-        &self,
+-        destination: &str,
+-        client_id: &str,
+-        upload: &crate::media::UploadedVideo,
+-        play_seconds: u32,
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let (destination, client_id) = (destination.to_owned(), client_id.to_owned());
+-        let upload = upload.clone();
+-        self.account_request(move |transport, state, _| {
+-            transport.send_video_snapshot(state, &destination, &client_id, &upload, play_seconds)
+-        })
+-        .await
+-    }
+-
+-    pub async fn send_voice(
+-        &self,
+-        destination: &str,
+-        client_id: &str,
+-        created_at: u32,
+-        duration_ms: u32,
+-        encoded: &[u8],
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let (destination, client_id) = (destination.to_owned(), client_id.to_owned());
+-        let encoded = encoded.to_vec();
+-        self.account_request(move |transport, state, _| {
+-            transport.send_voice_snapshot(
+-                state,
+-                &destination,
+-                &client_id,
+-                created_at,
+-                duration_ms,
+-                &encoded,
+-            )
+-        })
+-        .await
+-    }
+-
+@@ -427,126 +212,0 @@ impl NativeClient {
+-
+-    /// Execute one call request using this client's account. No automatic retry.
+-    pub async fn call_rpc(
+-        &self,
+-        route: crate::calls::host_policy::CallHostRoute,
+-        request: Vec<u8>,
+-    ) -> Result<Vec<u8>> {
+-        self.call_rpc_guarded(route, request, || Ok(())).await
+-    }
+-
+-    /// Recheck account lifetime and caller authority immediately before transport
+-    /// handoff. A returned error must not be interpreted as proof of no submission.
+-    pub async fn call_rpc_guarded<F>(
+-        &self,
+-        route: crate::calls::host_policy::CallHostRoute,
+-        request: Vec<u8>,
+-        before_submit: F,
+-    ) -> Result<Vec<u8>>
+-    where
+-        F: FnOnce() -> Result<()> + Send + 'static,
+-    {
+-        self.call_rpc_observed(route, request, before_submit, |_| Ok(()))
+-            .await
+-    }
+-
+-    /// Retain a verified call reply before adopting its cookie or returning it to
+-    /// the calling runtime. The callback must protect these account-specific
+-    /// bytes, must not log them, and must not reenter this client. Failure is an
+-    /// uncertain submitted operation, not permission to submit another request.
+-    pub async fn call_rpc_observed<F, O>(
+-        &self,
+-        route: crate::calls::host_policy::CallHostRoute,
+-        request: Vec<u8>,
+-        before_submit: F,
+-        retain_reply: O,
+-    ) -> Result<Vec<u8>>
+-    where
+-        F: FnOnce() -> Result<()> + Send + 'static,
+-        O: Fn(&[u8]) -> Result<()> + Send + Sync + 'static,
+-    {
+-        self.account_request(move |transport, state, check| {
+-            let mut transport = transport.clone();
+-            transport.call_reply_observer = Some(Arc::new(retain_reply));
+-            transport.call_rpc_snapshot_guarded(state, route, &request, || {
+-                check()?;
+-                before_submit()
+-            })
+-        })
+-        .await
+-    }
+-
+-    /// Poll call notifications with caller cancellation and account shutdown.
+-    /// Interruption is not proof that the read-only request was never submitted.
+-    pub async fn call_live_sync_guarded<F, C>(
+-        &self,
+-        request: Vec<u8>,
+-        before_submit: F,
+-        cancellation: C,
+-    ) -> Result<Vec<u8>>
+-    where
+-        F: FnOnce() -> Result<()> + Send + 'static,
+-        C: Future<Output = ()> + Send + 'static,
+-    {
+-        self.call_live_sync_with_wait_timeout(
+-            request,
+-            self.options.timeout,
+-            before_submit,
+-            cancellation,
+-        )
+-        .await
+-    }
+-
+-    /// Keep the handshake deadline independent of the long read-only wait.
+-    /// The caller owns any retry/reconciliation policy; this submits at most once.
+-    pub async fn call_live_sync_with_wait_timeout<F, C>(
+-        &self,
+-        request: Vec<u8>,
+-        wait_timeout: Duration,
+-        before_submit: F,
+-        cancellation: C,
+-    ) -> Result<Vec<u8>>
+-    where
+-        F: FnOnce() -> Result<()> + Send + 'static,
+-        C: Future<Output = ()> + Send + 'static,
+-    {
+-        self.call_live_sync_observed(request, wait_timeout, before_submit, cancellation, |_| {
+-            Ok(())
+-        })
+-        .await
+-    }
+-
+-    pub async fn call_live_sync_observed<F, C, O>(
+-        &self,
+-        request: Vec<u8>,
+-        wait_timeout: Duration,
+-        before_submit: F,
+-        cancellation: C,
+-        retain_reply: O,
+-    ) -> Result<Vec<u8>>
+-    where
+-        F: FnOnce() -> Result<()> + Send + 'static,
+-        C: Future<Output = ()> + Send + 'static,
+-        O: Fn(&[u8]) -> Result<()> + Send + Sync + 'static,
+-    {
+-        ensure!(
+-            !wait_timeout.is_zero() && wait_timeout <= Duration::from_secs(120),
+-            "Invalid call poll wait timeout"
+-        );
+-        let runtime = tokio::runtime::Handle::current();
+-        let account = self.owned_account()?.clone();
+-        self.account_request(move |transport, state, check| {
+-            let mut transport = transport.clone();
+-            transport.call_reply_observer = Some(Arc::new(retain_reply));
+-            transport.call_live_sync_snapshot_with_wait_timeout(
+-                state,
+-                &request,
+-                wait_timeout,
+-                || {
+-                    check()?;
+-                    before_submit()
+-                },
+-                |reply| runtime.block_on(wait_for_poll(reply, cancellation, account.stopped())),
+-            )
+-        })
+-        .await
+-    }
+@@ -555,58 +215 @@ impl NativeClient {
+-impl NativeClient {
+-    /// Upload one direct custom-sticker chunk. Journal before submission and
+-    /// retain the receipt; failure does not authorize an automatic resend.
+-    pub async fn upload_sticker_chunk(
+-        &self,
+-        source: &[u8],
+-        offset: u32,
+-    ) -> Result<crate::sticker_upload::StickerUploadAcknowledgement> {
+-        let source = source.to_vec();
+-        self.account_request(move |transport, state, _| {
+-            transport.upload_sticker_chunk_snapshot(state, &source, offset)
+-        })
+-        .await
+-    }
+-    /// Read one custom-list page. The caller checks advancing cursors, retains
+-    /// the receipt and reconciles official-profile state after a complete list.
+-    pub async fn custom_sticker_page(
+-        &self,
+-        index: u32,
+-        data: &[u8],
+-    ) -> Result<crate::custom_stickers::CustomStickerPage> {
+-        let request = crate::custom_stickers::custom_sticker_list_request(index, data)?;
+-        self.account_request(move |transport, state, _| {
+-            transport.custom_sticker_read_snapshot(state, &request)
+-        })
+-        .await
+-    }
+-    /// Read transport metadata for known custom sticker identities.
+-    pub async fn custom_sticker_metadata(
+-        &self,
+-        ids: &[String],
+-    ) -> Result<crate::custom_stickers::CustomStickerPage> {
+-        let request = crate::custom_stickers::custom_sticker_metadata_request(ids)?;
+-        self.account_request(move |transport, state, _| {
+-            transport.custom_sticker_read_snapshot(state, &request)
+-        })
+-        .await
+-    }
+-    /// Submit one journaled Saved mutation and return the original response even
+-    /// on service rejection. Retain it before decoding and then refresh the list.
+-    /// A transport error after submission leaves an uncertain outcome.
+-    pub async fn mutate_custom_sticker(
+-        &self,
+-        id: &str,
+-        action: &crate::custom_stickers::CustomStickerMutation,
+-    ) -> Result<Vec<u8>> {
+-        let request = crate::custom_stickers::custom_sticker_mutation_request(id, action)?;
+-        self.account_request(move |transport, state, _| {
+-            transport.authenticated_rpc(
+-                state,
+-                698,
+-                "/cgi-bin/micromsg-bin/mmbackupemojioperate",
+-                &request,
+-            )
+-        })
+-        .await
+-    }
+-}
++impl NativeClient {}
+@@ -614,53 +217 @@ impl NativeClient {
+-impl NativeClient {
+-    /// Read one public or account-added feed page. Check advancing cursors and
+-    /// consume the complete added feed before replacing membership in a profile.
+-    pub async fn sticker_pack_page(
+-        &self,
+-        feed: crate::sticker_packs::StickerPackFeed,
+-        cursor: &[u8],
+-    ) -> Result<crate::sticker_packs::StickerPackPage> {
+-        let cursor = cursor.to_vec();
+-        self.account_request(move |transport, state, _| {
+-            let request = crate::sticker_packs::sticker_pack_list_request(state, feed, &cursor)?;
+-            let raw = transport.sticker_pack_rpc_snapshot(state, 411, &request)?;
+-            crate::sticker_packs::decode_sticker_pack_page(&raw)
+-        })
+-        .await
+-    }
+-    /// Read product details and content references without adding or downloading it.
+-    pub async fn sticker_pack_detail(
+-        &self,
+-        id: &str,
+-    ) -> Result<crate::sticker_packs::StickerPackDetail> {
+-        let id = id.to_owned();
+-        self.account_request(move |transport, state, _| {
+-            let request = crate::sticker_packs::sticker_pack_detail_request(state, &id)?;
+-            let raw = transport.sticker_pack_rpc_snapshot(state, 412, &request)?;
+-            crate::sticker_packs::decode_sticker_pack_detail(&raw, &id)
+-        })
+-        .await
+-    }
+-    /// Read localized captions; their presence establishes neither membership nor entitlement.
+-    pub async fn sticker_pack_captions(
+-        &self,
+-        id: &str,
+-    ) -> Result<crate::sticker_packs::StickerPackCaptions> {
+-        let id = id.to_owned();
+-        self.account_request(move |transport, state, _| {
+-            let request = crate::sticker_packs::sticker_pack_captions_request(state, &id)?;
+-            let raw = transport.sticker_pack_rpc_snapshot(state, 521, &request)?;
+-            crate::sticker_packs::decode_sticker_pack_captions(&raw)
+-        })
+-        .await
+-    }
+-    /// Submit a single journaled eligible-free membership intent and retain the
+-    /// raw acknowledgement before interpreting acceptance. No automatic retry.
+-    pub async fn set_sticker_pack_membership_raw(&self, id: &str, added: bool) -> Result<Vec<u8>> {
+-        let id = id.to_owned();
+-        self.account_request(move |transport, state, _| {
+-            let request = crate::sticker_packs::sticker_pack_membership_request(state, &id, added)?;
+-            transport.sticker_pack_rpc_snapshot(state, 413, &request)
+-        })
+-        .await
+-    }
+-}
++impl NativeClient {}
+diff --git a/src/account_request.rs b/src/account_request.rs
+index e726058..f88affa 100644
+--- a/src/account_request.rs
++++ b/src/account_request.rs
+@@ -24,113 +23,0 @@ impl AccountRequest<'_> {
+-    /// Submit one direct sticker upload chunk. Journal the attempt before calling;
+-    /// an error after submission has an uncertain outcome and is not a retry grant.
+-    pub fn upload_sticker_chunk(
+-        &mut self,
+-        source: &[u8],
+-        offset: u32,
+-    ) -> Result<crate::sticker_upload::StickerUploadAcknowledgement> {
+-        self.admit()?;
+-        self.transport
+-            .upload_sticker_chunk_snapshot(self.state, source, offset)
+-    }
+-
+-    /// Return one custom-list or metadata reply for caller-owned receipt retention.
+-    /// The request must come from the bounded custom-sticker builders.
+-    pub fn custom_stickers_raw(&mut self, request: &[u8]) -> Result<Vec<u8>> {
+-        self.admit()?;
+-        ensure!(request.len() <= 65536, "sticker_request_limit");
+-        self.transport.authenticated_rpc(
+-            self.state,
+-            697,
+-            "/cgi-bin/micromsg-bin/mmbatchemojidownload",
+-            request,
+-        )
+-    }
+-    /// Submit one journaled Saved membership/placement intent, returning even a
+-    /// rejected service reply before decoding. A transport error is uncertain.
+-    pub fn mutate_custom_sticker(
+-        &mut self,
+-        id: &str,
+-        action: &crate::custom_stickers::CustomStickerMutation,
+-    ) -> Result<Vec<u8>> {
+-        let request = crate::custom_stickers::custom_sticker_mutation_request(id, action)?;
+-        self.admit()?;
+-        self.transport.authenticated_rpc(
+-            self.state,
+-            698,
+-            "/cgi-bin/micromsg-bin/mmbackupemojioperate",
+-            &request,
+-        )
+-    }
+-    /// Submit one direct upload chunk and return its raw acknowledgement for
+-    /// retention before validation. Callers must journal each attempted offset.
+-    pub fn upload_sticker_chunk_raw(&mut self, source: &[u8], offset: u32) -> Result<Vec<u8>> {
+-        let request = crate::sticker_upload::sticker_upload_request(source, offset)?;
+-        self.admit()?;
+-        self.transport.authenticated_rpc(
+-            self.state,
+-            703,
+-            "/cgi-bin/micromsg-bin/mmemojiupload",
+-            &request,
+-        )
+-    }
+-
+-    /// Read a native pack-list page for durable caller-owned receipt storage.
+-    pub fn sticker_pack_page_raw(
+-        &mut self,
+-        feed: crate::sticker_packs::StickerPackFeed,
+-        cursor: &[u8],
+-    ) -> Result<Vec<u8>> {
+-        let request = crate::sticker_packs::sticker_pack_list_request(self.state, feed, cursor)?;
+-        self.admit()?;
+-        self.transport
+-            .sticker_pack_rpc_snapshot(self.state, 411, &request)
+-    }
+-    /// Read full metadata/content references for one product without acquiring media.
+-    pub fn sticker_pack_detail_raw(&mut self, id: &str) -> Result<Vec<u8>> {
+-        let request = crate::sticker_packs::sticker_pack_detail_request(self.state, id)?;
+-        self.admit()?;
+-        self.transport
+-            .sticker_pack_rpc_snapshot(self.state, 412, &request)
+-    }
+-    /// Read localized caption rows for one product, retaining the complete reply.
+-    pub fn sticker_pack_captions_raw(&mut self, id: &str) -> Result<Vec<u8>> {
+-        let request = crate::sticker_packs::sticker_pack_captions_request(self.state, id)?;
+-        self.admit()?;
+-        self.transport
+-            .sticker_pack_rpc_snapshot(self.state, 521, &request)
+-    }
+-    /// Submit one journaled eligible-free membership change. The caller checks
+-    /// eligibility before adding, retains this reply and reconciles membership.
+-    /// A transport error is uncertain and never an automatic retry grant.
+-    pub fn sticker_pack_membership_raw(&mut self, id: &str, added: bool) -> Result<Vec<u8>> {
+-        let request = crate::sticker_packs::sticker_pack_membership_request(self.state, id, added)?;
+-        self.admit()?;
+-        self.transport
+-            .sticker_pack_rpc_snapshot(self.state, 413, &request)
+-    }
+-
+-    /// Acquire one archive locator without changing pack membership. Journal the
+-    /// attempt before calling and retain the raw reply before decoding it.
+-    pub fn sticker_pack_acquisition_raw(&mut self, id: &str) -> Result<Vec<u8>> {
+-        let request = crate::sticker_packs::sticker_pack_acquisition_request(self.state, id)?;
+-        self.admit()?;
+-        self.transport
+-            .sticker_pack_rpc_snapshot(self.state, 423, &request)
+-    }
+-
+-    /// Submit one journaled probe or byte continuation for a single sticker send.
+-    /// Return raw bytes for durable retention before validating acknowledgement.
+-    pub fn send_sticker_chunk_raw(
+-        &mut self,
+-        chunk: &crate::sticker_send::StickerSendChunk<'_>,
+-    ) -> Result<Vec<u8>> {
+-        let request = crate::sticker_send::sticker_send_request(self.state, chunk)?;
+-        self.admit()?;
+-        self.transport.authenticated_rpc(
+-            self.state,
+-            175,
+-            "/cgi-bin/micromsg-bin/sendemoji",
+-            &request,
+-        )
+-    }
+-
+@@ -151,24 +37,0 @@ impl AccountRequest<'_> {
+-    /// Read one exact OpenIM contact using optional group context and a supplied ticket.
+-    pub fn lookup_openim_contact(
+-        &mut self,
+-        username: &str,
+-        room: Option<&str>,
+-        ticket: Option<&str>,
+-    ) -> Result<crate::OpenImContact> {
+-        self.admit()?;
+-        self.transport
+-            .openim_contact_snapshot(self.state, username, room, ticket)
+-    }
+-
+-    /// Return the authenticated OpenIM reply bytes for caller-owned receipt storage and decoding.
+-    pub fn lookup_openim_contact_raw(
+-        &mut self,
+-        username: &str,
+-        room: Option<&str>,
+-        ticket: Option<&str>,
+-    ) -> Result<Vec<u8>> {
+-        self.admit()?;
+-        self.transport
+-            .openim_contact_raw_snapshot(self.state, username, room, ticket)
+-    }
+-
+@@ -181,4 +43,0 @@ impl AccountRequest<'_> {
+-    operation!(download_avatars(ids: &[String]) -> Vec<crate::AvatarBytes> => download_avatars_snapshot);
+-    operation!(download_voice_chunk(server_id: u64, length: u32, offset: u32) -> crate::VoiceChunk => download_voice_chunk_snapshot);
+-    operation!(cdn_config() -> crate::media::CdnConfig => cdn_config_snapshot);
+-    operation!(large_cdn_config(route: crate::media::LargeCdnRoute) -> crate::media::CdnConfig => large_cdn_config_snapshot);
+@@ -192,3 +50,0 @@ impl AccountRequest<'_> {
+-    operation!(group_mutation_raw(request: &crate::GroupRpc) -> Vec<u8> => group_mutation_raw_snapshot);
+-    operation!(recall_message(request: &crate::MessageRecall) -> crate::MessageRecallReply => recall_message_snapshot);
+-    operation!(notify_read_session(request: &crate::SessionReadNotification) -> crate::SessionReadReply => notify_read_session_snapshot);
+@@ -196,18 +51,0 @@ impl AccountRequest<'_> {
+-    operation!(send_share(destination: &str, client_id: &str, created_at: u32, content: &str) -> crate::media_send::MediaSendResult => send_share_snapshot);
+-    operation!(send_quote(destination: &str, client_id: &str, created_at: u32, content: &str, source: Option<&str>) -> crate::media_send::MediaSendResult => send_quote_with_source_snapshot);
+-    operation!(reserve_file_upload(destination: &str, client_id: &str, name: &str, length: usize, md5: &str) -> crate::file_upload::FileUploadReservation => reserve_file_upload_snapshot);
+-    operation!(send_file(destination: &str, client_id: &str, created_at: u32, upload: &crate::media::UploadedMedia, reservation: Option<&crate::file_upload::FileUploadReservation>) -> crate::media_send::MediaSendResult => send_file_with_reservation_snapshot);
+-    /// Submit the uploaded standard and thumbnail copies, including an original when present.
+-    pub fn send_image(
+-        &mut self,
+-        destination: &str,
+-        client_id: &str,
+-        upload: &crate::media::UploadedImage,
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        self.admit()?;
+-        self.transport
+-            .send_image_snapshot(self.state, destination, client_id, upload)
+-    }
+-
+-    operation!(send_video(destination: &str, client_id: &str, upload: &crate::media::UploadedVideo, seconds: u32) -> crate::media_send::MediaSendResult => send_video_snapshot);
+-    operation!(send_voice(destination: &str, client_id: &str, created_at: u32, duration_ms: u32, encoded: &[u8]) -> crate::media_send::MediaSendResult => send_voice_snapshot);
+@@ -248,52 +85,0 @@ impl AccountRequest<'_> {
+-
+-    pub fn call_rpc(
+-        &mut self,
+-        route: crate::calls::host_policy::CallHostRoute,
+-        request: &[u8],
+-        before_submit: impl FnOnce() -> Result<()>,
+-        retain_reply: impl FnOnce(&[u8]) -> Result<()>,
+-    ) -> Result<Vec<u8>> {
+-        self.admit()?;
+-        let cookie = Zeroizing::new(self.state.cookie.clone());
+-        let reply =
+-            self.transport
+-                .call_rpc_snapshot_guarded(self.state, route, request, before_submit)?;
+-        if let Err(error) = retain_reply(&reply) {
+-            // Retention failure cannot publish this request's new cookie. A
+-            // concurrent accepted account update is still protected by revision.
+-            zeroize::Zeroize::zeroize(&mut self.state.cookie);
+-            self.state.cookie = cookie.to_vec();
+-            return Err(error);
+-        }
+-        Ok(reply)
+-    }
+-
+-    /// Read-only call polling on an existing blocking worker. The caller owns
+-    /// the async wait/cancellation mechanism; this context retains the account
+-    /// lease until that transport future is dropped or completes.
+-    pub fn call_live_sync(
+-        &mut self,
+-        request: &[u8],
+-        wait_timeout: Duration,
+-        before_submit: impl FnOnce() -> Result<()>,
+-        wait: impl for<'a> FnOnce(
+-            std::pin::Pin<Box<dyn Future<Output = Result<Vec<u8>>> + Send + 'a>>,
+-        ) -> Result<Vec<u8>>,
+-        retain_reply: impl FnOnce(&[u8]) -> Result<()>,
+-    ) -> Result<Vec<u8>> {
+-        self.admit()?;
+-        let cookie = Zeroizing::new(self.state.cookie.clone());
+-        let reply = self.transport.call_live_sync_snapshot_with_wait_timeout(
+-            self.state,
+-            request,
+-            wait_timeout,
+-            before_submit,
+-            wait,
+-        )?;
+-        if let Err(error) = retain_reply(&reply) {
+-            zeroize::Zeroize::zeroize(&mut self.state.cookie);
+-            self.state.cookie = cookie.to_vec();
+-            return Err(error);
+-        }
+-        Ok(reply)
+-    }
+diff --git a/src/account_tests.rs b/src/account_tests.rs
+index 65a05af..545e519 100644
+--- a/src/account_tests.rs
++++ b/src/account_tests.rs
+@@ -33,83 +32,0 @@ pub(super) fn client() -> NativeClient {
+-fn call_reply(state: &AccountState) -> Vec<u8> {
+-    let plain = b"synthetic call reply";
+-    let cipher =
+-        crate::crypto::cbc(plain, &state.session_key, openssl::symm::Mode::Encrypt).unwrap();
+-    let cookie = b"new";
+-    let mut tail = Vec::new();
+-    for value in [7994, plain.len() as u64, plain.len() as u64, 0, 0] {
+-        tail.extend(crate::protobuf::varint(value));
+-    }
+-    let size = 10 + cookie.len() + tail.len();
+-    let flags = (5u16 << 12) | ((cookie.len() as u16) << 8) | ((size as u16) << 2) | 2;
+-    let mut reply = flags.to_le_bytes().to_vec();
+-    reply.extend(0i32.to_be_bytes());
+-    reply.extend(state.uin.to_be_bytes());
+-    reply.extend(cookie);
+-    reply.extend(tail);
+-    reply.extend(cipher);
+-    reply
+-}
+-
+-#[tokio::test]
+-async fn verified_reply_is_retained_before_owned_cookie_adoption() {
+-    let client = client();
+-    let retained = Arc::new(Mutex::new(Vec::new()));
+-    let receipt = retained.clone();
+-    let reply = client
+-        .account_request(move |transport, state, _| {
+-            let reply = call_reply(state);
+-            let mut transport = transport.clone();
+-            transport.call_reply_observer = Some(Arc::new(move |plain| {
+-                *receipt.lock().unwrap() = plain.to_vec();
+-                Ok(())
+-            }));
+-            transport.accept_call_reply(state, 7994, &reply)
+-        })
+-        .await
+-        .unwrap();
+-    assert_eq!(*retained.lock().unwrap(), b"synthetic call reply");
+-    assert_eq!(reply, b"synthetic call reply");
+-    assert_eq!(client.export_account_state().unwrap().cookie, b"new");
+-}
+-
+-#[tokio::test]
+-async fn receipt_storage_failure_never_adopts_cookie_or_returns_allocation() {
+-    let client = client();
+-    let result = client
+-        .account_request(move |transport, state, _| {
+-            let reply = call_reply(state);
+-            let mut transport = transport.clone();
+-            transport.call_reply_observer = Some(Arc::new(|_| {
+-                anyhow::bail!("Synthetic receipt storage failure")
+-            }));
+-            transport.accept_call_reply(state, 7994, &reply)
+-        })
+-        .await;
+-    assert!(result.is_err());
+-    assert!(client.export_account_state().unwrap().cookie.is_empty());
+-    assert_eq!(client.account_status().unwrap().revision, 0);
+-}
+-
+-#[test]
+-fn unverified_reply_never_reaches_receipt_observer() {
+-    let owner = client();
+-    let mut state = owner.export_account_state().unwrap();
+-    let mut reply = call_reply(&state);
+-    // An authenticated command mismatch must be rejected before journal callbacks.
+-    let observed = Arc::new(AtomicBool::new(false));
+-    let observer = observed.clone();
+-    let mut transport = NativeClient::new(NativeOptions::default()).unwrap();
+-    transport.call_reply_observer = Some(Arc::new(move |_| {
+-        observer.store(true, Ordering::Release);
+-        Ok(())
+-    }));
+-    assert!(transport
+-        .accept_call_reply(&mut state, 8069, &reply)
+-        .is_err());
+-    reply.pop();
+-    assert!(transport
+-        .accept_call_reply(&mut state, 7994, &reply)
+-        .is_err());
+-    assert!(!observed.load(Ordering::Acquire));
+-    assert!(state.cookie.is_empty());
+-}
+@@ -284 +201 @@ async fn account_fence_preserves_original_interruption_error_for_reconciliation(
+-            Err(crate::calls::host_transport::CallLiveSyncInterrupted.into())
++            Err(crate::AccountInterrupted::Stopped.into())
+@@ -287,4 +204 @@ async fn account_fence_preserves_original_interruption_error_for_reconciliation(
+-    assert!(result
+-        .err()
+-        .unwrap()
+-        .is::<crate::calls::host_transport::CallLiveSyncInterrupted>());
++    assert!(result.err().unwrap().is::<crate::AccountInterrupted>());
+@@ -505,30 +418,0 @@ async fn abandoned_request_cannot_submit_after_preparation() {
+-#[tokio::test]
+-async fn stopped_owner_interrupts_poll_without_holding_account_lock() {
+-    let client = client();
+-    let owner = client.owned_account().unwrap().clone();
+-    let poll = tokio::spawn(async move {
+-        wait_for_poll(
+-            std::future::pending(),
+-            std::future::pending(),
+-            owner.stopped(),
+-        )
+-        .await
+-    });
+-    client.stop().unwrap();
+-    let error = poll.await.unwrap().unwrap_err();
+-    assert!(error.is::<crate::calls::host_transport::CallLiveSyncInterrupted>());
+-}
+-
+-#[tokio::test]
+-async fn cancelled_poll_does_not_apply_a_simultaneously_ready_reply() {
+-    let result = wait_for_poll(
+-        async { Ok(vec![1, 2, 3]) },
+-        async {},
+-        std::future::pending(),
+-    )
+-    .await;
+-    let error = result.unwrap_err();
+-    assert!(error.is::<crate::calls::host_transport::CallLiveSyncInterrupted>());
+-    assert!(!error.is::<NativeRequestNotSubmitted>());
+-}
+-
+@@ -560,11 +443,0 @@ async fn stopping_a_later_chunk_does_not_claim_the_whole_operation_was_unsent()
+-#[tokio::test]
+-async fn verified_reply_survives_when_no_cancellation_is_ready() {
+-    let result = wait_for_poll(
+-        async { Ok(vec![1, 2, 3]) },
+-        std::future::pending(),
+-        std::future::pending(),
+-    )
+-    .await;
+-    assert_eq!(result.unwrap(), vec![1, 2, 3]);
+-}
+-
+diff --git a/src/client.rs b/src/client.rs
+index c58d06f..f1abb0e 100644
+--- a/src/client.rs
++++ b/src/client.rs
+@@ -1,3 +0,0 @@
+-#[path = "group_mutation.rs"]
+-mod group_mutation;
+-pub use group_mutation::*;
+@@ -11,0 +9,2 @@ mod account;
++#[path = "login_lan_wire.rs"]
++mod login_lan_wire;
+@@ -14,4 +13 @@ mod logout;
+-#[path = "revoke.rs"]
+-mod revoke;
+-#[path = "status_notify.rs"]
+-mod status_notify;
++
+@@ -20,2 +16,2 @@ pub use crate::wire::{
+-    AddMessage, AvatarBytes, ContactLookup, ContactRecord, Heartbeat, InitContactPage, RoomMember,
+-    RoomRoster, SyncBatch, SyncCommand, TextSendResult, VoiceChunk,
++    AddMessage, ContactLookup, ContactRecord, Heartbeat, InitContactPage, RoomMember, RoomRoster,
++    SyncBatch, SyncCommand, TextSendResult,
+@@ -37 +32,0 @@ use openssl::{nid::Nid, pkey::PKey, rsa::Rsa};
+-pub use revoke::*;
+@@ -39 +33,0 @@ use serde::{Deserialize, Serialize};
+-pub use status_notify::*;
+@@ -41 +35,38 @@ use std::{fmt, time::Duration};
+-use zeroize::Zeroize;
++use zeroize::{Zeroize, Zeroizing};
++
++/// Volatile authority for one QR operation. It cannot be serialized or revived.
++#[derive(Clone)]
++pub struct LoginGuard {
++    cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
++    deadline: std::time::Instant,
++}
++impl LoginGuard {
++    pub fn new(deadline: std::time::Instant) -> Self {
++        Self {
++            cancelled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
++            deadline,
++        }
++    }
++    pub fn cancel(&self) {
++        self.cancelled
++            .store(true, std::sync::atomic::Ordering::Release);
++    }
++    pub fn interrupted(&self) -> bool {
++        self.cancelled.load(std::sync::atomic::Ordering::Acquire)
++            || std::time::Instant::now() >= self.deadline
++    }
++    pub fn bounded(&self, duration: Duration) -> Self {
++        Self {
++            cancelled: self.cancelled.clone(),
++            deadline: self.deadline.min(std::time::Instant::now() + duration),
++        }
++    }
++    pub fn remaining(&self) -> Duration {
++        self.deadline
++            .saturating_duration_since(std::time::Instant::now())
++    }
++    fn check(&self) -> Result<()> {
++        ensure!(!self.interrupted(), "Login operation interrupted");
++        Ok(())
++    }
++}
+@@ -192,129 +223 @@ impl AccountState {
+-impl AccountState {
+-    /// Import an operator-selected private baseline checkpoint. This only converts
+-    /// explicit standalone credentials; it never searches or reads official files.
+-    /// Return diagnostics contain field names, never supplied credential values.
+-    pub fn from_baseline_json(input: &[u8]) -> Result<Self> {
+-        use base64::{engine::general_purpose::STANDARD, Engine};
+-        ensure!(
+-            input.len() <= 8 * 1024 * 1024,
+-            "Baseline checkpoint too large"
+-        );
+-        let value: serde_json::Value = serde_json::from_slice(input)
+-            .map_err(|_| anyhow::anyhow!("Invalid baseline checkpoint JSON"))?;
+-        let object = value
+-            .as_object()
+-            .ok_or_else(|| anyhow::anyhow!("Invalid baseline checkpoint object"))?;
+-        let string = |name: &str| -> Result<String> {
+-            object
+-                .get(name)
+-                .and_then(|v| v.as_str())
+-                .map(str::to_string)
+-                .ok_or_else(|| anyhow::anyhow!("Missing baseline field {name}"))
+-        };
+-        let decode = |name: &str, required: bool| -> Result<Vec<u8>> {
+-            let encoded = match object.get(name) {
+-                Some(v) => v
+-                    .as_str()
+-                    .ok_or_else(|| anyhow::anyhow!("Invalid baseline field {name}"))?,
+-                None if !required => "",
+-                _ => bail!("Missing baseline field {name}"),
+-            };
+-            let bytes = STANDARD
+-                .decode(encoded)
+-                .map_err(|_| anyhow::anyhow!("Invalid baseline encoding {name}"))?;
+-            ensure!(
+-                STANDARD.encode(&bytes) == encoded,
+-                "Noncanonical baseline encoding {name}"
+-            );
+-            Ok(bytes)
+-        };
+-        ensure!(
+-            object.get("schema").and_then(|v| v.as_u64()) == Some(1),
+-            "Unsupported baseline schema"
+-        );
+-        let uin = match object.get("uin") {
+-            Some(serde_json::Value::String(s)) => s
+-                .parse::<u32>()
+-                .map_err(|_| anyhow::anyhow!("Invalid baseline UIN"))?,
+-            Some(n) => u32::try_from(
+-                n.as_u64()
+-                    .ok_or_else(|| anyhow::anyhow!("Invalid baseline UIN"))?,
+-            )?,
+-            None => bail!("Missing baseline UIN"),
+-        };
+-        let account = decode("accountSect", false)?;
+-        let section_username = if account.is_empty() {
+-            None
+-        } else {
+-            let f = p::decode(&account)?;
+-            p::optional_data(&f, 1)?
+-                .map(|v| std::str::from_utf8(v).map(str::to_string))
+-                .transpose()
+-                .map_err(|_| anyhow::anyhow!("Invalid baseline account username"))?
+-        };
+-        let own_username = object
+-            .get("ownUsername")
+-            .or_else(|| object.get("username"))
+-            .map(|v| {
+-                v.as_str()
+-                    .map(str::to_string)
+-                    .ok_or_else(|| anyhow::anyhow!("Invalid baseline username"))
+-            })
+-            .transpose()?
+-            .or(section_username.clone())
+-            .ok_or_else(|| anyhow::anyhow!("Missing baseline account identity"))?;
+-        ensure!(
+-            section_username.is_none_or(|s| s == own_username),
+-            "Baseline account identity mismatch"
+-        );
+-        let state =
+-            Self {
+-                schema: 1,
+-                device: DeviceProfile {
+-                    device_id: decode("deviceId", true)?,
+-                    device_type: string("deviceType")?,
+-                    client_version: i32::try_from(
+-                        object
+-                            .get("clientVersion")
+-                            .and_then(|v| v.as_i64())
+-                            .ok_or_else(|| anyhow::anyhow!("Invalid baseline client version"))?,
+-                    )?,
+-                },
+-                uin,
+-                own_username,
+-                cookie: decode("cookie", false)?,
+-                session_key: decode("sessionKey", true)?,
+-                request_key: decode("field23", false)?,
+-                response_key: decode("field24", false)?,
+-                auto_auth_key: decode("autoAuthKey", false)?,
+-                key_info: decode("keyInfo", false)?,
+-                database_password: decode("databasePassword", false)?,
+-                auth_snapshot: AuthSnapshot {
+-                    update_mask: match object.get("authSections") {
+-                        Some(serde_json::Value::String(value)) => value.parse()?,
+-                        Some(value) => u32::try_from(value.as_u64().ok_or_else(|| {
+-                            anyhow::anyhow!("Invalid baseline auth section mask")
+-                        })?)?,
+-                        None => 0,
+-                    },
+-                    response: decode("authResponse", false)?,
+-                    auth: decode("authSect", false)?,
+-                    account,
+-                    network: decode("networkSect", false)?,
+-                    ax_auth: decode("axAuthSect", false)?,
+-                },
+-                long_host: object
+-                    .get("longHost")
+-                    .and_then(|v| v.as_str())
+-                    .unwrap_or("long.weixin.qq.com")
+-                    .to_string(),
+-                short_host: object
+-                    .get("shortHost")
+-                    .and_then(|v| v.as_str())
+-                    .unwrap_or("short.weixin.qq.com")
+-                    .to_string(),
+-            };
+-        state.validate()?;
+-        Ok(state)
+-    }
+-}
++impl AccountState {}
+@@ -322,2 +225 @@ impl AccountState {
+-#[derive(Clone, Serialize, Deserialize)]
+-#[serde(deny_unknown_fields)]
++#[derive(Clone)]
+@@ -340 +241,0 @@ pub struct LoginAttempt {
+-    #[serde(default)]
+@@ -344 +245 @@ pub struct LoginAttempt {
+-    #[serde(default)]
++    lan_was_required: bool,
+@@ -346,3 +246,0 @@ pub struct LoginAttempt {
+-    // Socket/token ownership never survives serialization or daemon restart.
+-    #[serde(skip)]
+-    lan_challenge: Option<std::sync::Arc<crate::lan_login::Challenge>>,
+@@ -362 +259,0 @@ impl Drop for LoginAttempt {
+-        self.stop_lan_login();
+@@ -372,12 +269 @@ impl LoginAttempt {
+-    pub fn lan_login_state(&self) -> Option<&'static str> {
+-        self.lan_challenge
+-            .as_ref()
+-            .map(|challenge| challenge.status())
+-    }
+-    fn stop_lan_login(&mut self) {
+-        if let Some(challenge) = self.lan_challenge.take() {
+-            challenge.stop();
+-        }
+-    }
+-    pub fn qr_svg(&self) -> Result<String> {
+-        use base64::Engine;
++    fn claim_lan_upload(&mut self) -> Result<()> {
+@@ -385,2 +271,4 @@ impl LoginAttempt {
+-            !self.qr_png.is_empty(),
+-            "This saved-device attempt has no QR"
++            self.lan_was_required
++                && self.status == LoginStatus::Scanned
++                && !self.lan_upload_attempted,
++            "LAN upload not permitted for this attempt"
+@@ -388,2 +276,4 @@ impl LoginAttempt {
+-        let encoded = base64::engine::general_purpose::STANDARD.encode(&self.qr_png);
+-        Ok(format!("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"530\" height=\"530\" viewBox=\"0 0 265 265\"><rect width=\"265\" height=\"265\" fill=\"white\"/><image x=\"40\" y=\"40\" width=\"185\" height=\"185\" style=\"image-rendering:pixelated\" href=\"data:image/png;base64,{encoded}\"/></svg>"))
++        // Set before any request preparation or network. An uncertain upload
++        // can never be replayed by subsequent polling or another local call.
++        self.lan_upload_attempted = true;
++        Ok(())
+@@ -486 +375,0 @@ pub struct NativeClient {
+-    call_reply_observer: Option<std::sync::Arc<CallReplyObserver>>,
+@@ -488 +376,0 @@ pub struct NativeClient {
+-type CallReplyObserver = dyn Fn(&[u8]) -> Result<()> + Send + Sync;
+@@ -492,3 +379,0 @@ pub fn is_retryable_login_poll_error(error: &anyhow::Error) -> bool {
+-    if crate::login_lan_error_reason(error).is_some() {
+-        return false;
+-    }
+@@ -522,0 +408,79 @@ impl NativeClient {
++    fn guarded_login(&self, guard: LoginGuard) -> Self {
++        let mut client = self.clone();
++        let previous = self.submission_guard.clone();
++        client.submission_guard = Some(std::sync::Arc::new(move || {
++            guard.check()?;
++            if let Some(previous) = &previous {
++                previous()?;
++            }
++            Ok(())
++        }));
++        client
++    }
++    pub fn start_qr_login_guarded(
++        &self,
++        device: DeviceProfile,
++        computer_name: &str,
++        guard: LoginGuard,
++    ) -> Result<LoginAttempt> {
++        guard.check()?;
++        self.guarded_login(guard)
++            .start_qr_login(device, computer_name)
++    }
++    pub fn poll_login_cancellable(
++        &self,
++        attempt: &mut LoginAttempt,
++        guard: LoginGuard,
++    ) -> Result<LoginStatus> {
++        guard.check()?;
++        let client = self.guarded_login(guard.clone());
++        client.poll_login_guarded(attempt, guard.deadline, move || guard.interrupted())
++    }
++    /// Only the owner-authorized connection service supplies locally bound
++    /// endpoints. This performs one fixed authenticated upload, no listening.
++    pub fn upload_login_lan_guarded(
++        &self,
++        attempt: &mut LoginAttempt,
++        addresses: &[std::net::Ipv4Addr],
++        port: u16,
++        guard: LoginGuard,
++    ) -> Result<Zeroizing<Vec<u8>>> {
++        guard.check()?;
++        attempt.validate()?;
++        attempt.claim_lan_upload()?;
++        let random = Zeroizing::new(crate::crypto::random::<16>()?);
++        let request = Zeroizing::new(login_lan_wire::request(
++            &attempt.device,
++            &attempt.identifier,
++            addresses,
++            port,
++            &random,
++        )?);
++        let client = self.guarded_login(guard.clone());
++        let (reply, cookie, _) = client.prelogin_rpc(
++            &attempt.long_host,
++            &attempt.short_host,
++            22312,
++            "/cgi-bin/micromsg-bin/extdeviceuploadlaninfo",
++            &request,
++            &attempt.cookie,
++            &[],
++            Some(attempt.key_version),
++        )?;
++        let reply = Zeroizing::new(reply);
++        guard.check()?;
++        let token = login_lan_wire::token(&reply)?;
++        if !cookie.is_empty() {
++            attempt.cookie.zeroize();
++            attempt.cookie = cookie;
++        }
++        Ok(token)
++    }
++    pub fn complete_login_guarded(
++        &self,
++        attempt: &mut LoginAttempt,
++        guard: LoginGuard,
++    ) -> Result<AccountState> {
++        guard.check()?;
++        self.guarded_login(guard).complete_login(attempt)
++    }
+@@ -539 +502,0 @@ impl NativeClient {
+-            call_reply_observer: None,
+@@ -595 +558 @@ impl NativeClient {
+-    pub fn start_profile_qr_login(
++    pub(crate) fn start_profile_qr_login(
+@@ -634,0 +598 @@ impl NativeClient {
++            lan_was_required: false,
+@@ -636 +599,0 @@ impl NativeClient {
+-            lan_challenge: None,
+@@ -658,21 +621 @@ impl NativeClient {
+-    /// Use remembered official-profile trust without inventing active session keys.
+-    pub fn start_profile_saved_device_login(
+-        &self,
+-        device: &DeviceProfile,
+-        username: &str,
+-        auto_auth_key: &[u8],
+-        cookie: &[u8],
+-        key_info: &[u8],
+-        computer_name: &str,
+-    ) -> Result<LoginAttempt> {
+-        self.start_saved_login(
+-            device,
+-            username,
+-            auto_auth_key,
+-            cookie,
+-            key_info,
+-            &self.options.long_host,
+-            &self.options.short_host,
+-            computer_name,
+-        )
+-    }
++
+@@ -735,0 +679 @@ impl NativeClient {
++            lan_was_required: false,
+@@ -737 +680,0 @@ impl NativeClient {
+-            lan_challenge: None,
+@@ -749,2 +692,2 @@ impl NativeClient {
+-    /// The guard bounds the temporary LAN listener even while a blocking poll
+-    /// or upload is in flight. It must not perform blocking work itself.
++    /// The connection service owns any explicitly permitted temporary listener.
++    /// This function only polls; it cannot open or automatically upload LAN data.
+@@ -756,0 +700,4 @@ impl NativeClient {
++        ensure!(
++            !cancelled() && std::time::Instant::now() < deadline,
++            "Login operation cancelled or expired"
++        );
+@@ -759 +705,0 @@ impl NativeClient {
+-            attempt.stop_lan_login();
+@@ -786,44 +732,5 @@ impl NativeClient {
+-        let remaining = attempt
+-            .created_at
+-            .saturating_add(900)
+-            .saturating_sub(wire::unix_time()?);
+-        let deadline =
+-            deadline.min(std::time::Instant::now() + Duration::from_secs(u64::from(remaining)));
+-        let scope = crate::lan_login::Scope::new(deadline, cancelled);
+-        apply_login_notification(attempt, response, |attempt| {
+-            self.start_lan_login(attempt, scope)
+-        })
+-    }
+-    fn start_lan_login(
+-        &self,
+-        attempt: &mut LoginAttempt,
+-        scope: crate::lan_login::Scope,
+-    ) -> Result<std::sync::Arc<crate::lan_login::Challenge>> {
+-        use crate::lan_login as lan;
+-        let challenge = std::sync::Arc::new(lan::Challenge::bind(scope)?);
+-        let random = zeroize::Zeroizing::new(crate::crypto::random::<16>()?);
+-        let request = zeroize::Zeroizing::new(challenge.request(
+-            &attempt.device,
+-            &attempt.identifier,
+-            &random,
+-        )?);
+-        let (reply, cookie, _) = self
+-            .prelogin_rpc(
+-                &attempt.long_host,
+-                &attempt.short_host,
+-                lan::CGI,
+-                lan::PATH,
+-                &request,
+-                &attempt.cookie,
+-                &[],
+-                Some(attempt.key_version),
+-            )
+-            .map_err(|_| lan::failure("upload_failed"))?;
+-        let reply = zeroize::Zeroizing::new(reply);
+-        let token =
+-            lan::response(&reply).map_err(|_| lan::failure("upload_rejected_or_invalid"))?;
+-        challenge.arm(&token)?;
+-        if !cookie.is_empty() {
+-            attempt.cookie = cookie;
+-        }
+-        Ok(challenge)
++        ensure!(
++            !cancelled() && std::time::Instant::now() < deadline,
++            "Login operation cancelled or expired"
++        );
++        apply_login_notification(attempt, response)
+@@ -830,0 +738 @@ impl NativeClient {
++
+@@ -834 +741,0 @@ impl NativeClient {
+-        attempt.stop_lan_login();
+@@ -939,114 +845,0 @@ impl NativeClient {
+-    /// One internal snapshot exchange with a final account check after
+-    /// handshake/preparation and before handing business bytes to transport.
+-    /// A guard cannot retract bytes after transport handoff. Handshake traffic
+-    /// can already have occurred when this guard stops the business request.
+-    pub(crate) fn call_rpc_snapshot_guarded(
+-        &self,
+-        state: &mut AccountState,
+-        route: crate::calls::host_policy::CallHostRoute,
+-        request: &[u8],
+-        before_submit: impl FnOnce() -> Result<()>,
+-    ) -> Result<Vec<u8>> {
+-        self.call_rpc_with_exchange(state, route, request, before_submit, mmtls::short_exchange)
+-    }
+-
+-    /// Wait longer for a read-only call poll while retaining the ordinary
+-    /// handshake deadline. The host must be able to interrupt this wait when
+-    /// its call/media lifetime ends; no request is retried by this method.
+-    #[doc(hidden)]
+-    pub(crate) fn call_live_sync_snapshot_with_wait_timeout(
+-        &self,
+-        state: &mut AccountState,
+-        request: &[u8],
+-        wait_timeout: Duration,
+-        before_submit: impl FnOnce() -> Result<()>,
+-        wait: impl for<'a> FnOnce(
+-            std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<u8>>> + Send + 'a>>,
+-        ) -> Result<Vec<u8>>,
+-    ) -> Result<Vec<u8>> {
+-        ensure!(
+-            !wait_timeout.is_zero() && wait_timeout <= Duration::from_secs(120),
+-            "Invalid call poll wait timeout"
+-        );
+-        self.call_rpc_with_exchange(
+-            state,
+-            crate::calls::host_policy::CallHostRoute::LiveSync,
+-            request,
+-            before_submit,
+-            |session, host, path, payload, _| {
+-                wait(Box::pin(mmtls::short_exchange_interruptible(
+-                    session,
+-                    host,
+-                    path,
+-                    payload,
+-                    wait_timeout,
+-                )))
+-            },
+-        )
+-    }
+-
+-    fn call_rpc_with_exchange(
+-        &self,
+-        state: &mut AccountState,
+-        route: crate::calls::host_policy::CallHostRoute,
+-        request: &[u8],
+-        before_submit: impl FnOnce() -> Result<()>,
+-        exchange: impl FnOnce(&mmtls::ShortSession, &str, &str, &[u8], Duration) -> Result<Vec<u8>>,
+-    ) -> Result<Vec<u8>> {
+-        use crate::calls::{
+-            host_policy::{selected_policy, CallHostPolicy},
+-            host_transport::{CallHostRpcError, CallHostStage},
+-        };
+-        self.check_snapshot_transport()?;
+-        mmtls::validate_short_route(route.path())
+-            .map_err(|error| CallHostRpcError::from_cause(CallHostStage::Route, &error))?;
+-        let policy = selected_policy(&state.auth_snapshot, route.command())
+-            .map_err(|_| CallHostRpcError::new(CallHostStage::Route, "policy", None))?;
+-        if policy != CallHostPolicy::Ordinary {
+-            return Err(CallHostRpcError::new(CallHostStage::Route, "ax_unsupported", None).into());
+-        }
+-        let session = Session::connect(
+-            &state.long_host,
+-            self.options.timeout,
+-            self.options.receive_budget,
+-        )
+-        .map_err(|error| CallHostRpcError::from_cause(CallHostStage::Handshake, &error))?;
+-        let packet = AuthenticatedPacket::prepare(state, route.command(), request)
+-            .map_err(|error| CallHostRpcError::from_cause(CallHostStage::Prepare, &error))?;
+-        self.check_submission()?;
+-        before_submit()?;
+-        let reply = exchange(
+-            &session.short,
+-            &state.short_host,
+-            route.path(),
+-            &packet.packet,
+-            self.options.timeout,
+-        )
+-        .map_err(|error| {
+-            if error.is::<crate::calls::host_transport::CallLiveSyncInterrupted>() {
+-                error
+-            } else {
+-                CallHostRpcError::from_cause(CallHostStage::Exchange, &error).into()
+-            }
+-        })?;
+-        self.accept_call_reply(state, route.command(), &reply)
+-    }
+-
+-    fn accept_call_reply(
+-        &self,
+-        state: &mut AccountState,
+-        command: u16,
+-        reply: &[u8],
+-    ) -> Result<Vec<u8>> {
+-        let (plain, cookie) =
+-            crate::calls::host_transport::decode_verified_reply(state, command, reply)?;
+-        // The embedding journal must retain an authenticated allocation before
+-        // accepted account updates become visible or a call actor advances.
+-        if let Some(retain) = &self.call_reply_observer {
+-            retain(&plain)?;
+-        }
+-        if !cookie.is_empty() {
+-            state.cookie = cookie;
+-        }
+-        Ok(plain)
+-    }
+@@ -1187,228 +979,0 @@ impl NativeClient {
+-    #[doc(hidden)]
+-    pub(crate) fn download_avatars_snapshot(
+-        &self,
+-        state: &mut AccountState,
+-        usernames: &[String],
+-    ) -> Result<Vec<AvatarBytes>> {
+-        let request = wire::avatar_request(state, usernames)?;
+-        wire::decode_avatars(
+-            &self.authenticated_rpc(
+-                state,
+-                123,
+-                "/cgi-bin/micromsg-bin/batchgetheadimg",
+-                &request,
+-            )?,
+-            usernames,
+-        )
+-    }
+-    #[doc(hidden)]
+-    pub(crate) fn download_voice_chunk_snapshot(
+-        &self,
+-        state: &mut AccountState,
+-        server_message_id: u64,
+-        total_length: u32,
+-        offset: u32,
+-    ) -> Result<VoiceChunk> {
+-        let request = wire::voice_request(state, server_message_id, total_length, offset)?;
+-        wire::decode_voice(
+-            &self.authenticated_rpc(state, 128, "/cgi-bin/micromsg-bin/downloadvoice", &request)?,
+-            server_message_id,
+-            total_length,
+-            offset,
+-        )
+-    }
+-    #[doc(hidden)]
+-    pub(crate) fn cdn_config_snapshot(
+-        &self,
+-        state: &mut AccountState,
+-    ) -> Result<crate::media::CdnConfig> {
+-        let request = p::bytes(1, &wire::base_request(&state.device, state.uin, 0)?);
+-        let reply =
+-            self.authenticated_rpc(state, 379, "/cgi-bin/micromsg-bin/getcdndns", &request)?;
+-        crate::media::decode_cdn_config(&reply, state)
+-    }
+-    #[doc(hidden)]
+-    pub(crate) fn large_cdn_config_snapshot(
+-        &self,
+-        state: &mut AccountState,
+-        route: crate::media::LargeCdnRoute,
+-    ) -> Result<crate::media::CdnConfig> {
+-        let request = p::bytes(1, &wire::base_request(&state.device, state.uin, 0)?);
+-        let reply =
+-            self.authenticated_rpc(state, 379, "/cgi-bin/micromsg-bin/getcdndns", &request)?;
+-        crate::media::decode_large_cdn_config(&reply, state, route)
+-    }
+-    /// Submit a URL card once through the app-message carrier. The caller owns
+-    /// the durable intent and must inspect an uncertain submission outcome.
+-    #[doc(hidden)]
+-    pub(crate) fn send_share_snapshot(
+-        &self,
+-        state: &mut AccountState,
+-        destination: &str,
+-        client_id: &str,
+-        created_at: u32,
+-        content: &str,
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let request = crate::media_send::share_send_request(
+-            state,
+-            destination,
+-            client_id,
+-            created_at,
+-            content,
+-        )?;
+-        crate::media_send::decode_file_send(
+-            &self.authenticated_rpc(state, 222, "/cgi-bin/micromsg-bin/sendappmsg", &request)?,
+-            client_id,
+-        )
+-    }
+-
+-    #[doc(hidden)]
+-    pub(crate) fn send_quote_with_source_snapshot(
+-        &self,
+-        state: &mut AccountState,
+-        destination: &str,
+-        client_id: &str,
+-        created_at: u32,
+-        content: &str,
+-        source: Option<&str>,
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let request = crate::quote_send::quote_send_request_with_source(
+-            state,
+-            destination,
+-            client_id,
+-            created_at,
+-            content,
+-            source,
+-        )?;
+-        crate::media_send::decode_file_send(
+-            &self.authenticated_rpc(state, 222, "/cgi-bin/micromsg-bin/sendappmsg", &request)?,
+-            client_id,
+-        )
+-    }
+-    /// Reserve one file-upload message. An uncertain response must not be
+-    /// retried automatically; retain the returned receipt with the send intent.
+-    #[doc(hidden)]
+-    pub(crate) fn reserve_file_upload_snapshot(
+-        &self,
+-        state: &mut AccountState,
+-        destination: &str,
+-        progress_client_id: &str,
+-        file_name: &str,
+-        plaintext_bytes: usize,
+-        md5: &str,
+-    ) -> Result<crate::file_upload::FileUploadReservation> {
+-        let request = crate::file_upload::file_upload_request(
+-            state,
+-            destination,
+-            progress_client_id,
+-            file_name,
+-            plaintext_bytes,
+-            md5,
+-        )?;
+-        crate::file_upload::decode_file_upload_reservation(&self.authenticated_rpc(
+-            state,
+-            6691,
+-            "/cgi-bin/micromsg-bin/sendfileuploadmsg",
+-            &request,
+-        )?)
+-    }
+-
+-    #[allow(clippy::too_many_arguments)]
+-    #[doc(hidden)]
+-    pub(crate) fn send_file_with_reservation_snapshot(
+-        &self,
+-        state: &mut AccountState,
+-        destination: &str,
+-        client_id: &str,
+-        created_at: u32,
+-        upload: &crate::media::UploadedMedia,
+-        reservation: Option<&crate::file_upload::FileUploadReservation>,
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let request = crate::media_send::file_send_request_with_reservation(
+-            state,
+-            destination,
+-            client_id,
+-            created_at,
+-            upload,
+-            reservation,
+-        )?;
+-        let reply =
+-            self.authenticated_rpc(state, 222, "/cgi-bin/micromsg-bin/sendappmsg", &request)?;
+-        if reservation.is_some() {
+-            crate::media_send::decode_file_send_correlated(
+-                &reply,
+-                client_id,
+-                &state.own_username,
+-                destination,
+-                &upload.descriptor.aes_key,
+-            )
+-        } else {
+-            crate::media_send::decode_file_send(&reply, client_id)
+-        }
+-    }
+-    #[doc(hidden)]
+-    pub(crate) fn send_image_snapshot(
+-        &self,
+-        state: &mut AccountState,
+-        destination: &str,
+-        client_id: &str,
+-        upload: &crate::media::UploadedImage,
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let request = crate::media_send::image_send_request(state, destination, client_id, upload)?;
+-        crate::media_send::decode_image_send(
+-            &self.authenticated_rpc(state, 110, "/cgi-bin/micromsg-bin/uploadmsgimg", &request)?,
+-            client_id,
+-            &state.own_username,
+-            destination,
+-        )
+-    }
+-    #[doc(hidden)]
+-    pub(crate) fn send_video_snapshot(
+-        &self,
+-        state: &mut AccountState,
+-        destination: &str,
+-        client_id: &str,
+-        upload: &crate::media::UploadedVideo,
+-        play_seconds: u32,
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let request = crate::media_send::video_send_request(
+-            state,
+-            destination,
+-            client_id,
+-            upload,
+-            play_seconds,
+-        )?;
+-        crate::media_send::decode_video_send(
+-            &self.authenticated_rpc(state, 149, "/cgi-bin/micromsg-bin/uploadvideo", &request)?,
+-            client_id,
+-        )
+-    }
+-    /// Submit one voice note, as consecutive byte ranges when it exceeds one
+-    /// request. Each range is sent once; an error after the first submission is
+-    /// an uncertain outcome that the caller must not retry automatically.
+-    #[doc(hidden)]
+-    pub(crate) fn send_voice_snapshot(
+-        &self,
+-        state: &mut AccountState,
+-        destination: &str,
+-        client_id: &str,
+-        created_at: u32,
+-        duration_ms: u32,
+-        encoded: &[u8],
+-    ) -> Result<crate::media_send::MediaSendResult> {
+-        let mut upload = crate::media_send::VoiceUpload::new(
+-            destination,
+-            client_id,
+-            created_at,
+-            duration_ms,
+-            encoded,
+-        )?;
+-        loop {
+-            let request = upload.request(state)?;
+-            let reply =
+-                self.authenticated_rpc(state, 127, "/cgi-bin/micromsg-bin/uploadvoice", &request)?;
+-            if let Some(result) = upload.accept_reply(&reply)? {
+-                return Ok(result);
+-            }
+-        }
+-    }
+@@ -1535,0 +1101,3 @@ fn reduce_auth(
++    state.database_password.zeroize();
++    state.database_password.clear();
++    state.auth_snapshot = AuthSnapshot::default();
+@@ -1539,0 +1108 @@ fn reduce_auth(
++/// A server LAN challenge never implicitly opens a listening socket.
+@@ -1543 +1111,0 @@ fn apply_login_notification(
+-    start_lan: impl FnOnce(&mut LoginAttempt) -> Result<std::sync::Arc<crate::lan_login::Challenge>>,
+@@ -1545,3 +1113 @@ fn apply_login_notification(
+-    if response.lan_challenge && matches!(response.status, Some(0..=2)) {
+-        // A risk challenge is not approval, including a notification carrying
+-        // the ordinary approval status without the final credentials yet.
++    if response.status.is_some_and(|status| status > 2) {
+@@ -1552,15 +1118 @@ fn apply_login_notification(
+-        attempt.status = LoginStatus::Scanned;
+-        if let Some(challenge) = &attempt.lan_challenge {
+-            if challenge.active() {
+-                return Ok(attempt.status);
+-            }
+-            attempt.stop_lan_login();
+-            return Err(crate::lan_login::failure("listener_stopped"));
+-        }
+-        if attempt.lan_upload_attempted {
+-            return Err(crate::lan_login::failure("upload_already_attempted"));
+-        }
+-        // Record before submission. A lost upload response must not produce an
+-        // automatic new nonce/token exchange on the next repeatable QR poll.
+-        attempt.lan_upload_attempted = true;
+-        attempt.lan_challenge = Some(start_lan(attempt)?);
++        attempt.status = LoginStatus::Rejected;
+@@ -1568,0 +1121,9 @@ fn apply_login_notification(
++    if response.lan_challenge {
++        attempt.lan_was_required = true;
++        attempt.credential3.zeroize();
++        attempt.credential4.zeroize();
++        attempt.credential3 = None;
++        attempt.credential4 = None;
++        attempt.status = LoginStatus::Scanned;
++        return Err(LanApprovalRequired.into());
++    }
+@@ -1575 +1135,0 @@ fn apply_login_notification(
+-            // Unknown terminal states never count as approval or local expiry.
+@@ -1582,14 +1141,0 @@ fn apply_login_notification(
+-        if matches!(
+-            attempt.status,
+-            LoginStatus::Approved | LoginStatus::Rejected
+-        ) {
+-            attempt.stop_lan_login();
+-        }
+-    }
+-    if attempt
+-        .lan_challenge
+-        .as_ref()
+-        .is_some_and(|challenge| !challenge.active())
+-    {
+-        attempt.stop_lan_login();
+-        return Err(crate::lan_login::failure("listener_stopped"));
+@@ -1599,0 +1146,9 @@ fn apply_login_notification(
++#[derive(Debug)]
++pub struct LanApprovalRequired;
++impl std::fmt::Display for LanApprovalRequired {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("LAN login challenge requires owner approval")
++    }
++}
++impl std::error::Error for LanApprovalRequired {}
++
+@@ -1622,0 +1178 @@ mod tests {
++            lan_was_required: false,
+@@ -1624 +1179,0 @@ mod tests {
+-            lan_challenge: None,
+@@ -1632,2 +1187,2 @@ mod tests {
+-            let restored: LoginAttempt =
+-                serde_json::from_slice(&serde_json::to_vec(&attempt).unwrap()).unwrap();
++            // Login attempts remain memory-only in the connection service.
++            let restored = attempt.clone();
+@@ -1669,122 +1224 @@ mod tests {
+-    fn notification(status: u32, lan_challenge: bool) -> wire::PollResponse {
+-        wire::PollResponse {
+-            status: Some(status),
+-            lan_challenge,
+-            credential3: (status == 2).then(|| vec![4; 16]),
+-            credential4: (status == 2).then(|| vec![5; 16]),
+-        }
+-    }
+-    fn synthetic_lan() -> std::sync::Arc<crate::lan_login::Challenge> {
+-        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+-        let challenge = crate::lan_login::Challenge::from_listener(
+-            listener,
+-            vec![std::net::Ipv4Addr::LOCALHOST],
+-            crate::lan_login::Scope::new(
+-                std::time::Instant::now() + Duration::from_secs(5),
+-                || false,
+-            ),
+-        )
+-        .unwrap();
+-        challenge.arm(b"synthetic temporary token").unwrap();
+-        std::sync::Arc::new(challenge)
+-    }
+-    #[test]
+-    fn repeated_risk_notifications_upload_once_and_never_install_approval() {
+-        let mut attempt = attempt(LoginStatus::Pending, true);
+-        let challenge = synthetic_lan();
+-        assert_eq!(
+-            apply_login_notification(&mut attempt, notification(2, true), |_| Ok(
+-                challenge.clone()
+-            ))
+-            .unwrap(),
+-            LoginStatus::Scanned
+-        );
+-        assert!(attempt.credential3.is_none() && attempt.credential4.is_none());
+-        assert_eq!(attempt.lan_login_state(), Some("waiting_for_phone"));
+-        for _ in 0..3 {
+-            assert_eq!(
+-                apply_login_notification(&mut attempt, notification(1, true), |_| panic!(
+-                    "duplicate upload"
+-                ))
+-                .unwrap(),
+-                LoginStatus::Scanned
+-            );
+-        }
+-        // A normal pending poll while the phone works retains the same listener.
+-        apply_login_notification(&mut attempt, notification(0, false), |_| {
+-            panic!("ordinary poll started LAN")
+-        })
+-        .unwrap();
+-        assert_eq!(attempt.status, LoginStatus::Scanned);
+-        assert!(challenge.active());
+-        let serialized = serde_json::to_string(&attempt).unwrap();
+-        assert!(!serialized.contains("synthetic temporary token"));
+-        assert!(!format!("{attempt:?}").contains("synthetic temporary token"));
+-        let restored: LoginAttempt = serde_json::from_str(&serialized).unwrap();
+-        assert!(restored.lan_login_state().is_none());
+-        assert!(restored.lan_upload_attempted); // No restart replay of an uncertain upload.
+-        assert_eq!(
+-            apply_login_notification(&mut attempt, notification(2, false), |_| panic!(
+-                "approval started LAN"
+-            ))
+-            .unwrap(),
+-            LoginStatus::Approved
+-        );
+-        assert!(attempt.lan_login_state().is_none());
+-        assert!(!challenge.active());
+-        assert!(attempt.credential3.is_some() && attempt.credential4.is_some());
+-    }
+-    #[test]
+-    fn failed_upload_is_not_retried_by_the_repeatable_poll_path() {
+-        let mut attempt = attempt(LoginStatus::Pending, true);
+-        let error = apply_login_notification(&mut attempt, notification(1, true), |_| {
+-            Err(crate::lan_login::failure("upload_failed"))
+-        })
+-        .unwrap_err();
+-        assert!(!is_retryable_login_poll_error(&error));
+-        assert_eq!(crate::login_lan_error_reason(&error), Some("upload_failed"));
+-        assert!(attempt.lan_login_state().is_none());
+-        let error = apply_login_notification(&mut attempt, notification(1, true), |_| {
+-            panic!("resubmitted upload")
+-        })
+-        .unwrap_err();
+-        assert_eq!(
+-            crate::login_lan_error_reason(&error),
+-            Some("upload_already_attempted")
+-        );
+-        assert!(attempt.credential3.is_none() && attempt.credential4.is_none());
+-    }
+-    #[test]
+-    fn rejection_or_attempt_drop_closes_the_shared_listener() {
+-        for reject in [false, true] {
+-            let mut attempt = attempt(LoginStatus::Pending, false);
+-            let challenge = synthetic_lan();
+-            apply_login_notification(&mut attempt, notification(1, true), |_| {
+-                Ok(challenge.clone())
+-            })
+-            .unwrap();
+-            if reject {
+-                assert_eq!(
+-                    apply_login_notification(&mut attempt, notification(3, true), |_| panic!(
+-                        "rejection started LAN"
+-                    ))
+-                    .unwrap(),
+-                    LoginStatus::Rejected
+-                );
+-            }
+-            drop(attempt);
+-            assert!(!challenge.active());
+-        }
+-    }
+-    #[test]
+-    fn ordinary_login_does_not_open_a_lan_listener() {
+-        let mut attempt = attempt(LoginStatus::Pending, true);
+-        for status in [0, 1, 2] {
+-            apply_login_notification(&mut attempt, notification(status, false), |_| {
+-                panic!("ordinary login opened a socket")
+-            })
+-            .unwrap();
+-            assert!(attempt.lan_login_state().is_none());
+-            assert!(!attempt.lan_upload_attempted);
+-        }
+-    }
++
+@@ -1858,0 +1293,56 @@ mod tests {
++    fn login_cancellation_and_deadline_reach_the_final_business_submission_guard() {
++        let client = NativeClient::new(NativeOptions::default()).unwrap();
++        let guard = LoginGuard::new(std::time::Instant::now() + Duration::from_secs(30));
++        let guarded = client.guarded_login(guard.clone());
++        guarded.check_submission().unwrap();
++        guard.cancel();
++        assert!(
++            guarded.check_submission().is_err(),
++            "cancelled QR must refuse final submission"
++        );
++        let expired = client.guarded_login(LoginGuard::new(std::time::Instant::now()));
++        assert!(
++            expired.check_submission().is_err(),
++            "expired QR must refuse final submission"
++        );
++    }
++    #[test]
++    fn explicit_lan_permission_has_one_upload_and_a_shared_shortened_guard() {
++        let original = LoginGuard::new(std::time::Instant::now() + Duration::from_secs(300));
++        let bounded = original.bounded(Duration::from_secs(120));
++        assert!(bounded.remaining() <= Duration::from_secs(120));
++        original.cancel();
++        assert!(bounded.interrupted());
++        let mut challenge = attempt(LoginStatus::Scanned, true);
++        assert!(
++            challenge.claim_lan_upload().is_err(),
++            "ordinary scanned approval cannot start LAN"
++        );
++        challenge.lan_was_required = true;
++        challenge.claim_lan_upload().unwrap();
++        assert!(
++            challenge.claim_lan_upload().is_err(),
++            "the same attempt never uploads twice"
++        );
++        assert!(
++            mmtls::validate_short_route("/cgi-bin/micromsg-bin/extdeviceuploadlaninfo").is_ok()
++        );
++        assert!(mmtls::validate_short_route("/cgi-bin/micromsg-bin/mmemojiupload").is_err());
++    }
++    #[test]
++    fn server_rejection_cannot_be_reinterpreted_as_a_new_lan_permission_request() {
++        let mut attempt = attempt(LoginStatus::Scanned, true);
++        let response = wire::PollResponse {
++            status: Some(3),
++            lan_challenge: true,
++            credential3: Some(vec![7; 16]),
++            credential4: Some(vec![8; 16]),
++        };
++        assert_eq!(
++            apply_login_notification(&mut attempt, response).unwrap(),
++            LoginStatus::Rejected
++        );
++        assert!(attempt.credential3.is_none() && attempt.credential4.is_none());
++        assert!(attempt.claim_lan_upload().is_err());
++    }
++    #[test]
+@@ -1866,70 +1356 @@ mod tests {
+-    #[test]
+-    fn database_password_follows_auth_update_gate_and_optional_presence() {
+-        let mut old = state();
+-        old.database_password = vec![11; 32];
+-        let inner = Ecdh::generate(Nid::SECP224R1).unwrap();
+-        let response = |mask, password: Option<&[u8]>| {
+-            let mut fields = vec![
+-                p::uint(1, old.uin as u64),
+-                p::bytes(3, &p::buffer(&[1; 16])),
+-                p::uint(19, 0),
+-            ];
+-            if let Some(bytes) = password {
+-                fields.push(p::bytes(9, &p::buffer(bytes)));
+-            }
+-            p::message(&[
+-                p::bytes(1, &p::uint(1, 0)),
+-                p::uint(2, mask),
+-                p::bytes(3, &p::message(&fields).unwrap()),
+-                p::bytes(6, b"synthetic-ax"),
+-            ])
+-            .unwrap()
+-        };
+-        let gated_off = response(0, Some(&[22; 32]));
+-        let unchanged = reduce_auth(&gated_off, Some(&old), &inner, &old.device, &[]).unwrap();
+-        assert_eq!(unchanged.database_password, old.database_password);
+-        assert_eq!(unchanged.auth_snapshot.update_mask, 0);
+-        assert_eq!(unchanged.auth_snapshot.response, gated_off);
+-        assert_eq!(unchanged.auth_snapshot.ax_auth, b"synthetic-ax");
+-        let accepted = reduce_auth(
+-            &response(1, Some(&[22; 32])),
+-            Some(&old),
+-            &inner,
+-            &old.device,
+-            &[],
+-        )
+-        .unwrap();
+-        assert_eq!(accepted.database_password, vec![22; 32]);
+-        let absent = reduce_auth(
+-            &response(1, None),
+-            Some(&accepted),
+-            &inner,
+-            &old.device,
+-            &[],
+-        )
+-        .unwrap();
+-        assert_eq!(absent.database_password, accepted.database_password);
+-        let empty = reduce_auth(
+-            &response(1, Some(&[])),
+-            Some(&absent),
+-            &inner,
+-            &old.device,
+-            &[],
+-        )
+-        .unwrap();
+-        assert!(empty.database_password.is_empty());
+-        assert!(reduce_auth(
+-            &response(1, Some(&[22; 31])),
+-            Some(&old),
+-            &inner,
+-            &old.device,
+-            &[]
+-        )
+-        .is_err());
+-        let mut legacy = serde_json::to_value(&old).unwrap();
+-        legacy.as_object_mut().unwrap().remove("database_password");
+-        legacy.as_object_mut().unwrap().remove("auth_snapshot");
+-        let restored: AccountState = serde_json::from_value(legacy).unwrap();
+-        restored.validate().unwrap();
+-        assert!(restored.database_password.is_empty());
+-    }
++
+diff --git a/src/crypto.rs b/src/crypto.rs
+index 7eb8559..adeeb46 100644
+--- a/src/crypto.rs
++++ b/src/crypto.rs
+@@ -3,0 +4,2 @@ use flate2::{read::ZlibDecoder, write::ZlibEncoder, Compression};
++#[cfg(test)]
++use openssl::bn::BigNum;
+@@ -5 +7 @@ use openssl::{
+-    bn::{BigNum, BigNumContext},
++    bn::BigNumContext,
+@@ -175,0 +178 @@ impl Ecdh {
++    #[cfg(test)]
+diff --git a/src/errors.rs b/src/errors.rs
+index e657505..318cfbb 100644
+--- a/src/errors.rs
++++ b/src/errors.rs
+@@ -108,9 +107,0 @@ impl ServiceRejected {
+-    /// As [`Self::check`] for codes parsed as 64-bit text. A code outside the
+-    /// 32-bit range keeps the same message without the type.
+-    pub(crate) fn check_wide(service: Service, code: i64) -> Result<()> {
+-        match i32::try_from(code) {
+-            Ok(code) => Self::check(service, code),
+-            Err(_) => Err(anyhow::anyhow!("{} returned {code}", service.label())),
+-        }
+-    }
+-
+@@ -151,2 +142 @@ impl std::error::Error for ServiceRejected {}
+-/// [`ServiceRejected::is_session_rejected`] holds, or an
+-/// [`OpenImServiceError`](crate::OpenImServiceError) with the same code.
++/// [`ServiceRejected::is_session_rejected`] holds. OpenIM is not included.
+@@ -155,2 +144,0 @@ pub fn is_session_rejected(error: &anyhow::Error) -> bool {
+-        || find::<crate::OpenImServiceError>(error)
+-            .is_some_and(|failure| failure.service_code == ServiceRejected::SESSION_REJECTED)
+@@ -252,3 +239,0 @@ mod tests {
+-        assert!(is_session_rejected(
+-            &anyhow::Error::new(crate::OpenImServiceError { service_code: -13 }).context("lookup")
+-        ));
+diff --git a/src/group_detail.rs b/src/group_detail.rs
+index eb3197c..29074fc 100644
+--- a/src/group_detail.rs
++++ b/src/group_detail.rs
+@@ -2,0 +3,12 @@ use super::*;
++// Pure identity validator retained from upstream group_mutation.rs; the group
++// mutation operations themselves are excluded from this protocol subset.
++fn ordinary_identity(value: &str) -> Result<()> {
++    ensure!(
++        !value.is_empty()
++            && value.len() <= 256
++            && !value.chars().any(|c| c.is_control() || c.is_whitespace()),
++        "invalid_group_identity"
++    );
++    Ok(())
++}
++
+diff --git a/src/lib.rs b/src/lib.rs
+index 495cc8f..83965f9 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1 +1,2 @@
+-//! Connect to WeChat, authenticate, synchronize and submit messages with [`NativeClient`].
++//! Clowder's pinned protocol subset. No daemon, profile import, media client,
++//! automatic downloads, call service or listening socket is included.
+@@ -3,4 +4 @@
+-//! Most server operations are **methods on [`NativeClient`]**, rather than free
+-//! functions in this crate's Functions list. [`AccountState`] holds accepted
+-//! credentials; transfer it once into [`NativeClient::from_account`]. Account
+-//! operations then share that owner. It is secret data, not an API access token.
++//! APIs removed from the upstream client must remain unavailable:
+@@ -8,35 +6,3 @@
+-//! | Task | Start here |
+-//! | --- | --- |
+-//! | QR login | [`NativeClient::start_qr_login`], [`NativeClient::poll_login`], [`NativeClient::complete_login`] |
+-//! | Receive a sync page | [`NativeClient::sync`], [`wire::decode_add_message`] |
+-//! | Send text | [`NativeClient::send_text`], [`TextSendResult`] |
+-//! | Contacts and rooms | [`NativeClient::lookup_contacts`], [`NativeClient::lookup_room`] |
+-//! | Attachments | [`media`], [`media_send`], [`NativeClient::send_file`] |
+-//! | Logout and shutdown | [`NativeClient::logout`], [`NativeClient::shutdown`], and `_blocking` forms of both |
+-//! | Classify a failure | [`ServiceRejected`], [`is_session_rejected`], [`AccountInterrupted`], [`NativeRequestNotSubmitted`] |
+-//! | Low-level encoding | [`wire`], [`protobuf`] |
+-//!
+-//! # Send one text message
+-//!
+-//! After an approved login, call the client method with the recipient's exact
+-//! WeChat username. Persist the task ID, timestamp and intended operation in your
+-//! application's recovery record before submission. A client ID is not a server
+-//! guarantee against duplicate sends.
+-//!
+-//! ```no_run
+-//! use wechat_protocol::{wire, NativeClient, TextSendOptions, TextSendResult};
+-//!
+-//! async fn send_once(
+-//!     client: &NativeClient,
+-//!     recipient: &str,
+-//!     text: &str,
+-//!     task_id: &str,
+-//!     created_at: u32,
+-//! ) -> anyhow::Result<TextSendResult> {
+-//!     let client_id = wire::client_message_id(task_id.as_bytes());
+-//!     anyhow::ensure!(client_id != 0, "Choose another task ID");
+-//!     client.send_text(recipient, text, TextSendOptions {
+-//!         created_at,
+-//!         client_message_id: client_id,
+-//!         source: None,
+-//!     }).await
++//! ```compile_fail
++//! async fn forbidden(client: &wechat_protocol::NativeClient) {
++//!     let _ = client.download_avatars(&[]).await;
+@@ -46,10 +12,5 @@
+-//! The source package includes runnable `qr_login`, `send_text` and `sync_once`
+-//! examples. They keep credentials in memory and perform no profile writes.
+-//!
+-//! # Application responsibilities
+-//!
+-//! The crate implements supported wire operations, transport authentication and
+-//! response decoding. The embedding application owns credential storage, send
+-//! intents, uncertainty handling, sync recovery and official-profile writeback.
+-//! An accepted receipt establishes server acceptance, not recipient playback or
+-//! completed local history. An error after submission must not cause a blind resend.
++//! ```compile_fail
++//! async fn forbidden(client: &wechat_protocol::NativeClient) {
++//!     let _ = client.cdn_config().await;
++//! }
++//! ```
+@@ -57,5 +18,5 @@
+-//! This library does not launch or load the official client. Peer responses pass
+-//! pinned MMTLS signature and record authentication before business decode.
+-//! Account-owned requests run blocking transport work on Tokio's blocking pool.
+-//! Login bootstrap and remaining low-level operations
+-//! are blocking and require a blocking worker in async applications.
++//! ```compile_fail
++//! fn forbidden() {
++//!     let _ = wechat_protocol::NativeClient::call_rpc;
++//! }
++//! ```
+@@ -63 +24 @@
+-//! # Errors
++//! Transport key/session constructors are not an embedding API:
+@@ -65,2 +26,3 @@
+-//! Functions return `anyhow::Error`. Branch on the types it carries rather than
+-//! on message text:
++//! ```compile_fail
++//! use wechat_protocol::mmtls::ShortSession;
++//! ```
+@@ -68,7 +30,5 @@
+-//! - [`ServiceRejected`] holds the [`Service`] and the non-zero code of a
+-//!   verified response. [`is_session_rejected`] is true when the account needs
+-//!   a new login or renewal.
+-//! - [`AccountInterrupted`] says why the account owner ended a request or a
+-//!   notification wait: stopped, transferred, or superseded by a renewal.
+-//! - [`NativeRequestNotSubmitted`] says nothing was handed to transport. An
+-//!   interruption without it has an unknown outcome.
++//! ```compile_fail
++//! fn forbidden(client: &wechat_protocol::NativeClient) {
++//!     let _ = client.export_account_state();
++//! }
++//! ```
+@@ -76 +36 @@
+-//! # Blocking embedders
++//! Login attempts contain one-time secrets and cannot be serialized as IPC:
+@@ -78,6 +38,5 @@
+-//! Applications that run their own blocking workers need no Tokio runtime:
+-//! use [`NativeClient::request_blocking`],
+-//! [`NativeClient::open_push_connection_blocking`],
+-//! [`NativeClient::renew_session_blocking`], [`NativeClient::logout_blocking`],
+-//! [`PendingLogout::submit_blocking`] and [`NativeClient::shutdown_blocking`].
+-pub mod business;
++//! ```compile_fail
++//! fn forbidden(attempt: &wechat_protocol::LoginAttempt) {
++//!     let _ = serde_json::to_vec(attempt);
++//! }
++//! ```
+@@ -85 +44 @@ pub mod business;
+-pub mod calls;
++mod business;
+@@ -87,4 +45,0 @@ mod client;
+-mod errors;
+-pub use errors::{is_session_rejected, AccountInterrupted, Service, ServiceRejected};
+-mod lan_login;
+-pub use lan_login::login_lan_error_reason;
+@@ -92,5 +47,3 @@ pub mod contact_sync;
+-pub mod crypto;
+-pub mod file_upload;
+-pub mod media;
+-pub mod media_send;
+-pub mod mmtls;
++mod crypto;
++pub mod errors;
++mod mmtls;
+@@ -98,2 +50,0 @@ mod notice;
+-pub mod openim;
+-pub use openim::{OpenImContact, OpenImServiceError};
+@@ -102,2 +53 @@ pub mod push;
+-pub mod quote_send;
+-pub mod silk;
++mod transport;
+@@ -105,0 +56,2 @@ pub use client::*;
++pub use errors::{is_session_rejected, AccountInterrupted, Service, ServiceRejected};
++pub use transport::{egress_snapshot, EgressRecord};
+@@ -108,8 +59,0 @@ pub const MAX_MESSAGE_BYTES: usize = 16 * 1024 * 1024;
+-
+-mod sticker_id;
+-pub mod sticker_packs;
+-pub mod sticker_send;
+-pub use sticker_id::{StickerId, StickerPackId};
+-pub mod sticker_upload;
+-
+-pub mod custom_stickers;
+diff --git a/src/login_lan_wire.rs b/src/login_lan_wire.rs
+new file mode 100644
+index 0000000..9a799cd
+--- /dev/null
++++ b/src/login_lan_wire.rs
+@@ -0,0 +1,85 @@
++//! Fixed LAN verification codec, adapted from MIT agent-wechat ed976d7
++//! lan_login.rs. No sockets, interface discovery, tokens in public projections,
++//! or implicit permission. The connection service owns the temporary listener.
++use crate::{protobuf as p, wire, DeviceProfile};
++use anyhow::{ensure, Result};
++use std::net::Ipv4Addr;
++use zeroize::Zeroizing;
++
++pub(super) fn request(
++    device: &DeviceProfile,
++    identifier: &[u8],
++    addresses: &[Ipv4Addr],
++    port: u16,
++    random: &[u8; 16],
++) -> Result<Vec<u8>> {
++    ensure!(
++        !identifier.is_empty() && identifier.len() <= 4096,
++        "Invalid LAN login identifier"
++    );
++    ensure!(
++        !addresses.is_empty()
++            && addresses.len() <= 8
++            && addresses.iter().all(Ipv4Addr::is_private)
++            && (8050..=8100).contains(&port),
++        "Invalid LAN endpoint scope"
++    );
++    let entries = addresses
++        .iter()
++        .map(|ip| {
++            p::message(&[
++                p::bytes(1, ip.to_string().as_bytes()),
++                p::uint(2, u64::from(port)),
++            ])
++        })
++        .collect::<Result<Vec<_>>>()?;
++    let entries = entries
++        .iter()
++        .map(|entry| p::bytes(1, entry))
++        .collect::<Vec<_>>();
++    p::message(&[
++        p::bytes(1, &wire::base_request(device, 0, 0)?),
++        p::bytes(2, &p::message(&entries)?),
++        p::bytes(3, identifier),
++        p::bytes(4, &p::buffer(random)),
++    ])
++}
++pub(super) fn token(input: &[u8]) -> Result<Zeroizing<Vec<u8>>> {
++    ensure!(input.len() <= 16384, "LAN upload response too large");
++    let fields = p::decode(input)?;
++    ensure!(p::base_code(&fields)? == 0, "LAN upload rejected");
++    let token = p::data(&fields, 2)?;
++    ensure!(
++        !token.is_empty() && token.len() <= 4096,
++        "Invalid LAN token length"
++    );
++    std::str::from_utf8(token)?;
++    Ok(Zeroizing::new(token.to_vec()))
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn fixed_upload_codec_accepts_only_private_bounded_endpoints_and_a_valid_token() {
++        let device = DeviceProfile::generate("UnifiedPCLinux synthetic x86_64".into()).unwrap();
++        let address = Ipv4Addr::new(192, 168, 4, 10);
++        let request =
++            request(&device, b"SYNTHETIC_IDENTIFIER", &[address], 8050, &[7; 16]).unwrap();
++        let decoded = p::decode(&request).unwrap();
++        assert_eq!(p::data(&decoded, 3).unwrap(), b"SYNTHETIC_IDENTIFIER");
++        for rejected in [
++            Ipv4Addr::LOCALHOST,
++            Ipv4Addr::new(198, 18, 0, 1),
++            Ipv4Addr::new(100, 64, 0, 1),
++            Ipv4Addr::new(8, 8, 8, 8),
++        ] {
++            assert!(super::request(&device, b"id", &[rejected], 8050, &[7; 16]).is_err());
++        }
++        assert!(super::request(&device, b"id", &[address], 0, &[7; 16]).is_err());
++        let base = p::message(&[p::uint(1, 0)]).unwrap();
++        let response = p::message(&[p::bytes(1, &base), p::bytes(2, b"SYNTHETIC_TOKEN")]).unwrap();
++        assert_eq!(token(&response).unwrap().as_slice(), b"SYNTHETIC_TOKEN");
++        assert!(token(&vec![0; 16385]).is_err());
++    }
++}
+diff --git a/src/mmtls.rs b/src/mmtls.rs
+index 9694376..95c49e6 100644
+--- a/src/mmtls.rs
++++ b/src/mmtls.rs
+@@ -8 +7,0 @@ use std::{
+-    net::TcpStream,
+@@ -165,4 +164 @@ pub struct Session {
+-    socket: TcpStream,
+-    deadline: Instant,
+-    received: usize,
+-    receive_budget: usize,
++    socket: crate::transport::OfficialStream,
+@@ -171 +166,0 @@ pub struct Session {
+-    pub certificate_version: u32,
+@@ -198 +193 @@ fn read_exact_deadline(
+-    socket: &mut TcpStream,
++    socket: &mut crate::transport::OfficialStream,
+@@ -216 +211 @@ fn read_record(
+-    socket: &mut TcpStream,
++    socket: &mut crate::transport::OfficialStream,
+@@ -248,0 +244,8 @@ impl Session {
++        let socket = crate::transport::connect(host, timeout)?;
++        Self::handshake(socket, timeout, receive_budget)
++    }
++    fn handshake(
++        mut socket: crate::transport::OfficialStream,
++        timeout: Duration,
++        receive_budget: usize,
++    ) -> Result<Self> {
+@@ -250,16 +252,0 @@ impl Session {
+-        // Resolver and connect are constrained by the caller's blocking worker. Socket
+-        // read/write deadlines bound every subsequent protocol operation.
+-        use std::net::ToSocketAddrs;
+-        let addresses = (host, 80).to_socket_addrs()?;
+-        let mut socket = None;
+-        for addr in addresses {
+-            let remaining = deadline.saturating_duration_since(Instant::now());
+-            if remaining.is_zero() {
+-                break;
+-            }
+-            if let Ok(s) = TcpStream::connect_timeout(&addr, remaining) {
+-                socket = Some(s);
+-                break;
+-            }
+-        }
+-        let mut socket = socket.ok_or_else(|| anyhow::anyhow!("Native connection failed"))?;
+@@ -359,0 +347 @@ impl Session {
++        socket.record_verified_peer(server.version, server.region)?;
+@@ -403,3 +390,0 @@ impl Session {
+-            deadline,
+-            received,
+-            receive_budget,
+@@ -411 +395,0 @@ impl Session {
+-            certificate_version: server.version,
+@@ -437,20 +420,0 @@ impl Session {
+-    pub fn receive_application(&mut self) -> Result<Longlink> {
+-        let r = read_record(
+-            &mut self.socket,
+-            self.deadline,
+-            &mut self.received,
+-            self.receive_budget,
+-        )?;
+-        ensure!(r.header[0] == 0x17, "Expected application record");
+-        let plain = open(
+-            &r,
+-            &self.traffic.server_key,
+-            &self.traffic.server_iv,
+-            self.incoming,
+-        )?;
+-        self.incoming = self
+-            .incoming
+-            .checked_add(1)
+-            .ok_or_else(|| anyhow::anyhow!("Sequence exhausted"))?;
+-        unpack_longlink(&plain)
+-    }
+@@ -700,5 +664,19 @@ pub(crate) fn validate_short_route(path: &str) -> Result<()> {
+-    let ordinary = path.starts_with("/cgi-bin/micromsg-bin/")
+-        && path
+-            .bytes()
+-            .all(|b| b.is_ascii_alphanumeric() || b == b'/' || b == b'-');
+-    if ordinary || path == "/cgi-bin/micromsg-bin/mm_ilink_cloud_app_auth" {
++    if matches!(
++        path,
++        "/cgi-bin/micromsg-bin/getloginqrcode"
++            | "/cgi-bin/micromsg-bin/checkloginqrcode"
++            | "/cgi-bin/micromsg-bin/extdeviceuploadlaninfo"
++            | "/cgi-bin/micromsg-bin/pushloginurl"
++            | "/cgi-bin/micromsg-bin/secmanualauth"
++            | "/cgi-bin/micromsg-bin/secautoauth"
++            | "/cgi-bin/micromsg-bin/newsync"
++            | "/cgi-bin/micromsg-bin/heartbeat"
++            | "/cgi-bin/micromsg-bin/newsendmsg"
++            | "/cgi-bin/micromsg-bin/getcontact"
++            | "/cgi-bin/micromsg-bin/getchatroommemberdetail"
++            | "/cgi-bin/micromsg-bin/getchatroominfodetail"
++            | "/cgi-bin/micromsg-bin/initcontact"
++            | "/cgi-bin/micromsg-bin/contactsync"
++            | "/cgi-bin/micromsg-bin/syncsimplechatroomdata"
++            | "/cgi-bin/micromsg-bin/logout"
++    ) {
+@@ -719,33 +697 @@ pub fn short_exchange(
+-    let client = reqwest::blocking::Client::builder()
+-        .timeout(timeout)
+-        .connect_timeout(timeout.min(Duration::from_secs(10)))
+-        .redirect(reqwest::redirect::Policy::none())
+-        .no_proxy()
+-        .build()?;
+-    let mut response = client
+-        .post(format!(
+-            "http://{host}/mmtls/{}",
+-            hex::encode(random::<4>()?)
+-        ))
+-        .header("Content-Type", "application/octet-stream")
+-        .header("User-Agent", "MicroMessenger Client")
+-        .header("Upgrade", "mmtls")
+-        .header("Accept", "*/*")
+-        .header("Cache-Control", "no-cache")
+-        .header("Connection", "close")
+-        .body(wire)
+-        .send()?;
+-    ensure!(
+-        response.status() == 200,
+-        "Native shortlink HTTP status {}",
+-        response.status().as_u16()
+-    );
+-    let mut bytes = Vec::new();
+-    response
+-        .by_ref()
+-        .take((crate::MAX_MESSAGE_BYTES + 1) as u64)
+-        .read_to_end(&mut bytes)?;
+-    ensure!(
+-        bytes.len() <= crate::MAX_MESSAGE_BYTES,
+-        "Shortlink receive budget exceeded"
+-    );
++    let bytes = crate::transport::post_mmtls(host, wire, timeout)?;
+@@ -802,44 +747,0 @@ fn prepare_short_exchange(
+-/// The pre-answer poll can stop waiting without applying a late reply.
+-pub(crate) async fn short_exchange_interruptible(
+-    session: &ShortSession,
+-    host: &str,
+-    path: &str,
+-    payload: &[u8],
+-    timeout: Duration,
+-) -> Result<Vec<u8>> {
+-    let (hello, extensions, wire) = prepare_short_exchange(session, host, path, payload)?;
+-    let client = reqwest::Client::builder()
+-        .timeout(timeout)
+-        .connect_timeout(timeout.min(Duration::from_secs(10)))
+-        .redirect(reqwest::redirect::Policy::none())
+-        .no_proxy()
+-        .build()?;
+-    let mut response = client
+-        .post(format!(
+-            "http://{host}/mmtls/{}",
+-            hex::encode(random::<4>()?)
+-        ))
+-        .header("Content-Type", "application/octet-stream")
+-        .header("User-Agent", "MicroMessenger Client")
+-        .header("Upgrade", "mmtls")
+-        .header("Accept", "*/*")
+-        .header("Cache-Control", "no-cache")
+-        .header("Connection", "close")
+-        .body(wire)
+-        .send()
+-        .await?;
+-    ensure!(
+-        response.status() == 200,
+-        "Native shortlink HTTP status {}",
+-        response.status().as_u16()
+-    );
+-    let mut bytes = Vec::new();
+-    while let Some(chunk) = response.chunk().await? {
+-        ensure!(
+-            chunk.len() <= crate::MAX_MESSAGE_BYTES - bytes.len(),
+-            "Shortlink receive budget exceeded"
+-        );
+-        bytes.extend_from_slice(&chunk);
+-    }
+-    decode_short_reply(&bytes, session, &hello, &extensions)
+-}
+@@ -969 +871,132 @@ mod tests {
+-    fn short_requests_split_large_uploads_and_authenticate_the_close_sequence() {
++    fn a_valid_ecdh_peer_with_an_untrusted_signature_never_gets_business_bytes() {
++        use std::{
++            net::{TcpListener, TcpStream},
++            thread,
++        };
++        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
++        let socket = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
++        let (mut peer, _) = listener.accept().unwrap();
++        peer.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
++        let server = thread::spawn(move || {
++            let mut header = [0; 5];
++            peer.read_exact(&mut header).unwrap();
++            assert_eq!(header[0], 0x16);
++            let mut hello = vec![0; u16::from_be_bytes([header[3], header[4]]) as usize];
++            peer.read_exact(&mut hello).unwrap();
++            let mut outer = Cursor::new(&hello);
++            let mut body = Cursor::new(outer.sized(4).unwrap());
++            body.take(42).unwrap();
++            let mut extensions = Cursor::new(body.sized(4).unwrap());
++            assert_eq!(extensions.uint(1).unwrap(), 1);
++            let mut extension = Cursor::new(extensions.sized(4).unwrap());
++            assert_eq!(extension.uint(2).unwrap(), 0x10);
++            assert_eq!(extension.uint(1).unwrap(), 2);
++            let mut share = Cursor::new(extension.sized(4).unwrap());
++            assert_eq!(share.uint(4).unwrap(), 5);
++            let client_point = share.sized(2).unwrap().to_vec();
++            let key = Ecdh::generate(Nid::X9_62_PRIME256V1).unwrap();
++            let point = key.public().unwrap();
++            let server_hello = section(
++                &[
++                    vec![2],
++                    VERSION.to_le_bytes().to_vec(),
++                    0xc02bu16.to_be_bytes().to_vec(),
++                    vec![0x42; 32],
++                    section(
++                        &[
++                            vec![2],
++                            section(
++                                &[
++                                    0x11u16.to_be_bytes().to_vec(),
++                                    5u32.to_be_bytes().to_vec(),
++                                    sized(&point).unwrap(),
++                                ]
++                                .concat(),
++                            ),
++                            section(
++                                &[
++                                    0x13u16.to_be_bytes().to_vec(),
++                                    1u32.to_be_bytes().to_vec(),
++                                    5u32.to_be_bytes().to_vec(),
++                                ]
++                                .concat(),
++                            ),
++                        ]
++                        .concat(),
++                    ),
++                ]
++                .concat(),
++            );
++            let transcript = [hello, server_hello.clone()].concat();
++            let shared = key.derive(&client_point).unwrap();
++            let keys = traffic(
++                &handshake_secret(&shared).unwrap(),
++                "handshake key expansion",
++                &transcript,
++            )
++            .unwrap();
++            let group = openssl::ec::EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).unwrap();
++            let attacker_key = openssl::ec::EcKey::generate(&group).unwrap();
++            let wrong_signature =
++                openssl::ecdsa::EcdsaSig::sign(&sha256(&transcript), &attacker_key)
++                    .unwrap()
++                    .to_der()
++                    .unwrap();
++            peer.write_all(&frame(0x16, &server_hello).unwrap())
++                .unwrap();
++            peer.write_all(
++                &seal(
++                    0x16,
++                    &section(&[vec![0x0f], sized(&wrong_signature).unwrap()].concat()),
++                    &keys.server_key,
++                    &keys.server_iv,
++                    1,
++                )
++                .unwrap(),
++            )
++            .unwrap();
++            let mut after_hello = [0; 1024];
++            match peer.read(&mut after_hello) {
++                Ok(count) => count,
++                Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => 0,
++                Err(error) => panic!("client did not terminate at server authentication: {error}"),
++            }
++        });
++        let result = Session::handshake(
++            crate::transport::OfficialStream::synthetic(socket),
++            Duration::from_secs(2),
++            crate::MAX_MESSAGE_BYTES,
++        );
++        let error = result
++            .err()
++            .expect("untrusted peer must not produce an authenticated session");
++        assert!(
++            error
++                .chain()
++                .any(|cause| cause.to_string() == "MMTLS signature verification"),
++            "{error:?}"
++        );
++        assert_eq!(
++            server.join().unwrap(),
++            0,
++            "only the credential-free ClientHello may be sent"
++        );
++    }
++    #[test]
++    fn text_connection_rejects_removed_business_routes_before_transport() {
++        for path in [
++            "/cgi-bin/micromsg-bin/mmemojiupload",
++            "/cgi-bin/micromsg-bin/voipilinkack",
++            "/cgi-bin/micromsg-bin/mm_ilink_cloud_app_auth",
++            "/cgi-bin/micromsg-bin/sendappmsg",
++            "/cgi-bin/micromsg-bin/another-route",
++        ] {
++            assert!(
++                validate_short_route(path).is_err(),
++                "unexpected route: {path}"
++            );
++        }
++        assert!(validate_short_route("/cgi-bin/micromsg-bin/newsendmsg").is_ok());
++    }
++    #[test]
++    fn short_requests_split_large_payloads_and_authenticate_the_close_sequence() {
+@@ -985 +1018 @@ mod tests {
+-                "/cgi-bin/micromsg-bin/mmemojiupload",
++                "/cgi-bin/micromsg-bin/newsendmsg",
+@@ -1018 +1051 @@ mod tests {
+-                    sized(b"/cgi-bin/micromsg-bin/mmemojiupload").unwrap(),
++                    sized(b"/cgi-bin/micromsg-bin/newsendmsg").unwrap(),
+@@ -1080,2 +1113,2 @@ mod tests {
+-    fn exact_call_app_auth_route_does_not_admit_arbitrary_route_bytes() {
+-        assert!(validate_short_route("/cgi-bin/micromsg-bin/mm_ilink_cloud_app_auth").is_ok());
++    fn exact_text_routes_do_not_admit_arbitrary_route_bytes() {
++        assert!(validate_short_route("/cgi-bin/micromsg-bin/mm_ilink_cloud_app_auth").is_err());
+@@ -1083 +1116 @@ mod tests {
+-        assert!(validate_short_route("/cgi-bin/micromsg-bin/voipilinkack").is_ok());
++        assert!(validate_short_route("/cgi-bin/micromsg-bin/voipilinkack").is_err());
+@@ -1150 +1183,5 @@ mod tests {
+-        use std::{net::TcpListener, sync::mpsc, thread};
++        use std::{
++            net::{TcpListener, TcpStream},
++            sync::mpsc,
++            thread,
++        };
+@@ -1173,4 +1210 @@ mod tests {
+-            socket,
+-            deadline: Instant::now(),
+-            received: 0,
+-            receive_budget: 1024,
++            socket: crate::transport::OfficialStream::synthetic(socket),
+@@ -1188 +1221,0 @@ mod tests {
+-            certificate_version: 0,
+diff --git a/src/transport.rs b/src/transport.rs
+new file mode 100644
+index 0000000..2b798c4
+--- /dev/null
++++ b/src/transport.rs
+@@ -0,0 +1,327 @@
++//! The protocol subset's only production network construction site.
++//! Targets and HTTP routes cannot be supplied through the connection IPC.
++use anyhow::{ensure, Result};
++use serde::Serialize;
++use std::{
++    collections::BTreeMap,
++    io::{self, Read, Write},
++    net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs},
++    sync::{Mutex, OnceLock},
++    time::{Duration, Instant},
++};
++
++#[derive(Clone, Default, Serialize)]
++#[serde(rename_all = "camelCase")]
++pub struct EgressRecord {
++    pub host: String,
++    pub port: u16,
++    pub resolved_ips: Vec<String>,
++    pub long_connections: u64,
++    pub long_bytes_written: u64,
++    pub long_bytes_read: u64,
++    pub short_requests: u64,
++    // HTTP body bytes prepared/read, not kernel-level wire counters or proof
++    // of server receipt. Headers and interrupted partial writes are excluded.
++    pub short_body_bytes_prepared: u64,
++    pub short_response_body_bytes_read: u64,
++    pub system_fake_ip_observed: bool,
++    pub verified_pin_versions: Vec<u32>,
++    pub verified_regions: Vec<u32>,
++}
++static RECORDS: OnceLock<Mutex<BTreeMap<String, EgressRecord>>> = OnceLock::new();
++
++fn record(host: &str, update: impl FnOnce(&mut EgressRecord)) -> io::Result<()> {
++    let mut records = RECORDS
++        .get_or_init(Mutex::default)
++        .lock()
++        .map_err(|_| io::Error::other("network observation unavailable"))?;
++    let value = records.entry(host.into()).or_insert_with(|| EgressRecord {
++        host: host.into(),
++        port: 80,
++        ..Default::default()
++    });
++    update(value);
++    Ok(())
++}
++pub fn egress_snapshot() -> Result<Vec<EgressRecord>> {
++    Ok(RECORDS
++        .get_or_init(Mutex::default)
++        .lock()
++        .map_err(|_| anyhow::anyhow!("network observation unavailable"))?
++        .values()
++        .cloned()
++        .collect())
++}
++
++fn permitted_ip(ip: IpAddr) -> bool {
++    match ip {
++        IpAddr::V4(ip) => {
++            let [a, b, c, _] = ip.octets();
++            // Fake-IP routing is an observed owner system setting, not proof
++            // that a Tencent endpoint was reached. It remains visible above.
++            !(a == 0
++                || a == 10
++                || a == 127
++                || a >= 224
++                || a == 100 && (64..=127).contains(&b)
++                || a == 169 && b == 254
++                || a == 172 && (16..=31).contains(&b)
++                || a == 192 && (b == 168 || b == 0 && (c == 0 || c == 2))
++                || a == 198 && b == 51 && c == 100
++                || a == 203 && b == 0 && c == 113)
++        }
++        IpAddr::V6(ip) => {
++            if let Some(v4) = ip.to_ipv4() {
++                return permitted_ip(IpAddr::V4(v4));
++            }
++            !ip.is_loopback()
++                && !ip.is_unspecified()
++                && !ip.is_multicast()
++                && !ip.is_unique_local()
++                && !ip.is_unicast_link_local()
++                && !(ip.segments()[0] == 0x2001 && ip.segments()[1] == 0x0db8)
++        }
++    }
++}
++fn resolve(host: &str) -> Result<Vec<SocketAddr>> {
++    crate::mmtls::validate_host(host)?;
++    let addresses: Vec<_> = (host, 80)
++        .to_socket_addrs()?
++        .filter(|a| permitted_ip(a.ip()))
++        .collect();
++    ensure!(!addresses.is_empty(), "No permitted WeChat endpoint");
++    record(host, |value| {
++        for address in &addresses {
++            let ip = address.ip().to_string();
++            if !value.resolved_ips.contains(&ip) && value.resolved_ips.len() < 64 {
++                value.resolved_ips.push(ip);
++            }
++            if let IpAddr::V4(ip) = address.ip() {
++                let [a, b, _, _] = ip.octets();
++                value.system_fake_ip_observed |= a == 198 && (b == 18 || b == 19);
++            }
++        }
++    })?;
++    Ok(addresses)
++}
++
++pub(crate) struct OfficialStream {
++    inner: TcpStream,
++    host: String,
++}
++impl OfficialStream {
++    pub(crate) fn record_verified_peer(&self, version: u32, region: u32) -> io::Result<()> {
++        record(&self.host, |value| {
++            if !value.verified_pin_versions.contains(&version)
++                && value.verified_pin_versions.len() < 8
++            {
++                value.verified_pin_versions.push(version);
++            }
++            if !value.verified_regions.contains(&region) && value.verified_regions.len() < 8 {
++                value.verified_regions.push(region);
++            }
++        })
++    }
++    pub(crate) fn set_read_timeout(&self, timeout: Option<Duration>) -> io::Result<()> {
++        self.inner.set_read_timeout(timeout)
++    }
++    pub(crate) fn set_write_timeout(&self, timeout: Option<Duration>) -> io::Result<()> {
++        self.inner.set_write_timeout(timeout)
++    }
++    #[cfg(test)]
++    pub(crate) fn synthetic(inner: TcpStream) -> Self {
++        assert!(inner.peer_addr().unwrap().ip().is_loopback());
++        Self {
++            inner,
++            host: "synthetic.wechat.com".into(),
++        }
++    }
++}
++impl Read for OfficialStream {
++    fn read(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
++        let count = self.inner.read(bytes)?;
++        record(&self.host, |v| {
++            v.long_bytes_read = v.long_bytes_read.saturating_add(count as u64)
++        })?;
++        Ok(count)
++    }
++}
++impl Write for OfficialStream {
++    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
++        let count = self.inner.write(bytes)?;
++        record(&self.host, |v| {
++            v.long_bytes_written = v.long_bytes_written.saturating_add(count as u64)
++        })?;
++        Ok(count)
++    }
++    fn flush(&mut self) -> io::Result<()> {
++        self.inner.flush()
++    }
++}
++pub(crate) fn connect(host: &str, timeout: Duration) -> Result<OfficialStream> {
++    let addresses = resolve(host)?;
++    let deadline = Instant::now() + timeout;
++    for address in addresses {
++        let remaining = deadline.saturating_duration_since(Instant::now());
++        if remaining.is_zero() {
++            break;
++        }
++        if let Ok(inner) = TcpStream::connect_timeout(&address, remaining) {
++            record(host, |value| {
++                value.long_connections = value.long_connections.saturating_add(1)
++            })?;
++            return Ok(OfficialStream {
++                inner,
++                host: host.into(),
++            });
++        }
++    }
++    anyhow::bail!("WeChat connection failed")
++}
++
++pub(crate) fn post_mmtls(host: &str, body: Vec<u8>, timeout: Duration) -> Result<Vec<u8>> {
++    let addresses = resolve(host)?;
++    post_at(host, &addresses, body, timeout)
++}
++fn post_at(
++    host: &str,
++    addresses: &[SocketAddr],
++    body: Vec<u8>,
++    timeout: Duration,
++) -> Result<Vec<u8>> {
++    crate::mmtls::validate_host(host)?;
++    ensure!(
++        body.len() <= crate::MAX_MESSAGE_BYTES + 65536,
++        "MMTLS request exceeds bound"
++    );
++    let client = reqwest::blocking::Client::builder()
++        .timeout(timeout)
++        .connect_timeout(timeout.min(Duration::from_secs(10)))
++        .redirect(reqwest::redirect::Policy::none())
++        .no_proxy()
++        // Pin this request to the checked resolution; a second DNS lookup must
++        // not introduce a local/private address after the check.
++        .resolve_to_addrs(host, addresses)
++        .build()?;
++    record(host, |v| {
++        v.short_requests = v.short_requests.saturating_add(1);
++        v.short_body_bytes_prepared = v
++            .short_body_bytes_prepared
++            .saturating_add(body.len() as u64);
++    })?;
++    let mut response = client
++        .post(format!(
++            "http://{host}/mmtls/{}",
++            hex::encode(crate::crypto::random::<4>()?)
++        ))
++        .header("Content-Type", "application/octet-stream")
++        .header("User-Agent", "MicroMessenger Client")
++        .header("Upgrade", "mmtls")
++        .header("Accept", "*/*")
++        .header("Cache-Control", "no-cache")
++        .header("Connection", "close")
++        .body(body)
++        .send()?;
++    ensure!(
++        response.status() == 200,
++        "WeChat shortlink HTTP status {}",
++        response.status().as_u16()
++    );
++    let mut bytes = Vec::new();
++    response
++        .by_ref()
++        .take((crate::MAX_MESSAGE_BYTES + 1) as u64)
++        .read_to_end(&mut bytes)?;
++    record(host, |v| {
++        v.short_response_body_bytes_read = v
++            .short_response_body_bytes_read
++            .saturating_add(bytes.len() as u64)
++    })?;
++    ensure!(
++        bytes.len() <= crate::MAX_MESSAGE_BYTES,
++        "Shortlink receive budget exceeded"
++    );
++    Ok(bytes)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn private_mapped_and_metadata_targets_are_not_permitted() {
++        for ip in [
++            "127.0.0.1",
++            "10.0.0.1",
++            "172.16.0.1",
++            "192.168.1.2",
++            "169.254.169.254",
++            "100.64.0.1",
++            "::1",
++            "::ffff:127.0.0.1",
++            "fe80::1",
++            "fc00::1",
++            "2001:db8::1",
++        ] {
++            assert!(
++                !permitted_ip(ip.parse().unwrap()),
++                "unexpected endpoint: {ip}"
++            );
++        }
++        assert!(permitted_ip("198.18.0.6".parse().unwrap()));
++        assert!(permitted_ip("1.1.1.1".parse().unwrap()));
++    }
++    #[test]
++    fn hostile_hosts_fail_before_resolution_or_connection() {
++        for host in [
++            "localhost",
++            "127.0.0.1",
++            "long.weixin.qq.com.attacker.test",
++            "x.wechat.com:80",
++            "user@x.wechat.com",
++        ] {
++            assert!(connect(host, Duration::from_millis(50)).is_err());
++            assert!(post_mmtls(host, vec![1], Duration::from_millis(50)).is_err());
++        }
++    }
++    #[test]
++    fn redirect_is_not_followed_by_the_production_http_path() {
++        use std::{net::TcpListener, thread};
++        let origin = TcpListener::bind("127.0.0.1:0").unwrap();
++        let trap = TcpListener::bind("127.0.0.1:0").unwrap();
++        trap.set_nonblocking(true).unwrap();
++        let destination = trap.local_addr().unwrap();
++        let address = origin.local_addr().unwrap();
++        origin.set_nonblocking(true).unwrap();
++        let server = thread::spawn(move || {
++            let deadline = Instant::now() + Duration::from_secs(3);
++            let (mut stream, _) = loop {
++                match origin.accept() {
++                    Ok(peer) => break peer,
++                    Err(error)
++                        if error.kind() == io::ErrorKind::WouldBlock
++                            && Instant::now() < deadline =>
++                    {
++                        thread::sleep(Duration::from_millis(5))
++                    }
++                    Err(error) => panic!("synthetic origin did not receive the request: {error}"),
++                }
++            };
++            stream
++                .set_read_timeout(Some(Duration::from_secs(2)))
++                .unwrap();
++            let mut request = [0; 4096];
++            let _ = stream.read(&mut request).unwrap();
++            write!(stream,"HTTP/1.1 302 Found\r\nLocation: http://{destination}/leak\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap();
++        });
++        let error = post_at(
++            "short.weixin.qq.com",
++            &[address],
++            vec![0; 16],
++            Duration::from_secs(2),
++        )
++        .unwrap_err();
++        server.join().unwrap();
++        assert!(error.to_string().contains("HTTP status 302"), "{error}");
++        assert_eq!(trap.accept().unwrap_err().kind(), io::ErrorKind::WouldBlock);
++    }
++}
+diff --git a/src/wire.rs b/src/wire.rs
+index be57cb0..35ba06f 100644
+--- a/src/wire.rs
++++ b/src/wire.rs
+@@ -961,123 +960,0 @@ pub fn decode_init_contacts(input: &[u8]) -> Result<InitContactPage> {
+-#[derive(Clone, Serialize, Deserialize)]
+-pub struct AvatarBytes {
+-    pub username: String,
+-    pub bytes: Vec<u8>,
+-}
+-pub fn avatar_request(state: &AccountState, usernames: &[String]) -> Result<Vec<u8>> {
+-    ensure!(
+-        !usernames.is_empty() && usernames.len() <= 2,
+-        "Supported avatar batch is 1 or 2 identities"
+-    );
+-    let mut parts = vec![
+-        p::bytes(1, &base_request(&state.device, state.uin, 0)?),
+-        p::uint(2, usernames.len() as u64),
+-    ];
+-    let mut seen = HashSet::new();
+-    for user in usernames {
+-        ensure!(seen.insert(user), "Duplicate avatar identity");
+-        parts.push(p::bytes(3, &p::bytes(1, text(user, 256, false)?)));
+-    }
+-    p::message(&parts)
+-}
+-/// Returns exact bounded bytes. The service must fully decode the image before
+-/// treating this response as a displayable avatar or storing an image mime type.
+-pub fn decode_avatars(input: &[u8], requested: &[String]) -> Result<Vec<AvatarBytes>> {
+-    let f = p::decode(input)?;
+-    let code = p::base_code(&f)?;
+-    ServiceRejected::check(Service::Avatar, code)?;
+-    let mut out = vec![];
+-    let mut seen = HashSet::new();
+-    for field in f.iter().filter(|f| f.number == 3) {
+-        let p::Value::Bytes(raw) = &field.value else {
+-            bail!("Invalid avatar item");
+-        };
+-        let pair = p::decode(raw)?;
+-        let username =
+-            skstring(&pair, 2)?.ok_or_else(|| anyhow::anyhow!("Missing avatar identity"))?;
+-        ensure!(
+-            requested.contains(&username) && seen.insert(username.clone()),
+-            "Foreign or duplicate avatar"
+-        );
+-        let bytes = p::unbuffer(p::data(&pair, 1)?)?;
+-        ensure!(
+-            !bytes.is_empty() && bytes.len() <= 2 * 1024 * 1024,
+-            "Avatar bytes outside limit"
+-        );
+-        out.push(AvatarBytes { username, bytes });
+-    }
+-    ensure!(
+-        p::scalar(&f, 2)? == out.len() as u64 && out.len() <= requested.len(),
+-        "Avatar count mismatch"
+-    );
+-    Ok(out)
+-}
+-#[derive(Clone, Serialize, Deserialize)]
+-pub struct VoiceChunk {
+-    pub offset: u32,
+-    pub next_offset: u32,
+-    pub total_length: u32,
+-    pub complete: bool,
+-    pub bytes: Vec<u8>,
+-    pub echoed_server_id: Option<String>,
+-    pub offset_matches: bool,
+-}
+-fn voice_range(total: u32, offset: u32) -> Result<u32> {
+-    ensure!(
+-        total > 0 && total <= crate::MAX_MESSAGE_BYTES as u32 && offset < total,
+-        "Invalid voice range"
+-    );
+-    Ok((total - offset).min(32768))
+-}
+-pub fn voice_request(
+-    state: &AccountState,
+-    server_id: u64,
+-    total: u32,
+-    offset: u32,
+-) -> Result<Vec<u8>> {
+-    ensure!(server_id != 0, "Missing voice server ID");
+-    let length = voice_range(total, offset)?;
+-    p::message(&[
+-        p::uint(1, 0),
+-        p::uint(2, offset as u64),
+-        p::uint(3, length as u64),
+-        p::bytes(5, &base_request(&state.device, state.uin, 0)?),
+-        p::uint(6, server_id),
+-    ])
+-}
+-pub fn decode_voice(input: &[u8], server_id: u64, total: u32, offset: u32) -> Result<VoiceChunk> {
+-    let requested = voice_range(total, offset)?;
+-    let f = p::decode(input)?;
+-    let base = p::decode(p::data(&f, 9)?)?;
+-    let code = p::scalar(&base, 1)? as u32 as i32;
+-    ServiceRejected::check(Service::Voice, code)?;
+-    for n in [1, 2, 3, 5, 8] {
+-        u32::try_from(p::scalar(&f, n)?)?;
+-    }
+-    let bytes = p::unbuffer(p::data(&f, 7)?)?;
+-    ensure!(
+-        p::scalar(&f, 3)? == bytes.len() as u64
+-            && !bytes.is_empty()
+-            && bytes.len() <= requested as usize,
+-        "Voice response length invalid"
+-    );
+-    let echoed = match p::optional(&f, 11)? {
+-        Some(p::Value::Varint(id)) => Some(*id),
+-        None => None,
+-        _ => bail!("Invalid voice server ID echo"),
+-    };
+-    ensure!(
+-        echoed.is_none_or(|id| id == server_id),
+-        "Foreign voice server ID"
+-    );
+-    let next_offset = offset + bytes.len() as u32;
+-    ensure!(next_offset <= total, "Voice chunk overflow");
+-    Ok(VoiceChunk {
+-        offset,
+-        next_offset,
+-        total_length: total,
+-        complete: next_offset == total,
+-        bytes,
+-        echoed_server_id: echoed.map(|v| v.to_string()),
+-        offset_matches: p::scalar(&f, 2)? == offset as u64,
+-    })
+-}

@@ -1,0 +1,33 @@
+{
+  "product": "clowder-wechat-link",
+  "version": "0.1.0",
+  "protocolVersion": 1,
+  "sourceCommit": "4271862d1ab134612302da4484eddbdf1a19a89f",
+  "upstream": "thisnick/agent-wechat",
+  "upstreamCommit": "ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
+  "sourceManifestSha256": "919b665ae0d59ff05b202996c4502a851c5498d2c96fac47863233d44871dec5",
+  "protocolPatchSha256": "c168bc0a2132bbb3e402364deb6c11d424da6f99933229495d9f7c22acc90e51",
+  "cargoLockSha256": "13011991e0c32a5d70bba346b65ef05716cb41e506ea306c63773864a318cf2c",
+  "artifacts": {
+    "darwin-arm64": {
+      "fileName": "clowder-wechat-link-0.1.0-darwin-arm64",
+      "size": 5871904,
+      "sha256": "88ec86f710ae24134b3f776fc2ef385a1e67d9b36e6260d81223f10a89f6f261",
+      "compressedSha256": "e1385a1fa1080144a4a3698f9ccb296fe8ab958470b04710298aeec1c1823c34",
+      "minimumMacOS": "26.5",
+      "testedMacOS": "26.5",
+      "signing": "ad-hoc-hardened-runtime",
+      "teamIdentifier": null
+    }
+  },
+  "rustVersion": "1.93.1",
+  "buildCommand": "MACOSX_DEPLOYMENT_TARGET=26.5 cargo build --offline --locked --release --manifest-path packages/wechat-delegation/native/Cargo.toml -p clowder-wechat-link",
+  "openssl": {
+    "version": "3.6.3",
+    "linkage": "vendored-static"
+  },
+  "status": "internal-consumer-integration-in-progress",
+  "licenseInventorySha256": "d2f7eb2c927b735cd3fa1c7dc694b376646cd9f8bff0a8dfec19288ac90812a3",
+  "noticesSha256": "d34cd11a3318927bd5679e0303f0774cbc98ba5d96fa6e55216408fdb4f83dc0",
+  "signingCommand": "codesign --force --sign - --options runtime --identifier ai.clowder.wechat-link --timestamp=none"
+}

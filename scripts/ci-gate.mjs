@@ -73,6 +73,7 @@ export function buildGateSteps() {
     { name: 'SDK unit tests', command: 'pnpm --filter @clowder-ai/plugin-sdk test' },
     { name: 'SDK build', command: 'pnpm --filter @clowder-ai/plugin-sdk build' },
     { name: 'Superagent package gates', command: chain('@clowder-ai/superagent', ['typecheck', 'test', 'build']) },
+    { name: 'WeChat delegation package gates', command: chain('@clowder-ai/wechat-delegation', ['test', 'build', 'lint']) },
     { name: 'Feedback package', command: chain('@clowder-ai/feedback', ['typecheck', 'build', 'test', 'lint']) },
     { name: 'Quick phrases package', command: chain('@clowder-ai/quick-phrases', ['typecheck', 'build', 'test']) },
     {

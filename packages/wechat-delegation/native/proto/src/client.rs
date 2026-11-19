@@ -1,0 +1,1385 @@
+#[path = "group_detail.rs"]
+mod group_detail;
+pub use group_detail::*;
+#[path = "group_inventory.rs"]
+mod group_inventory;
+pub use group_inventory::*;
+#[path = "account.rs"]
+mod account;
+#[path = "login_lan_wire.rs"]
+mod login_lan_wire;
+#[path = "logout.rs"]
+mod logout;
+
+use crate::errors::{Service, ServiceRejected};
+pub use crate::wire::{
+    AddMessage, ContactLookup, ContactRecord, Heartbeat, InitContactPage, RoomMember, RoomRoster,
+    SyncBatch, SyncCommand, TextSendResult,
+};
+use crate::{
+    business::{self, AuthenticatedPacket, Prelogin},
+    crypto::Ecdh,
+    mmtls::{self, Session},
+    protobuf as p, wire,
+};
+pub use account::{
+    AccountIdentity, AccountLease, AccountLifecycle, AccountPersistence, AccountPersistenceFailed,
+    AccountPushConnection, AccountRequest, AccountStatus, NativeRequestNotSubmitted, PendingLogout,
+    TextSendOptions,
+};
+use anyhow::{bail, ensure, Result};
+pub use logout::*;
+use openssl::{nid::Nid, pkey::PKey, rsa::Rsa};
+use serde::{Deserialize, Serialize};
+use std::{fmt, time::Duration};
+use zeroize::{Zeroize, Zeroizing};
+
+/// Volatile authority for one QR operation. It cannot be serialized or revived.
+#[derive(Clone)]
+pub struct LoginGuard {
+    cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    deadline: std::time::Instant,
+}
+impl LoginGuard {
+    pub fn new(deadline: std::time::Instant) -> Self {
+        Self {
+            cancelled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            deadline,
+        }
+    }
+    pub fn cancel(&self) {
+        self.cancelled
+            .store(true, std::sync::atomic::Ordering::Release);
+    }
+    pub fn interrupted(&self) -> bool {
+        self.cancelled.load(std::sync::atomic::Ordering::Acquire)
+            || std::time::Instant::now() >= self.deadline
+    }
+    pub fn bounded(&self, duration: Duration) -> Self {
+        Self {
+            cancelled: self.cancelled.clone(),
+            deadline: self.deadline.min(std::time::Instant::now() + duration),
+        }
+    }
+    pub fn remaining(&self) -> Duration {
+        self.deadline
+            .saturating_duration_since(std::time::Instant::now())
+    }
+    fn check(&self) -> Result<()> {
+        ensure!(!self.interrupted(), "Login operation interrupted");
+        Ok(())
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DeviceProfile {
+    pub device_id: Vec<u8>,
+    pub device_type: String,
+    pub client_version: i32,
+}
+impl fmt::Debug for DeviceProfile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DeviceProfile")
+            .field("device_id", &"[redacted]")
+            .field("device_type", &self.device_type)
+            .field("client_version", &self.client_version)
+            .finish()
+    }
+}
+impl DeviceProfile {
+    pub fn generate(device_type: String) -> Result<Self> {
+        let bytes = crate::crypto::random::<16>()?;
+        let id = format!("l{}", hex::encode(bytes)).into_bytes()[..16].to_vec();
+        let p = Self {
+            device_id: id,
+            device_type,
+            client_version: -227271398,
+        };
+        p.validate()?;
+        Ok(p)
+    }
+    pub fn validate(&self) -> Result<()> {
+        ensure!(
+            self.device_id.len() == 16
+                && !self.device_type.is_empty()
+                && self.device_type.len() <= 1024
+                && !self.device_type.contains('\0'),
+            "Invalid native device profile"
+        );
+        ensure!(
+            self.client_version == -227271398,
+            "Unsupported native client version"
+        );
+        Ok(())
+    }
+}
+/// Raw accepted auth sections, retained only inside the encrypted account state.
+/// The update mask describes native application gates; presence alone does not
+/// mean an optional section changed active account credentials.
+#[derive(Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AuthSnapshot {
+    pub update_mask: u32,
+    pub response: Vec<u8>,
+    pub auth: Vec<u8>,
+    pub account: Vec<u8>,
+    pub network: Vec<u8>,
+    pub ax_auth: Vec<u8>,
+}
+impl fmt::Debug for AuthSnapshot {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AuthSnapshot")
+            .field("sections", &"[redacted]")
+            .finish()
+    }
+}
+impl Drop for AuthSnapshot {
+    fn drop(&mut self) {
+        self.response.zeroize();
+        self.auth.zeroize();
+        self.account.zeroize();
+        self.network.zeroize();
+        self.ax_auth.zeroize();
+    }
+}
+/// Accepted credentials. Serialize only into the service's encrypted state vault.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AccountState {
+    pub schema: u32,
+    pub device: DeviceProfile,
+    pub uin: u32,
+    pub own_username: String,
+    pub cookie: Vec<u8>,
+    pub session_key: Vec<u8>,
+    pub request_key: Vec<u8>,
+    pub response_key: Vec<u8>,
+    pub auto_auth_key: Vec<u8>,
+    pub key_info: Vec<u8>,
+    /// Native AuthSect field 9 SKBuffer. This is the official profile password,
+    /// distinct from transport keys, and is never part of an HTTP response.
+    #[serde(default)]
+    pub database_password: Vec<u8>,
+    #[serde(default)]
+    pub auth_snapshot: AuthSnapshot,
+    pub long_host: String,
+    pub short_host: String,
+}
+impl fmt::Debug for AccountState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AccountState")
+            .field("schema", &self.schema)
+            .field("credentials", &"[redacted]")
+            .finish()
+    }
+}
+impl Drop for AccountState {
+    fn drop(&mut self) {
+        self.cookie.zeroize();
+        self.session_key.zeroize();
+        self.request_key.zeroize();
+        self.response_key.zeroize();
+        self.auto_auth_key.zeroize();
+        self.key_info.zeroize();
+        self.database_password.zeroize();
+    }
+}
+impl AccountState {
+    pub fn validate(&self) -> Result<()> {
+        ensure!(
+            self.schema == 1
+                && self.uin != 0
+                && !self.own_username.is_empty()
+                && self.own_username.len() <= 256
+                && !self.own_username.contains('\0'),
+            "Invalid native account identity"
+        );
+        self.device.validate()?;
+        mmtls::validate_host(&self.long_host)?;
+        mmtls::validate_host(&self.short_host)?;
+        ensure!(
+            self.cookie.len() <= 15
+                && self.session_key.len() == 16
+                && ((self.request_key.is_empty() && self.response_key.is_empty())
+                    || (self.request_key.len() == 24 && self.response_key.len() == 24))
+                && self.auto_auth_key.len() <= 1024 * 1024
+                && self.key_info.len() <= 1024 * 1024
+                && (self.database_password.is_empty() || self.database_password.len() == 32)
+                && [
+                    &self.auth_snapshot.response,
+                    &self.auth_snapshot.auth,
+                    &self.auth_snapshot.account,
+                    &self.auth_snapshot.network,
+                    &self.auth_snapshot.ax_auth
+                ]
+                .iter()
+                .all(|v| v.len() <= 1024 * 1024),
+            "Invalid native account keys"
+        );
+        Ok(())
+    }
+}
+impl AccountState {}
+
+#[derive(Clone)]
+pub struct LoginAttempt {
+    pub schema: u32,
+    pub device: DeviceProfile,
+    pub computer_name: String,
+    pub qr_png: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+    pub created_at: u32,
+    pub expires_at: u32,
+    pub identifier: Vec<u8>,
+    pub notify_key: Vec<u8>,
+    pub cookie: Vec<u8>,
+    pub key_version: u16,
+    pub long_host: String,
+    pub short_host: String,
+    pub status: LoginStatus,
+    key_info: Vec<u8>,
+    credential3: Option<Vec<u8>>,
+    credential4: Option<Vec<u8>>,
+    lan_was_required: bool,
+    lan_upload_attempted: bool,
+}
+impl fmt::Debug for LoginAttempt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LoginAttempt")
+            .field("status", &self.status)
+            .field("created_at", &self.created_at)
+            .field("expires_at", &self.expires_at)
+            .field("credentials", &"[redacted]")
+            .finish()
+    }
+}
+impl Drop for LoginAttempt {
+    fn drop(&mut self) {
+        self.identifier.zeroize();
+        self.notify_key.zeroize();
+        self.cookie.zeroize();
+        self.key_info.zeroize();
+        self.credential3.zeroize();
+        self.credential4.zeroize();
+    }
+}
+impl LoginAttempt {
+    fn claim_lan_upload(&mut self) -> Result<()> {
+        ensure!(
+            self.lan_was_required
+                && self.status == LoginStatus::Scanned
+                && !self.lan_upload_attempted,
+            "LAN upload not permitted for this attempt"
+        );
+        // Set before any request preparation or network. An uncertain upload
+        // can never be replayed by subsequent polling or another local call.
+        self.lan_upload_attempted = true;
+        Ok(())
+    }
+    fn validate(&self) -> Result<()> {
+        self.validate_at(wire::unix_time()?)
+    }
+    fn locally_expired(&self, now: u32) -> bool {
+        // A scanned QR is an approval challenge. Its image expiry must not end
+        // that challenge; the operation and this hard bound still limit it.
+        let hard_deadline = self.created_at.saturating_add(900);
+        let deadline = if self.qr_png.is_empty()
+            || matches!(self.status, LoginStatus::Scanned | LoginStatus::Approved)
+        {
+            hard_deadline
+        } else {
+            self.expires_at.min(hard_deadline)
+        };
+        now >= deadline
+    }
+    fn validate_at(&self, now: u32) -> Result<()> {
+        ensure!(
+            self.schema == 1 && !self.locally_expired(now),
+            "Login attempt expired"
+        );
+        self.device.validate()?;
+        ensure!(
+            !self.identifier.is_empty()
+                && self.identifier.len() <= 4096
+                && !self.notify_key.is_empty()
+                && self.notify_key.len() <= 1024
+                && self.cookie.len() <= 15
+                && self.key_info.len() <= 1024 * 1024,
+            "Invalid login attempt"
+        );
+        mmtls::validate_host(&self.long_host)?;
+        mmtls::validate_host(&self.short_host)?;
+        ensure!(
+            [10014, 50005].contains(&self.key_version),
+            "Unsupported login key version"
+        );
+        Ok(())
+    }
+    fn manual_auth_request(&self, point: &[u8]) -> Result<Vec<u8>> {
+        wire::manual_auth(
+            &self.device,
+            &self.computer_name,
+            self.credential3
+                .as_deref()
+                .ok_or_else(|| anyhow::anyhow!("Missing approval"))?,
+            self.credential4
+                .as_deref()
+                .ok_or_else(|| anyhow::anyhow!("Missing approval"))?,
+            point,
+            &self.key_info,
+        )
+    }
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum LoginStatus {
+    Pending,
+    Scanned,
+    Approved,
+    Expired,
+    Cancelled,
+    Rejected,
+    Completed,
+}
+#[derive(Clone, Debug)]
+pub struct NativeOptions {
+    pub long_host: String,
+    pub short_host: String,
+    pub timeout: Duration,
+    pub receive_budget: usize,
+}
+impl Default for NativeOptions {
+    fn default() -> Self {
+        Self {
+            long_host: "long.weixin.qq.com".to_string(),
+            short_host: "short.weixin.qq.com".to_string(),
+            timeout: Duration::from_secs(30),
+            receive_budget: crate::MAX_MESSAGE_BYTES,
+        }
+    }
+}
+/// Native account client and login bootstrap for supported WeChat operations.
+///
+/// Use [`Self::new`] for login bootstrap, then transfer accepted [`AccountState`]
+/// into [`Self::from_account`]. Cloned account handles share accepted credentials
+/// and lifecycle; methods such as [`Self::send_text`] and [`Self::sync`] run
+/// blocking transport on Tokio workers without holding the state lock across
+/// network waits. This client does not own a daemon, profile, send queue or
+/// recovery journal. Explicit state export is secret data, not a second writer.
+#[derive(Clone)]
+pub struct NativeClient {
+    options: NativeOptions,
+    account: Option<std::sync::Arc<account::OwnedAccount>>,
+    submission_guard: Option<std::sync::Arc<dyn Fn() -> Result<()> + Send + Sync>>,
+}
+/// Polling an issued login challenge is repeatable. This does not authorize
+/// retrying QR creation, credential exchange, sends or rejected authentication.
+pub fn is_retryable_login_poll_error(error: &anyhow::Error) -> bool {
+    error.chain().any(|cause| {
+        if let Some(io) = cause.downcast_ref::<std::io::Error>() {
+            return matches!(
+                io.kind(),
+                std::io::ErrorKind::TimedOut
+                    | std::io::ErrorKind::WouldBlock
+                    | std::io::ErrorKind::ConnectionReset
+                    | std::io::ErrorKind::ConnectionAborted
+                    | std::io::ErrorKind::ConnectionRefused
+                    | std::io::ErrorKind::UnexpectedEof
+                    | std::io::ErrorKind::BrokenPipe
+                    | std::io::ErrorKind::NotConnected
+            );
+        }
+        if let Some(http) = cause.downcast_ref::<reqwest::Error>() {
+            return http.is_timeout() || http.is_connect();
+        }
+        let message = cause.to_string();
+        matches!(
+            message.as_str(),
+            "MMTLS deadline exceeded" | "MMTLS connection closed"
+        ) || message
+            .strip_prefix("Native shortlink HTTP status ")
+            .and_then(|s| s.parse::<u16>().ok())
+            .is_some_and(|status| matches!(status, 408 | 429 | 500 | 502 | 503 | 504))
+    })
+}
+impl NativeClient {
+    fn guarded_login(&self, guard: LoginGuard) -> Self {
+        let mut client = self.clone();
+        let previous = self.submission_guard.clone();
+        client.submission_guard = Some(std::sync::Arc::new(move || {
+            guard.check()?;
+            if let Some(previous) = &previous {
+                previous()?;
+            }
+            Ok(())
+        }));
+        client
+    }
+    pub fn start_qr_login_guarded(
+        &self,
+        device: DeviceProfile,
+        computer_name: &str,
+        guard: LoginGuard,
+    ) -> Result<LoginAttempt> {
+        guard.check()?;
+        self.guarded_login(guard)
+            .start_qr_login(device, computer_name)
+    }
+    pub fn poll_login_cancellable(
+        &self,
+        attempt: &mut LoginAttempt,
+        guard: LoginGuard,
+    ) -> Result<LoginStatus> {
+        guard.check()?;
+        let client = self.guarded_login(guard.clone());
+        client.poll_login_guarded(attempt, guard.deadline, move || guard.interrupted())
+    }
+    /// Only the owner-authorized connection service supplies locally bound
+    /// endpoints. This performs one fixed authenticated upload, no listening.
+    pub fn upload_login_lan_guarded(
+        &self,
+        attempt: &mut LoginAttempt,
+        addresses: &[std::net::Ipv4Addr],
+        port: u16,
+        guard: LoginGuard,
+    ) -> Result<Zeroizing<Vec<u8>>> {
+        guard.check()?;
+        attempt.validate()?;
+        attempt.claim_lan_upload()?;
+        let random = Zeroizing::new(crate::crypto::random::<16>()?);
+        let request = Zeroizing::new(login_lan_wire::request(
+            &attempt.device,
+            &attempt.identifier,
+            addresses,
+            port,
+            &random,
+        )?);
+        let client = self.guarded_login(guard.clone());
+        let (reply, cookie, _) = client.prelogin_rpc(
+            &attempt.long_host,
+            &attempt.short_host,
+            22312,
+            "/cgi-bin/micromsg-bin/extdeviceuploadlaninfo",
+            &request,
+            &attempt.cookie,
+            &[],
+            Some(attempt.key_version),
+        )?;
+        let reply = Zeroizing::new(reply);
+        guard.check()?;
+        let token = login_lan_wire::token(&reply)?;
+        if !cookie.is_empty() {
+            attempt.cookie.zeroize();
+            attempt.cookie = cookie;
+        }
+        Ok(token)
+    }
+    pub fn complete_login_guarded(
+        &self,
+        attempt: &mut LoginAttempt,
+        guard: LoginGuard,
+    ) -> Result<AccountState> {
+        guard.check()?;
+        self.guarded_login(guard).complete_login(attempt)
+    }
+    /// Validate transport options. Construction itself makes no network request.
+    pub fn new(options: NativeOptions) -> Result<Self> {
+        mmtls::validate_host(&options.long_host)?;
+        mmtls::validate_host(&options.short_host)?;
+        ensure!(
+            !options.timeout.is_zero() && options.timeout <= Duration::from_secs(120),
+            "Invalid native timeout"
+        );
+        ensure!(
+            (1024..=crate::MAX_MESSAGE_BYTES).contains(&options.receive_budget),
+            "Invalid receive budget"
+        );
+        Ok(Self {
+            options,
+            account: None,
+            submission_guard: None,
+        })
+    }
+    fn session(&self, host: &str) -> Result<Session> {
+        self.check_snapshot_transport()?;
+        Session::connect(host, self.options.timeout, self.options.receive_budget)
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn prelogin_rpc(
+        &self,
+        long_host: &str,
+        short_host: &str,
+        cgi: u16,
+        path: &str,
+        plain: &[u8],
+        cookie: &[u8],
+        auth_key: &[u8],
+        fixed_version: Option<u16>,
+    ) -> Result<(Vec<u8>, Vec<u8>, u16)> {
+        let session = self.session(long_host)?;
+        let profile = if let Some(version) = fixed_version {
+            business::profile_for_region(if version == 50005 { 2 } else { 1 })?
+        } else {
+            business::profile_for_region(session.certificate_region)?
+        };
+        let prepared = Prelogin::prepare(plain, &profile, auth_key)?;
+        let packet = business::prelogin_packet(&prepared, cgi, profile.version, cookie)?;
+        self.check_submission()?;
+        let reply = mmtls::short_exchange(
+            &session.short,
+            short_host,
+            path,
+            &packet,
+            self.options.timeout,
+        )?;
+        let envelope = business::split(&reply)?;
+        ServiceRejected::check(Service::NativeEnvelope, envelope.return_code)?;
+        ensure!(
+            envelope.cgi == cgi as u64 && envelope.encryption == 12,
+            "Unexpected prelogin response policy"
+        );
+        let plain = prepared.decrypt_reply(&envelope.payload)?;
+        Ok((plain, envelope.cookie, profile.version))
+    }
+    /// Request one QR challenge for the supplied device. Display
+    /// [`LoginAttempt::qr_png`] privately, poll for phone approval, then call
+    /// [`Self::complete_login`]. This does not grant authorization by itself.
+    pub fn start_qr_login(
+        &self,
+        device: DeviceProfile,
+        computer_name: &str,
+    ) -> Result<LoginAttempt> {
+        self.start_profile_qr_login(device, computer_name, &[])
+    }
+    /// QR approval for an existing installation retains its selected key-info.
+    /// This neither bypasses phone approval nor imports active authorization.
+    pub(crate) fn start_profile_qr_login(
+        &self,
+        device: DeviceProfile,
+        computer_name: &str,
+        key_info: &[u8],
+    ) -> Result<LoginAttempt> {
+        device.validate()?;
+        ensure!(key_info.len() <= 1024 * 1024, "Invalid saved key-info");
+        let plain = wire::qr_request(&device, computer_name)?;
+        let (reply, cookie, key_version) = self.prelogin_rpc(
+            &self.options.long_host,
+            &self.options.short_host,
+            502,
+            "/cgi-bin/micromsg-bin/getloginqrcode",
+            &plain,
+            &[],
+            &[],
+            None,
+        )?;
+        let qr = wire::decode_qr(&reply)?;
+        let now = wire::unix_time()?;
+        Ok(LoginAttempt {
+            schema: 1,
+            device,
+            computer_name: computer_name.to_string(),
+            qr_png: qr.image,
+            width: qr.width,
+            height: qr.height,
+            created_at: now,
+            expires_at: now.saturating_add(240),
+            identifier: qr.identifier,
+            notify_key: qr.notify_key,
+            cookie,
+            key_version,
+            long_host: self.options.long_host.clone(),
+            short_host: self.options.short_host.clone(),
+            status: LoginStatus::Pending,
+            key_info: key_info.to_vec(),
+            credential3: None,
+            credential4: None,
+            lan_was_required: false,
+            lan_upload_attempted: false,
+        })
+    }
+    /// Initiates phone approval for an existing remembered device without a QR.
+    /// The caller chooses this fallback explicitly; no automatic auth retries occur.
+    pub fn start_saved_device_login(
+        &self,
+        state: &AccountState,
+        computer_name: &str,
+    ) -> Result<LoginAttempt> {
+        state.validate()?;
+        self.start_saved_login(
+            &state.device,
+            &state.own_username,
+            &state.auto_auth_key,
+            &state.cookie,
+            &state.key_info,
+            &state.long_host,
+            &state.short_host,
+            computer_name,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn start_saved_login(
+        &self,
+        device: &DeviceProfile,
+        username: &str,
+        auto_auth_key: &[u8],
+        cookie: &[u8],
+        key_info: &[u8],
+        long_host: &str,
+        short_host: &str,
+        computer_name: &str,
+    ) -> Result<LoginAttempt> {
+        device.validate()?;
+        ensure!(
+            !username.is_empty()
+                && username.len() <= 256
+                && !username.contains('\0')
+                && !auto_auth_key.is_empty()
+                && auto_auth_key.len() <= 1024 * 1024
+                && cookie.len() <= 15
+                && key_info.len() <= 1024 * 1024,
+            "Invalid saved-device credentials"
+        );
+        let rsa = Rsa::generate(1024)?;
+        let public = PKey::from_rsa(rsa)?.public_key_to_pem()?;
+        let request = wire::push_login(device, username, auto_auth_key, &public)?;
+        let (reply, cookie, key_version) = self.prelogin_rpc(
+            long_host,
+            short_host,
+            654,
+            "/cgi-bin/micromsg-bin/pushloginurl",
+            &request,
+            cookie,
+            &[],
+            None,
+        )?;
+        let (identifier, notify_key) = wire::decode_push(&reply)?;
+        let now = wire::unix_time()?;
+        Ok(LoginAttempt {
+            schema: 1,
+            device: device.clone(),
+            computer_name: computer_name.to_string(),
+            qr_png: vec![],
+            width: 0,
+            height: 0,
+            created_at: now,
+            expires_at: now.saturating_add(240),
+            identifier,
+            notify_key,
+            cookie,
+            key_version,
+            long_host: long_host.into(),
+            short_host: short_host.into(),
+            status: LoginStatus::Pending,
+            key_info: key_info.to_vec(),
+            credential3: None,
+            credential4: None,
+            lan_was_required: false,
+            lan_upload_attempted: false,
+        })
+    }
+    /// Poll an existing challenge. Only [`LoginStatus::Approved`] permits
+    /// [`Self::complete_login`]; expired/rejected/cancelled attempts must stop.
+    pub fn poll_login(&self, attempt: &mut LoginAttempt) -> Result<LoginStatus> {
+        self.poll_login_guarded(
+            attempt,
+            std::time::Instant::now() + Duration::from_secs(900),
+            || false,
+        )
+    }
+    /// The connection service owns any explicitly permitted temporary listener.
+    /// This function only polls; it cannot open or automatically upload LAN data.
+    pub fn poll_login_guarded(
+        &self,
+        attempt: &mut LoginAttempt,
+        deadline: std::time::Instant,
+        cancelled: impl Fn() -> bool + Send + Sync + 'static,
+    ) -> Result<LoginStatus> {
+        ensure!(
+            !cancelled() && std::time::Instant::now() < deadline,
+            "Login operation cancelled or expired"
+        );
+        let now = wire::unix_time()?;
+        if attempt.locally_expired(now) {
+            attempt.status = LoginStatus::Expired;
+            return Ok(attempt.status);
+        }
+        attempt.validate_at(now)?;
+        ensure!(
+            !matches!(
+                attempt.status,
+                LoginStatus::Completed | LoginStatus::Cancelled | LoginStatus::Rejected
+            ),
+            "Login attempt is terminal"
+        );
+        let request = wire::poll_request(&attempt.device, &attempt.identifier)?;
+        let (reply, cookie, _) = self.prelogin_rpc(
+            &attempt.long_host,
+            &attempt.short_host,
+            503,
+            "/cgi-bin/micromsg-bin/checkloginqrcode",
+            &request,
+            &attempt.cookie,
+            &[],
+            Some(attempt.key_version),
+        )?;
+        let response = wire::decode_poll(&reply, &attempt.notify_key)?;
+        if !cookie.is_empty() {
+            attempt.cookie = cookie;
+        }
+        ensure!(
+            !cancelled() && std::time::Instant::now() < deadline,
+            "Login operation cancelled or expired"
+        );
+        apply_login_notification(attempt, response)
+    }
+
+    /// Exchange an approved challenge for secret account credentials once.
+    /// Keep the returned state in memory or an encrypted application vault.
+    pub fn complete_login(&self, attempt: &mut LoginAttempt) -> Result<AccountState> {
+        attempt.validate()?;
+        ensure!(
+            attempt.status == LoginStatus::Approved,
+            "Login has not been approved"
+        );
+        let inner = Ecdh::generate(Nid::SECP224R1)?;
+        let request = attempt.manual_auth_request(&inner.public()?)?;
+        let mut long_host = attempt.long_host.clone();
+        let mut short_host = attempt.short_host.clone();
+        let mut cookie = attempt.cookie.clone();
+        for redirected in 0..=1 {
+            let (reply, next_cookie, _) = self.prelogin_rpc(
+                &long_host,
+                &short_host,
+                252,
+                "/cgi-bin/micromsg-bin/secmanualauth",
+                &request,
+                &cookie,
+                &[],
+                None,
+            )?;
+            let fields = p::decode(&reply)?;
+            let code = p::base_code(&fields)?;
+            if code == -301 && redirected == 0 {
+                (long_host, short_host) = redirect(&fields)?;
+                cookie = next_cookie;
+                continue;
+            }
+            ServiceRejected::check(Service::AccountAuthentication, code)?;
+            let mut state = reduce_auth(&reply, None, &inner, &attempt.device, &next_cookie)?;
+            state.long_host = long_host;
+            state.short_host = short_host;
+            state.validate()?;
+            attempt.status = LoginStatus::Completed;
+            attempt.credential3.zeroize();
+            attempt.credential4.zeroize();
+            return Ok(state);
+        }
+        bail!("Native authentication redirect limit reached")
+    }
+    /// Replace an expired, unscanned QR while preserving installation key-info.
+    pub fn refresh_qr_login(&self, attempt: &LoginAttempt) -> Result<LoginAttempt> {
+        ensure!(
+            attempt.status == LoginStatus::Expired && !attempt.qr_png.is_empty(),
+            "Only an expired QR may be refreshed"
+        );
+        let options = NativeOptions {
+            long_host: attempt.long_host.clone(),
+            short_host: attempt.short_host.clone(),
+            ..self.options.clone()
+        };
+        Self::new(options)?.start_profile_qr_login(
+            attempt.device.clone(),
+            &attempt.computer_name,
+            &attempt.key_info,
+        )
+    }
+    /// One trusted AutoAuth exchange, retaining identity and replacing selected key
+    /// sections atomically in the returned value. Does not silently fall back to QR.
+    #[doc(hidden)]
+    pub(crate) fn renew_session_snapshot(
+        &self,
+        previous: &AccountState,
+        computer_name: &str,
+    ) -> Result<AccountState> {
+        previous.validate()?;
+        let inner = Ecdh::generate(Nid::SECP224R1)?;
+        let request = wire::auto_auth(previous, &inner.public()?, computer_name)?;
+        let mut long = previous.long_host.clone();
+        let mut short = previous.short_host.clone();
+        let mut cookie = previous.cookie.clone();
+        for redirected in 0..=1 {
+            let (reply, next_cookie, _) = self.prelogin_rpc(
+                &long,
+                &short,
+                763,
+                "/cgi-bin/micromsg-bin/secautoauth",
+                &request,
+                &cookie,
+                &previous.auto_auth_key,
+                None,
+            )?;
+            let fields = p::decode(&reply)?;
+            let code = p::base_code(&fields)?;
+            if code == -301 && redirected == 0 {
+                (long, short) = redirect(&fields)?;
+                cookie = next_cookie;
+                continue;
+            }
+            ServiceRejected::check(Service::AutomaticAuthentication, code)?;
+            let mut next = reduce_auth(
+                &reply,
+                Some(previous),
+                &inner,
+                &previous.device,
+                &next_cookie,
+            )?;
+            next.long_host = long;
+            next.short_host = short;
+            next.validate()?;
+            return Ok(next);
+        }
+        bail!("AutoAuth redirect limit reached")
+    }
+
+    pub(crate) fn authenticated_rpc(
+        &self,
+        state: &mut AccountState,
+        cgi: u16,
+        path: &str,
+        request: &[u8],
+    ) -> Result<Vec<u8>> {
+        self.authenticated_rpc_guarded(state, cgi, path, request, || Ok(()))
+    }
+    fn authenticated_rpc_guarded(
+        &self,
+        state: &mut AccountState,
+        cgi: u16,
+        path: &str,
+        request: &[u8],
+        before_submit: impl FnOnce() -> Result<()>,
+    ) -> Result<Vec<u8>> {
+        let session = self.session(&state.long_host)?;
+        let packet = AuthenticatedPacket::prepare(state, cgi, request)?;
+        self.check_submission()?;
+        before_submit()?;
+        let reply = mmtls::short_exchange(
+            &session.short,
+            &state.short_host,
+            path,
+            &packet.packet,
+            self.options.timeout,
+        )?;
+        let (plain, cookie) = packet.decode_verified_transport_reply(&reply)?;
+        if !cookie.is_empty() {
+            state.cookie = cookie;
+        }
+        Ok(plain)
+    }
+    /// Fetch one scene-6 sync page. An empty cursor starts an initial sync.
+    /// Returned commands include their original payloads. Persist and handle all
+    /// required commands before committing the returned cursor; this call does
+    /// not write history or manage a checkpoint for the application.
+    #[doc(hidden)]
+    pub(crate) fn sync_snapshot(
+        &self,
+        state: &mut AccountState,
+        cursor: &[u8],
+    ) -> Result<SyncBatch> {
+        self.sync_scene_snapshot(state, cursor, 6)
+    }
+    #[doc(hidden)]
+    pub(crate) fn sync_scene_snapshot(
+        &self,
+        state: &mut AccountState,
+        cursor: &[u8],
+        scene: u32,
+    ) -> Result<SyncBatch> {
+        ensure!([6, 7].contains(&scene), "Unsupported sync scene");
+        let wire_cursor = if cursor.is_empty() { &[0][..] } else { cursor };
+        let request = wire::sync_request(wire_cursor, &state.device.device_type, scene)?;
+        wire::decode_sync(
+            &self.authenticated_rpc(state, 138, "/cgi-bin/micromsg-bin/newsync", &request)?,
+            cursor,
+        )
+    }
+    /// Request heartbeat hints for a committed sync cursor. Hints are not message
+    /// contents; the application still needs to fetch and handle sync commands.
+    #[doc(hidden)]
+    pub(crate) fn heartbeat_snapshot(
+        &self,
+        state: &mut AccountState,
+        cursor: &[u8],
+    ) -> Result<Heartbeat> {
+        let request = wire::heartbeat_request(state, cursor)?;
+        wire::decode_heartbeat(&self.authenticated_rpc(
+            state,
+            518,
+            "/cgi-bin/micromsg-bin/heartbeat",
+            &request,
+        )?)
+    }
+
+    /// Look up exact usernames on the server. The returned records are not
+    /// automatically written into a local profile.
+    #[doc(hidden)]
+    pub(crate) fn lookup_contacts_snapshot(
+        &self,
+        state: &mut AccountState,
+        usernames: &[String],
+    ) -> Result<ContactLookup> {
+        let request = wire::contact_request(state, usernames)?;
+        wire::decode_contacts(
+            &self.authenticated_rpc(state, 182, "/cgi-bin/micromsg-bin/getcontact", &request)?,
+            usernames,
+        )
+    }
+    #[doc(hidden)]
+    pub(crate) fn lookup_room_snapshot(
+        &self,
+        state: &mut AccountState,
+        room_id: &str,
+        version: u32,
+    ) -> Result<RoomRoster> {
+        let request = wire::room_request(state, room_id, version)?;
+        wire::decode_room(
+            &self.authenticated_rpc(
+                state,
+                551,
+                "/cgi-bin/micromsg-bin/getchatroommemberdetail",
+                &request,
+            )?,
+            room_id,
+        )
+    }
+    #[doc(hidden)]
+    pub(crate) fn init_contacts_snapshot(
+        &self,
+        state: &mut AccountState,
+        contact_sequence: u32,
+        room_sequence: u32,
+    ) -> Result<InitContactPage> {
+        let request =
+            wire::init_contacts_request(&state.own_username, contact_sequence, room_sequence)?;
+        let page = wire::decode_init_contacts(&self.authenticated_rpc(
+            state,
+            851,
+            "/cgi-bin/micromsg-bin/initcontact",
+            &request,
+        )?)?;
+        ensure!(
+            !page.more
+                || page.contact_sequence != contact_sequence
+                || page.room_sequence != room_sequence,
+            "Contact bootstrap made no cursor progress"
+        );
+        Ok(page)
+    }
+}
+
+fn redirect(fields: &[p::Field]) -> Result<(String, String)> {
+    let network = p::decode(p::data(fields, 5)?)?;
+    let hosts = p::decode(p::data(&network, 1)?)?;
+    let target = |source: &[u8]| -> Result<String> {
+        let mut out = None;
+        for f in hosts.iter().filter(|f| f.number == 2) {
+            let p::Value::Bytes(raw) = &f.value else {
+                bail!("Invalid redirect map");
+            };
+            let item = p::decode(raw)?;
+            if p::data(&item, 1)? == source {
+                ensure!(out.is_none(), "Ambiguous redirect");
+                let name = std::str::from_utf8(p::data(&item, 2)?)?.to_string();
+                mmtls::validate_host(&name)?;
+                out = Some(name);
+            }
+        }
+        out.ok_or_else(|| anyhow::anyhow!("Missing redirect mapping"))
+    };
+    Ok((
+        target(b"long.weixin.qq.com")?,
+        target(b"short.weixin.qq.com")?,
+    ))
+}
+fn reduce_auth(
+    plain: &[u8],
+    previous: Option<&AccountState>,
+    inner: &Ecdh,
+    device: &DeviceProfile,
+    cookie: &[u8],
+) -> Result<AccountState> {
+    let f = p::decode(plain)?;
+    ensure!(p::base_code(&f)? == 0, "Rejected auth response");
+    let mask = u32::try_from(p::scalar(&f, 2)?)?;
+    for (bit, n) in [(1, 3), (2, 4), (4, 5)] {
+        if mask & bit != 0 {
+            p::data(&f, n)?;
+        }
+    }
+    let mut state = previous.cloned().unwrap_or_else(|| AccountState {
+        schema: 1,
+        device: device.clone(),
+        uin: 0,
+        own_username: String::new(),
+        cookie: vec![],
+        session_key: vec![],
+        request_key: vec![],
+        response_key: vec![],
+        auto_auth_key: vec![],
+        key_info: vec![],
+        database_password: vec![],
+        auth_snapshot: AuthSnapshot::default(),
+        long_host: "long.weixin.qq.com".into(),
+        short_host: "short.weixin.qq.com".into(),
+    });
+    ensure!(
+        plain.len() <= 1024 * 1024,
+        "Auth response snapshot too large"
+    );
+    state.auth_snapshot.update_mask = mask;
+    state.auth_snapshot.response = plain.to_vec();
+    for (number, target) in [
+        (3, &mut state.auth_snapshot.auth),
+        (4, &mut state.auth_snapshot.account),
+        (5, &mut state.auth_snapshot.network),
+        (6, &mut state.auth_snapshot.ax_auth),
+    ] {
+        if let Some(section) = p::optional_data(&f, number)? {
+            *target = section.to_vec();
+        }
+    }
+    if let Some(account) = p::optional_data(&f, 4)? {
+        let a = p::decode(account)?;
+        if let Some(name) = p::optional_data(&a, 1)? {
+            let name = std::str::from_utf8(name)?;
+            ensure!(
+                previous.is_none_or(|s| s.own_username == name),
+                "Auth account identity changed"
+            );
+            state.own_username = name.to_string();
+        }
+    }
+    if mask & 1 != 0 {
+        let auth = p::data(&f, 3)?;
+        let a = p::decode(auth)?;
+        let uin = u32::try_from(p::scalar(&a, 1)?)?;
+        ensure!(
+            uin != 0 && previous.is_none_or(|s| s.uin == uin),
+            "Auth UIN changed"
+        );
+        let (session, request, response) = business::account_keys(inner, auth)?;
+        state.uin = uin;
+        state.session_key = session;
+        state.request_key = request;
+        state.response_key = response;
+        state.auto_auth_key = p::optional_data(&a, 4)?
+            .map(p::unbuffer)
+            .transpose()?
+            .unwrap_or_default();
+        if let Some(password) = p::optional_data(&a, 9)? {
+            let password = p::unbuffer(password)?;
+            ensure!(
+                password.is_empty() || password.len() == 32,
+                "Invalid native database password"
+            );
+            state.database_password.zeroize();
+            state.database_password = password;
+        }
+        state.key_info = p::optional_data(&a, 10)?
+            .map(p::unbuffer)
+            .transpose()?
+            .unwrap_or_default();
+    } else {
+        ensure!(previous.is_some(), "Initial auth has no key section");
+    }
+    ensure!(cookie.len() <= 15, "Invalid auth cookie");
+    if !cookie.is_empty() {
+        state.cookie = cookie.to_vec();
+    }
+    state.database_password.zeroize();
+    state.database_password.clear();
+    state.auth_snapshot = AuthSnapshot::default();
+    state.validate()?;
+    Ok(state)
+}
+
+/// A server LAN challenge never implicitly opens a listening socket.
+fn apply_login_notification(
+    attempt: &mut LoginAttempt,
+    response: wire::PollResponse,
+) -> Result<LoginStatus> {
+    if response.status.is_some_and(|status| status > 2) {
+        attempt.credential3.zeroize();
+        attempt.credential4.zeroize();
+        attempt.credential3 = None;
+        attempt.credential4 = None;
+        attempt.status = LoginStatus::Rejected;
+        return Ok(attempt.status);
+    }
+    if response.lan_challenge {
+        attempt.lan_was_required = true;
+        attempt.credential3.zeroize();
+        attempt.credential4.zeroize();
+        attempt.credential3 = None;
+        attempt.credential4 = None;
+        attempt.status = LoginStatus::Scanned;
+        return Err(LanApprovalRequired.into());
+    }
+    if let Some(status) = response.status {
+        attempt.status = match status {
+            0 if attempt.status == LoginStatus::Scanned => LoginStatus::Scanned,
+            0 => LoginStatus::Pending,
+            1 => LoginStatus::Scanned,
+            2 => LoginStatus::Approved,
+            _ => LoginStatus::Rejected,
+        };
+        if attempt.status == LoginStatus::Approved {
+            attempt.credential3 = response.credential3;
+            attempt.credential4 = response.credential4;
+        }
+    }
+    Ok(attempt.status)
+}
+
+#[derive(Debug)]
+pub struct LanApprovalRequired;
+impl std::fmt::Display for LanApprovalRequired {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("LAN login challenge requires owner approval")
+    }
+}
+impl std::error::Error for LanApprovalRequired {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn attempt(status: LoginStatus, qr: bool) -> LoginAttempt {
+        LoginAttempt {
+            schema: 1,
+            device: state().device.clone(),
+            computer_name: "synthetic desktop".into(),
+            qr_png: if qr { vec![1] } else { Vec::new() },
+            width: 0,
+            height: 0,
+            created_at: 1000,
+            expires_at: 1240,
+            identifier: vec![1; 16],
+            notify_key: vec![2; 16],
+            cookie: vec![3; 15],
+            key_version: 10014,
+            long_host: "long.weixin.qq.com".into(),
+            short_host: "short.weixin.qq.com".into(),
+            status,
+            key_info: b"persisted installation key-info".to_vec(),
+            credential3: Some(vec![4; 16]),
+            credential4: Some(vec![5; 16]),
+            lan_was_required: false,
+            lan_upload_attempted: false,
+        }
+    }
+    #[test]
+    fn final_approval_request_restores_key_info_for_both_saved_device_and_qr() {
+        let inner = Ecdh::generate(Nid::SECP224R1).unwrap();
+        for qr in [false, true] {
+            let attempt = attempt(LoginStatus::Approved, qr);
+            // Login attempts remain memory-only in the connection service.
+            let restored = attempt.clone();
+            assert_eq!(restored.key_info, attempt.key_info);
+            let request = p::decode(
+                &restored
+                    .manual_auth_request(&inner.public().unwrap())
+                    .unwrap(),
+            )
+            .unwrap();
+            let aes = p::decode(p::data(&request, 2).unwrap()).unwrap();
+            let base = p::decode(p::data(&aes, 1).unwrap()).unwrap();
+            // Retained official requests use1 for both approval paths.
+            assert_eq!(p::scalar(&base, 6).unwrap(), 1);
+            let auth = p::decode(p::data(&aes, 2).unwrap()).unwrap();
+            assert_eq!(
+                p::unbuffer(p::data(&auth, 5).unwrap()).unwrap(),
+                attempt.key_info
+            );
+            assert!(!format!("{restored:?}").contains("persisted installation"));
+        }
+    }
+    #[test]
+    fn scanned_and_saved_device_approval_outlive_image_expiry_but_remain_bounded() {
+        let qr = attempt(LoginStatus::Pending, true);
+        assert!(qr.validate_at(1239).is_ok());
+        assert!(qr.validate_at(1240).is_err());
+        for (status, qr) in [
+            (LoginStatus::Scanned, true),
+            (LoginStatus::Approved, true),
+            (LoginStatus::Pending, false),
+        ] {
+            let attempt = attempt(status, qr);
+            assert!(attempt.validate_at(1240).is_ok());
+            assert!(attempt.validate_at(1899).is_ok());
+            assert!(attempt.validate_at(1900).is_err());
+        }
+    }
+
+    fn state() -> AccountState {
+        AccountState {
+            schema: 1,
+            device: DeviceProfile {
+                device_id: vec![1; 16],
+                device_type: "UnifiedPCLinux synthetic x86_64".into(),
+                client_version: -227271398,
+            },
+            uin: 123,
+            own_username: "synthetic-user".into(),
+            cookie: vec![5],
+            session_key: vec![6; 16],
+            request_key: vec![7; 24],
+            response_key: vec![8; 24],
+            auto_auth_key: vec![],
+            key_info: vec![],
+            database_password: vec![],
+            auth_snapshot: AuthSnapshot::default(),
+            long_host: "long.weixin.qq.com".into(),
+            short_host: "short.weixin.qq.com".into(),
+        }
+    }
+    #[test]
+    fn challenge_poll_retries_only_transport_availability_failures() {
+        use std::io::{Error, ErrorKind};
+        for kind in [
+            ErrorKind::TimedOut,
+            ErrorKind::WouldBlock,
+            ErrorKind::ConnectionReset,
+            ErrorKind::UnexpectedEof,
+        ] {
+            assert!(is_retryable_login_poll_error(
+                &anyhow::Error::new(Error::from(kind)).context("polling challenge")
+            ));
+        }
+        for message in [
+            "MMTLS deadline exceeded",
+            "MMTLS connection closed",
+            "Native shortlink HTTP status 503",
+        ] {
+            assert!(is_retryable_login_poll_error(&anyhow::anyhow!("{message}")));
+        }
+        for message in [
+            "Login poll returned -13",
+            "Native envelope returned -13",
+            "Native shortlink HTTP status 403",
+            "Native shortlink HTTP status 5030",
+            "Missing authentication tag",
+            "Unexpected MMTLS header",
+            "Truncated structure",
+        ] {
+            assert!(!is_retryable_login_poll_error(&anyhow::anyhow!(
+                "{message}"
+            )));
+        }
+        assert!(!is_retryable_login_poll_error(
+            &Error::from(ErrorKind::PermissionDenied).into()
+        ));
+    }
+    #[test]
+    fn secrets_not_debugged() {
+        let s = state();
+        let text = format!("{s:?}");
+        assert!(!text.contains("synthetic-user"));
+        assert!(!text.contains("123"));
+        assert!(text.contains("redacted"));
+    }
+    #[test]
+    fn login_cancellation_and_deadline_reach_the_final_business_submission_guard() {
+        let client = NativeClient::new(NativeOptions::default()).unwrap();
+        let guard = LoginGuard::new(std::time::Instant::now() + Duration::from_secs(30));
+        let guarded = client.guarded_login(guard.clone());
+        guarded.check_submission().unwrap();
+        guard.cancel();
+        assert!(
+            guarded.check_submission().is_err(),
+            "cancelled QR must refuse final submission"
+        );
+        let expired = client.guarded_login(LoginGuard::new(std::time::Instant::now()));
+        assert!(
+            expired.check_submission().is_err(),
+            "expired QR must refuse final submission"
+        );
+    }
+    #[test]
+    fn explicit_lan_permission_has_one_upload_and_a_shared_shortened_guard() {
+        let original = LoginGuard::new(std::time::Instant::now() + Duration::from_secs(300));
+        let bounded = original.bounded(Duration::from_secs(120));
+        assert!(bounded.remaining() <= Duration::from_secs(120));
+        original.cancel();
+        assert!(bounded.interrupted());
+        let mut challenge = attempt(LoginStatus::Scanned, true);
+        assert!(
+            challenge.claim_lan_upload().is_err(),
+            "ordinary scanned approval cannot start LAN"
+        );
+        challenge.lan_was_required = true;
+        challenge.claim_lan_upload().unwrap();
+        assert!(
+            challenge.claim_lan_upload().is_err(),
+            "the same attempt never uploads twice"
+        );
+        assert!(
+            mmtls::validate_short_route("/cgi-bin/micromsg-bin/extdeviceuploadlaninfo").is_ok()
+        );
+        assert!(mmtls::validate_short_route("/cgi-bin/micromsg-bin/mmemojiupload").is_err());
+    }
+    #[test]
+    fn server_rejection_cannot_be_reinterpreted_as_a_new_lan_permission_request() {
+        let mut attempt = attempt(LoginStatus::Scanned, true);
+        let response = wire::PollResponse {
+            status: Some(3),
+            lan_challenge: true,
+            credential3: Some(vec![7; 16]),
+            credential4: Some(vec![8; 16]),
+        };
+        assert_eq!(
+            apply_login_notification(&mut attempt, response).unwrap(),
+            LoginStatus::Rejected
+        );
+        assert!(attempt.credential3.is_none() && attempt.credential4.is_none());
+        assert!(attempt.claim_lan_upload().is_err());
+    }
+    #[test]
+    fn account_state_roundtrips_without_number_loss() {
+        let s = state();
+        let json = serde_json::to_vec(&s).unwrap();
+        let restored: AccountState = serde_json::from_slice(&json).unwrap();
+        restored.validate().unwrap();
+        assert_eq!(restored.uin, s.uin);
+    }
+
+    #[test]
+    fn refresh_identity_and_clear_tokens() {
+        let old = state();
+        let inner = Ecdh::generate(Nid::SECP224R1).unwrap();
+        let auth = p::message(&[
+            p::uint(1, old.uin as u64),
+            p::bytes(3, &p::buffer(&[1; 16])),
+            p::uint(19, 0),
+        ])
+        .unwrap();
+        let reply = p::message(&[
+            p::bytes(1, &p::uint(1, 0)),
+            p::uint(2, 1),
+            p::bytes(3, &auth),
+            p::bytes(4, &p::bytes(1, old.own_username.as_bytes())),
+        ])
+        .unwrap();
+        let next = reduce_auth(&reply, Some(&old), &inner, &old.device, &[]).unwrap();
+        assert!(next.auto_auth_key.is_empty());
+        assert!(next.request_key.is_empty());
+        let bad = p::message(&[
+            p::bytes(1, &p::uint(1, 0)),
+            p::uint(2, 0),
+            p::bytes(4, &p::bytes(1, b"foreign")),
+        ])
+        .unwrap();
+        assert!(reduce_auth(&bad, Some(&old), &inner, &old.device, &[]).is_err());
+    }
+}

@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "upstream": "thisnick/agent-wechat",
+  "upstreamCommit": "ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e",
+  "patchSha256": "c168bc0a2132bbb3e402364deb6c11d424da6f99933229495d9f7c22acc90e51",
+  "files": [
+    {
+      "path": "LICENSE",
+      "origin": "upstream",
+      "upstreamSha256": "a5b956b389203e1418474a5c857f4ef4fb3a3027f22d191d4c56aa8078e079bd",
+      "derivedSha256": "a5b956b389203e1418474a5c857f4ef4fb3a3027f22d191d4c56aa8078e079bd"
+    },
+    {
+      "path": "NOTICE",
+      "origin": "upstream",
+      "upstreamSha256": "22ffa117dc951ec765d2e7c3cd44d554e765c1c036c44380ed522b53c5f59066",
+      "derivedSha256": "22ffa117dc951ec765d2e7c3cd44d554e765c1c036c44380ed522b53c5f59066"
+    },
+    {
+      "path": "fixtures/LICENSE-CITIZENLAB",
+      "origin": "upstream",
+      "upstreamSha256": "6ad9314bde82fa0dceebd03b16975d197629f3bd7b59961a35b75f45c4db4b7f",
+      "derivedSha256": "6ad9314bde82fa0dceebd03b16975d197629f3bd7b59961a35b75f45c4db4b7f"
+    },
+    {
+      "path": "fixtures/business-public-keys.json",
+      "origin": "upstream",
+      "upstreamSha256": "5be053d99464e0c12cce96c58960b38f8a5f4ca76d770f23ae9696f1dba31d0f",
+      "derivedSha256": "5be053d99464e0c12cce96c58960b38f8a5f4ca76d770f23ae9696f1dba31d0f"
+    },
+    {
+      "path": "fixtures/mmtls-public-keys.json",
+      "origin": "upstream",
+      "upstreamSha256": "b41d95be5d62f6ef44ba238be13ace8b0d0b5a96d648ccb6212037cd9b0f91ab",
+      "derivedSha256": "b41d95be5d62f6ef44ba238be13ace8b0d0b5a96d648ccb6212037cd9b0f91ab"
+    },
+    {
+      "path": "src/account.rs",
+      "origin": "upstream",
+      "upstreamSha256": "e782ba2dfcceea036639cc420ca10c03a15dd522e5563fce6729e139eb3d4714",
+      "derivedSha256": "ef1ad8e1286452a9a06ff6842b7987a5c2eaf188918cccd88a2550ba2e680744"
+    },
+    {
+      "path": "src/account_components.rs",
+      "origin": "upstream",
+      "upstreamSha256": "37433c932bf318b7ae15dc3da706e3b0954b9275c850391e8eb5e47973e3f92d",
+      "derivedSha256": "37433c932bf318b7ae15dc3da706e3b0954b9275c850391e8eb5e47973e3f92d"
+    },
+    {
+      "path": "src/account_operations.rs",
+      "origin": "upstream",
+      "upstreamSha256": "e8178ad7e97b5d31c93ad2a81e07b5a4f46ef13cf72070a5826dc45a8c09489c",
+      "derivedSha256": "71fee5d2db612f1f8bd608c2b3d1de70af2262232a7b598d0cd881207288fa63"
+    },
+    {
+      "path": "src/account_push.rs",
+      "origin": "upstream",
+      "upstreamSha256": "c2c17c4c49e6d19b761577e743e444200e152efe7a7c979d5942f28c5725d04c",
+      "derivedSha256": "c2c17c4c49e6d19b761577e743e444200e152efe7a7c979d5942f28c5725d04c"
+    },
+    {
+      "path": "src/account_request.rs",
+      "origin": "upstream",
+      "upstreamSha256": "07aa4ca7312de742b654f78da324e9a9966c2fd58caabdde19d90b356234467d",
+      "derivedSha256": "605f766a7f02e0ed4304a705ede266c6c9f3e4ea2d72045222e5029733ec8bc6"
+    },
+    {
+      "path": "src/account_tests.rs",
+      "origin": "upstream",
+      "upstreamSha256": "600fec886a19225be2f15ba1e2653dc81e1ca0567b426589c35f8c20ab4bd4c8",
+      "derivedSha256": "a9aa7fe6fde01d1aac07f10ed16158be09af1427cb5ea61ddb6f7085f2fa95e2"
+    },
+    {
+      "path": "src/business.rs",
+      "origin": "upstream",
+      "upstreamSha256": "59c05e469d336aa79fa6facb7a4e062987d5219d37ffe3c9f27df5afc32cd175",
+      "derivedSha256": "59c05e469d336aa79fa6facb7a4e062987d5219d37ffe3c9f27df5afc32cd175"
+    },
+    {
+      "path": "src/client.rs",
+      "origin": "upstream",
+      "upstreamSha256": "9edcd1172b8e3632926993f24a78384853ef2a3df939ce1b22bf2771bbe7e3e8",
+      "derivedSha256": "80b33964e671d12870dfc42efdde0ebf103b0a4d1f2403b1f51d4b3c60f11e54"
+    },
+    {
+      "path": "src/contact_sync.rs",
+      "origin": "upstream",
+      "upstreamSha256": "8e9e8ce76df029d8f494f970f85b944457828fcb1f03ff370a09186be75aaf23",
+      "derivedSha256": "8e9e8ce76df029d8f494f970f85b944457828fcb1f03ff370a09186be75aaf23"
+    },
+    {
+      "path": "src/crypto.rs",
+      "origin": "upstream",
+      "upstreamSha256": "7f897f4c5ae38fddf4b22b6be8a5ac7fe0cdc638e52926f93272a92b082689e8",
+      "derivedSha256": "b4557c47d14b37fa37f0fc511aab7fa57c04b622609d3f37723f6837d4465433"
+    },
+    {
+      "path": "src/errors.rs",
+      "origin": "upstream",
+      "upstreamSha256": "338482a770e0a0cc74f5936dd5a55bcb4ed13df52809a33187c3b6ef24ffa022",
+      "derivedSha256": "b1e55de4692a404cea86e3f4d0c5a89d3c383f81b51fb5fa0eac7077e7fdf6f8"
+    },
+    {
+      "path": "src/group_detail.rs",
+      "origin": "upstream",
+      "upstreamSha256": "755b0f83698a031e3cbb29337f72cae84858c35753c3edf2dddcce4d735a2629",
+      "derivedSha256": "65487c0935e28116ae415a5d1eeb24d23f81fab9294a5450406091721cb08c82"
+    },
+    {
+      "path": "src/group_inventory.rs",
+      "origin": "upstream",
+      "upstreamSha256": "3aac9b8a1ef3f9911f84bb6906421c10ee2db7d3ff7f1720b614f201686c45b5",
+      "derivedSha256": "3aac9b8a1ef3f9911f84bb6906421c10ee2db7d3ff7f1720b614f201686c45b5"
+    },
+    {
+      "path": "src/lib.rs",
+      "origin": "upstream",
+      "upstreamSha256": "cfe19a302414c7bb768f3218d3b2e4c17a6f5d7a902f7717a8f54ed8a2bb64b9",
+      "derivedSha256": "1cdc3717c7fdfa02d2cc069f3f7c1b2399b1c19639b4a5f0266c1592bf9e1bd3"
+    },
+    {
+      "path": "src/login_lan_wire.rs",
+      "origin": "clowder",
+      "upstreamSha256": null,
+      "derivedSha256": "bc196b9c9664143bf2eecfdb7dc9628b31b0b7b23a3360263e9642b4a1735307",
+      "adaptedFrom": {
+        "path": "src/lan_login.rs",
+        "upstreamSha256": "4677a74ca1723e56f92a139850bb765aadabeed21ea5c40b0770c8c0c4eaf6cc"
+      }
+    },
+    {
+      "path": "src/logout.rs",
+      "origin": "upstream",
+      "upstreamSha256": "d651ee9cdabcf1e316448b82e3807907338902543d2d7b3126db9351dc7bba79",
+      "derivedSha256": "d651ee9cdabcf1e316448b82e3807907338902543d2d7b3126db9351dc7bba79"
+    },
+    {
+      "path": "src/mmtls.rs",
+      "origin": "upstream",
+      "upstreamSha256": "ae3844b8f73d0aa52b9e3650fb7ba84affc881eeacf4fb24bd677c33c6849dc6",
+      "derivedSha256": "89fa11b106099cee31fda5d8a1f2823dac7f878f415f52c0e60e1572a578bba8"
+    },
+    {
+      "path": "src/notice.rs",
+      "origin": "upstream",
+      "upstreamSha256": "3e8dcd11e374e16490d7e8d5d85044aaa2c0c7b200b942166c6c8c37a7a4a8b1",
+      "derivedSha256": "3e8dcd11e374e16490d7e8d5d85044aaa2c0c7b200b942166c6c8c37a7a4a8b1"
+    },
+    {
+      "path": "src/protobuf.rs",
+      "origin": "upstream",
+      "upstreamSha256": "22132a9bbd944db68b612aad17d75ec1b6033773d5f164fdb66436f175f44501",
+      "derivedSha256": "22132a9bbd944db68b612aad17d75ec1b6033773d5f164fdb66436f175f44501"
+    },
+    {
+      "path": "src/push.rs",
+      "origin": "upstream",
+      "upstreamSha256": "1b2682b2fa4d56e88cb9f7285e18e662fdd1ac205cd512dbfa20a1a7784ec72f",
+      "derivedSha256": "1b2682b2fa4d56e88cb9f7285e18e662fdd1ac205cd512dbfa20a1a7784ec72f"
+    },
+    {
+      "path": "src/transport.rs",
+      "origin": "clowder",
+      "upstreamSha256": null,
+      "derivedSha256": "5623854b6aa8fdd4d149cc15abd33bbe226649a44e8ae67b691563ca8d845a14"
+    },
+    {
+      "path": "src/wire.rs",
+      "origin": "upstream",
+      "upstreamSha256": "bdf4404dcfd4a69b8e18782f214ad47658cc2a96a80918898717dfbbc1613ff1",
+      "derivedSha256": "a1a76cace9bed9a4cc8f25a1c9f3f61ece9c34c499c4b1ea269089020d3e5be9"
+    }
+  ],
+  "excludedProtocolEntries": [
+    "avatar.rs",
+    "calls",
+    "custom_stickers.rs",
+    "file_upload.rs",
+    "group_mutation.rs",
+    "lan_login.rs",
+    "lan_login_tests.rs",
+    "large_cdn_config.rs",
+    "large_file.rs",
+    "link_thumbnail.rs",
+    "media.rs",
+    "media_send.rs",
+    "openim.rs",
+    "quote_send.rs",
+    "revoke.rs",
+    "silk.rs",
+    "silk_bridge.c",
+    "status_notify.rs",
+    "sticker.rs",
+    "sticker_id.rs",
+    "sticker_packs.rs",
+    "sticker_send.rs",
+    "sticker_upload.rs"
+  ],
+  "excludedUpstreamCrates": [
+    "wechat-audio",
+    "wechat-calls",
+    "wechat-config",
+    "wechat-store",
+    "wechat-media",
+    "wechat-profile",
+    "wechat-core",
+    "wechat-api",
+    "wx",
+    "wechat-simulator"
+  ]
+}

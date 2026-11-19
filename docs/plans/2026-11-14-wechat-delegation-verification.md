@@ -1,0 +1,162 @@
+# 微信代聊候选：作者验证与独立审查范围
+
+日期：2026-11-14 UTC。目标分支 `feat/wechat-delegation`，基线 `04f08e761af6d4423080f7e3fc83fbbdbdca9ae3`；正式审查使用请求消息指定的完整提交 SHA。
+
+各节记录对应版本的验证时点；实时安装状态以 Host 当前投影为准。
+
+本次交付是实际插件代码及可安装开发归档。完整用户目标仍是本人选好友或群、选猫及交流边界后，由猫主动开口和持续接话，并随时由本人接管。**真实微信完整旅程没有走通**。截至2026-11-16，本人已在alpha.8登录、授权指定私聊并触发真实受限模型，两条canonical回复已生成，但插件在提交微信前失败（submitted=false）；见下方alpha.9诊断。实际微信实收与接管尚未验收，隔离测试不能替代这些验收，不据此关闭产品任务。
+
+## 已执行的验证
+
+| 检查 | 本次结果与证据范围 |
+| --- | --- |
+| `node --test packages/wechat-delegation/test/*.test.mjs` | 最终 42 passed，0 failed。含真实 loopback HTTP、合成可执行文件的受监督进程、受限成员协议、持久竞态与安装后入口。 |
+| `node --test scripts/ci-gate.test.mjs` | 12 passed，0 failed。检查 CI 编排；并非整仓 gate。 |
+| `pnpm --filter @clowder-ai/wechat-delegation build`、`lint` | 通过。Node 原生构建，无 npm 运行依赖。 |
+| 当前 Host `@clowder-ai/plugin-contract` 的 `validateManifest` | `valid: true, errors: []`。没有增加 Host schema。 |
+| `git diff --check` | 通过。提交前另检查 staged diff。 |
+| 发布物 consumer | 测试实际 `npm pack`，在空白临时 consumer 离线安装、导入最终入口、启动并经 owner 上下文获取真实面板；全局 fetch 被禁止，证明启用不会联网/启动 native；已打包 MCP 的 tools/list 为空，任意 tools/call 被拒绝。 |
+| 浏览器组合旅程 | 当前工位启动 `scripts/preview.mjs`，`http://127.0.0.1:5188/`，实际使用最终 `dist/panel.html`。在 1280×900、390×844 上通过；无 pageerror、手机无横向溢出。 |
+| `pnpm gate:ci` | 指定 Node 24.18.0 / npm 11.16.0 / zlib 1.3.1-e00f703 下，42 阶段全部通过（831 秒）。系统 Node 24.22.1 的首次尝试在工具链检查处拒绝，未绕过。整仓执行期间审查修复落地，因此再单独补跑最终包的 42 项测试、build/lint、浏览器及下述 Host 归档检查；未将前一轮 32 项包测试冒称最终修复覆盖。 |
+| 真实 Host 源码的隔离接线 | Clowder AI `4a305ec1bd9536e25236e491632acb60424623fc` 的实际 archive admission、module worker、owner HTTP routes，临时 SQLite inventory 与内存 private storage；归档安装、启用、面板/status/pause_all、停用和重启保留暂停全部通过。全局 fetch 禁止，未调用真实模型、账号或供应商。此结果不代表用户运行中的宿主已经安装或具备模型执行支持。 |
+
+浏览器实际执行：第三方同步范围确认 → 准备模拟账号 → 选择模拟群与猫 → 显示实际模型预览 → 一次授权 → 主动开口 → 未知结果 → 会话接管 → 全局暂停。接管后主动开口禁用，未知记录仍保留。最终桌面及手机截图已由作者查看，保存在本地隔离证据目录，未混入 npm 归档；测试脚本可重现。Hub 预览投递返回 `unconfirmed/no_matching_client`，没有声称用户端已打开。
+
+主要回归保护：生成中和移交前接管；移交后取消未知不重发；账号预检失败零外发；切猫和重启失效旧许可；全局暂停阻止尚未完成的新授权；主动操作确认前先持久保存；native 退出和重新准备保持暂停；可信本人原消息触发同一持久接管；旧发送记录分页可查；撤销状态不被全局暂停改写。损坏二进制缓存仅用校验后的字节原子修复，保留账号 profile。
+
+独立审查及实际 Host 验收揭示的修复均有失败信号：忙碌会话/到期事件阻塞账号游标；生成中接管后虚假的未回信状态、只主动模式未处理对方回信、明确取消未释放等待；授权未提交时的受限会话清理；Host 在 preStop 后撤销端口，stop 再次访问 storage 失败。分别补回归后通过。入站先以 waiting 记录持久保存再推进账号游标，按会话处理，避免用丢消息换推进；接管和重启取消旧 waiting。正文请求开始与接管同序，迟到正文不能进入新的授权代次。持久停止留在 preStop，后续 stop 只清理本地资源。
+
+## 风险和审查重点
+
+| 轴 | 影响与验证边界 |
+| --- | --- |
+| 行为 | 新增主动发起、持续接话、切猫、手动/计划执行及恢复。重点查组合旅程与迟到许可，不以单按钮测试代替。 |
+| 数据 | Host CAS 保留授权与发送历史，无 TTL；native 独立目录可能同步更多会话，扫码前披露。仅授权且账号匹配的实时消息送模型，历史或其他群不得扩大范围。 |
+| 安全 | 所有写操作由真实 Host owner 上下文授权；模型 memory=[]、零工具、无账号凭据。检查外部文本不能变更收件人/权限，以及下载、凭据、loopback、进程身份边界。文字敏感规则不保证覆盖所有诈骗语义。 |
+| 契约 | 固定 Agent WeChat v2.4.1 API v1；摘要与 API 字段来自发布方，不是平台认可或独立安全认证。Host 可选 memberSessions 缺失时明确不可用，无全权限回退。 |
+| 不可逆 | 实际外发无法用本地回滚撤回。提交前持久关口与停止排序；提交后保留平台状态，未知只查原键。所有当前测试均无真实微信副作用。 |
+
+所有权见[实施计划](2026-11-14-wechat-delegation.md)。包保持 `private`，未加入正式目录、未发布 npm。CI workflow 与 lockfile 属于信任边界，按当前 CONTRIBUTING 由风险匹配的非作者独立审查覆盖，并要求 required CI；CODEOWNERS 是责任地图，不额外要求指定账号批准。作者本地结果不替代独立审查或 required CI。
+
+下一步：非作者审查固定提交并处理 findings；在相容宿主验证安装入口和真实受限执行；由本人完成不可代替的微信扫码、目标选择和授权，再分别记录好友与群实收、主动会话与接管竞态。需要本人前先备好可审查安装候选，不把作者代码与浏览器验证转给本人。
+
+## 介绍页与控制台整改（alpha.2，2026-11-15）
+
+原始要求：`thread_mwg7kandcxztqeab#0001794680646624-000134-0a4a06e3`，介绍页不再提供其他功能按钮，控制台统一宿主风格。小多子的具体设计已由作者核对公共契约与运行态 CSS 后实现；不改 Host 壳或权限合同。
+
+- 介绍页移除 `configuration` / `test`，同时删除未再使用的三个 Settings 动作端口。保留说明、使用步骤与 Host 原有启停管理，业务集中控制台。
+- 侧栏使用包内居中线性对话气泡 SVG；公共契约不支持 `message-circle` 字符串，未将内部图标枚举冒充公共能力。
+- 控制台沿用实际宿主的 OKLCH 颜色、16px 工作标题、32px 控件及柔和边框。未连接时只呈现连接步骤；连接后配置好友或群与值班猫；已有会话时优先呈现紧凑会话列表，账号设置和历史按需展开。在途提示与顶部暂停始终可达。
+- 浏览器先复现未知结果自动暂停后“我来聊”被隐藏的问题，修正为 active/paused 均能明确接管；owner 状态不重复展示。保留真实在途提示与明确恢复，不改变后端发送协议。
+
+作者验证：42 项插件回归通过；manifest 验证通过且无 configuration/test；实际 alpha.2 归档在空白离线 consumer 启动。浏览器在当前 feature 工位 `http://127.0.0.1:5188/` 完成未连接 → 准备 → 模拟扫码 → 选群与猫 → 模型授权 → 主动发言 → 未知结果 → 接管 → 全局暂停；1280×900、390×844 及暗色均通过，无 pageerror 或手机横向溢出，作者已查看截图。此端口是模拟账号/模型，不是真实微信验证。
+
+最终归档另经真实 Host 源码的隔离 admission、module carrier、owner HTTP routes 与 manager projection 验证：安装版本 alpha.2、`testable=false`、`configFields=[]`，面板/status/pause_all/停用及重启保留暂停全部通过。数据仅在临时 inventory 和内存 storage，fetch 禁止，不访问用户微信数据。
+
+宿主渲染验证也已通过：无头浏览器打开实际 `3003/settings?s=plugins`，仅在该浏览器内将插件 API 的读响应替换为上述真实隔离 Host 投影、README 与包内 SVG；通过原侧栏打开最终归档面板，账号状态单独模拟。所有 live 插件写请求被拦截，没有替换用户安装、准备组件或连接真实账号。实际介绍页确认无状态/暂停/测试业务按钮，作者查看了介绍页与控制台截图。证据目录 `meow-talk/output/wechat-delegation-alpha2`，含桌面、手机、暗色、宿主介绍页及面板截图；这属于候选包在真实 shell 内的渲染证据，不冒称 runtime 已升级。
+
+本轮归档：`clowder-ai-wechat-delegation-0.1.0-alpha.2.tgz`，SHA-1 `28dcbd58f2fb85507fcb09c901e47309d5a9e108`，SRI `sha512-2GYiX7XnCP41za7k1nAXkiBjjEX38Y3O7hvefq/Y0nEOxUew47HYLgGF9CEaMoLr91kI+OJ6kI8ELnWSEl5gtw==`。当前用户实例仍是 alpha.1，未替换。
+
+本轮最终 `pnpm gate:ci` 使用固定 Node 24.18.0 / npm 11.16.0 工具链，42 阶段全部通过，731 秒，exit 0；包含本包回归及最终 27 个可发布包的 prepack 检查。日志 `/tmp/wechat-delegation-alpha2-full-gate.log`。所有产品源码在这次 gate 开始前已稳定，之后只追加本验证记录。
+
+风险：行为变化限于插件 UI、介绍页操作移除及旧 Settings 端口清理；不改变数据存储、模型/账号权限、外部发送契约或自动恢复规则。本次是界面整改交付，完整好友/群真实收发任务仍未完成。alpha.2 保持 private，本轮不发布 npm/catalog。
+
+## 真实组件启动修复（alpha.3，2026-11-15）
+
+来源：本人报告 `thread_mwg7kandcxztqeab#0001794684171591-000176-766427c2`“连接不上微信组件”。Host 只读投影确认当前已安装 alpha.2；不是按仓库版本猜测安装未更新。
+
+使用全新临时目录、独立空 profile 与公开 v2.4.1 macOS ARM64 归档复现。发布方元数据的 SHA-256 与下载字节均为 `98cca7f34a09d30a0ff552b10ca91dd94198c9c6b31302f3acbea09e4c55c85b`，37,408,672 bytes。相同环境下 `--json version` 成功，但 `serve --data-dir ... --token-stdin --listen 127.0.0.1:...` 退出码为 2，stderr 为 `HOME or absolute XDG_CONFIG_HOME is required`。根因是 supervisor 的最小环境缺少组件在处理 `--data-dir` 之外仍必需的配置根。
+
+修复为每个插件实例创建 `dataPath/native-config`（0700），仅向受监督子进程显式提供其绝对路径 `XDG_CONFIG_HOME`，继续不继承家庭 HOME、XDG 配置或其他家庭凭据。原 `native-profile`、持久策略、接管与发送协议不变；manifest 同时声明 `native-config` retained。包推进 alpha.3。
+
+Red → Green：增强原 supervisor 可执行夹具，使其在缺少绝对配置根或继承 HOME 时拒绝启动。修复前原启动与缓存修复测试均报“账号连接组件已退出”；修复后 3/3 通过，并检查配置目录写入、归属及0700权限。全包42/42通过，包含最终归档的空白离线consumer。真实固定版本组件通过修复后的生产 supervisor 启动，`v1/status` 确认版本2.4.1及进程PID匹配，随后停止自有进程。没有读取现有微信资料、扫码、建真实账号或发消息。
+
+最终 alpha.3 归档另经真实 Host 源码的临时 inventory、内存 storage 安装/启用验证；只向临时插件数据目录预置上述公开且校验一致的组件文件，从实际 owner HTTP control 的 `prepare` 成功启动真实组件，返回 `runtime=running`、`lastError=null`、`globalPause=true`。私有配置目录0700、全局暂停和停用/重启保留暂停均通过。此验证没有替换用户当前安装，也未创建账号或触发登录。
+
+本次固定 Node24.18.0/npm11.16.0 工具链的 `pnpm gate:ci` 全42阶段通过，714秒，exit0，日志 `/tmp/wechat-delegation-alpha3-full-gate.log`。此后已取得 alpha.3 固定提交807c8fab的独立批准 `local-review:0001794685640351-000183-bb821ace:approved`，以及对应远端CI通过。真实好友/群收发及实际模型验收仍未完成。
+
+## 登录后列表修复与数据边界（alpha.4，2026-11-15）
+
+本人报障/提问：`thread_mwg7kandcxztqeab#0001794715046392-000191-bc49ef2f`。实时 Host 投影已安装 alpha.3。作者在真实宿主页面只允许 `status/chats/cats/cat_details` 读取，其他插件动作全部拦截；结果为账号已连接、policies=0、runs=0，chats返回200但0项，cats返回409 `limit must be an integer in 1..50`。没有以读取消息正文来排查列表。
+
+猫列表根因是同时请求可选提醒目录时用了 Host 不支持的100上限；修复将猫、提醒目录分开，提醒读取50条。联系人根因/证据边界是原入口仅读已存聊天目录（当前实际为空），不能据此推断没有好友；固定 native v2.4.1另有contacts/groups目录。新adapter并行分页读取两目录，将来源账号绑定到对象，并在授权时沿同一目录重新核对。游标包含账号和两来源进度，跨账号游标在HTTP前拒绝；已知系统/公众号及范围外命名空间不作为普通联系人，已退群不作为可选群，API不确定的好友关系不冒称已验证。
+
+前端将联系人、猫和提醒目录独立加载；空目录继续核对同步，失败分别提示并可刷新重试。账号身份变化清除旧选择和模型确认，迟到列表不覆盖新账号。页面新增 Linux 协议设备标识、微信联网和云模型数据流说明。
+
+先红后绿：Host上限回归先以真实limit错误失败，修后猫列表与提醒列表独立成功；新目录测试覆盖无聊天历史的联系人/群、分别分页和跨账号游标。全包44/44通过。浏览器在1280×900、390×844及暗色验证首次目录为空、提醒失败时仍可选猫，随后目录恢复并完成配置→模拟主动开口→未知结果→本人接管→全局暂停，无pageerror和横向溢出；所有账号与模型为隔离模拟。
+
+最终alpha.4归档在实际Host源码 `4a305ec1bd9536e25236e491632acb60424623fc` 的临时inventory、内存storage中安装/启用。注入的测试猫目录通过实际Host成员port读取；提醒目录通过真实Host的50上限验证；owner入口还验证真实固定组件启动、全局暂停和停启保留暂停。未使用用户资料/扫码/真实模型/外发。源码、模块/端口和数据隔离验证不能代替本人账号下contacts/groups实际同步覆盖与好友/群实收验收。
+
+数据边界的限定核验另见共享 `output/wechat-delegation-network-audit-2026-11-15.md`：本机实际为Darwin组件、回环API，固定源码声明Linux设备类型；实际存在非回环连接，微信通信和未来云模型处理都不能描述为零外传。当前没有代聊授权/运行记录；本次只读诊断元数据仍进入当前猫上下文。没有历史全量流量或供应商完整安全审计，不宣称第三方安全认证。本轮没有改变用户当前安装或实际代聊授权。
+
+alpha.4 最终固定工具链 `pnpm gate:ci` 全42阶段通过，716秒，exit0，日志 `/tmp/wechat-delegation-alpha4-full-gate.log`。本轮尚待非作者独立审查；旧版批准不覆盖本次目录与披露变更。
+
+## 当前通讯录污染修复（alpha.5，2026-11-15）
+
+接受来源：`thread_mwg7kandcxztqeab#0001794764010738-000226-66bbdf1f`，本人要求完成修复，并说明实际联系人22个。只读来源诊断确认群成员昵称被上游project_metadata_roster写进contact表，原contacts接口不区分当前好友，alpha.4直接使用导致候选扩大；未取得WeLink混合证据。两个微信账号不同不是混入证明；数量22不作为筛选条件。
+
+修复把资格来源改到完整实时目录：自initcontact(0,0)全分页，getcontact新鲜完整flag核验；服务/系统/自身/其他命名空间及未核实对象排除。完整目录由专门异步operation返回，缺页不公布。NativeClient不读contacts/groups原始缓存；快照分页绑定account/operation，读缓存前核对实际身份，五分钟或本人刷新重新同步。前端保留独立选猫，显示完整ID、好友/群数量及未核实数量，失败明确要求刷新，不再无限重复发起长同步。
+
+底层原HTTP接口不足，因此本候选内置基于固定MIT上游的`2.4.1-clowder.1`修复构建；完整补丁、构建说明、许可和摘要在`packages/wechat-delegation/assets/native/`。本次仅产出macOS ARM64组件，其他平台诚实显示未就绪。真实用户profile未用于开发或测试，也未静默更新当前安装。
+
+已观察旧targets用混合缓存的回归RED；新targets、切号、异步授权和进程/打包隔离测试通过。作者在5188模拟预览实际走通同步中选猫、目录恢复、选群/模型、开启模拟代聊、未知发送、本人接管和全局暂停；桌面/手机/暗色无pageerror。真实打包组件在全新临时目录启动，API版本/能力/扩展route均核验，未登录真实账号或发送。
+
+最终测试数、归档摘要、独立审查及完整gate结果记录于本次review请求和`output/wechat-delegation-alpha5/安装与验收.md`。真实22联系人覆盖、好友与群实际收发、真实模型与接管验收尚未完成；整体Task保持doing，PR保持draft。
+
+底层修复构建验证：相关metadata/目录单元23/23，API库71/71通过；补丁在固定上游源码`git apply --check`通过。还尝试了整个上游core库：393通过、11失败、1忽略；失败位于现有wxgf/视频转换、仅Linux支持的official-app profile接管及macOS /var路径约定，非本插件采用的扫码profile/文字路径。本轮没有把上游全库宣称为通过，也不扩展修改这些模块。实际修复组件在空白扫码profile的进程监督与新增route smoke通过。全包最终51项检查及真实Host源码临时inventory接线的结果见归档记录。
+
+## 群目录与可搜索选择器（alpha.6，2026-11-16）
+
+接受来源：`thread_mwg7kandcxztqeab#0001794792170643-000248-49a1fa83`。本人反馈允许代聊无法确认、好友加载而群缺失，并要求模糊搜索懒加载。实际Host只读核对已装alpha.5，21好友/0群、0策略/0运行；授权复选框可勾且普通轮询后保留，未在真实账号点击开启或发消息。两只猫的受限模型不可用。不能将未复现的某一个点击路径冒称已证实；进一步细分提问已发，本轮沿已证实的状态与反馈缺口修复。
+
+群根因：好友initcontact目录不是所有已同步群的目录。修复保留原好友完整目录及fresh flag约束，独立从group_inventory和已同步群ID收集线索；每个群必须经本次getcontact的is_in_chat_room=1，或本次群名册明确包含当前账号，才进入候选。退群2直接排除；稀疏名册不把缺席当否定，计未核实。上游群发现明确为partial，界面如实标注“已同步且成员关系已核实的群”和未完成同步。原始群成员不会成为好友候选。新构建为2.4.1-clowder.2，源码补丁和双重摘要随包保留。
+
+交互依据：宪宪给出限定文字稿（`0001794792451514-000251-eb7beb22`），复用已有MemberChoicePicker/SearchGroupPicker的按钮、展开搜索、listbox关系和现有token。入口、卡片栅格不变；默认全部，可切好友/群，打开才取名单，250ms输入防抖、中文组字结束后查询，整份已核实名单匹配显示名/备注/昵称/ID并按20条分页，滚动或按钮加载更多。查询游标绑定账号、快照、搜索词、类型和页大小。已选对象独立保存，列表重载不清空；ESC/键盘、手机文档流展开均覆盖。编辑已有会话锁定对象。
+
+确认缺口修复：错误改在按钮旁显示，缺项可点击获得明确原因并聚焦；只在提交中禁用。模型不可用时隐藏同意项并说明；换猫/换对象/换账号重新确认，普通状态刷新保留。目录过期复核失败保留草稿和确认，须本人再次点击，绝不自动开启。瞬时账号探测失败保留上次核验身份但标为非live；开启请求携带UI所确认的账号及serverId，后台重新核验并拒绝身份变化，防止将陈旧展示变成新账号授权。
+
+可信RED包括：好友目录不含群时已独立核实的群丢失、搜索未分批/未绑定查询、状态探测失败清除身份、浏览器未打开下拉即拉全目录。账号确认fence用例初稿缺少聊天开关，补齐后在仅移除fence的隔离前态观察到Missing expected rejection，再对最终实现跑GREEN。证据在alpha.6交付记录中，不把环境/语法失败计作回归RED。
+
+作者浏览器已实际走通搜索/分页、未翻到的群模糊匹配、正常轮询保留确认、模型不可用提示、目录复核拒绝后保留选择与确认、显式重试开启，以及主动开口/未知/本人接管/全局暂停与手机暗色。均为隔离模拟账号和模型。最终包、精确HEAD审查、相关检查和整仓gate结果见本轮审查消息及output/wechat-delegation-alpha6/安装与验收.md；真实账号群覆盖和实际代聊仍待本人更新后验收，整体Task保持doing。
+
+## 搜索误命中补修（alpha.7，2026-11-16）
+
+同一用户来源 `thread_mwg7kandcxztqeab#0001794792170643-000248-49a1fa83`；复核宪宪迟到的短稿 `0001794793200830-000255-7c9ab5d0` 后，用真实 `searchTargets` 复现 `tom` 因跳字命中 `@chatroom`、`wx` / `id` 因共有 `wxid_` 前缀命中无关联系人。新增两项回归在旧实现下失败（多返回无关群），修复后通过。
+
+名称、备注和昵称继续跳字模糊匹配；ID 与微信号仅匹配连续片段，ID 的共有 `wxid_` / `@chatroom` 不参与片段查找，完整 ID 仍可查询。显示名直接回退为 ID 的对象同样不走名称跳字通道。没有改变候选资格、账号权限、持久数据、native 制品或发送接管协议；界面继续显示名称与完整 ID，不增加新控件。
+
+作者检查：最终56/56包测试、`git diff --check`；5190隔离预览中实际完成打开后加载、20→40分页、`tom`零群匹配、`周书`找到目标群、轮询保留确认、模型不可用提示、目录复核后显式重试开启。最终36文件归档逐一与当前包字节相同，实际Host源码临时inventory/内存storage安装并准备空白profile的随包native、读取成员与提醒目录、暂停/停启保留均通过。未登录、未读取真实账号、未调用模型或外发。日志及包摘要在 `meow-talk/output/wechat-delegation-alpha7/`；本次没有重跑整仓42阶段或native编译，alpha.6的相关证据只沿用其原范围。
+
+本轮补修仍需非作者审查准确提交，PR232保持draft。真实好友/群覆盖、开启与实收/接管仍待本人更新后的授权验收，整体Task不关闭。
+
+## 宿主沙箱中的开启点击修复（alpha.8，2026-11-16）
+
+来源 `thread_mwg7kandcxztqeab#0001794804344424-000271-970c0fac`：本人报告仍无法点击开启代聊。实时Host投影确认安装并运行alpha.7，排除未升级的解释。实际宿主页面只读取证记录到按钮click=1、form submit=0，浏览器报 `Blocked form submission`，原因是插件iframe没有allow-forms。实际sandbox为 `allow-scripts allow-downloads allow-popups allow-popups-to-escape-sandbox`，与当前Host `PluginUiEntries.tsx` 一致。插件原先将开启逻辑绑定form submit，故按钮可点击却完全不执行处理函数；预览夹具未设sandbox，导致前轮模拟测试漏检。
+
+修复仅在插件中将开启按钮改为普通button，在click中执行原有校验与activate流程，保留提交中互斥、显式确认、身份fence和发送/接管规则；不申请allow-forms、不修改Host。预览现在采用真实sandbox，chooser旅程先确认缺项点击执行校验，最终用Enter触发按钮开启。首次RED在旧产品代码、真实sandbox下因点击后仍为muted而失败；修复后同一旅程通过。中途复用已登录的内存fixture导致一次准备框不可见超时，此环境失败不算产品RED；新fixture复跑通过。
+
+本轮56项包测试通过；真实sandbox下的chooser和完整主动开口/未知结果/接管/全局暂停及手机暗色旅程通过。另在实际3003宿主壳中，仅浏览器内替换候选面板与全部插件control为隔离内存fixture，使用真实iframe属性和postMessage桥接，验证缺项反馈、鼠标开启、目录复核保留确认和Enter显式重试；2次activate均只进入fixture，0 pageerror、0表单sandbox报错。未改真实插件、未创建真实授权或外发。独立只读诊断曾因实际候选目录等待超时而未走到填表阶段，不把它冒称真实账号完整开启成功。
+
+alpha.8最终归档及Host隔离安装证据、摘要、准确提交的独立审查状态见 `meow-talk/output/wechat-delegation-alpha8/安装与验收.md`。本次不重编native、不重跑无关整仓42阶段；真实好友/群实收和接管仍未验收，PR保持draft，Task继续开放。
+
+## canonical回复签名导致发送前解析失败（alpha.9，2026-11-16）
+
+来源 `thread_mwg7kandcxztqeab#0001794809563952-000288-dfac9c46`：本人报告猫的回复仅显示在隔离session，未回微信。Host实时投影确认已安装运行alpha.8且摘要匹配；只读status确认指定私聊两轮modelStarted=true、phase=failed、submitted=false、策略暂停。隔离会话canonical回复均为一个合法JSON对象后附两行间隔与家猫签名；原MemberRunner对整段JSON.parse，因此发送前抛错。生产数据只读取证，不执行登录、开启、重发或实际发送。
+
+修复在同一canonical回复身份核验后，仅剥离一个末尾家猫签名展示行，继续严格要求剩余全文为唯一JSON对象与kind/text白名单，不把普通文字、多对象、未知尾部、空消息或越权字段变成微信正文。needs_owner/silent保持控制结果；非法格式记录有界errorCode和“回复格式无法识别，未提交微信发送”，控制台显示持久错误，避免生成/发送断点被隐藏。
+
+新增member-delivery集成测试直接组合生产MemberRunner、DelegationService和NativeClient，以真实loopback HTTP模拟协议服务，覆盖好友/群的主动和接话、只发送text、稳定幂等键及canonical发送记录核验。旧实现因收到带签名回复而零发送，先红；修复后通过。外线程回复仍拒绝，异常正文零POST，交还本人/静默不发送。预览取消对model.generate的替身，改由真正MemberRunner消费模拟Host的带签名canonical回复，浏览器旅程也覆盖此接线。
+
+本轮验证与最终归档摘要、非作者审查记录见 `meow-talk/output/wechat-delegation-alpha9/安装与验收.md`；不自动恢复旧策略或重发已失败的历史轮次。包按本人要求滚动仅保留最新两轮；真实微信送达和接管仍需本人在更新后的实际授权下验收，PR保持draft，Task继续开放。
+
+## 正文不带署名与自定义说话风格（alpha.10，2026-11-16）
+
+来源 `thread_mwg7kandcxztqeab#0001794814930495-000310-7a1a80c0`：本人要求“不要加后缀，说话风格可以自定义设置”。本轮按微信代聊正文处理；当前真实安装通过Host只读投影核对为alpha.9。发送层没有统一拼接后缀，但原MemberRunner只处理JSON外的展示签名；若模型把家猫签名写进text，原实现会将其持久保存并原样发送。新增生产MemberRunner→Service→NativeClient的HTTP组合回归，在旧实现下准确暴露正文带署名及仅署名也会发送两条失败。
+
+修复复用单一有界展示签名规则：身份核对、唯一JSON解析后，仅从message的text移除一个末尾独立家猫签名行，再检查正文非空；普通正文中的括号、行内署名示例和其他文字保留。JSON外仍只接受一个已知展示签名，外线程、未知尾部、多对象与越权字段继续拒绝，needs_owner/silent仍不发送。提示词明确text仅含聊天正文，不追加身份后缀；语气、长短、称呼与表情遵循本人设定，取消固定“自然简短”的要求。
+
+不新建配置字段或迁移已有策略。原persona入口改标“人设、说话风格与交流边界”，附一行正文和风格说明；已保存的自定义内容原样传入受限模型。浏览器实际走完配置、开启、重新打开确认自定义值、主动生成并确认持久正文无签名、未知发送、本人接管和全局暂停，覆盖桌面及手机暗色。预览由生产MemberRunner处理JSON内外都带签名的模拟回复，真实微信和模型未调用。
+
+63项包测试及相关构建、lint、HTTP组合回归通过；36文件最终归档与当前包逐字节匹配。完整浏览器/chooser和实际Host源码的临时inventory、内存storage、空profile安装检查结果及非作者准确HEAD审查见 `meow-talk/output/wechat-delegation-alpha10/安装与验收.md`。本轮未改授权、接管、native协议/二进制或外部依赖，未重跑无关整仓gate；真实微信实收、接管及实际模型风格表现仍待本人更新后验收，任务不关闭。
+
+浏览器取证中的环境失败单独保留：初稿将active会话的“换猫 / 设置”误写成暂停态按钮名称，修正后通过；5196托管预览在canonical stop后实际退出，但launcher报告“another preview generation”，其completion为commandGroupStatus=absent、cleanupOwnerStatus=unclaimed，未改动Host或清除保护记录。最终改为前台测试进程内启动隔离fixture，分别5197/5198跑完即关闭。Hub预览投递为unconfirmed/no_matching_client，不宣称本人已看到页面；上述环境失败不算产品回归RED。

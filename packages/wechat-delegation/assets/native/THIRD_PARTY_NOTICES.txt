@@ -1,0 +1,26 @@
+Clowder WeChat Link — restricted native service
+
+Protocol subset derived from thisnick/agent-wechat at
+ed976d78c1e1cc2a49ad17d1e2c0da023bbb5c8e.
+Copyright (c) 2026 Nick Yu and contributors. MIT License.
+Full text: LICENSE-Agent-WeChat.
+Source manifest and modifications: native/UPSTREAM.json and native/protocol.patch
+in the source repository. No upstream daemon, media/audio/calls, SQLite profile
+engine or general HTTP API is included in this binary.
+
+The AES-GCM known-answer fixture retained in protocol tests derives from
+Citizen Lab's wechat-security-report, code/outer.py.
+Copyright (c) 2025 Mona Wang. MIT License.
+Full text: LICENSE-CITIZENLAB. Test fixtures are not real account captures.
+
+The public MMTLS verification pins and business protocol keys are public
+protocol constants, not account secrets. Their distinct provenance status is
+recorded in native/KEY-PROVENANCE.md; this notice makes no official endorsement
+or blanket key-origin/security claim.
+
+Rust runtime and locked dependency notices are copied in licenses/.
+The exact reachable dependency inventory and license paths are recorded in
+dependency-licenses.json. It includes build-time tools for source attribution;
+it is not a list of runtime-linked libraries. OpenSSL 3.6.3 is vendored/static,
+under Apache-2.0; its supplied licenses and notices are retained under the
+openssl-src entry. The manifest binds the final executable and source inputs.
