@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./matter": {
+      "types": "./dist/matter.d.ts",
+      "import": "./dist/matter.js"
     }
   },
   "main": "./dist/index.js",
@@ -25,6 +29,9 @@
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
     "clean": "node ../../scripts/clean-path.mjs dist"
+  },
+  "dependencies": {
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",

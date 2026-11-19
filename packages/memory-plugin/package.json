@@ -33,11 +33,13 @@
     "clean": "node ../../scripts/clean-path.mjs dist"
   },
   "dependencies": {
-    "@clowder-ai/plugin-memory-contract": "workspace:*"
+    "@clowder-ai/plugin-memory-contract": "workspace:*",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@clowder-ai/plugin-contract": "workspace:*",
     "@clowder-ai/plugin-sdk": "workspace:*",
+    "@types/better-sqlite3": "7.6.13",
     "@types/node": "^20.17.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",

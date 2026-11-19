@@ -465,6 +465,9 @@ importers:
       '@clowder-ai/plugin-memory-contract':
         specifier: workspace:*
         version: link:../plugin-memory-contract
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@clowder-ai/plugin-contract':
         specifier: workspace:*
@@ -472,6 +475,9 @@ importers:
       '@clowder-ai/plugin-sdk':
         specifier: workspace:*
         version: link:../plugin-sdk
+      '@types/better-sqlite3':
+        specifier: 7.6.13
+        version: 7.6.13
       '@types/node':
         specifier: ^20.17.0
         version: 20.19.43
@@ -549,6 +555,10 @@ importers:
         version: 5.9.3
 
   packages/plugin-memory-contract:
+    dependencies:
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^20.17.0
@@ -1566,6 +1576,9 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
+  '@types/better-sqlite3@7.6.13':
+    resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -3334,6 +3347,10 @@ snapshots:
     optional: true
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@types/better-sqlite3@7.6.13':
+    dependencies:
+      '@types/node': 20.19.43
 
   '@types/chai@5.2.3':
     dependencies:
