@@ -92,6 +92,8 @@ run(process.execPath, [join(packageRoot, 'scripts', 'build-semantic-worker.mjs')
 
 if (!hardenedIndex.includes("connect-src 'none'")) throw new Error('renderer CSP is not fail-closed');
 
+run(process.execPath, [join(packageRoot, 'scripts', 'build-preview-renderer.mjs')], packageRoot);
+
 const integrity = sha256Sri(await readFile(indexPath));
 const manifestPath = join(packageRoot, 'plugin.yaml');
 const manifest = parseDocument(await readFile(manifestPath, 'utf8'));

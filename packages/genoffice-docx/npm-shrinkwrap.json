@@ -1,12 +1,12 @@
 {
   "name": "@clowder-ai/genoffice-docx",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@clowder-ai/genoffice-docx",
-      "version": "0.1.0-alpha.3",
+      "version": "0.1.0-alpha.4",
       "license": "Apache-2.0",
       "dependencies": {
         "@clowder-ai/plugin-contract": "0.3.0"
