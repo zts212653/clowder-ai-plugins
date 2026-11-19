@@ -32,7 +32,7 @@
       },
       "version": "0.4.0-candidate.0",
       "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-contract/-/plugin-contract-0.4.0-candidate.0.tgz",
-      "integrity": "sha512-vydYQaNFdAWxqM9D3pLqjykLAdjVyLc9oY6mqwO71TZaIF25Fan4i9H7aMuNMGgCLKMACnFw1MrjpJhee/RsGQ==",
+      "integrity": "sha512-P/U9kxRycO7z9KmMCXr0ADJUhkEXDlQYgFIlI8fNf9CkWo3nmlA9tG48hXioV9eFLmFVv6DTl97AyHSbXQKVYQ==",
       "dependencies": {
         "ajv": "^8.17.0",
         "ajv-formats": "^3.0.0"
