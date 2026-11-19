@@ -7,14 +7,17 @@ import { after, before, test } from 'node:test';
 import { chromium } from 'playwright';
 
 // The Host's static-surface policy (cat-cafe static-surface-server.ts), so the built page proves it
-// needs no inline script, no network and no workers.
+// needs no inline script, no network and no workers, and that its atlases load as package images.
 const HOST_POLICY = [
   "default-src 'none'", "script-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:",
   "font-src 'self' data:", "connect-src 'none'", "worker-src 'none'", "child-src 'none'", "object-src 'none'",
   "base-uri 'none'", "form-action 'none'", "media-src 'self' blob:", "frame-ancestors 'none'",
 ].join('; ');
-const MIME = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
+const MIME = {
+  '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.webp': 'image/webp',
+};
 const root = resolve(fileURLToPath(new URL('../renderer/', import.meta.url)));
+const AREA = { width: 1440, height: 860 };
 
 let browser;
 let server;
@@ -44,10 +47,14 @@ after(async () => {
 function installFakeHost(read) {
   window.__sent = [];
   window.__draws = 0;
+  window.__frames = 0;
   window.__violations = [];
+  window.__clips = [];
   const listeners = new Set();
   const clear = CanvasRenderingContext2D.prototype.clearRect;
   CanvasRenderingContext2D.prototype.clearRect = function (...args) { window.__draws++; return clear.apply(this, args); };
+  const raf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = callback => raf(time => { window.__frames++; callback(time); });
   document.addEventListener('securitypolicyviolation', event => window.__violations.push(event.violatedDirective));
   window.clowderCompanion = {
     async request(command) {
@@ -57,62 +64,77 @@ function installFakeHost(read) {
     subscribe(callback) { listeners.add(callback); return () => listeners.delete(callback); },
   };
   window.__emit = event => { for (const callback of listeners) callback(event); };
+  // the clip sequence, as the card's eval harness read it from window.__xxCat
+  setInterval(() => {
+    const clip = window.__xxCat?.().clip;
+    if (clip && window.__clips.at(-1) !== clip) window.__clips.push(clip);
+  }, 15);
 }
 
-async function openBody(read, viewport = { width: 1280, height: 800 }) {
-  const page = await browser.newPage({ viewport });
+async function openBody(read) {
+  const page = await browser.newPage({ viewport: AREA });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await page.addInitScript(installFakeHost, read);
   await page.goto(`${origin}/body.html`);
-  await page.waitForFunction(() => window.__sent.some(command => command.kind === 'body.hit'));
+  // drawn and clickable once the front-sit atlas is in: the cat and his paper ball
+  await page.waitForFunction(() => window.__xxCat?.().full && window.__sent.some(command => command.kind === 'body.hit' && command.rects.length === 2));
   const sent = kind => page.evaluate(name => window.__sent.filter(command => command.kind === name), kind);
-  return { page, errors, sent };
+  const cat = () => page.evaluate(() => window.__xxCat());
+  const region = async () => {
+    const [body, ball] = (await sent('body.hit')).at(-1).rects;
+    return { body, ball, center: rect => [rect.x + rect.width / 2, rect.y + rect.height / 2] };
+  };
+  return { page, errors, sent, cat, region };
 }
 
-test('the built body page reads its scene, then claims only the cat on the floor and keeps the lease', async () => {
-  const { page, errors, sent } = await openBody({ kind: 'scene', status: 'not_found' });
+test('the built body page draws him on the floor of the work area, repaints only on change and keeps the lease', async () => {
+  const { page, errors, sent, cat, region } = await openBody({ kind: 'scene', status: 'not_found' });
   try {
     assert.equal((await page.evaluate(() => window.__sent[0])).kind, 'scene.get', 'the scene is read before anything is reported');
-    const [hit] = await sent('body.hit');
-    assert.equal(hit.rects.length, 1);
-    const cat = hit.rects[0];
-    assert.equal(cat.y + cat.height, 800, 'he stands on the bottom edge of the work area');
-    assert.ok(cat.x >= 0 && cat.x + cat.width <= 1280 && cat.width * cat.height < 0.15 * 1280 * 800, JSON.stringify(cat));
-    assert.deepEqual((await sent('body.anchor')).at(-1).rect, cat, 'the panel anchors to the visible body');
+    const { body, ball } = await region();
+    const floor = AREA.height - body.y - body.height;
+    assert.ok(floor >= 0 && floor <= 12, `he sits on the bottom edge of the work area (${floor} px above it)`);
+    assert.ok(body.height >= 120 && body.height <= 175, `a standing height of about 150 px (${body.height})`);
+    assert.ok(ball.y + ball.height <= AREA.height && ball.y + ball.height >= AREA.height - 20, 'the paper ball lies on the same floor');
+    assert.deepEqual((await sent('body.anchor')).at(-1).rect, body, 'the panel anchors to his visible body');
+    const pixels = await page.evaluate(({ body: r }) => {
+      const context = document.getElementById('world').getContext('2d');
+      const alpha = (x, y, w, h) => { let sum = 0; const data = context.getImageData(x, y, w, h).data; for (let i = 3; i < data.length; i += 4) sum += data[i]; return sum; };
+      return { cat: alpha(r.x, r.y, r.width, r.height), sky: alpha(0, 0, 1440, 600) };
+    }, { body });
+    assert.ok(pixels.cat > 0, 'he is drawn');
+    assert.equal(pixels.sky, 0, 'no room: everything above the floor is see-through');
     await page.waitForFunction(() => window.__sent.some(command => command.kind === 'scene.report'));
-    assert.deepEqual((await sent('scene.report'))[0].dirty, ['pose', 'ball', 'paper', 'hat', 'activity', 'lastSolo'],
-      'only a not_found read starts and saves a new scene');
+    assert.deepEqual((await sent('scene.report'))[0].dirty, ['pose', 'ball', 'paper', 'hat', 'activity', 'lastSolo']);
 
-    const drawsBefore = await page.evaluate(() => window.__draws);
-    const renewBefore = (await sent('body.hit.renew')).length;
-    await page.waitForTimeout(1300);
-    assert.ok((await sent('body.hit.renew')).length - renewBefore >= 2, 'a still cat renews its lease every 500 ms');
-    assert.equal(await page.evaluate(() => window.__draws), drawsBefore, 'renewing does not repaint, and nothing repaints idly');
+    const before = await page.evaluate(() => ({ draws: window.__draws, frames: window.__frames, renew: window.__sent.filter(c => c.kind === 'body.hit.renew').length }));
+    await page.waitForTimeout(2000);
+    const later = await page.evaluate(() => ({ draws: window.__draws, frames: window.__frames, renew: window.__sent.filter(c => c.kind === 'body.hit.renew').length }));
+    assert.ok(later.renew - before.renew >= 3, 'the lease renews every 500 ms');
+    assert.ok(later.frames - before.frames > 60, 'his clock runs');
+    assert.ok(later.draws - before.draws <= (later.frames - before.frames) / 2, `repaints only when the picture changes (${later.draws - before.draws} of ${later.frames - before.frames} frames)`);
 
-    await page.mouse.click(cat.x + cat.width / 2, cat.y + cat.height * 0.75, { button: 'right' });
-    await page.waitForFunction(() => window.__sent.some(command => command.kind === 'body.menu'));
-    assert.deepEqual((await sent('body.menu'))[0], { kind: 'body.menu' });
-
-    await page.mouse.click(cat.x + cat.width / 2, cat.y + 8);
-    await page.waitForFunction(() => window.__sent.filter(command => command.kind === 'scene.report').length >= 2);
-    const rubbed = (await sent('scene.report'))[1];
-    assert.deepEqual(rubbed.dirty, ['hat']);
-    assert.deepEqual(rubbed.snapshot.hat, { askew: true });
-    assert.equal(await page.evaluate(() => window.__draws), drawsBefore + 1, 'one change, one repaint');
-
-    await page.evaluate(() => window.__emit({ kind: 'scene-flush' }));
-    await page.waitForFunction(() => window.__sent.filter(command => command.kind === 'scene.report').length >= 3);
-    assert.deepEqual((await sent('scene.report'))[2].dirty, [], 'a flush is answered even when nothing changed');
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    const hidden = await page.evaluate(() => ({ draws: window.__draws, frames: window.__frames, cat: JSON.stringify(window.__xxCat()) }));
+    await page.waitForTimeout(600);
+    assert.deepEqual(await page.evaluate(() => ({ draws: window.__draws, frames: window.__frames, cat: JSON.stringify(window.__xxCat()) })), hidden,
+      'hidden: his clock stops and nothing is drawn');
 
     await page.setViewportSize({ width: 1000, height: 600 });
-    await page.evaluate(() => window.__emit({ kind: 'body-area', width: 1000, height: 600 }));
-    await page.waitForFunction(() => window.__sent.filter(command => command.kind === 'body.hit').length >= 2);
-    const moved = (await sent('body.hit')).at(-1).rects[0];
-    assert.equal(moved.y + moved.height, 600, 'a new work area re-maps the floor');
-    assert.ok(moved.x + moved.width <= 1000);
-    assert.equal(await page.evaluate(() => document.getElementById('world').style.width), '1000px');
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+      document.dispatchEvent(new Event('visibilitychange'));
+      window.__emit({ kind: 'body-area', width: 1000, height: 600 });
+    });
+    await page.waitForFunction(() => window.__sent.filter(c => c.kind === 'body.hit').at(-1).rects.every(r => r.y + r.height <= 600));
+    const moved = (await region()).body;
+    assert.ok(moved.x >= 0 && moved.x + moved.width <= 1000 && 600 - moved.y - moved.height <= 12, `the new floor: ${JSON.stringify(moved)}`);
+    assert.equal((await cat()).room.join('x'), '1000x600');
 
     for (const command of await page.evaluate(() => window.__sent)) assert.match(command.kind, /^(?:body|scene)\./u);
     assert.deepEqual(await page.evaluate(() => window.__violations), [], 'nothing breaks the static-surface policy');
@@ -122,31 +144,89 @@ test('the built body page reads its scene, then claims only the cat on the floor
   }
 });
 
-test('a saved scene comes back as it was, and an unreadable archive is never written', async () => {
-  const saved = { schemaVersion: 1, pose: { name: 'LOAF', facing: 'right' }, hat: { askew: true }, paper: { x: 0.4 } };
-  const restored = await openBody({ kind: 'scene', status: 'found', revision: 5, snapshot: saved });
+test('a press on the ball and a throw sends him after it; a press on empty space is the desktop\'s; right-click opens the menu', async () => {
+  const { page, errors, sent, cat, region } = await openBody({ kind: 'scene', status: 'not_found' });
   try {
-    const cat = (await restored.sent('body.hit'))[0].rects[0];
-    await restored.page.waitForTimeout(200);
-    assert.equal((await restored.sent('scene.report')).length, 0, 'a found scene is not written back by itself');
-    await restored.page.mouse.click(cat.x + cat.width / 2, cat.y + 8);
-    await restored.page.waitForFunction(() => window.__sent.some(command => command.kind === 'scene.report'));
-    const [report] = await restored.sent('scene.report');
-    assert.deepEqual(report.snapshot.hat, { askew: false }, 'the hat was still askew from before');
-    assert.deepEqual(report.snapshot.pose, { name: 'LOAF', facing: 'right' });
-    assert.deepEqual(report.dirty, ['ball', 'hat', 'activity', 'lastSolo'],
-      'the rubbed hat plus the fields this archive lacked; restored pose and paper are untouched');
-    assert.deepEqual(restored.errors, []);
+    const { body, ball, center } = await region();
+    const [ex, ey] = [body.x - 260, 300];
+    await page.mouse.move(ex, ey);
+    await page.mouse.down();
+    await page.mouse.move(ex - 120, ey + 40, { steps: 4 });
+    await page.mouse.up();
+    let state = await cat();
+    assert.equal(state.ball.held, false, 'a press on empty space does not take the ball');
+    assert.equal(state.ball.fresh, false);
+
+    await page.mouse.click(ex, ey, { button: 'right' });
+    await page.mouse.click(...center(body), { button: 'right' });
+    await page.waitForFunction(() => window.__sent.some(command => command.kind === 'body.menu'));
+    assert.deepEqual(await sent('body.menu'), [{ kind: 'body.menu' }], 'only the right-click on him opens the menu');
+
+    const [bx, by] = center(ball);
+    await page.evaluate(() => { window.__clips = []; });
+    await page.mouse.move(bx, by);
+    await page.mouse.down();
+    assert.equal((await cat()).ball.held, true, 'a press on the ball picks it up');
+    await page.mouse.move(bx - 40, by - 60, { steps: 2 });
+    await page.mouse.move(bx - 160, by - 140, { steps: 3 });
+    await page.mouse.up();
+    state = await cat();
+    assert.equal(state.ball.held, false);
+    assert.equal(state.ball.fresh, true, 'thrown');
+    await page.waitForFunction(() => window.__clips.includes('pounce'), null, { timeout: 20000 });
+    const clips = await page.evaluate(() => window.__clips);
+    const getUp = clips.findIndex(clip => /^fs-to-(?:st|crouch)/u.test(clip));
+    assert.ok(getUp >= 0 && getUp < clips.indexOf('pounce'), `he gets up and goes for it: ${clips.join(' > ')}`);
+    await page.waitForFunction(() => window.__sent.some(c => c.kind === 'scene.report' && c.dirty.includes('ball')), null, { timeout: 20000 });
+    assert.deepEqual(errors, []);
   } finally {
-    await restored.page.close();
+    await page.close();
+  }
+});
+
+test('reopened, he is as he was: the ball where it lay and the beret still askew; an unreadable archive is never written', async () => {
+  const first = await openBody({ kind: 'scene', status: 'not_found' });
+  let snapshot;
+  try {
+    const { body } = await first.region();
+    await first.page.mouse.move(body.x + body.width / 2, body.y + body.height * 0.12);
+    await first.page.mouse.down();
+    await first.page.waitForFunction(() => window.__xxCat().askew, null, { timeout: 5000 });
+    await first.page.mouse.up();
+    await first.page.waitForFunction(() => window.__sent.some(c => c.kind === 'scene.report' && c.snapshot.hat.askew));
+    snapshot = (await first.sent('scene.report')).findLast(report => report.snapshot.hat.askew).snapshot;
+    assert.deepEqual(first.errors, []);
+  } finally {
+    await first.page.close();   // quit with the beret askew
+  }
+
+  const saved = { ...snapshot, ball: { x: 0.25, h: 0.02, ceil: false } };
+  const reopened = await openBody({ kind: 'scene', status: 'found', revision: 3, snapshot: saved });
+  try {
+    const state = await reopened.cat();
+    assert.equal(state.askew, true, 'the beret is still askew');
+    assert.equal(state.clip, 'fs-hat');
+    assert.ok(Math.abs(state.ball.x - 0.25 * state.worldW) <= 1, `the ball lies where it was (${state.ball.x} of ${state.worldW})`);
+    await reopened.page.waitForTimeout(300);
+    assert.equal((await reopened.sent('scene.report')).length, 0, 'a found scene is not written back by itself');
+    assert.deepEqual(reopened.errors, []);
+  } finally {
+    await reopened.page.close();
   }
 
   const unsaved = await openBody({ kind: 'scene', status: 'error', reason: 'corrupt' });
   try {
-    const cat = (await unsaved.sent('body.hit'))[0].rects[0];
-    await unsaved.page.mouse.click(cat.x + cat.width / 2, cat.y + 8);
+    const { body, ball, center } = await unsaved.region();
+    await unsaved.page.mouse.move(body.x + body.width / 2, body.y + body.height * 0.12);
+    await unsaved.page.mouse.down();
+    await unsaved.page.waitForFunction(() => window.__xxCat().askew, null, { timeout: 5000 });
+    await unsaved.page.mouse.up();
+    await unsaved.page.mouse.move(...center(ball));
+    await unsaved.page.mouse.down();
+    await unsaved.page.mouse.move(center(ball)[0] - 100, center(ball)[1] - 80, { steps: 3 });
+    await unsaved.page.mouse.up();
     await unsaved.page.evaluate(() => window.__emit({ kind: 'scene-flush' }));
-    await unsaved.page.waitForTimeout(300);
+    await unsaved.page.waitForTimeout(1500);
     assert.equal((await unsaved.sent('scene.report')).length, 0, 'an unsaved body plays on but never reports');
     assert.deepEqual(unsaved.errors, []);
   } finally {
