@@ -32,6 +32,15 @@ await build({
   platform: 'node',
   target: 'es2022',
   external: ['@clowder-ai/plugin-sdk'],
+  // Any transitively-inlined CommonJS dependency would otherwise compile to an
+  // esbuild `__require` shim that throws `Dynamic require of "x" is not
+  // supported`: the emitted file is ESM, where no `require` binding exists. The
+  // Host loads this entrypoint with `import()`, so the failure surfaces only as
+  // an activation error. Binding a real `require` up front keeps every inlined
+  // dependency loadable, present or future.
+  banner: {
+    js: "import { createRequire as __createRequire } from 'node:module';\nconst require = __createRequire(import.meta.url);",
+  },
   allowOverwrite: true,
   logLevel: 'warning',
 });
