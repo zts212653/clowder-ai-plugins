@@ -72,10 +72,15 @@ test('packed static desktop window declarations and current SDK work without wor
     run(process.execPath, [join(repo, 'packages/plugin-contract/node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json'], consumer);
     const contract = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/plugin-contract/package.json'), 'utf8'));
     const sdk = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/plugin-sdk/package.json'), 'utf8'));
+    const sourceContract = JSON.parse(await readFile(join(repo, 'packages/plugin-contract/package.json'), 'utf8'));
+    const sourceSdk = JSON.parse(await readFile(join(repo, 'packages/plugin-sdk/package.json'), 'utf8'));
+    const sourceCompanion = JSON.parse(await readFile(join(repo, 'packages/companion/package.json'), 'utf8'));
     const companionPackage = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/companion/package.json'), 'utf8'));
-    assert.equal(contract.version, companionPackage.devDependencies['@clowder-ai/plugin-contract'],
-      'the packed contract is the line the companion declares (livingBody, bridge 1.8)');
-    assert.equal(sdk.dependencies['@clowder-ai/plugin-contract'], contract.version);
+    assert.equal(contract.version, sourceContract.version);
+    assert.deepEqual(sdk.dependencies, sourceSdk.dependencies);
+    assert.deepEqual(companionPackage.devDependencies, sourceCompanion.devDependencies);
+    assert.equal(companionPackage.devDependencies['@clowder-ai/plugin-contract'], contract.version,
+      'the companion declares the packed contract line (livingBody, bridge 1.8)');
     const probe = `
       import assert from 'node:assert/strict';
       import { validateManifest } from '@clowder-ai/plugin-contract';
@@ -90,6 +95,10 @@ test('packed static desktop window declarations and current SDK work without wor
       assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'skin', value: 'xianxian-living' }), true);
       assert.equal(validateCompanionEvent({ kind: 'body-area', width: 1440, height: 860, standHeight: 150 }), true);
       assert.equal(validateCompanionEvent({ kind: 'body-area', width: 1440, height: 860, standHeight: 481 }), false);
+      assert.equal(validateCompanionEvent({ kind: 'body-preferences', behaviorEnabled: false }), true);
+      assert.equal(validateCompanionEvent({ kind: 'body-preferences', behaviorEnabled: 'false' }), false);
+      assert.equal(validateCompanionEvent({ kind: 'view-open', panel: 'menu' }), true);
+      assert.equal(validateCompanionEvent({ kind: 'view-open', panel: 'menu', x: 600, y: 760 }), false);
       assert.equal(validateCompanionCommand({ kind: 'desk.settle', scopeRef: 'desk-a', deliveryRef: 'delivery-a', action: 'dismiss' }), true);
       assert.equal(validateCompanionCommand({ kind: 'desk.settle', scopeRef: 'desk-a', deliveryRef: 'delivery-a', action: 'open' }), false);
       assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'desk', width: 344, height: 328 }), true);

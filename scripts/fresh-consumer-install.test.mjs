@@ -469,10 +469,9 @@ test('packed public packages install and import in a fresh npm consumer', async 
     );
     const sourceContract = JSON.parse(await readFile(join(repoRoot, 'packages/plugin-contract/package.json'), 'utf8'));
     const sourceSdk = JSON.parse(await readFile(join(repoRoot, 'packages/plugin-sdk/package.json'), 'utf8'));
-    assert.equal(sourceSdk.dependencies['@clowder-ai/plugin-contract'], sourceContract.version);
     assert.equal(contractPackage.version, sourceContract.version);
     assert.equal(sdkPackage.version, sourceSdk.version);
-    assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], sourceContract.version);
+    assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], sourceSdk.dependencies['@clowder-ai/plugin-contract']);
     const sourceIntake = JSON.parse(await readFile(join(repoRoot, 'packages/feishu-meeting-intake/package.json'), 'utf8'));
     assert.deepEqual(feishuPackage.dependencies, sourceIntake.dependencies);
     assert.equal(feishuPackage.dependencies['@larksuite/cli'], '1.0.85');

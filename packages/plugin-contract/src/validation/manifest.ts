@@ -527,6 +527,7 @@ export function validateManifest(value: unknown): ManifestValidationResult {
       }
     }
     const contributionByKey = new Map<string, (typeof contributions)[number]>();
+    const previewExtensions = new Set<string>();
     for (const [index, contribution] of contributions.entries()) {
       const key = `${contribution.type}\0${contribution.id}`;
       if (contributionByKey.has(key)) {
@@ -538,6 +539,19 @@ export function validateManifest(value: unknown): ManifestValidationResult {
         );
       }
       contributionByKey.set(key, contribution);
+      if (contribution.type === 'content-preview-provider') {
+        for (const [formatIndex, { extension }] of contribution.formats.entries()) {
+          if (previewExtensions.has(extension)) {
+            return semanticError(
+              `/contributions/${index}/formats/${formatIndex}/extension`,
+              '#/$defs/ContentPreviewProviderContribution/unambiguousFormats',
+              'unambiguousFormats',
+              'preview extension must be declared at most once per manifest',
+            );
+          }
+          previewExtensions.add(extension);
+        }
+      }
 
       if ('environment' in contribution && contribution.environment !== undefined) {
         for (const [environmentName, binding] of Object.entries(contribution.environment)) {

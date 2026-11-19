@@ -67,7 +67,7 @@ export type ResourceReference = {
   readonly id: string;
 };
 export type ContributionReference = {
-  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'external-request' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'desktop-window';
+  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'external-request' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'content-preview-provider' | 'desktop-window';
   readonly id: string;
 };
 export type PackageRelativePath = string;
@@ -487,21 +487,32 @@ export type DesktopWindowContribution = {
     readonly skipTaskbar: boolean;
   };
 };
+export type ContentProviderSurface = {
+  readonly entrypoint: PackageRelativePath;
+  readonly integrity: string;
+  readonly sandbox: 'dedicated-origin-iframe';
+  readonly navigationPolicy: 'navigation-api-deny';
+};
+export type ContentPreviewProviderContribution = {
+  readonly type: 'content-preview-provider';
+  readonly id: string;
+  readonly formats: readonly ({
+    readonly extension: string;
+    readonly mediaType: string;
+  })[];
+  readonly surface: ContentProviderSurface;
+  readonly bridgeVersion: '1.0.0';
+};
 export type ContentEditorProviderContribution = {
   readonly type: 'content-editor-provider';
   readonly id: string;
   readonly mediaTypes: readonly ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-  readonly surface: {
-    readonly entrypoint: PackageRelativePath;
-    readonly integrity: string;
-    readonly sandbox: 'dedicated-origin-iframe';
-    readonly navigationPolicy: 'navigation-api-deny';
-  };
+  readonly surface: ContentProviderSurface;
   readonly bridgeVersion: '1.0.0';
   readonly semanticMaterializer?: SemanticMaterializerDeclaration;
   readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];
 };
-export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | ExternalRequestContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
+export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | ExternalRequestContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | ContentPreviewProviderContribution | DesktopWindowContribution;
 export type PluginFeature = {
   readonly id: string;
   readonly name: string;
