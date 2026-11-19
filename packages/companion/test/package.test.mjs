@@ -20,7 +20,7 @@ test('the installable package declares one companion body and contains a closed 
   assert.ok(pkg.files.includes('plugin.yaml'), 'the catalog manifest must reach the published archive');
   assert.equal(validateManifest(manifest).valid, true);
   assert.deepEqual(manifest.runtime, { transport: 'builtin' });
-  assert.equal(manifest.contributions[0].bridgeVersion, '1.7.0');
+  assert.equal(manifest.contributions[0].bridgeVersion, '1.8.0');
   const html = await readFile(new URL('renderer/index.html', root));
   const markup = html.toString();
   assert.match(html.toString(), /id="listen"[^>]*data-action="listen"[^>]*hidden/u,
@@ -69,7 +69,19 @@ test('the installable package declares one companion body and contains a closed 
   assert.match(html.toString(), /<button id="transcript-return"[^>]*data-action="transcript-return"[^>]*>[\s\S]*?返回通话[\s\S]*?<\/button>/u,
     'compact and expanded subtitles must expose a visible return to the persistent call bar');
   assert.equal(manifest.contributions[0].surface.integrity, `sha256-${createHash('sha256').update(html).digest('base64')}`);
-  for (const name of await readdir(new URL('renderer/', root))) {
+  const bodyHtml = await readFile(new URL('renderer/body.html', root));
+  assert.deepEqual(manifest.contributions[0].body, {
+    entrypoint: 'renderer/body.html', integrity: `sha256-${createHash('sha256').update(bodyHtml).digest('base64')}`,
+  }, 'the living body entry sits beside the surface and is pinned by its own bytes');
+  assert.doesNotMatch(bodyHtml.toString(), /<script(?![^>]*\bsrc=)/u, 'the static-surface policy admits no inline script');
+  const { LIVING_BODY } = await import(new URL('renderer/package-line.mjs', root));
+  assert.equal(LIVING_BODY, true, 'the panel learns its line from its own declaration: a body entry is admitted only on the livingBody line');
+  assert.match(markup, /<button id="settings-skin-xianxian-living" type="button" data-setting-control hidden>宪宪（活猫）<\/button>/u,
+    'the living option sits with the other skins and stays hidden until the panel knows its line');
+  const names = [...await readdir(new URL('renderer/', root)),
+    ...(await readdir(new URL('renderer/living-world/', root))).map(name => `living-world/${name}`),
+    ...(await readdir(new URL('renderer/skins/xianxian-living-world/', root))).map(name => `skins/xianxian-living-world/${name}`)];
+  for (const name of names) {
     if (!/\.(html|css|mjs)$/.test(name)) continue;
     const file = new URL(`renderer/${name}`, root);
     const source = await readFile(file, 'utf8');
@@ -80,6 +92,32 @@ test('the installable package declares one companion body and contains a closed 
     for (const [, ref] of refs) { if (ref.startsWith('#')) continue; assert.ok(ref.startsWith('./'), `${name}: ${ref}`); await readFile(new URL(ref, file)); }
   }
 });
+test('livingBody needs the new contract line: an older Host refuses the package and the living skin', async () => {
+  const manifest = JSON.parse(await readFile(new URL('plugin.yaml', root), 'utf8'));
+  const pkg = JSON.parse(await readFile(new URL('package.json', root)));
+  assert.equal(pkg.devDependencies['@clowder-ai/plugin-contract'], '0.3.3-candidate.3', 'the contract line that carries livingBody');
+  const current = await import('@clowder-ai/plugin-contract');
+  const previous = await import('@clowder-ai/plugin-contract-033c0');
+  assert.equal(current.validateManifest(manifest).valid, true);
+  assert.equal(previous.validateManifest(manifest).valid, false, 'a bridge 1.7 Host refuses this package before installing it');
+  const { body: _body, ...surfaceOnly } = manifest.contributions[0];
+  assert.equal(previous.validateManifest({ ...manifest, contributions: [{ ...surfaceOnly, bridgeVersion: '1.7.0' }] }).valid, true,
+    'the previous line still reads the published surface-only shape');
+  const living = { kind: 'settings.update', field: 'skin', value: 'xianxian-living' };
+  assert.equal(current.validateCompanionCommand(living), true);
+  assert.equal(previous.validateCompanionCommand(living), false, 'the previous line has a closed skin enum without the living skin');
+  for (const command of [{ kind: 'body.hit', rects: [{ x: 1, y: 1, width: 10, height: 10 }] }, { kind: 'body.hit.renew' },
+    { kind: 'body.anchor', rect: { x: 1, y: 1, width: 10, height: 10 } }, { kind: 'body.menu' }, { kind: 'scene.get' },
+    { kind: 'scene.report', snapshot: { schemaVersion: 1 }, dirty: [] }]) {
+    assert.equal(current.validateCompanionCommand(command), true, command.kind);
+    assert.equal(previous.validateCompanionCommand(command), false, `${command.kind} is new in this line`);
+  }
+  for (const event of [{ kind: 'scene-flush' }, { kind: 'body-area', width: 1440, height: 875 },
+    { kind: 'body-preferences', behaviorEnabled: false }, { kind: 'view-open', panel: 'menu' }]) {
+    assert.equal(current.validateCompanionEvent(event), true, event.kind);
+    assert.equal(previous.validateCompanionEvent(event), false, `${event.kind} is new in this line`);
+  }
+});
 test('public imagery provenance pins only distributable assets, without private pet metadata', async () => {
   const lock = JSON.parse(await readFile(new URL('source-lock.json', root)));
   assert.match(lock.commit, /^[a-f0-9]{40}$/);
@@ -87,6 +125,22 @@ test('public imagery provenance pins only distributable assets, without private 
     const content = await readFile(new URL(file.destination, root));
     assert.equal(createHash('sha256').update(content).digest('hex'), file.sha256);
     assert.doesNotMatch(file.destination, /pet\.json/);
+  }
+  assert.doesNotMatch(JSON.stringify(lock.livingWorld), /\/Users\/|\/api\/workspace\/file\/raw/u);
+  assert.equal(lock.livingWorld.scale, 0.6);
+  assert.deepEqual(lock.livingWorld.files.map(file => file.destination.split('/').at(-1)),
+    ['world.json', 'world-atlas-0.webp', 'world-atlas-1.webp', 'world-atlas-2.webp'], 'the living body\'s world data and its three atlases');
+  for (const file of lock.livingWorld.files) {
+    const content = await readFile(new URL(file.destination, root));
+    assert.equal(createHash('sha256').update(content).digest('hex'), file.sha256, file.destination);
+    if (file.destination.endsWith('.json')) {
+      const { default: packed } = await import(new URL('renderer/skins/xianxian-living-world/world.mjs', root));
+      assert.deepEqual(packed, JSON.parse(content), 'the world data reaches the renderer as a module (the static surface admits no fetch)');
+      assert.equal(packed.scale, lock.livingWorld.scale);
+      continue;
+    }
+    const packed = await readFile(new URL(file.destination.replace(/^assets\//u, 'renderer/'), root));
+    assert.deepEqual(packed, content, `${file.destination} must reach the installable renderer`);
   }
   assert.match(lock.livingSkin.manifestSha256, /^[a-f0-9]{64}$/u);
   assert.equal(lock.livingSkin.files.length, 22, '12 layers, nine clips and layer geometry travel together');

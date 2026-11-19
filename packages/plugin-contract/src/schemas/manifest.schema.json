@@ -1983,8 +1983,28 @@
             "1.4.0",
             "1.5.0",
             "1.6.0",
-            "1.7.0"
+            "1.7.0",
+            "1.8.0"
           ]
+        },
+        "body": {
+          "type": "object",
+          "description": "livingBody (bridge 1.8.0): the static entry of the companion's living body, a second Host-created window that draws the cat over the primary work area while the surface above keeps menus, chat, calls and decisions. It lives in the surface's own asset directory and is served under the same static-surface policy; integrity verifies only its HTML bytes. Declaring it grants nothing: the Host opens a body only for a verified package whose admitted contract line carries livingBody, and the body may send only body.* and scene.* commands.",
+          "properties": {
+            "entrypoint": {
+              "$ref": "#/$defs/PackageRelativePath",
+              "pattern": "\\.html$"
+            },
+            "integrity": {
+              "type": "string",
+              "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
+            }
+          },
+          "required": [
+            "entrypoint",
+            "integrity"
+          ],
+          "additionalProperties": false
         },
         "presentation": {
           "type": "object",
