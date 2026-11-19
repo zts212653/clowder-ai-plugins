@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/memory-plugin",
-  "version": "0.1.0-candidate.11",
+  "version": "0.1.0-candidate.12",
   "private": true,
   "description": "Official Clowder AI memory plugin: thread KV, evidence retrieval and memory business ownership.",
   "license": "MIT",
@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@clowder-ai/plugin-contract": "0.3.3-candidate.1",
-    "@clowder-ai/plugin-memory-contract": "0.1.0-candidate.9",
+    "@clowder-ai/plugin-memory-contract": "0.1.0-candidate.10",
     "@types/better-sqlite3": "7.6.13",
     "@types/node": "^20.17.0",
     "esbuild": "0.28.1",
