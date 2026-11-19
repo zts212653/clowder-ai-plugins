@@ -306,7 +306,7 @@ async function verifyCatalogEntry(catalogEntry) {
       await readFile(join(unpackedDirectory, 'package', 'package.json'), 'utf8'),
     );
     const staticSurfaces = contributions.length > 0 &&
-      contributions.every(entry => ['content-editor-provider', 'desktop-window'].includes(entry.type));
+      contributions.every(entry => ['content-editor-provider', 'content-preview-provider', 'desktop-window'].includes(entry.type));
     const runtimeDependencies = Object.keys({
       ...packageJson.dependencies, ...packageJson.optionalDependencies,
     }).length > 0;

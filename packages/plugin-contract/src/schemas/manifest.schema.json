@@ -2079,7 +2079,8 @@
               "extension": {
                 "type": "string",
                 "pattern": "^[a-z0-9]+$",
-                "maxLength": 32
+                "maxLength": 32,
+                "not": { "const": "docx" }
               },
               "mediaType": {
                 "type": "string",
@@ -2094,6 +2095,7 @@
             "additionalProperties": false
           },
           "minItems": 1,
+          "maxItems": 64,
           "uniqueItems": true
         },
         "surface": {
