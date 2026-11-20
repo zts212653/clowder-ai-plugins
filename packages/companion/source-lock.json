@@ -161,5 +161,31 @@
         "sha256": "92fe5571b2f4b78c1138e199aaa29bb523b6f6ad7ab346fbd6407c8b557e220f"
       }
     ]
+  },
+  "livingWorld": {
+    "package": "宪宪和纸团 v30 card world, desktop atlases",
+    "builder": "cat-cafe .cat-cafe/evidence/f336-production/20261116-living-cat/tools/build_world.py",
+    "command": "WORLD_SCALE=0.6 WORLD_OUT=<output directory> python3 tools/build_world.py",
+    "scale": 0.6,
+    "reproduction": "the same builder at WORLD_SCALE=0.75 reproduces the card's world.json and three atlases byte for byte",
+    "creator": "opus55",
+    "files": [
+      {
+        "destination": "assets/skins/xianxian-living-world/world.json",
+        "sha256": "1cd3f4246c079e5b186fed80ce8d37d0e5ce1d5234f75df36856e4d224dea204"
+      },
+      {
+        "destination": "assets/skins/xianxian-living-world/world-atlas-0.webp",
+        "sha256": "107fcc8f64bc2ed9c74a1aecc8fa8afc8f449b1f5f52a50ee5747f61762079bb"
+      },
+      {
+        "destination": "assets/skins/xianxian-living-world/world-atlas-1.webp",
+        "sha256": "077001b193cfdaa2d132e314f0ea58025838e1a853a03219e80873d98fa46972"
+      },
+      {
+        "destination": "assets/skins/xianxian-living-world/world-atlas-2.webp",
+        "sha256": "565e67862c405f9708604de062f49dccf736968eb6d60536e5c3f1e7f63e7255"
+      }
+    ]
   }
 }

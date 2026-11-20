@@ -14,8 +14,12 @@ let pendingDraft=Promise.resolve();
 let pendingAction=Promise.resolve();
 let editVersion=0;
 let unbindReader;
+async function copyLink(url) {
+  await bridge('clipboard.text',url);
+  state.feedbackNotice='链接已复制，可在浏览器打开。';
+}
 const checkRequestBudget = request=>{
-  if(new Blob([JSON.stringify(request)]).size>15*1024*1024)throw new Error('图片合计过大，请减少图片或裁剪后再添加');
+  if(new Blob([JSON.stringify({input:request})]).size>15*1024*1024)throw new Error('图片合计过大，请减少图片或裁剪后再添加');
 };
 const recordCall = (input,feedbackId=state.feedbackId)=>{
   const sourceId=state.feedbackId;
@@ -319,8 +323,7 @@ function renderReview(content, footer) {
     route.append(note(githubAuth==='cli' ? `使用 GitHub CLI（@${principal}）` : '使用已配置的 GitHub 令牌','review-visibility'));
   }
   if (!locked() && state.tokenIssue) {
-    const provider=target.provider;
-    const name=provider==='gitlab'?'GitLab':'GitHub';
+    const name=target.provider==='gitlab'?'GitLab':'GitHub';
     const missing=state.tokenIssue==='feedback_token_missing';
     const cliHelp = {unavailable:'未找到 GitHub CLI。可先配置令牌，或安装并登录 GitHub CLI。',
       login:'也可在本机终端运行 gh auth login，登录后回来重新检查。',
@@ -328,15 +331,9 @@ function renderReview(content, footer) {
     route.append(el('div',{className:'review-route-condition'},[
       note(missing?(cliHelp?'登录 GitHub CLI 或配置访问令牌即可自动提交。':'自动提交需要访问令牌。')
         :'当前凭据未获接受，请更新后重试。'),
-      button(`${missing?'配置':'更换'} ${name} 访问令牌`,async()=>{
-        await flushDraft();
-        if(await bridge('feedback.configureToken',provider)){state.consent=false;await checkRoute();}
-      },'primary'),
-      ...(cliHelp?[note(cliHelp,'hint review-cli-help'),
-        el('div',{className:'review-route-retry review-cli-actions'},[
-          el('a',{className:'text',text:'GitHub CLI 帮助',href:'https://cli.github.com/manual/gh_auth_login',target:'_blank',rel:'noopener noreferrer'}),
-          button('重新检查',checkRoute,'text'),
-        ])]:[]),
+      note(`打开设置 → 插件 → 问题反馈，${missing?'配置':'更新'} ${name} 访问令牌。草稿会自动保存。`,'hint'),
+      ...(cliHelp?[note(cliHelp,'hint review-cli-help')]:[]),
+      button('重新检查',saveReview),
     ]));
   } else if (!locked() && state.routeProblem) {
     route.append(el('div',{className:'review-route-condition'},[
@@ -353,10 +350,10 @@ function renderReview(content, footer) {
     note('报告有改动，保存后可重新检查自动提交条件。'),
     button('保存并检查',saveReview),
   ]));
-  if (state.stage === 'handoff') route.append(note('已打开目标网页。请粘贴报告和截图，并在网页完成提交。','review-route-condition hint'));
+  if (state.stage === 'handoff') route.append(note('在浏览器打开目标地址后，请粘贴报告和截图并提交。','review-route-condition hint'));
   if (state.journal?.state === 'upload_failed') route.append(note(state.journal.safeError,'review-route-condition hint'));
   else if (issueMayExist()) route.append(note('提交结果待核对。核对操作不会重新提交。','review-route-condition hint'));
-  if (state.journal?.issue && issueMayExist()) route.append(el('a',{className:'issue',text:'打开待核验的 Issue',href:state.journal.issue.url,target:'_blank',rel:'noopener noreferrer'}));
+  if (state.journal?.issue && issueMayExist()) route.append(button('复制待核验的 Issue 链接',()=>copyLink(state.journal.issue.url),'text'));
   if (state.stage === 'submitting') route.append(note('正在提交并核验回执…','review-route-condition hint'));
 
   content.append(reviewTabs,el('div',{className:'review-layout','data-delivery':deliveryView,'data-has-images':showImages},[
@@ -365,15 +362,13 @@ function renderReview(content, footer) {
 
   const actions = el('div',{className:'review-actions'});
   if (!locked() && state.stage !== 'submitting') {
-    actions.append(el('a',{text:'手动创建',className:state.routeProblem?.kind==='manual'?'primary':'text',
-      href:target?.issueCreateUrl,target:'_blank',rel:'noopener noreferrer',
-      'data-publish':'manual','aria-disabled':!state.consent||state.dirty||state.busy,
-      title:'在目标网页粘贴报告和截图，手动创建 Issue',
-      onClick:event=>{
-        if(!state.consent||state.dirty||issueMayExist()||state.busy){event.preventDefault();return;}
-        void run(async()=>{Object.assign(state,await recordCall({op:'manual',digest:state.journal.digest}));state.stage='handoff';});
-      },
-    }));
+    const manual=button('复制手动创建链接',async()=>{
+      Object.assign(state,await recordCall({op:'manual',digest:state.journal.digest}));
+      state.stage='handoff';
+      await copyLink(target.issueCreateUrl);
+    },state.routeProblem?.kind==='manual'?'primary':'text',!target||!state.consent||state.dirty||issueMayExist());
+    manual.dataset.publish='manual';
+    actions.append(manual);
     if (state.automatic) {
       const submitButton=button('提交正文',submit,'primary',!state.consent||state.dirty);
       submitButton.dataset.publish='auto';
@@ -483,15 +478,16 @@ function renderPublishedScreenshots(content) {
         }
       },'primary',!selected.length);
       section.append(el('div',{className:'supplemental-actions'},[...(items.length<4?[pick]:[]),upload]));
-      if (state.tokenIssue && ['github','gitlab'].includes(target.provider)) section.append(button('配置访问令牌',async()=>{
-        if(await bridge('feedback.configureToken',target.provider)){state.tokenIssue=undefined;state.feedbackNotice='令牌已更新，请确认所选截图后上传。';}
-      },'text'));
+      if (state.tokenIssue && ['github','gitlab'].includes(target.provider)) {
+        const name=target.provider==='gitlab'?'GitLab':'GitHub';
+        section.append(note(`请在设置 → 插件 → 问题反馈中更新 ${name} 访问令牌，再从反馈记录打开这条 Issue 补充截图。`,'hint'));
+      }
     }
   }
   if(state.feedbackNotice) section.append(el('p',{className:'hint',role:'status',text:state.feedbackNotice}));
   content.append(el('div',{className:'issue-confirmed'},[
     el('h2',{text:'Issue 已创建'}),
-    el('a',{text:`打开 Issue #${issue.id}`,href:issue.url,target:'_blank',rel:'noopener noreferrer'}),
+    button(`复制 Issue #${issue.id} 链接`,()=>copyLink(issue.url),'text'),
   ]),section);
 }
 function render() {
@@ -503,6 +499,9 @@ function render() {
     el('div',{className:'feedback-nav'},[button('新建反馈',startNew,'text'),button('反馈记录',showHistory,'secondary')])])]);
   const content = el('section', { className: 'content' }); const footer = el('footer');
   if (state.error) content.append(el('p', { role: 'alert', className: 'error', text: state.error }));
+  if (state.feedbackNotice && ['scope','analyzing','published-report'].includes(state.stage)) {
+    content.append(el('p',{role:'status',className:'hint',text:state.feedbackNotice}));
+  }
   if(['edit','configure','review','handoff'].includes(state.stage)){
     footer.append(el('span',{'data-save-status':'',className:state.saveError?'error':'hint',text:state.saveError||
       (state.selectionSaved===false?'草稿已保存，可从反馈记录继续':state.journal&&!state.dirty?'草稿已保存到反馈记录':hasDraft()?'草稿有更新，将自动保存':'')}));
@@ -511,7 +510,7 @@ function render() {
   if (state.stage === 'history') {
     if(state.feedbackNotice)content.append(el('p',{role:'status',className:'hint',text:state.feedbackNotice}));
     content.append(feedbackHistory(state.items,{
-      open:id=>run(()=>openRecord(id)),deleteId:state.draftToDelete?.id,busy:state.busy,
+      open:id=>run(()=>openRecord(id)),copyUrl:url=>run(()=>copyLink(url)),deleteId:state.draftToDelete?.id,busy:state.busy,
       requestDelete:({id,deleteRevision})=>{
         state.draftToDelete={id,revision:deleteRevision};
         render();app.querySelector('[data-cancel-draft-delete]')?.focus();
@@ -553,7 +552,7 @@ function render() {
     if (state.stage === 'analyzing') content.append(el('div',{className:'analysis-progress',role:'status','aria-live':'polite'},[
       el('p',{'data-analysis-progress':'',text:state.analysis?.progress ?? '请求已发送，等待 Agent 开始分析'}),
       el('p',{'data-analysis-elapsed':'',className:'hint',text:'完成后会自动展示报告，可关闭面板稍后回来。'})]));
-    if (state.analysis?.threadUrl) content.append(el('a', { href: state.analysis.threadUrl, text: '打开分析对话', target: '_blank', rel: 'noopener noreferrer' }));
+    if (state.analysis?.threadUrl) content.append(button('复制分析对话链接',()=>copyLink(state.analysis.threadUrl),'text'));
     if (['blocked', 'preparing'].includes(state.analysis?.state)) content.append(note(state.analysis.error || 'Client 需要处理，请打开分析对话。', 'notice'));
     if (state.stage === 'analyzing') footer.append(button('停止等待，保留草稿', async () => { analysisEpoch++; clearTimeout(analysisTimer); const result = await recordCall({ op: 'cancel-analysis' }); state.analysis = result.analysis; state.stage = 'scope'; state.error = '已停止等待；这不会强制终止 Client，可打开分析对话查看。'; }));
     else footer.append(button('更改分析设置',async()=>{state.stage='configure';},'text'),button('跳过分析', saveReview), ['failed', 'cancelled', 'interrupted'].includes(state.analysis?.state)
@@ -567,7 +566,7 @@ function render() {
     content.className = 'content review-content published-report';
     content.append(el('div',{className:'issue-confirmed published-heading'},[
       el('h2',{text:report.title}),
-      ...(issue?[el('a',{text:`打开 Issue #${issue.id}`,href:issue.url,target:'_blank',rel:'noopener noreferrer'})]:[]),
+      ...(issue?[button(`复制 Issue #${issue.id} 链接`,()=>copyLink(issue.url),'text')]:[]),
     ]),report.body.trim()?reportReader(report.body,el):note('这条反馈没有正文。','hint'));
     footer.append(button('返回记录',showHistory,'text'));
     if (issue) footer.append(button('补充截图',async()=>{state.stage='published-screenshots';}));

@@ -22,6 +22,7 @@ export function migrationFixture() {
   let reads = 0;
   const host: ModulePluginHostShape = {
     pluginInstanceId: 'instance', dataPath: '/unused/isolated-migration', storage,
+    external: { endpoint: 'https://host.invalid/api/plugins/external', token: 'fixture-external-token' },
     config: { get: async key => key === 'recoveryMode' ? 'import-only' : undefined },
     secrets: { get: async () => undefined }, members: { get: forbidden, list: forbidden },
     streams: { read: async function* () { throw new Error('No stream read expected'); } },

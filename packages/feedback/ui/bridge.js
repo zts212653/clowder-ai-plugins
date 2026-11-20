@@ -6,7 +6,6 @@ let closeHandler;
 window.addEventListener('message', event => {
   const data = event.data;
   if (event.source !== parent || !data || data.channel !== channel || data.nonce !== nonce) return;
-  if (data.type === 'theme' && ['light','dark'].includes(data.value)) { document.documentElement.dataset.theme=data.value; return; }
   if (data.type === 'before-close') { void closeHandler?.(); return; }
   const request = pending.get(data.requestId);
   if (!request) return;
@@ -25,16 +24,19 @@ window.addEventListener('keydown', event => {
 export function bridge(type, input) {
   const requestId = ++sequence;
   return new Promise((resolve, reject) => {
-    // The Host-owned dialog remains open while the operator finds their token.
-    const timer = type === 'feedback.configureToken' ? undefined : setTimeout(() => { pending.delete(requestId); reject(new Error('操作超时。提交结果可能待核对，请重新打开检查状态。')); }, 185000);
+    const timer = setTimeout(() => { pending.delete(requestId); reject(new Error('操作超时。提交结果可能待核对，请重新打开检查状态。')); }, 185000);
     pending.set(requestId, { resolve, reject, timer });
     parent.postMessage({ channel, nonce, requestId, type, ...(type === 'http' ? { request: input } : { value: input }) }, '*');
   });
 }
 export const call = async input => {
-  const response = await bridge('http', { method: 'POST', path: 'feedback', body: input });
-  if (response.status < 200 || response.status >= 300) throw Object.assign(new Error(response.body?.error ?? '反馈操作未完成'), {code:response.body?.code, githubCli:response.body?.githubCli});
-  return response.body;
+  const response = await bridge('http', { method: 'POST', path: 'feedback/panel', body: { input } });
+  const body = response.body;
+  if (response.status < 200 || response.status >= 300 || body?.error) {
+    throw Object.assign(new Error(body?.error ?? '反馈操作未完成'), { code: body?.code, githubCli: body?.githubCli });
+  }
+  if (!body || !Object.hasOwn(body, 'result')) throw new Error('反馈面板收到无效响应');
+  return body.result;
 };
 export function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);

@@ -7,6 +7,8 @@ created: 2026-10-28
 
 # 反馈插件：最小 Host 增量方案
 
+> 2026-11：Contract 0.4.0 删除了 manifest `ui` contribution，下文 `UiContribution`、H1 插槽方案为历史记录；入口与面板现由 PDL console 包提供，面板经 webhook `feedback/panel`。
+
 状态：2026-10-29 已按用户授权在插件 Draft #155 和配套 Host Draft #1732 落实本方案，通用接口仍待维护者评审。专用诊断通道及 Client 改动已移除；当前验证与真实验收边界见 [verification.md](verification.md)。通用能力诉求已提交 [Host #1734](https://github.com/zts212653/clowder-ai/issues/1734)，截至本轮核对尚无 Mind 回复。
 
 ## 用户目标与验收边界

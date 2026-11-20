@@ -45,17 +45,6 @@ function json(status: number, payload: object) {
   };
 }
 
-/** The Host executes this plugin-owned action only after a phrase was inserted into the draft. */
-function insertionReceipt(phrase: Phrase) {
-  return {
-    ...phrase,
-    onInserted: {
-      request: { method: 'POST', path: 'phrases', body: { id: phrase.id } },
-      notifyFailure: false,
-    },
-  };
-}
-
 export function createQuickPhrases(storage: PhraseStorage) {
   return async (input: unknown, context: OwnerContext | undefined) => {
     if (context?.kind !== 'owner-http-request') return json(403, { error: 'Owner request required' });
@@ -81,9 +70,14 @@ export function createQuickPhrases(storage: PhraseStorage) {
       const page = Math.min(Math.max(1, requestedPage), totalPages);
       const offset = (page - 1) * pageSize;
       return json(200, {
-        items: matches.slice(offset, offset + pageSize).map(insertionReceipt),
+        items: matches.slice(offset, offset + pageSize),
         page,
         totalPages,
+        paged: totalPages > 1,
+        first: page <= 1,
+        last: page >= totalPages,
+        prevPage: Math.max(1, page - 1),
+        nextPage: Math.min(totalPages, page + 1),
       });
     }
 
@@ -94,21 +88,23 @@ export function createQuickPhrases(storage: PhraseStorage) {
     if (method === 'POST' && 'id' in body) {
       const { id } = body;
       if (typeof id !== 'string' || id.length !== 36) return json(400, { error: 'Invalid phrase id' });
+      const phrase = parsePhrases(await storage.get(key))?.find((item) => item.id === id);
+      if (!phrase) return json(404, { error: 'Phrase not found' });
+      // The text goes into the input whatever happens to the usage count (the count is a receipt, not a gate).
+      const insert = json(200, { ok: true, act: 'insert', args: { into: 'chat-input', text: phrase.text } });
       for (let attempt = 0; attempt < usageAttempts; attempt++) {
-        const current = await storage.get(key);
+        // A failed read or write only leaves the count as it is; a cancelled request still fails at assertCurrent.
+        const current = await storage.get(key).catch(() => undefined);
         const phrases = parsePhrases(current);
-        if (!phrases) return json(500, { error: 'Invalid phrase data' });
-        if (!phrases.some((phrase) => phrase.id === id)) return json(404, { error: 'Phrase not found' });
-        const next = phrases.map((phrase) =>
-          phrase.id === id ? { ...phrase, useCount: (phrase.useCount ?? 0) + 1 } : phrase);
-        if (Buffer.byteLength(JSON.stringify(next), 'utf8') > 1024 * 1024)
-          return json(413, { error: 'Phrase storage is full' });
+        if (!phrases?.some((item) => item.id === id)) return insert;
+        const next = phrases.map((item) => (item.id === id ? { ...item, useCount: (item.useCount ?? 0) + 1 } : item));
+        if (Buffer.byteLength(JSON.stringify(next), 'utf8') > 1024 * 1024) return insert;
         await context.assertCurrent();
-        const write = await storage.compareAndSet(key, current?.revision ?? null, next);
-        // Only an unapplied CAS is safe to retry; a fresh read makes the next attempt count once.
-        if (write.applied) return json(200, { ok: true });
+        const write = await storage.compareAndSet(key, current?.revision ?? null, next).catch(() => undefined);
+        // Only an unapplied CAS is safe to retry (a failed write may have landed); a fresh read makes the next attempt count once.
+        if (write?.applied !== false) return insert;
       }
-      return json(409, { error: 'Phrases changed, please retry' });
+      return insert;
     }
 
     const current = await storage.get(key);
@@ -119,7 +115,7 @@ export function createQuickPhrases(storage: PhraseStorage) {
       const { text } = body;
       if (typeof text !== 'string' || !text.trim() || text.length > 100_000)
         return json(400, { error: 'Phrase must contain 1–100,000 characters' });
-      if (phrases.some((phrase) => phrase.text === text)) return json(200, { ok: true });
+      if (phrases.some((phrase) => phrase.text === text)) return json(200, { ok: true, act: 'plugSet', args: { plugin: 'official.quick-phrases', k: 'page', v: 1 } });
       next = [{ id: randomUUID(), text, useCount: 0 }, ...phrases];
     } else {
       const { id } = body;
@@ -131,6 +127,6 @@ export function createQuickPhrases(storage: PhraseStorage) {
       return json(413, { error: 'Phrase storage is full' });
     await context.assertCurrent();
     const write = await storage.compareAndSet(key, current?.revision ?? null, next);
-    return write.applied ? json(200, { ok: true }) : json(409, { error: 'Phrases changed, please retry' });
+    return write.applied ? json(200, { ok: true, ...(method === 'POST' ? { act: 'plugSet', args: { plugin: 'official.quick-phrases', k: 'page', v: 1 } } : {}) }) : json(409, { error: 'Phrases changed, please retry' });
   };
 }

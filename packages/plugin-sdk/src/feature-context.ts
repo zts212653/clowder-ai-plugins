@@ -23,7 +23,6 @@ import {
   type ServiceContribution,
   type SkillContribution,
   type StaticContribution,
-  type UiContribution,
   type WebhookContribution,
 } from '@clowder-ai/plugin-contract';
 import type {
@@ -426,8 +425,6 @@ function actionMethods(contribution: StaticContribution): readonly string[] {
         contribution.assistantReturns.list.method,
         contribution.assistantReturns.ack.method,
       ];
-    case 'ui':
-      return contribution.kind === 'command' ? [contribution.action.method] : [];
     default:
       return [];
   }

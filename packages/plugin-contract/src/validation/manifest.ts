@@ -123,6 +123,29 @@ function supportsConfigurationVariants(contractVersion: string): boolean {
   return prerelease === undefined;
 }
 
+/** Bridge literals whose desktop window may carry a living body entry (capability livingBody). */
+const LIVING_BODY_BRIDGES = new Set(['1.8.0']);
+const directoryOf = (path: string) => path.slice(0, path.lastIndexOf('/') + 1);
+
+/** The Host serves only the surface entry's directory, so a body must be a distinct page beside it. */
+function livingBodyProblem(manifest: PluginManifest): { path: string; message: string } | undefined {
+  for (const [index, contribution] of (manifest.contributions ?? []).entries()) {
+    if (contribution.type !== 'desktop-window' || contribution.body === undefined) continue;
+    const path = `/contributions/${index}/body`;
+    if (!LIVING_BODY_BRIDGES.has(contribution.bridgeVersion)) {
+      return { path, message: 'a living body entry requires desktop bridge 1.8.0' };
+    }
+    const { entrypoint } = contribution.body;
+    if (entrypoint === contribution.surface.entrypoint) {
+      return { path: `${path}/entrypoint`, message: 'the living body must be its own page, not the surface entry' };
+    }
+    if (directoryOf(entrypoint) !== directoryOf(contribution.surface.entrypoint)) {
+      return { path: `${path}/entrypoint`, message: 'the living body must sit in the surface entry directory' };
+    }
+  }
+  return undefined;
+}
+
 /**
  * Validates an untrusted plugin manifest against the contract-owned schema.
  *
@@ -166,6 +189,8 @@ export function validateManifest(value: unknown): ManifestValidationResult {
       if (!(major > 0 || minor > 3 || (minor === 3 && patch >= 2)))
         return semanticError('/contractVersion', '#/sharedFactory', 'sharedFactoryBoundary', 'shared MCP factories require contract 0.3.2 or newer');
     }
+    const livingProblem = livingBodyProblem(manifest);
+    if (livingProblem) return semanticError(livingProblem.path, '#/$defs/DesktopWindowContribution/body', 'livingBody', livingProblem.message);
     const outputProblem = projectOutputProblem(manifest);
     if (outputProblem) return semanticError('/projectOutputs', '#/projectOutputs', 'projectOutputBoundary', outputProblem);
     const declaredTypes = new Set<string>();
@@ -502,6 +527,7 @@ export function validateManifest(value: unknown): ManifestValidationResult {
       }
     }
     const contributionByKey = new Map<string, (typeof contributions)[number]>();
+    const previewExtensions = new Set<string>();
     for (const [index, contribution] of contributions.entries()) {
       const key = `${contribution.type}\0${contribution.id}`;
       if (contributionByKey.has(key)) {
@@ -513,6 +539,19 @@ export function validateManifest(value: unknown): ManifestValidationResult {
         );
       }
       contributionByKey.set(key, contribution);
+      if (contribution.type === 'content-preview-provider') {
+        for (const [formatIndex, { extension }] of contribution.formats.entries()) {
+          if (previewExtensions.has(extension)) {
+            return semanticError(
+              `/contributions/${index}/formats/${formatIndex}/extension`,
+              '#/$defs/ContentPreviewProviderContribution/unambiguousFormats',
+              'unambiguousFormats',
+              'preview extension must be declared at most once per manifest',
+            );
+          }
+          previewExtensions.add(extension);
+        }
+      }
 
       if ('environment' in contribution && contribution.environment !== undefined) {
         for (const [environmentName, binding] of Object.entries(contribution.environment)) {
@@ -666,26 +705,6 @@ export function validateManifest(value: unknown): ManifestValidationResult {
             '#/$defs/MediaSourceContribution/sameFeatureOwner',
             'sameFeatureOwner',
             'media-source binding must reference an identity owned by the same feature',
-          );
-        }
-      }
-      if (contribution.type === 'ui' && contribution.kind === 'slot-item') {
-        const commandKey = `ui\0${contribution.command}`;
-        const command = contributionByKey.get(commandKey);
-        if (command?.type !== 'ui' || command.kind !== 'command') {
-          return semanticError(
-            `/contributions/${index}/command`,
-            '#/$defs/UiSlotItemContribution/declaredCommandReference',
-            'declaredCommandReference',
-            'UI slot command must reference a declared UI command contribution',
-          );
-        }
-        if (referenceOwners.get(commandKey) !== owner) {
-          return semanticError(
-            `/contributions/${index}/command`,
-            '#/$defs/UiSlotItemContribution/sameFeatureOwner',
-            'sameFeatureOwner',
-            'UI slot command must reference a command owned by the same feature',
           );
         }
       }

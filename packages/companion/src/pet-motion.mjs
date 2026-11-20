@@ -1,7 +1,10 @@
 import { isLivingClip } from './living-body.mjs';
 import { MotionFacts } from './motion-facts.mjs';
-import { additional, atlas, signals, staticSkins, validId, visualAlias, workAction } from './pet-motion-assets.mjs';
-/** Select one truthful body from Host facts and local, user-controlled gestures. */
+import { LIVING_SKIN, additional, atlas, signals, staticSkins, validId, visualAlias, workAction } from './pet-motion-assets.mjs';
+const knownSkin = skin => [LIVING_SKIN, 'xianxian-codex', 'yanyan-codex', ...Object.keys(staticSkins)].includes(skin)
+  ? skin : 'xianxian-codex';
+/** Select one truthful body from Host facts and local, user-controlled gestures. With the living skin the body is the
+ * Host's own window: this element stays empty and nothing here animates, so the screen shows one cat. */
 export class PetMotion {
   constructor(element, options = {}) {
     this.element = element;
@@ -34,12 +37,11 @@ export class PetMotion {
   }
 
   setContext({ skin, phase, nativeActivity, muted }) {
-    const selectedSkin = ['xianxian-codex', 'yanyan-codex', ...Object.keys(staticSkins)].includes(skin)
-      ? skin : 'xianxian-codex';
+    // before the first state there is no skin: keep the one a settings read may already have chosen
+    const selectedSkin = skin === undefined ? this.skin : knownSkin(skin);
     const wasSleeping = this.action === 'sleeping' || this.resting;
     this.context = { skin: selectedSkin, phase, nativeActivity, muted };
-    const changedSkin = selectedSkin !== this.skin;
-    this.skin = selectedSkin;
+    const changedSkin = this.applySkin(selectedSkin);
     this.phase = phase;
     if (phase !== 'idle' || nativeActivity !== 'none') {
       this.resting = false;
@@ -49,6 +51,24 @@ export class PetMotion {
     else if (wasSleeping && ['talking', 'connecting'].includes(phase) && !muted)
       this.transient = { action: 'waking' };
     this.refresh(changedSkin);
+  }
+  /** The saved skin from a settings read, which can arrive before the next state. */
+  setSkin(skin) {
+    const selectedSkin = knownSkin(skin);
+    if (this.context) this.context = { ...this.context, skin: selectedSkin };
+    if (this.applySkin(selectedSkin)) this.refresh(true);
+  }
+  applySkin(skin) {
+    if (skin === this.skin) return false;
+    this.skin = skin;
+    if (this.bodyless()) {
+      // nothing of the ball keeps running behind the living cat
+      this.cancelFrame();
+      this.cancelIdleTimers();
+      this.transient = null;
+      this.resting = false;
+    }
+    return true;
   }
   setBehaviorEnabled(enabled) {
     const next = enabled === true;
@@ -119,7 +139,7 @@ export class PetMotion {
     this.refresh(this.action === 'peek');
   }
   signal(kind, eventId) {
-    if (kind === 'answered') return;
+    if (kind === 'answered' || this.bodyless()) return;
     if (kind === 'connected' && this.living()) return;
     if (kind === 'play') {
       if (!this.canPlay()) return;
@@ -169,6 +189,7 @@ export class PetMotion {
     this.livingBody?.close();
   }
   living() { return this.skin === 'xianxian-codex' && Boolean(this.livingBody); }
+  bodyless() { return this.skin === LIVING_SKIN; }
   resolve(action) {
     if (action === 'pending_decision' && !this.living()) return 'waiting';
     if (action === 'peek' && !this.living()) return 'idle';
@@ -244,6 +265,11 @@ export class PetMotion {
     dataset.action = this.action;
     dataset.dockEdge = this.dockedEdge ?? 'none';
     dataset.dockZone = this.dockZone ?? 'none';
+    if (this.bodyless()) {
+      style.backgroundImage = 'none';
+      this.livingBody?.hide();
+      return;
+    }
     if (this.living()) {
       style.backgroundImage = 'none';
       this.livingBody.show(this.action, { reducedMotion: this.reducedMotion, onEnded: () => this.completeOneShot() });
@@ -264,6 +290,7 @@ export class PetMotion {
     style.backgroundPosition = `${-120 * this.frame}px ${-130 * (atlas[visual]?.row ?? 0)}px`;
   }
   scheduleFrame() {
+    if (this.bodyless()) return;
     if (this.reducedMotion) {
       if (this.oneShot) this.frameTimer = this.setTimer(() => { this.frameTimer = undefined; this.completeOneShot(); }, 1_000);
       return;
@@ -300,12 +327,13 @@ export class PetMotion {
     this.refresh();
   }
   canPlay() {
-    return !this.reducedMotion && !this.dragging && !this.pendingDecision && this.phase === 'idle'
+    return !this.bodyless() && !this.reducedMotion && !this.dragging && !this.pendingDecision && this.phase === 'idle'
       && !this.activeWorkAction() && !this.snapshot.delivery && !this.snapshot.travel && !this.dockedEdge
       && !staticSkins[this.skin];
   }
 
   armRest() {
+    if (this.bodyless()) return;
     if (this.restTimer === undefined && !this.resting && !this.pendingDecision && !this.dockedEdge) {
       this.restTimer = this.setTimer(() => {
         this.restTimer = undefined;

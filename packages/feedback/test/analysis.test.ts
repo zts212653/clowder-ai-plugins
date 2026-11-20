@@ -54,17 +54,18 @@ test('missing reports and late results are explicit; direct feedback remains ind
   await f.call({ op: 'save', targetId: 'clowder', report: { title: '直接反馈', body: '不依赖分析', attachments: [] } });
 });
 
-test('grouped analysis uses a redacted one-line title from the saved report', async () => {
+test('analysis names the ordinary project thread using a redacted one-line title', async () => {
   const f = analysisFixture();
   const calls: unknown[] = [];
   Object.assign(f.host.threads!, {
-    createInGroup: async (input: unknown) => { calls.push(input); return f.thread; },
+    create: async (input: unknown) => { calls.push(input); return f.thread; },
   });
   await f.call({
     op: 'prepare-analysis',
     report: { kind: 'bug', title: '崩溃 token=synthetic-value。额外细节', body: '用户现象', attachments: [] },
+    projectRef: f.host.dataPath,
   });
-  assert.deepEqual(calls, [{ title: '问题反馈：崩溃 token=[REDACTED]', groupName: '问题反馈' }]);
+  assert.deepEqual(calls, [{ title: '问题反馈：崩溃 token=[REDACTED]', projectRef: f.host.dataPath }]);
   assert.equal(f.effects.length, 0);
 });
 
