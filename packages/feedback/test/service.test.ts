@@ -96,13 +96,45 @@ test('after a failed screenshot comment, confirming the missing images unlocks t
   await assert.rejects(f.call({op:'retry-screenshots',digest}), /确认/);
   await assert.rejects(f.call({op:'retry-screenshots',digest,confirmed:true,revision:published.revision}), /更新/);
 
-  const cleared = await f.call({op:'retry-screenshots',digest,confirmed:true});
-  assert.equal(cleared.journal.screenshotAttempt,undefined);
-  assert.equal(cleared.journal.issue?.url,published.journal.issue?.url);
-  assert.deepEqual(cleared.journal.screenshotItems,published.journal.screenshotItems);
+  const retry = await f.call({op:'retry-screenshots',digest,confirmed:true});
+  assert.equal(retry.journal.screenshotAttempt?.retryConfirmed,true);
+  assert.equal(retry.journal.screenshotAttempt?.id,reopened.journal.screenshotAttempt?.id);
+  assert.equal(retry.journal.issue?.url,published.journal.issue?.url);
+  assert.deepEqual(retry.journal.screenshotItems,published.journal.screenshotItems);
   assert.equal(comments,1);
   const retried = await f.call({op:'upload-screenshots',digest,hashes,confirmed:true});
   assert.deepEqual(retried.journal.screenshotSent,hashes);
+  assert.equal(comments,2);
+  assert.equal(f.creates(),1);
+});
+
+
+test('retry rechecks the original screenshot comment before writing another', async () => {
+  const f = fixture();
+  let comments = 0;
+  let visible = false;
+  f.adapter.attachToIssue = async (_issue,pictures) => {
+    if (++comments === 1) throw new Error('lost response after comment');
+    return pictures.map(picture=>picture.sha256);
+  };
+  f.adapter.findIssueScreenshots = async (_issue,hashes) => visible ? hashes.slice(0,1) : undefined;
+  const attachments = [20,21].map(size=>({mime:'image/png',base64:pngFixture(size).toString('base64')}));
+  const {journal:{digest,id}} = await f.call({op:'save',targetId:'clowder',report:{...report,attachments}});
+  await f.call({op:'approve',digest,confirmed:true});
+  const published = await f.call({op:'submit',digest});
+  assert.ok(published.journal.screenshotItems);
+  const hashes = published.journal.screenshotItems.map(item=>item.sha256);
+  await f.call({op:'upload-screenshots',digest,hashes,confirmed:true});
+  await f.call({op:'retry-screenshots',digest,confirmed:true});
+  await f.call({op:'bootstrap',feedbackId:id});
+
+  visible = true;
+  const reconciled = await f.call({op:'upload-screenshots',digest,hashes,confirmed:true});
+  assert.equal(comments,1);
+  assert.deepEqual(reconciled.journal.screenshotSent,hashes.slice(0,1));
+  assert.equal(reconciled.journal.screenshotAttempt,undefined);
+  const remaining = await f.call({op:'upload-screenshots',digest,hashes:hashes.slice(1),confirmed:true});
+  assert.deepEqual(remaining.journal.screenshotSent,hashes);
   assert.equal(comments,2);
   assert.equal(f.creates(),1);
 });

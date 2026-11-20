@@ -409,6 +409,7 @@ async function changePublishedScreenshots(op, data = {}) {
 }
 function renderPublishedScreenshots(content) {
   const {issue,target,screenshotSent = [],screenshotAttempt} = state.journal;
+  const awaitingScreenshotCheck = screenshotAttempt && !screenshotAttempt.retryConfirmed;
   const items = publishedScreenshotItems();
   const selected = state.screenshotSelection ?? [];
   const preview = items.find(item=>item.sha256===state.screenshotPreview);
@@ -429,20 +430,20 @@ function renderPublishedScreenshots(content) {
           state.screenshotPreview=hash;render();app.querySelector('.supplemental button')?.focus();
         }},[el('img',{src:`data:${picture.mime};base64,${picture.base64}`,alt:''})]),
         el('label',{className:'check'},[
-          el('input',{type:'checkbox',checked:sent||selected.includes(hash),disabled:sent||!!screenshotAttempt||state.busy,
+          el('input',{type:'checkbox',checked:sent||selected.includes(hash),disabled:sent||!!awaitingScreenshotCheck||state.busy,
             'data-screenshot-choice':index,onChange:event=>{
               state.screenshotSelection=event.target.checked?[...selected,hash]:selected.filter(value=>value!==hash);
               render();app.querySelector(`[data-screenshot-choice="${index}"]`)?.focus();
             }}),el('span',{text:sent?`截图 ${index + 1} 已上传`:`选择截图 ${index + 1}`}),
         ]),
-        ...(!sent&&!screenshotAttempt?[button('移出候选',async()=>{
+        ...(!sent&&!awaitingScreenshotCheck?[button('移出候选',async()=>{
           await changePublishedScreenshots('remove-screenshot',{hash});
           state.screenshotSelection=selected.filter(value=>value!==hash);
         },'text')]:[]),
       ]);
     });
     if (cards.length) section.append(el('div',{className:'supplemental-cards'},cards));
-    if (screenshotAttempt) {
+    if (awaitingScreenshotCheck) {
       section.append(note('上次上传结果待核对。若已在原 Issue 确认没有这批截图，可重新选择。'),
         el('div',{className:'supplemental-actions'},[
           button('核对截图上传结果',()=>changePublishedScreenshots('check-screenshots'),'primary'),

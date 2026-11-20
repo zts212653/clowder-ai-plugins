@@ -120,7 +120,8 @@ export class FeedbackService {
     }
     const adapter = this.factory(journal.target);
     if (['add-screenshots','remove-screenshot','upload-screenshots','check-screenshots','retry-screenshots','confirm-screenshots'].includes(op)) {
-      if (journal.state !== 'published' || !journal.issue) throw new Error('请先确认 Issue 已创建');
+      const issue = journal.issue;
+      if (journal.state !== 'published' || !issue) throw new Error('请先确认 Issue 已创建');
       if (data.revision !== current?.revision) throw new RevisionConflictError('反馈记录已有更新，请重新打开');
       if (op === 'confirm-screenshots') {
         if (data.confirmed !== true || !journal.screenshotCommentUnverified || journal.screenshotsConfirmed) {
@@ -132,23 +133,27 @@ export class FeedbackService {
       const items = screenshotCandidates(journal);
       const sent = journal.screenshotSent ?? [];
       const attempt = journal.screenshotAttempt;
-      if (op === 'check-screenshots' || op === 'retry-screenshots') {
+      const reconcileScreenshotAttempt = async () => {
         if (!attempt || !adapter.findIssueScreenshots) throw new Error('没有需要核对的截图');
-        const retry = op === 'retry-screenshots';
-        if (retry && data.confirmed !== true) throw new Error('请确认原 Issue 中没有这批截图');
-        const found = await adapter.findIssueScreenshots(journal.issue, attempt.hashes, attempt.id, attempt.startedAt, context.signal);
-        if (found === undefined) {
-          if (!retry) return present(journal, current?.revision, {message:'还未查到上传回执。可稍后再核对，或在 Issue 中确认没有这批截图后重新选择。'});
-          if (!attempt.finished && Date.now() - attempt.startedAt < screenshotUploadTimeoutMs) {
-            throw new Error('上次上传可能仍在处理，请稍后核对');
-          }
-          const updated = await publicWrite({...journal,screenshotAttempt:undefined});
-          return {...updated,message:'可以重新选择截图并上传到同一个 Issue。'};
-        }
+        const found = await adapter.findIssueScreenshots(issue, attempt.hashes, attempt.id, attempt.startedAt, context.signal);
+        if (found === undefined) return undefined;
         const updated = await publicWrite({...journal,screenshotAttempt:undefined,screenshotSent:[...sent,...found]});
         return {...updated,message: found.length === attempt.hashes.length ? '截图已添加到 Issue。' : '已核对上传结果，可重新选择剩余截图。'};
+      };
+      if (op === 'check-screenshots' || op === 'retry-screenshots') {
+        if (!attempt) throw new Error('没有需要核对的截图');
+        const retry = op === 'retry-screenshots';
+        if (retry && data.confirmed !== true) throw new Error('请确认原 Issue 中没有这批截图');
+        const reconciled = await reconcileScreenshotAttempt();
+        if (reconciled) return reconciled;
+        if (!retry) return present(journal, current?.revision, {message:'还未查到上传回执。可稍后再核对，或在 Issue 中确认没有这批截图后重新选择。'});
+        if (!attempt.finished && Date.now() - attempt.startedAt < screenshotUploadTimeoutMs) {
+          throw new Error('上次上传可能仍在处理，请稍后核对');
+        }
+        const updated = await publicWrite({...journal,screenshotAttempt:{...attempt,retryConfirmed:true}});
+        return {...updated,message:'可以重新选择截图并上传到同一个 Issue。'};
       }
-      if (attempt) throw new Error('请先核对上次上传结果');
+      if (attempt && !attempt.retryConfirmed) throw new Error('请先核对上次上传结果');
       if (op === 'add-screenshots') {
         const pictures = attachments(data.pictures).map(({original,...picture})=>picture);
         const existing = new Set(items.map(item => item.sha256));
@@ -183,11 +188,15 @@ export class FeedbackService {
           : check.githubAttachmentLimit === 'cli' ? '在本机安装或更新支持附件的 GitHub CLI 后，可在这里重试。'
           : '此目标暂不支持在插件内上传截图。');
       }
-      const validated = await adapter.read(journal.issue, context.signal);
-      if (validated.url !== journal.issue.url || validated.id !== journal.issue.id || !validated.body.includes(marker(journal.id))) {
+      const validated = await adapter.read(issue, context.signal);
+      if (validated.url !== issue.url || validated.id !== issue.id || !validated.body.includes(marker(journal.id))) {
         throw new Error('Issue 已变化，无法确认截图的提交位置');
       }
       const pictures = (await vault.readReport({title:'',body:'',attachments:selected})).attachments;
+      if (attempt) {
+        const reconciled = await reconcileScreenshotAttempt();
+        if (reconciled) return reconciled;
+      }
       const batch = {id:randomUUID(),hashes:selected.map(item => item.sha256),startedAt:Date.now()};
       const staged = await write({...journal,screenshotAttempt:batch});
       await context.assertCurrent();

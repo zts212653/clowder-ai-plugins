@@ -41,7 +41,7 @@ export interface Journal {
   screenshotsConfirmed?: true;
   screenshotItems?: StoredAttachment[];
   screenshotSent?: string[];
-  screenshotAttempt?: { id: string; hashes: string[]; startedAt: number; finished?: true };
+  screenshotAttempt?: { id: string; hashes: string[]; startedAt: number; finished?: true; retryConfirmed?: true };
   clientId?: string; projectRef?: string;
   createdAt?: number; updatedAt?: number; reviewReady?: boolean; handoffAt?: number; supersededBy?: string;
 }
