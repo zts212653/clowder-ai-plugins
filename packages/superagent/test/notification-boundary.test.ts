@@ -15,8 +15,9 @@ test('cross-conversation judgment and its model reply stay outside the assistant
   const wake = [...f.sent.values()].find((message) => message.wake)!;
   assert.notEqual(wake.threadId, main, 'internal event IDs and tool instructions must not be published in the user inbox');
   assert.match(f.threads.get(wake.threadId!)!.title ?? '', /内部协调/);
-  const scope = await runtime.actions['superagent.settings']({});
-  assert.ok(JSON.stringify(scope).includes(wake.threadId), 'internal coordination is excluded from listened sources');
+  f.config.set('threadIds', JSON.stringify(['source-a', wake.threadId]));
+  await runtime.configRefresh?.();
+  assert.equal(f.subscriptions.has(wake.threadId), false, 'coordination is excluded from watched sources');
   await runtime.actions['superagent.route']({ eventId: 'already-owned', decisions: [{ kind: 'ignore', reason: '原负责人已接住' }] }, f.caller(wake.threadId));
   await runtime.actions['superagent.tick']({});
   assert.equal([...f.sent.values()].filter((message) => message.threadId === main).length, 1, 'an ignored event needs no public ACK or model narration');

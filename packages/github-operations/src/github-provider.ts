@@ -1,6 +1,6 @@
 import { fetchPaginated } from './business/infrastructure/github/fetch-paginated.js';
 import { createGitHubRepoPollReaders } from './business/infrastructure/github/repo-poll-readers.js';
-import { executeGitHubRequest, type GitHubRequestOptions } from './business/infrastructure/github/request-budget.js';
+import { executeGitHubRequest, gitHubCredentialKey, type GitHubRequestOptions } from './business/infrastructure/github/request-budget.js';
 import { fetchPrCiStatus, enrichPrCiStatus, type FetchPrCiStatusOptions } from './business/infrastructure/email/ci-status-fetcher.js';
 import { fetchPrCiStatuses, ciStatusTargetKey } from './business/infrastructure/email/ci-status-batch-fetcher.js';
 import type { CiPollResult } from './business/infrastructure/email/ci-cd-contract.js';
@@ -46,6 +46,8 @@ function ciOptions(options: GitHubRequestOptions): FetchPrCiStatusOptions {
 /** Real gh JSON transport, retaining the migrated quota, pagination and child-close handling. */
 export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider, NativeIssuePublisher {
   private login: string | undefined;
+  /** Account login per credential identity (token hash or gh auth-store version); a switch is a new key. */
+  private readonly logins = new Map<string, string>();
   constructor(private readonly options: {
     token(): Promise<string | undefined>;
     log: { warn(message: string, fields?: Readonly<Record<string, unknown>>): void };
@@ -53,6 +55,15 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
   }) {}
 
   selfLogin(): string | undefined { return this.login; }
+
+  private async accountLogin(options: GitHubRequestOptions): Promise<string | undefined> {
+    const key = await gitHubCredentialKey(options.ghToken);
+    const known = this.logins.get(key);
+    if (known) return known;
+    const login = (await executeGitHubRequest(['api', 'user', '--jq', '.login'], options)).stdout.trim() || undefined;
+    if (login) this.logins.set(key, login);
+    return login;
+  }
 
   async observeReviewHead(input: GitHubReviewSubject, signal: AbortSignal) {
     return observeReviewHead(input, await this.requestOptions(AbortSignal.any([signal, AbortSignal.timeout(30_000)])));
@@ -127,7 +138,7 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
 
   async repoComments(repo: string, since: string | undefined, signal: AbortSignal): Promise<RepoIssueComment[]> {
     const options = await this.requestOptions(signal);
-    this.login = (await executeGitHubRequest(['api', 'user', '--jq', '.login'], options)).stdout.trim() || undefined;
+    this.login = await this.accountLogin(options);
     // Reuse the migrated reader: each listing row already identifies its parent
     // and PR/issue kind. Per-parent lookups multiply the bounded poll's requests.
     return createGitHubRepoPollReaders({
@@ -158,8 +169,7 @@ export class GitHubProvider implements GitHubTrackingProvider, CommunityProvider
       ghToken: await this.options.token(), signal, log: this.options.log,
       ...(this.options.execFileAsync ? { execFileAsync: this.options.execFileAsync } : {}),
     };
-    const account = await executeGitHubRequest(['api', 'user', '--jq', '.login'], options);
-    this.login = account.stdout.trim() || undefined;
+    this.login = await this.accountLogin(options);
     const selfLogin = this.login;
     const path = `/repos/${target.repoFullName}`;
     const metadata = JSON.parse((await executeGitHubRequest(

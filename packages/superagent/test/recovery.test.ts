@@ -28,7 +28,7 @@ test('a coordinator that finishes without a decision becomes visibly failed; onl
   ]);
   await assert.rejects(async () => runtime.actions['superagent.tick']({}), /判断/);
   await runtime.actions['superagent.tick']({});
-  const view = (await runtime.actions['superagent.view']({})) as {
+  const view = JSON.parse(((await runtime.actions['superagent.view']({})) as { body: string }).body) as {
     status: string;
     detail: string;
   };
@@ -50,7 +50,7 @@ test('a coordinator that finishes without a decision becomes visibly failed; onl
   await runtime.actions['superagent.retry']({}, undefined, owner);
   await runtime.actions['superagent.tick']({});
   assert.equal([...f.sent.values()].filter((message) => message.wake).length, 2);
-  assert.equal(((await runtime.actions['superagent.view']({})) as { status: string }).status, 'listening');
+  assert.equal((JSON.parse(((await runtime.actions['superagent.view']({})) as { body: string }).body) as { status: string }).status, 'listening');
   await runtime.stop({ reason: 'test' });
 });
 

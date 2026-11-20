@@ -5,7 +5,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parse } from 'yaml';
 import { installProductionDependencies } from '../../../scripts/pack-self-contained-artifact.mjs';
 
@@ -97,7 +97,20 @@ test('packed dependency closure runs the real SDK lifecycle without consumer-pro
     // Exercise the documented npm installer and its actual bin link as well as the Host directory closure.
     const npmConsumer = join(temporary, 'npm-consumer');
     await mkdir(npmConsumer);
-    await writeFile(join(npmConsumer, 'package.json'), JSON.stringify({ private: true }));
+    // A lock on the workspace's current (unpublished) Contract/SDK pair installs that pair from its exact local packs,
+    // as the fresh-consumer gate does; a lock on published versions still installs them from the registry.
+    const workspaceVersion = async name => JSON.parse(await readFile(join(root, 'packages', name, 'package.json'), 'utf8')).version;
+    const [contractVersion, sdkVersion] = [await workspaceVersion('plugin-contract'), await workspaceVersion('plugin-sdk')];
+    const contractPack = pathToFileURL(packed[0]).href, sdkPack = pathToFileURL(packed[1]).href;
+    const currentPair = frozen['node_modules/@clowder-ai/plugin-contract'].version === contractVersion
+      && frozen['node_modules/@clowder-ai/plugin-sdk'].version === sdkVersion;
+    await writeFile(join(npmConsumer, 'package.json'), JSON.stringify({
+      private: true,
+      ...(currentPair ? { overrides: { '@clowder-ai/collective-connector': {
+        [`@clowder-ai/plugin-contract@${contractVersion}`]: contractPack,
+        [`@clowder-ai/plugin-sdk@${sdkVersion}`]: { '.': sdkPack, [`@clowder-ai/plugin-contract@${contractVersion}`]: contractPack },
+      } } } : {}),
+    }));
     run('npm', ['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund', packed[2]], npmConsumer, testEnvironment);
     const bin = join(npmConsumer, 'node_modules/.bin/clowder-collective-service');
     assert.match(run(bin, ['--help'], npmConsumer, testEnvironment), /COLLECTIVE_SERVICE_PUBLIC_URL/);

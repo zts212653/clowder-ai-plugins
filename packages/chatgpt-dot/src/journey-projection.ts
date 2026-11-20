@@ -16,7 +16,6 @@ type JourneyAction =
 	| "roundtrip"
 	| "retry-verification"
 	| "repair-subscription"
-	| "check-roundtrip"
 	| "disconnect";
 
 function action(action: JourneyAction, label: string) {
@@ -311,7 +310,6 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 						"candidate-promoting",
 						"正在切换外部凭据",
 						"新凭据的 discovery、读取与校验回复均已完成，正在提交切换。",
-						[action("check-roundtrip", "检查状态")],
 					),
 				],
 				pollUntil: input.now + FIVE_MINUTES_MS,
@@ -332,11 +330,7 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 					pending.verificationReadAt !== null
 						? "已读取原消息，正在等待带校验码的回复。"
 						: "正在等待读取本次测试消息。",
-					[
-						deadline > input.now
-							? action("check-roundtrip", "检查状态")
-							: action("retry-verification", "重试验证"),
-					],
+					deadline > input.now ? [] : [action("retry-verification", "重试验证")],
 				),
 			],
 			...(deadline > input.now ? { pollUntil: deadline } : {}),
@@ -391,10 +385,7 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 					"verification-failed",
 					"往返通知未送达",
 					"通知未送达 ChatGPT；本次失败证据已保留，可以重新测试。",
-					[
-						action("roundtrip", "重新测试"),
-						action("check-roundtrip", "检查状态"),
-					],
+					[action("roundtrip", "重新测试")],
 				),
 			],
 		};
@@ -410,9 +401,7 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 					: "测试已创建，正在等待 ChatGPT 接收通知。";
 		return {
 			rows: [
-				row("verification-pending", "正在验证真实往返", progress, [
-					action("check-roundtrip", "检查测试结果"),
-				]),
+				row("verification-pending", "正在验证真实往返", progress),
 			],
 			pollUntil: deadline,
 		};
@@ -428,7 +417,6 @@ function projectDotJourneyDetails(input: DotJourneyInput): OperationRows {
 		rows: [
 			row("verification-timeout", "往返测试尚未完成", diagnosis, [
 				action("roundtrip", "重新测试"),
-				action("check-roundtrip", "检查状态"),
 			]),
 		],
 	};
@@ -471,11 +459,7 @@ export function projectDotJourney(input: DotJourneyInput): OperationRows {
 			].includes(item.key);
 			const failed = /timeout|failed/.test(item.key);
 			const actions = (declaredActions ?? [])
-				.filter(
-					(a) =>
-						a.action !== "check-roundtrip" &&
-						(failed || a.action !== "roundtrip"),
-				)
+				.filter((a) => failed || a.action !== "roundtrip")
 				.map((a) =>
 					a.action === "roundtrip"
 						? action("retry-verification", "重试验证")

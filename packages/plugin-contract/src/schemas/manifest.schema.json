@@ -184,8 +184,8 @@
             "service",
             "connector",
             "cloud-conversation-host",
-            "ui",
             "content-editor-provider",
+            "content-preview-provider",
             "desktop-window"
           ]
         },
@@ -336,6 +336,7 @@
         },
         "kind": {
           "type": "string",
+          "description": "member: the value is a Host member id; the Host supplies the choices from its member list, the manifest declares no options. thread: the value is a Host thread id; the Host supplies the choices from its conversation list, the manifest declares no options.",
           "enum": [
             "string",
             "secret",
@@ -343,8 +344,14 @@
             "boolean",
             "number",
             "url",
-            "operation"
+            "operation",
+            "member",
+            "thread"
           ]
+        },
+        "multiple": {
+          "type": "boolean",
+          "description": "member and thread only: the value is a JSON array string of ids."
         },
         "required": {
           "type": "boolean",
@@ -481,7 +488,9 @@
               "kind": {
                 "enum": [
                   "string",
-                  "select"
+                  "select",
+                  "member",
+                  "thread"
                 ]
               }
             },
@@ -542,6 +551,27 @@
             "properties": {
               "target": false,
               "actions": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "member",
+                  "thread"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {},
+          "else": {
+            "properties": {
+              "multiple": false
             }
           }
         }
@@ -1750,169 +1780,6 @@
         }
       ]
     },
-    "UiWhenClause": {
-      "type": "object",
-      "properties": {
-        "featureEnabled": {
-          "type": "boolean"
-        }
-      },
-      "minProperties": 1,
-      "additionalProperties": false
-    },
-    "UiAnchor": {
-      "type": "object",
-      "properties": {
-        "position": {
-          "type": "string",
-          "enum": [
-            "before",
-            "after"
-          ]
-        },
-        "target": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "position",
-        "target"
-      ],
-      "additionalProperties": false
-    },
-    "UiCommandContribution": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "const": "ui"
-        },
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "kind": {
-          "const": "command"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1
-        },
-        "action": {
-          "$ref": "#/$defs/CallbackAction"
-        },
-        "when": {
-          "$ref": "#/$defs/UiWhenClause"
-        }
-      },
-      "required": [
-        "type",
-        "id",
-        "kind",
-        "label",
-        "action"
-      ],
-      "additionalProperties": false
-    },
-    "UiSlotItemContribution": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "const": "ui"
-        },
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "kind": {
-          "const": "slot-item"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1
-        },
-        "command": {
-          "type": "string",
-          "minLength": 1
-        },
-        "group": {
-          "type": "string",
-          "minLength": 1
-        },
-        "anchor": {
-          "$ref": "#/$defs/UiAnchor"
-        },
-        "order": {
-          "type": "integer",
-          "minimum": -10000,
-          "maximum": 10000
-        },
-        "when": {
-          "$ref": "#/$defs/UiWhenClause"
-        }
-      },
-      "required": [
-        "type",
-        "id",
-        "kind",
-        "label",
-        "command",
-        "group"
-      ],
-      "additionalProperties": false
-    },
-    "UiMessageElementContribution": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "const": "ui"
-        },
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "kind": {
-          "const": "message-element"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1
-        },
-        "elementKind": {
-          "type": "string",
-          "minLength": 1
-        },
-        "renderer": {
-          "type": "string",
-          "minLength": 1
-        },
-        "when": {
-          "$ref": "#/$defs/UiWhenClause"
-        }
-      },
-      "required": [
-        "type",
-        "id",
-        "kind",
-        "label",
-        "elementKind",
-        "renderer"
-      ],
-      "additionalProperties": false
-    },
-    "UiContribution": {
-      "oneOf": [
-        {
-          "$ref": "#/$defs/UiCommandContribution"
-        },
-        {
-          "$ref": "#/$defs/UiSlotItemContribution"
-        },
-        {
-          "$ref": "#/$defs/UiMessageElementContribution"
-        }
-      ]
-    },
     "SemanticMaterializerDeclaration": {
       "type": "object",
       "description": "Optional independent DOCX computation. The Host admits one closed worker bundle under the installed package and live feature authority, in a fresh sandboxed private browser process with no ambient effects. This is not permission to execute package code in the Host or renderer.",
@@ -1982,8 +1849,28 @@
             "1.4.0",
             "1.5.0",
             "1.6.0",
-            "1.7.0"
+            "1.7.0",
+            "1.8.0"
           ]
+        },
+        "body": {
+          "type": "object",
+          "description": "livingBody (bridge 1.8.0): the static entry of the companion's living body, a second Host-created window that draws the cat over the primary work area while the surface above keeps menus, chat, calls and decisions. It lives in the surface's own asset directory and is served under the same static-surface policy; integrity verifies only its HTML bytes. Declaring it grants nothing: the Host opens a body only for a verified package whose admitted contract line carries livingBody, and the body may send only body.* and scene.* commands.",
+          "properties": {
+            "entrypoint": {
+              "$ref": "#/$defs/PackageRelativePath",
+              "pattern": "\\.html$"
+            },
+            "integrity": {
+              "type": "string",
+              "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
+            }
+          },
+          "required": [
+            "entrypoint",
+            "integrity"
+          ],
+          "additionalProperties": false
         },
         "presentation": {
           "type": "object",
@@ -2032,6 +1919,87 @@
       ],
       "additionalProperties": false
     },
+    "ContentProviderSurface": {
+      "type": "object",
+      "properties": {
+        "entrypoint": {
+          "$ref": "#/$defs/PackageRelativePath"
+        },
+        "integrity": {
+          "type": "string",
+          "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
+        },
+        "sandbox": {
+          "const": "dedicated-origin-iframe",
+          "description": "Host serves the renderer from an origin that has no Host cookies or Host APIs, applies sandbox=allow-scripts allow-same-origin, and sends a frame-ancestors response header restricted to the exact Host origin."
+        },
+        "navigationPolicy": {
+          "const": "navigation-api-deny",
+          "description": "The renderer must install a fail-closed Navigation API listener before upstream code and prevent every self-navigation before its request starts."
+        }
+      },
+      "required": [
+        "entrypoint",
+        "integrity",
+        "sandbox",
+        "navigationPolicy"
+      ],
+      "additionalProperties": false
+    },
+    "ContentPreviewProviderContribution": {
+      "type": "object",
+      "description": "A read-only viewer for authorized file snapshots. This contribution does not grant an editor session or content write operations.",
+      "properties": {
+        "type": {
+          "const": "content-preview-provider"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "formats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "extension": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+$",
+                "maxLength": 32,
+                "not": { "const": "docx" }
+              },
+              "mediaType": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$",
+                "maxLength": 255
+              }
+            },
+            "required": [
+              "extension",
+              "mediaType"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true
+        },
+        "surface": {
+          "$ref": "#/$defs/ContentProviderSurface"
+        },
+        "bridgeVersion": {
+          "const": "1.0.0"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "formats",
+        "surface",
+        "bridgeVersion"
+      ],
+      "additionalProperties": false
+    },
     "ContentEditorProviderContribution": {
       "type": "object",
       "properties": {
@@ -2052,31 +2020,7 @@
           "uniqueItems": true
         },
         "surface": {
-          "type": "object",
-          "properties": {
-            "entrypoint": {
-              "$ref": "#/$defs/PackageRelativePath"
-            },
-            "integrity": {
-              "type": "string",
-              "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
-            },
-            "sandbox": {
-              "const": "dedicated-origin-iframe",
-              "description": "Host serves the renderer from an origin that has no Host cookies or Host APIs, applies sandbox=allow-scripts allow-same-origin, and sends a frame-ancestors response header restricted to the exact Host origin."
-            },
-            "navigationPolicy": {
-              "const": "navigation-api-deny",
-              "description": "The renderer must install a fail-closed Navigation API listener before upstream code and prevent every self-navigation before its request starts."
-            }
-          },
-          "required": [
-            "entrypoint",
-            "integrity",
-            "sandbox",
-            "navigationPolicy"
-          ],
-          "additionalProperties": false
+          "$ref": "#/$defs/ContentProviderSurface"
         },
         "bridgeVersion": {
           "const": "1.0.0"
@@ -2152,10 +2096,10 @@
           "$ref": "#/$defs/CloudConversationHostContribution"
         },
         {
-          "$ref": "#/$defs/UiContribution"
+          "$ref": "#/$defs/ContentEditorProviderContribution"
         },
         {
-          "$ref": "#/$defs/ContentEditorProviderContribution"
+          "$ref": "#/$defs/ContentPreviewProviderContribution"
         },
         {
           "$ref": "#/$defs/DesktopWindowContribution"

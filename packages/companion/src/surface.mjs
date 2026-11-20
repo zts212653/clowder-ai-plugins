@@ -27,6 +27,7 @@ import { AppAssistController } from './app-assist-controller.mjs';
 import { bindAppAssistCountdown } from './app-assist-countdown.mjs';
 import { DeskDeliveryController } from './desk-delivery-controller.mjs';
 import { DeskDeliveryView } from './desk-delivery-view.mjs';
+import { LIVING_BODY } from './package-line.mjs';
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
 const status = text => {
@@ -332,6 +333,7 @@ if (!window.clowderCompanion) {
   settingsView = new SettingsView({
     document,
     client,
+    livingBody: LIVING_BODY,
     close: () => void controls.show('menu'),
     callActive: () => conversation.active,
     expectHostStop: () => conversation.expectHostStop(),
@@ -344,6 +346,7 @@ if (!window.clowderCompanion) {
       $('anchor').dataset.ballSize = String(values.ballSize);
       $('anchor').dataset.compact = String(values.ballSize <= COMPACT_BALL_SIZE);
       label('menu-size-toggle', compactSizeAction(values.ballSize).label);
+      motion.setSkin(values.skin);
       motion.setBehaviorEnabled(values.behaviorEnabled);
       $('documents').hidden = true;
       decisionPanel?.refreshBadge();
@@ -381,6 +384,10 @@ if (!window.clowderCompanion) {
   const unsubscribe = client.subscribe(event => {
     if (event.kind === 'media-stopped') void conversation.hostStopped(event.reason);
     if (event.kind === 'view-dismiss') controls.dismiss();
+    // livingBody: a context click on the cat in the Host's body window (body.menu) reaches this window as view-open and
+    // opens the menu exactly as a context click on #pet does; its view.layout is placed beside the body's anchor.
+    // The ball has its own context click, so any other skin ignores it.
+    if (event.kind === 'view-open' && event.panel === 'menu' && motion.bodyless()) void controls.show('menu');
   });
   const statusMonitor = setInterval(() => void conversation.refresh(), 1000), transcriptMonitor = setInterval(() => void readCallTranscript(), 1000);
   const decisionMonitor = setInterval(() => { if (controls.panel !== 'decisions') void decisionPanel.read(); }, 15000), workMonitor = setInterval(() => { if (controls.panel === 'menu') void workView.load(); }, 15000);

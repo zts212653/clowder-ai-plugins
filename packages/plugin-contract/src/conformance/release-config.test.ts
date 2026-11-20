@@ -396,7 +396,7 @@ function replaceNamedActionStepOnce(
 }
 
 test('package releases preserve the broker protocol version', () => {
-  assert.equal(contractPackage.version, '0.3.3-candidate.1');
+  assert.equal(contractPackage.version, '0.4.0-candidate.0');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });

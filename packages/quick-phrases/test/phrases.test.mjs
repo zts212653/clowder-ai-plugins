@@ -133,7 +133,7 @@ test('a selection re-reads a competing revision and increments only once', async
   assert.equal((await list({})).items[0].useCount, 11);
 });
 
-test('a selection reports 409 after three unapplied CAS attempts without losing data', async () => {
+test('a selection still inserts its text after three unapplied CAS attempts (the count is a receipt), without losing data', async () => {
   const id = '00000000-0000-4000-8000-000000000001';
   const { storage, list } = fixture([{ id, text: 'Existing phrase', useCount: 3 }]);
   let writes = 0;
@@ -147,8 +147,31 @@ test('a selection reports 409 after three unapplied CAS attempts without losing 
   const result = await handle({ request: { method: 'POST', body: { id } } }, {
     kind: 'owner-http-request', userId: 'owner-a', operation: 'write', async assertCurrent() {},
   });
-  assert.equal(result.status, 409);
+  assert.equal(result.status, 200);
+  assert.deepEqual(JSON.parse(result.body), { ok: true, act: 'insert', args: { into: 'chat-input', text: 'Existing phrase' } });
   assert.equal(writes, 3);
+  assert.equal((await list({})).items[0].useCount, 3);
+});
+
+test('a selection still inserts its text when recording its use fails in storage, but not when the request is cancelled', async () => {
+  const id = '00000000-0000-4000-8000-000000000001';
+  const { storage, list } = fixture([{ id, text: 'Existing phrase', useCount: 3 }]);
+  const owner = (assertCurrent = async () => {}) => ({ kind: 'owner-http-request', userId: 'owner-a', operation: 'write', assertCurrent });
+  const pick = (store, context = owner()) => createQuickPhrases(store)({ request: { method: 'POST', body: { id } } }, context);
+  const insert = { ok: true, act: 'insert', args: { into: 'chat-input', text: 'Existing phrase' } };
+  let writes = 0;
+  const failedWrite = await pick({ ...storage, async compareAndSet() { writes++; throw new Error('storage unavailable'); } });
+  assert.equal(failedWrite.status, 200);
+  assert.deepEqual(JSON.parse(failedWrite.body), insert);
+  assert.equal(writes, 1, 'a failed write may have landed, so it is not retried');
+  let reads = 0;
+  const failedReread = await pick({
+    async get(key) { if (++reads > 2) throw new Error('storage unavailable'); return storage.get(key); },
+    async compareAndSet() { return { applied: false }; },
+  });
+  assert.deepEqual(JSON.parse(failedReread.body), insert);
+  let checks = 0;
+  await assert.rejects(pick(storage, owner(async () => { if (++checks > 1) throw new Error('request cancelled'); })), /request cancelled/);
   assert.equal((await list({})).items[0].useCount, 3);
 });
 
@@ -170,19 +193,22 @@ test('ordinary save keeps its single CAS attempt and reports 409 on conflict', a
   assert.deepEqual((await list({})).items, []);
 });
 
-test('GET exposes an actionable insertion receipt without persisting it', async () => {
+test('a selection records use before returning one public insert action with the stored text', async () => {
   const { invoke, list, storage } = fixture();
   await invoke('POST', { body: { text: 'Receipt phrase' } });
   const [item] = (await list({})).items;
-  assert.deepEqual(item.onInserted, {
-    request: { method: 'POST', path: 'phrases', body: { id: item.id } },
-    notifyFailure: false,
+  assert.equal('onInserted' in item, false);
+  const result = await invoke('POST', { body: { id: item.id } });
+  assert.equal(result.status, 200);
+  assert.deepEqual(JSON.parse(result.body), {
+    ok: true, act: 'insert', args: { into: 'chat-input', text: 'Receipt phrase' },
   });
-  const stored = await storage.get(`quick-phrases:${Buffer.from('owner-a').toString('base64url')}`);
-  assert.ok(stored);
-  assert.equal('onInserted' in stored.value[0], false);
-  assert.equal((await invoke('POST', { body: item.onInserted.request.body })).status, 200);
   assert.equal((await list({})).items[0].useCount, 1);
+  const stored = await storage.get(`quick-phrases:${Buffer.from('owner-a').toString('base64url')}`);
+  assert.equal('act' in stored.value[0], false);
+  const failed = await invoke('POST', { body: { id: item.id }, userId: 'other-owner' });
+  assert.equal(failed.status, 404);
+  assert.equal('act' in JSON.parse(failed.body), false);
 });
 
 test('invalid persisted counts are rejected at the storage boundary', async () => {
@@ -198,13 +224,5 @@ test('saving and recording usage are mutually exclusive POST operations', async 
   const { invoke, list } = fixture([existing]);
   assert.equal((await invoke('POST', { body: { id, text: 'A new phrase' } })).status, 400);
   assert.equal((await invoke('POST', { body: { id: null, text: 'A new phrase' } })).status, 400);
-  assert.deepEqual((await list({})).items, [
-    {
-      ...existing,
-      onInserted: {
-        request: { method: 'POST', path: 'phrases', body: { id } },
-        notifyFailure: false,
-      },
-    },
-  ]);
+  assert.deepEqual((await list({})).items, [existing]);
 });

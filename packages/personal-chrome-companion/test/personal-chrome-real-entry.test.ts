@@ -82,6 +82,7 @@ function makeHost(dataDirectory: string): ModulePluginHostShape {
   };
   return {
     pluginInstanceId:'installed-chrome',dataPath:dataDirectory,
+    external: { endpoint: 'https://host.invalid/api/plugins/external', token: 'fixture-external-token' },
     config: { get: async (_key: string) => undefined },
     secrets: { get: async (_key: string) => undefined },
     storage: {

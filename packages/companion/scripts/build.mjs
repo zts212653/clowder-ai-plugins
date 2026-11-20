@@ -9,18 +9,29 @@ await rm(renderer, { recursive: true, force: true });
 await mkdir(renderer, { recursive: true });
 await cp(new URL('src/', root), renderer, { recursive: true });
 await cp(new URL('assets/skins/', root), new URL('skins/', renderer), { recursive: true });
+// livingBody: the world data travels as a module beside its atlases (the static surface admits no fetch: connect-src 'none').
+const livingWorld = new URL('skins/xianxian-living-world/', renderer);
+const worldText = (await readFile(new URL('world.json', livingWorld), 'utf8')).trim();
+JSON.parse(worldText);   // the JSON text itself is the module's literal, so every number (-0 included) is kept as built
+await writeFile(new URL('world.mjs', livingWorld), `// Built by scripts/build.mjs from assets/skins/xianxian-living-world/world.json.\nexport default ${worldText};\n`);
+await rm(new URL('world.json', livingWorld));
 const client = await readFile(fileURLToPath(import.meta.resolve('@clowder-ai/plugin-sdk/companion')), 'utf8');
 if (/\b(?:import|require)\s*\(/u.test(client) || /\bfrom\s*['"]/u.test(client)) throw new Error('Companion browser client gained runtime imports; audit its dependency closure');
 await writeFile(new URL('client.mjs', renderer), client.replace(/\/\/# sourceMappingURL=.*$/mu, ''));
 const pkg = JSON.parse(await readFile(new URL('package.json', root)));
-const html = await readFile(new URL('index.html', renderer));
+const sri = bytes => `sha256-${createHash('sha256').update(bytes).digest('base64')}`;
 // JSON is valid YAML. The tracked declaration is also readable before a build.
 const manifest = JSON.parse(await readFile(new URL('plugin.yaml', root), 'utf8'));
 manifest.version = pkg.version;
 const window = manifest.contributions.find(contribution => contribution.type === 'desktop-window' && contribution.id === 'companion');
-window.surface.integrity = `sha256-${createHash('sha256').update(html).digest('base64')}`;
+window.surface.integrity = sri(await readFile(new URL(window.surface.entrypoint, root)));
+// livingBody: the body page beside the surface; the Host verifies its entry bytes the same way.
+if (window.body) window.body.integrity = sri(await readFile(new URL(window.body.entrypoint, root)));
 const validation = validateManifest(manifest);
 if (!validation.valid) throw new Error(JSON.stringify(validation.errors));
+// livingBody: the panel offers the living cat only when this package declares a body entry, which the contract admits
+// only on its livingBody line (bridge 1.8.0); the Host admits these exact bytes on that line alone.
+await writeFile(new URL('package-line.mjs', renderer), `// Built by scripts/build.mjs from plugin.yaml.\nexport const LIVING_BODY = ${Boolean(window.body)};\n`);
 // Refresh derived coordinates and emit the same declaration for module consumers.
 const serialized = `${JSON.stringify(manifest, null, 2)}\n`;
 await writeFile(new URL('manifest.json', root), serialized);

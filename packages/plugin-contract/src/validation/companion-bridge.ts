@@ -17,6 +17,21 @@ function bounded(value: unknown): boolean {
   try { const json = JSON.stringify(value); return typeof json === 'string' && Buffer.byteLength(json) <= 1_500_000; }
   catch { return false; }
 }
+/** livingBody: a scene is plain JSON with finite numbers, at most 8 levels deep and 16 KiB, so the
+ * archive can always read it back and compare-and-swap it. */
+const SCENE_MAX_BYTES = 16 * 1024;
+const SCENE_MAX_DEPTH = 8;
+function plainJson(value: unknown, depth: number): boolean {
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') return true;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (depth >= SCENE_MAX_DEPTH || typeof value !== 'object') return false;
+  if (Array.isArray(value)) return value.every((item) => plainJson(item, depth + 1));
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return false;
+  return Object.values(value).every((item) => plainJson(item, depth + 1));
+}
+const boundedScene = (snapshot: unknown) =>
+  plainJson(snapshot, 0) && Buffer.byteLength(JSON.stringify(snapshot)) <= SCENE_MAX_BYTES;
 /** open/add settle one delivered item; shown, dismiss and timeout always settle the whole delivery. */
 const deskItemScoped = (action: string, itemRef: string | undefined) =>
   (action === 'open' || action === 'add') === (itemRef !== undefined);
@@ -28,11 +43,13 @@ export function validateCompanionCommand(value: unknown): value is CompanionComm
   if (parsed.kind === 'desk.settle') return deskItemScoped(parsed.action, parsed.itemRef);
   if (parsed.kind === 'text') return parsed.text.trim().length > 0;
   if (parsed.kind === 'screen.frame') return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(parsed.frame.image);
+  if (parsed.kind === 'scene.report') return boundedScene(parsed.snapshot);
   return true;
 }
 export function validateCompanionReply(value: unknown): value is CompanionReply {
   if (!bounded(value) || !reply(value)) return false;
   const parsed = value as CompanionReply;
+  if (parsed.kind === 'scene') return parsed.status !== 'found' || boundedScene(parsed.snapshot);
   if (parsed.kind === 'conversation') {
     if ('status' in parsed) {
       if (parsed.status === 'stale') return true;

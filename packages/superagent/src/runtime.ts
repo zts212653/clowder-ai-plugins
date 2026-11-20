@@ -9,7 +9,7 @@ import {
   editQueue,
   inboxSchema,
   planSchema,
-  preferencesSchema,
+  readPreferences,
   questionSchema,
   queued,
   read,
@@ -21,7 +21,7 @@ import {
 } from './state.js';
 import { applyPlan, briefResult, findWork, publish, send } from './work.js';
 
-export type SuperagentHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'config' | 'members' | 'log'> & {
+export type SuperagentHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'config' | 'log'> & {
   storage: Pick<ModulePluginHostShape['storage'], 'get' | 'set' | 'compareAndSet'>;
   messaging: Pick<ModulePluginHostShape['messaging'], 'get' | 'send' | 'subscribe' | 'unsubscribe'>;
   threads: Pick<ModulePluginHostShape['threads'], 'get' | 'list' | 'create' | 'update' | 'readMessages'>;
@@ -37,9 +37,8 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
   const current = () => {
     if (stopped) throw new Error('Superagent stopped');
   };
-  const savedPreferences = async () => preferencesSchema.parse((await host.storage.get('preferences'))?.value ?? {});
   const preferences = async () => {
-    const pref = await savedPreferences();
+    const pref = await readPreferences(host);
     return { ...pref, threadIds: (await watchScope(host, pref)).threadIds };
   };
   const reconcile = () => {
@@ -57,7 +56,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
       }
       if (runtime.mainThreadId && pref.coordinatorId) {
         if (!runtime.coordinationThreadId) {
-          const input = { title: `${pref.name} · 内部协调`, parentThreadId: runtime.mainThreadId, participants: [pref.coordinatorId], internal: true as const };
+          const input = { title: `${pref.name} · 内部协调`, parentThreadId: runtime.mainThreadId, participants: [pref.coordinatorId] };
           const coordination = await host.threads.create(input);
           runtime = { ...runtime, coordinationThreadId: coordination.id };
           await host.storage.set('runtime', runtime);
@@ -71,8 +70,8 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
           });
         const coordination = await host.threads.get(runtime.coordinationThreadId!);
         if (!coordination) throw new Error('Coordination conversation unavailable');
-        if (!('internal' in coordination && coordination.internal === true) || coordination.title !== `${pref.name} · 内部协调` || JSON.stringify(coordination.preferredCats) !== JSON.stringify([pref.coordinatorId])) {
-          const patch = { title: `${pref.name} · 内部协调`, preferredCats: [pref.coordinatorId], internal: true as const };
+        if (coordination.title !== `${pref.name} · 内部协调` || JSON.stringify(coordination.preferredCats) !== JSON.stringify([pref.coordinatorId])) {
+          const patch = { title: `${pref.name} · 内部协调`, preferredCats: [pref.coordinatorId] };
           await host.threads.update(coordination.id, patch);
         }
       }
@@ -215,7 +214,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
       await reconcile();
     },
     actions: {
-      ...createSettings(host, savedPreferences, reconcile, current),
+      ...createSettings(host, preferences, reconcile, current),
       async 'superagent.observe'(input) {
         current();
         if (!isPluginDeliveryInput(input)) throw new Error('Invalid Superagent delivery');
@@ -344,12 +343,21 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
         const runtime = await read(host, 'runtime', runtimeSchema);
         const ready =
           pref.coordinatorId && pref.threadIds.length && pref.workerIds.length && pref.responsibility.trim();
+        const threadId = runtime?.mainThreadId ?? null;
+        const canOpen = !!threadId && !!ready && !runtime?.error;
+        // The console reads component-shaped data through its declared webhook route.
         return {
-          label: pref.name,
-          threadId: runtime?.mainThreadId ?? null,
-          status: runtime?.error ? 'error' : !ready ? 'setup' : pref.enabled ? 'listening' : 'paused',
-          detail: runtime?.error,
-          badgeCount: (await records(host, 'question:', questionSchema)).filter((q) => !q.resolved).length,
+          status: 200,
+          headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+          body: JSON.stringify({
+            kind: canOpen ? 'thread' : 'go',
+            target: canOpen ? { id: threadId } : { page: 'extItem-official.superagent' },
+            label: pref.name,
+            threadId: runtime?.mainThreadId ?? null,
+            status: runtime?.error ? 'error' : !ready ? 'setup' : pref.enabled ? 'listening' : 'paused',
+            detail: runtime?.error,
+            badgeCount: (await records(host, 'question:', questionSchema)).filter((q) => !q.resolved).length,
+          }),
         };
       },
     },

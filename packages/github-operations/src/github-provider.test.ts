@@ -241,6 +241,29 @@ test('real provider derives notification identity from account, author and posit
   }
 });
 
+test('repeated reads reuse the account login per credential instead of asking GitHub every time', async () => {
+  // F333 Task052: every read used to begin with its own `gh api user`, one of ~11 sequential requests.
+  const head = 'b'.repeat(40); const calls: string[] = []; let token = 'login-cache-fixture-a';
+  const provider = new GitHubProvider({ token: async () => token, log: { warn() {} },
+    execFileAsync: async (_file, args) => {
+      const path = args[1]!; calls.push(path);
+      if (path === 'user') return { stdout: token.endsWith('-a') ? 'owner\n' : 'other\n' };
+      if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ number: 12,
+        html_url: 'https://github.com/example/project/pull/12', state: 'open', head: { sha: head }, user: { login: 'author' } }) };
+      if (path.includes('/reviews?') || path.includes('/comments?')) return { stdout: '' };
+      throw new Error('Unexpected read ' + path);
+    } });
+  const batch = { repoFullName: target.repoFullName, prNumber: 12, headSha: head, prState: 'open' as const,
+    aggregateBucket: 'pass' as const, checkRollup: 'present' as const, checks: [] };
+  const login = async () => (await provider.read(target, new AbortController().signal, undefined, batch)).trackingIdentity?.selfLogin;
+  assert.equal(await login(), 'owner');
+  assert.equal(await login(), 'owner');
+  assert.equal(calls.filter(path => path === 'user').length, 1, 'the same credential asks for its login once');
+  token = 'login-cache-fixture-b';
+  assert.equal(await login(), 'other', 'a different credential is never answered from another login');
+  assert.equal(calls.filter(path => path === 'user').length, 2);
+});
+
 test('an aborted poll creates no gh child', async () => {
   const f = fixture(); const controller = new AbortController(); controller.abort(new Error('plugin stopped'));
   await assert.rejects(f.provider.read(target, controller.signal), /plugin stopped/);

@@ -6,6 +6,7 @@ import type {
   PluginThreadSummary,
 } from '@clowder-ai/plugin-sdk';
 import type { SuperagentHost } from '../src/runtime.js';
+import type { Preferences } from '../src/state.js';
 
 interface Fixture {
   host: SuperagentHost;
@@ -16,15 +17,8 @@ interface Fixture {
   subscriptions: Set<string>;
   history: Map<string, PluginThreadMessage[]>;
   messages: Map<string, PluginMessage>;
-  preferences: {
-    v: number;
-    enabled: boolean;
-    name: string;
-    coordinatorId: string;
-    workerIds: string[];
-    threadIds: string[];
-    responsibility: string;
-  };
+  config: Map<string, string>;
+  preferences: Preferences;
   seed: () => ReturnType<SuperagentHost['storage']['set']>;
   caller: (threadId: string, catId?: string) => PluginActionContext;
 }
@@ -52,24 +46,10 @@ export function fixture(): Fixture {
   const subscriptions = new Set<string>();
   const history = new Map<string, PluginThreadMessage[]>();
   const messages = new Map<string, PluginMessage>();
+  const config = new Map<string, string>();
   const host: SuperagentHost = {
     pluginInstanceId: 'installed-superagent',
-    config: { get: async () => undefined },
-    members: {
-      list: async () =>
-        ['coordinator', 'worker'].map((catId) => ({
-          catId,
-          displayName: catId,
-          defaultModel: 'test',
-          available: true,
-        })),
-      get: async (catId) => ({
-        catId,
-        displayName: catId,
-        defaultModel: 'test',
-        available: true,
-      }),
-    },
+    config: { get: async (key) => config.get(key) },
     log() {},
     storage: {
       get: async (key) => structuredClone(rows.get(key)),
@@ -86,10 +66,10 @@ export function fixture(): Fixture {
     threads: {
       get: async (id) => threads.get(id) ?? null,
       list: async (options) => [...threads.values()].filter((thread) =>
-        (!options?.threadIds || options.threadIds.includes(thread.id)) &&
-        (!options || !('pinnedOnly' in options) || !options.pinnedOnly)),
+        !options?.threadIds || options.threadIds.includes(thread.id)),
       readMessages: async (id) => history.get(id) ?? [],
       create: async (input) => {
+        if ('internal' in input) throw new TypeError('Unknown thread creation option');
         const id = `thread-${threads.size}`;
         const thread = {
           id,
@@ -105,6 +85,7 @@ export function fixture(): Fixture {
         return thread;
       },
       update: async (id, patch) => {
+        if ('internal' in patch) throw new TypeError('Unknown thread update option');
         const previous = threads.get(id);
         if (!previous) throw new Error('Unknown thread');
         const next = { ...previous, ...patch };
@@ -139,6 +120,7 @@ export function fixture(): Fixture {
       list: async (filter) => [...tasks.values()].filter((task) =>
         (!filter.threadId || task.threadId === filter.threadId) && (!filter.kind || task.kind === filter.kind)),
       create: async (input) => {
+        if ('internal' in input) throw new TypeError('Unknown thread creation option');
         const previous = [...tasks.values()].find((task) => task.subjectKey === input.subjectKey);
         if (previous) return previous;
         const task: PluginTaskReadItem = {
@@ -170,6 +152,7 @@ export function fixture(): Fixture {
         return task;
       },
       update: async (id, patch) => {
+        if ('internal' in patch) throw new TypeError('Unknown thread update option');
         const task = tasks.get(id);
         if (!task) return null;
         const next = {
@@ -190,13 +173,14 @@ export function fixture(): Fixture {
       },
     },
   };
-  const preferences = {
+  const preferences: Preferences = {
     v: 1,
     enabled: true,
-    name: '我的助手',
+    started: false,
     coordinatorId: 'coordinator',
     workerIds: ['worker'],
     threadIds: ['source-a', 'source-b'],
+    name: '我的助手',
     responsibility: 'Investigate, implement and verify entrusted sample work. Ask for decisions.',
   };
   const seed = () => host.storage.set('preferences', preferences);
@@ -216,6 +200,7 @@ export function fixture(): Fixture {
     subscriptions,
     history,
     messages,
+    config,
     preferences,
     seed,
     caller,

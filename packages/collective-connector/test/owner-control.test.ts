@@ -150,7 +150,7 @@ test('implemented owner method/path pairs are advertised', () => {
     'POST connections/:connectionId/reconnect', 'POST connections/:connectionId/revoke',
     'GET connections/:connectionId/listening', 'POST connections/:connectionId/listening',
     'GET connections/:connectionId/work-policy', 'POST connections/:connectionId/work-policy/adopt',
-    'POST connections/:connectionId/work-policy/revoke', 'POST service/provision', 'GET entry-roster', 'POST pair', 'POST connections/:connectionId/participation/reconcile', 'PUT connections/:connectionId/participation/policy', 'GET connections/:connectionId/participation', 'PUT connections/:connectionId/participation'];
+    'POST connections/:connectionId/work-policy/revoke', 'POST service/provision', 'GET entry-roster', 'GET console/client', 'POST pair', 'POST connections/:connectionId/participation/reconcile', 'PUT connections/:connectionId/participation/policy', 'GET connections/:connectionId/participation', 'PUT connections/:connectionId/participation'];
   const backend = manifest.features.find((item: {id: string}) => item.id === 'collective-backend');
   const owned = new Set(backend.contributions.filter((item: {type: string}) => item.type === 'webhook').map((item: {id: string}) => item.id));
   const webhooks = manifest.contributions.filter((item: { type: string; id: string }) => item.type === 'webhook' && owned.has(item.id));

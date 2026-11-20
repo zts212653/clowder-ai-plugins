@@ -77,6 +77,39 @@ test('surface integrity, bridge version and initial bounds are closed', () => {
   }
 });
 
+test('bridge 1.8 declares livingBody: a body page beside the surface entry, and only there', () => {
+  const integrity = `sha256-${'B'.repeat(43)}=`;
+  const living = () => {
+    const input = manifest() as ReturnType<typeof manifest> & { contributions: Array<Record<string, unknown>> };
+    Object.assign(input.contributions[0]!, { bridgeVersion: '1.8.0', body: { entrypoint: 'surface/body.html', integrity } });
+    return input;
+  };
+  const accepted = validateManifest(living());
+  assert.equal(accepted.valid, true, JSON.stringify(accepted.errors));
+  const withoutBody = manifest();
+  withoutBody.contributions[0]!.bridgeVersion = '1.8.0';
+  assert.equal(validateManifest(withoutBody).valid, true, 'a 1.8 surface may still ship without a living body');
+
+  const oldBridge = living();
+  oldBridge.contributions[0]!['bridgeVersion'] = '1.7.0';
+  const refused = validateManifest(oldBridge);
+  assert.equal(refused.valid, false, 'a body on bridge 1.7 would reach Hosts that cannot open it');
+  assert.equal(refused.errors?.[0]?.keyword, 'livingBody');
+  for (const entrypoint of ['surface/index.html', 'body/body.html', 'body.html', '../surface/body.html',
+    'https://example.org/body.html', 'surface/body.mjs']) {
+    const input = living();
+    (input.contributions[0]!['body'] as { entrypoint: string }).entrypoint = entrypoint;
+    assert.equal(validateManifest(input).valid, false, entrypoint);
+  }
+  for (const body of [{ entrypoint: 'surface/body.html' }, { entrypoint: 'surface/body.html', integrity: 'trust-me' },
+    { entrypoint: 'surface/body.html', integrity, presentation: { width: 9999 } },
+    { entrypoint: 'surface/body.html', integrity, webPreferences: { nodeIntegration: true } }]) {
+    const input = living();
+    input.contributions[0]!['body'] = body;
+    assert.equal(validateManifest(input).valid, false, JSON.stringify(body));
+  }
+});
+
 test('window ownership cannot be shared between features or left dangling', () => {
   const shared = manifest();
   shared.features.push({ ...shared.features[0]!, id: 'another-feature' });
