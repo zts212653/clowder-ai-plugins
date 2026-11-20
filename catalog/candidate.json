@@ -2498,9 +2498,9 @@
       "pluginId": "official.feedback",
       "name": "问题反馈",
       "description": {
-        "default": "通过已配置的本地 Agent Client 生成脱敏报告并提交 Issue，支持草稿恢复、粘贴截图及本地选图。需要支持声明式 HTTP 面板及关闭前保存的配套 next 宿主。",
+        "default": "通过已配置的本地 Agent Client 生成脱敏报告并提交 Issue，支持草稿恢复、粘贴截图及本地选图。在支持 PDL 控制台的 next 宿主中使用。",
         "translations": {
-          "en": "Sanitized feedback reports with draft recovery, pasted screenshots and local images. Requires a paired next Host with declared HTTP panels and save-before-close support."
+          "en": "Sanitized feedback reports with draft recovery, pasted screenshots and local images. Uses the PDL console in a next Host."
         }
       },
       "icon": {
