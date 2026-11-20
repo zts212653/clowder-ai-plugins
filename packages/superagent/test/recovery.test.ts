@@ -59,9 +59,9 @@ test('a worker native result and its ordinary final response produce one origina
   await f.seed();
   const runtime = await startSuperagent(f.host);
   const actions = runtime.actions;
-  await actions['superagent.observe'](event('work'));
+  await actions['superagent.observe'](event('work', [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id));
   await actions['superagent.tick']({});
-  const main = [...f.sent.values()].find((message) => message.wake)!.threadId;
+  const main = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id;
   await actions['superagent.route'](
     {
       eventId: 'work',
@@ -114,9 +114,9 @@ test('a real Host failed message is returned once to its own Work while intake i
   await f.seed();
   const runtime = await startSuperagent(f.host);
   const actions = runtime.actions;
-  await actions['superagent.observe'](event('work'));
+  await actions['superagent.observe'](event('work', [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id));
   await actions['superagent.tick']({});
-  const main = [...f.sent.values()].find((message) => message.wake)!.threadId;
+  const main = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id;
   await actions['superagent.route'](
     {
       eventId: 'work',
@@ -181,7 +181,7 @@ test('a real Host failed message is returned once to its own Work while intake i
   assert.equal(f.tasks.get(other.id)?.status, 'todo', 'a failure must not be assigned to another Work');
   assert.equal(
     [...f.sent.values()].filter(
-      (message) => message.threadId === 'source-a' && JSON.stringify(message.payload).includes('本轮未完成'),
+      (message) => message.threadId === main && JSON.stringify(message.payload).includes('本轮未完成'),
     ).length,
     1,
   );

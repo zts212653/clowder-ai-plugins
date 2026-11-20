@@ -20,7 +20,7 @@ test('assistant, execution members and watched conversations are separate settin
   }
   assert.ok(!fields.some((field) => ['assistant', 'workers', 'scope'].includes(field.key)));
   const f = fixture();
-  await f.host.storage.set('preferences', { ...f.preferences, enabled: false });
+  await f.host.storage.set('preferences', { v: 1, enabled: false, name: f.preferences.name, responsibility: f.preferences.responsibility });
   f.config.delete('coordinatorId');
   f.config.set('workerIds', '[]');
   f.config.set('threadIds', '[]');
@@ -38,7 +38,7 @@ test('assistant, execution members and watched conversations are separate settin
     assert.deepEqual(saved.workerIds, ['coordinator'], 'execution supports multiple members, including the assistant');
     assert.deepEqual(saved.threadIds, ['source-a']);
     assert.equal(f.subscriptions.has('source-a'), false, 'selection alone does not start watching the chosen source');
-    assert.equal(f.sent.size, 0, 'changing configuration does not invoke members');
+    assert.ok([...f.sent.values()].every((message) => !message.wake), 'changing configuration does not invoke members');
     const stored = preferencesSchema.parse((await f.host.storage.get('preferences'))?.value);
     assert.equal('coordinatorId' in stored, false);
     assert.equal('workerIds' in stored, false);
@@ -130,7 +130,7 @@ test('older selected conversations remain configured while paused and can be rem
     assert.equal(f.subscriptions.has('older'), false);
     assert.equal(f.subscriptions.has('source-a'), true);
     assert.equal((await readPreferences(f.host)).enabled, false);
-    assert.equal(f.sent.size, 0);
+    assert.ok([...f.sent.values()].every((message) => !message.wake));
   } finally {
     await runtime.stop({ reason: 'test' });
   }

@@ -1,10 +1,10 @@
-import type { PluginDeliveryInput } from '@clowder-ai/plugin-contract';
-import { z } from 'zod';
+import type { PluginDeliveryInput, PluginMessageDelivery } from '@clowder-ai/plugin-contract';
 import type { SuperagentHost } from './runtime.js';
 import {
   editQueue,
   inboxSchema,
   type Preferences,
+  type WorkLink,
   queued,
   read,
   records,
@@ -12,7 +12,24 @@ import {
   saveOnce,
   workSchema,
 } from './state.js';
-import { send } from './work.js';
+import { notification, send } from './work.js';
+
+async function needsCoordination(host: SuperagentHost, input: PluginMessageDelivery, assignedWork: WorkLink | undefined, mainThreadId?: string) {
+  if (input.envelope.actor.kind === 'user') {
+    const source = await host.messaging.get(input.envelope.messageId);
+    if (source && (source.catId || source.userId !== input.envelope.actor.id)) return false;
+  }
+  if (input.envelope.actor.kind === 'user' && input.threadId !== mainThreadId &&
+    (await host.threads.readMessages(input.threadId, { limit: 30 })).some((message) => message.response?.inputMessageIds.includes(input.envelope.messageId))) return false;
+  if (assignedWork && input.envelope.actor.kind !== 'user' &&
+    (await host.messaging.get(assignedWork.sourceMessageId))?.catId) return false;
+  if (assignedWork || input.envelope.actor.kind === 'user') return true;
+  if (input.envelope.actor.kind !== 'cat') return false;
+  const response = (await host.threads.readMessages(input.threadId, { limit: 100 })).find(
+    (message) => message.id === input.envelope.messageId && message.sender.catId === input.envelope.actor.id,
+  )?.response;
+  return response !== undefined && response.status !== 'processing' && response.status !== 'completed';
+}
 
 export async function observe(
   host: SuperagentHost,
@@ -50,13 +67,10 @@ export async function observe(
       await editQueue(host, 'reports', `${response.executionId}:host-failure`, true);
       return;
     }
-    const message = await host.messaging.get(input.envelope.messageId);
-    const invocationId = message?.extra?.stream?.invocationId;
-    if (invocationId) {
-      const terminal = await read(host, `terminal:${invocationId}`, z.object({ workId: z.string() }));
-      if (terminal?.workId === work.taskId) return;
-    }
+    // Native reports own progress/results. A worker's ordinary reply is not a new coordination input.
+    return;
   }
+  if (!(await needsCoordination(host, input, work, mainThreadId))) return;
   const existing = await read(host, `inbox:${input.deliveryId}`, inboxSchema);
   if (!existing)
     await host.storage.compareAndSet(`inbox:${input.deliveryId}`, null, {
@@ -67,17 +81,22 @@ export async function observe(
   if (!existing || existing.phase !== 'done') await editQueue(host, 'inbox', input.deliveryId, true);
 }
 
-export async function advanceInbox(host: SuperagentHost, pref: Preferences, mainThreadId: string) {
+export async function advanceInbox(host: SuperagentHost, pref: Preferences, mainThreadId: string, coordinationThreadId: string) {
   const inbox = await queued(host, 'inbox', 'inbox:', inboxSchema);
-  if (inbox.some((entry) => entry.phase === 'failed')) return;
   const routed = inbox.find((entry) => entry.phase === 'routed');
   if (routed) {
-    const response = (await host.threads.readMessages(mainThreadId, { limit: 100 })).find(
+    const response = (await host.threads.readMessages(routed.coordinationThreadId ?? mainThreadId, { limit: 100 })).find(
       (message) =>
         message.sender.catId === pref.coordinatorId &&
         message.response?.inputMessageIds.includes(routed.wakeMessageId ?? routed.delivery.envelope.messageId),
     );
     if (response?.response && response.response.status !== 'processing') {
+      await send(
+        host,
+        mainThreadId,
+        `coordination-failure:${routed.delivery.deliveryId}:${routed.attempt}`,
+        await notification(host, routed.delivery.threadId, '跟进未完成', '助手本轮未完成判断，原消息与已有工作已保留。', '如需继续，请在 Superagent 设置 → 恢复处理 → 重试未完成的判断中确认；会再次使用助手额度。'),
+      );
       await host.storage.set(`inbox:${routed.delivery.deliveryId}`, {
         ...routed,
         phase: 'failed',
@@ -101,13 +120,22 @@ export async function advanceInbox(host: SuperagentHost, pref: Preferences, main
     await editQueue(host, 'inbox', next.delivery.deliveryId, false);
     return;
   }
+  if (!(await needsCoordination(host, next.delivery, works.find((work) => work.threadId === next.delivery.threadId), mainThreadId))) {
+    await host.storage.set(`inbox:${next.delivery.deliveryId}`, { ...next, phase: 'done' });
+    await editQueue(host, 'inbox', next.delivery.deliveryId, false);
+    return;
+  }
   let wakeMessageId = next.delivery.envelope.messageId;
   if (next.delivery.threadId !== mainThreadId || next.attempt > 0) {
     const sent = await send(
       host,
-      mainThreadId,
+      coordinationThreadId,
       `coordinate:${next.delivery.deliveryId}:${next.attempt}`,
-      '所选会话有新的动态。请作为 Superagent 协调成员查看待处理事件，判断如何跟进；已有事项沿原工作继续。',
+      `Superagent 收到待处理事件：${JSON.stringify({
+        eventId: next.delivery.deliveryId,
+        sourceThreadId: next.delivery.threadId,
+        sourceMessageId: next.delivery.envelope.messageId,
+      })}\n本线程仅为内部协调，不是用户收件箱。先用 plugin_list_tools 读取 official.superagent，再通过 plugin_call 调用 superagent_inspect 和 superagent_route。已有负责人处理的事项登记 ignore，不另派工、不发公开 ACK；需要用户知道的内容仅通过 ask/deliver/report 投递。`,
       pref.coordinatorId,
     );
     wakeMessageId = sent.messageId;
@@ -115,6 +143,7 @@ export async function advanceInbox(host: SuperagentHost, pref: Preferences, main
   await host.storage.set(`inbox:${next.delivery.deliveryId}`, {
     ...next,
     wakeMessageId,
+    coordinationThreadId: next.delivery.threadId !== mainThreadId || next.attempt > 0 ? coordinationThreadId : mainThreadId,
     phase: 'routed',
   });
 }

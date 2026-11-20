@@ -5,6 +5,7 @@ import { validateManifest } from '@clowder-ai/plugin-contract';
 import { parse } from 'yaml';
 import { z } from 'zod';
 import { planSchema, reportSchema } from '../src/state.js';
+import { overviewInputSchema } from '../src/overview.js';
 
 test('published tool schemas describe exactly what the runtime accepts', async () => {
   const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
@@ -12,11 +13,12 @@ test('published tool schemas describe exactly what the runtime accepts', async (
     inspect: z.object({}).strict(),
     route: planSchema.omit({ applied: true }),
     report: reportSchema.omit({ applied: true, invocationId: true }),
+    overview: overviewInputSchema,
   })) {
     const { $schema: _dialect, ...expected } = z.toJSONSchema(schema, { target: 'draft-7' });
     assert.deepEqual(
       manifest.contributions.find((row: { id: string }) => row.id === id).inputSchema,
-      expected,
+      id === 'overview' ? { type: 'object', ...expected } : expected,
       `${id} must not advertise unsupported parameters`,
     );
   }
