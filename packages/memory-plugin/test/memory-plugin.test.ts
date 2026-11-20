@@ -1,0 +1,248 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import { validateManifest } from '@clowder-ai/plugin-contract';
+import { MEMORY_REQUIRED_OPERATIONS } from '@clowder-ai/plugin-memory-contract';
+
+import { createMemoryPluginModule } from '../src/plugin-entrypoint.js';
+import { fakeKv, host, manifest } from './host-fixture.js';
+
+async function start(module = createMemoryPluginModule(), port: unknown = fakeKv().port) {
+  return module.create(manifest).start(host(port));
+}
+
+/** Start with the memory port field omitted entirely, as an older Host would. */
+async function startWithoutPorts(module = createMemoryPluginModule()) {
+  return module.create(manifest).start(host(undefined));
+}
+
+test('manifest is a valid builtin module that declares its durable memory state', () => {
+  const validation = validateManifest(manifest);
+  assert.equal(validation.valid, true, JSON.stringify(validation.errors));
+  assert.equal(manifest.runtime.transport, 'builtin');
+  assert.equal(manifest.runtime.entrypoint, 'dist/plugin-entrypoint.js');
+  const declared = new Set(manifest.data.map((entry: { name: string }) => entry.name));
+  assert.ok(declared.has('memory-thread-kv'));
+  assert.ok(declared.has('memory-evidence-index'));
+});
+
+test('memory.describe carries no business parameters and reports the offered v1 contract', async (t) => {
+  const active = await start();
+  t.after(() => active.stop({ reason: 'test' }));
+  const descriptor = (await active.actions['memory.describe']!({})) as {
+    protocolMajor: number;
+    operations: string[];
+    storageFormat: number;
+  };
+  assert.equal(descriptor.protocolMajor, 1);
+  assert.equal(descriptor.storageFormat, 1);
+  // The admission floor, plus the families this plugin additionally offers.
+  for (const operation of [...MEMORY_REQUIRED_OPERATIONS, 'search.query'])
+    assert.ok(descriptor.operations.includes(operation), operation);
+});
+
+test('a Host without the authorized memory port fails admission instead of degrading to an empty store', async () => {
+  await assert.rejects(startWithoutPorts, /memoryThreadKv|memory ports/);
+  await assert.rejects(async () => start(createMemoryPluginModule(), {}), /memoryThreadKv/i);
+  // A port missing compareAndSet cannot keep the ceiling atomically, so it is not accepted either.
+  await assert.rejects(
+    async () => start(createMemoryPluginModule(), { get: 'nope', list: 'nope', delete: 'nope' }),
+    /memoryThreadKv/i,
+  );
+});
+
+test("a second installation does not inherit the first installation's authorized ports", async () => {
+  const first = fakeKv();
+  const module = createMemoryPluginModule();
+  const active = await module.create(manifest).start(host(first.port));
+  await active.stop({ reason: 'test' });
+
+  // A fresh definition for the same manifest must fail closed again.
+  await assert.rejects(startWithoutPorts, /memoryThreadKv|memory ports/);
+});
+
+test('kv.put writes the exact Host entry shape and reads it back through the authorized port', async (t) => {
+  const kv = fakeKv();
+  const active = await start(createMemoryPluginModule(), kv.port);
+  t.after(() => active.stop({ reason: 'test' }));
+
+  const written = (await active.actions['memory.dispatch']!({
+    operation: 'kv.put',
+    input: { threadRef: 'thread-1', key: 'project', value: 'clowder', updatedBy: 'cat-codex' },
+  })) as { key: string; value: string; threadId: string; updatedBy: string; updatedAt: number };
+
+  assert.equal(written.key, 'project');
+  assert.equal(written.value, 'clowder');
+  assert.equal(written.threadId, 'thread-1');
+  assert.equal(written.updatedBy, 'cat-codex');
+  assert.equal(typeof written.updatedAt, 'number');
+
+  const raw = kv.hashes.get('thread-1')!.get('project')!;
+  assert.deepEqual(JSON.parse(raw), written);
+
+  const read = await active.actions['memory.dispatch']!({
+    operation: 'kv.get',
+    input: { threadRef: 'thread-1', key: 'project' },
+  });
+  assert.deepEqual(read, written);
+  assert.deepEqual(kv.writes, ['thread-1/project']);
+});
+
+test('kv.get distinguishes an absent key from a stored empty result and skips malformed records', async (t) => {
+  const kv = fakeKv();
+  kv.hashes.set('thread-1', new Map([['broken', '{not json']]));
+  const active = await start(createMemoryPluginModule(), kv.port);
+  t.after(() => active.stop({ reason: 'test' }));
+
+  assert.equal(
+    await active.actions['memory.dispatch']!({ operation: 'kv.get', input: { threadRef: 'thread-1', key: 'absent' } }),
+    null,
+  );
+  assert.equal(
+    await active.actions['memory.dispatch']!({ operation: 'kv.get', input: { threadRef: 'thread-1', key: 'broken' } }),
+    null,
+  );
+});
+
+test('kv.list returns every readable entry ordered by updatedAt ascending, skipping malformed records', async (t) => {
+  const kv = fakeKv();
+  kv.hashes.set(
+    'thread-1',
+    new Map([
+      ['b', JSON.stringify({ key: 'b', value: '2', threadId: 'thread-1', updatedBy: 'user', updatedAt: 20 })],
+      ['a', JSON.stringify({ key: 'a', value: '1', threadId: 'thread-1', updatedBy: 'user', updatedAt: 10 })],
+      ['broken', 'not json'],
+    ]),
+  );
+  const active = await start(createMemoryPluginModule(), kv.port);
+  t.after(() => active.stop({ reason: 'test' }));
+
+  const listed = (await active.actions['memory.dispatch']!({
+    operation: 'kv.list',
+    input: { threadRef: 'thread-1' },
+  })) as { key: string }[];
+  assert.deepEqual(
+    listed.map((entry) => entry.key),
+    ['a', 'b'],
+  );
+});
+
+test('capacity keeps the 50-key ceiling by evicting the oldest entry only when the key is new', async (t) => {
+  const kv = fakeKv();
+  const seed = new Map<string, string>();
+  for (let index = 0; index < 50; index++) {
+    seed.set(
+      `k${index}`,
+      JSON.stringify({ key: `k${index}`, value: 'v', threadId: 'thread-1', updatedBy: 'user', updatedAt: index }),
+    );
+  }
+  kv.hashes.set('thread-1', seed);
+  const active = await start(createMemoryPluginModule(), kv.port);
+  t.after(() => active.stop({ reason: 'test' }));
+
+  // Overwriting an existing key must not evict anything.
+  await active.actions['memory.dispatch']!({
+    operation: 'kv.put',
+    input: { threadRef: 'thread-1', key: 'k0', value: 'again', updatedBy: 'user' },
+  });
+  assert.equal(kv.hashes.get('thread-1')!.size, 50);
+  assert.ok(kv.hashes.get('thread-1')!.has('k0'));
+
+  // A new key at capacity evicts the single oldest entry and keeps the new one.
+  // `k0` was just rewritten with a fresh timestamp, so `k1` is now the oldest.
+  await active.actions['memory.dispatch']!({
+    operation: 'kv.put',
+    input: { threadRef: 'thread-1', key: 'fresh', value: 'v', updatedBy: 'user' },
+  });
+  assert.equal(kv.hashes.get('thread-1')!.size, 50);
+  assert.equal(kv.hashes.get('thread-1')!.has('fresh'), true);
+  assert.equal(kv.hashes.get('thread-1')!.has('k1'), false, 'the oldest entry is the one evicted');
+  assert.equal(kv.hashes.get('thread-1')!.has('k0'), true, 'the just-rewritten key survives');
+});
+
+test('a losing compare-and-set re-reads and retries instead of reporting a false success', async (t) => {
+  const kv = fakeKv();
+  const active = await start(createMemoryPluginModule(), kv.port);
+  t.after(() => active.stop({ reason: 'test' }));
+
+  kv.loseNextCompareAndSet();
+  const written = (await active.actions['memory.dispatch']!({
+    operation: 'kv.put',
+    input: { threadRef: 'thread-1', key: 'raced', value: 'v', updatedBy: 'user' },
+  })) as { key: string };
+  assert.equal(written.key, 'raced');
+  assert.equal(kv.hashes.get('thread-1')!.has('raced'), true, 'the retry actually landed the write');
+});
+
+test('kv.delete reports whether a record existed', async (t) => {
+  const kv = fakeKv();
+  kv.hashes.set(
+    'thread-1',
+    new Map([['a', JSON.stringify({ key: 'a', value: '1', threadId: 'thread-1', updatedBy: 'user', updatedAt: 1 })]]),
+  );
+  const active = await start(createMemoryPluginModule(), kv.port);
+  t.after(() => active.stop({ reason: 'test' }));
+
+  assert.equal(
+    await active.actions['memory.dispatch']!({ operation: 'kv.delete', input: { threadRef: 'thread-1', key: 'a' } }),
+    true,
+  );
+  assert.equal(
+    await active.actions['memory.dispatch']!({ operation: 'kv.delete', input: { threadRef: 'thread-1', key: 'a' } }),
+    false,
+  );
+});
+
+test('the deployment default key family is an ordinary authorized thread, never a rebuilt key', async (t) => {
+  const kv = fakeKv();
+  const active = await start(createMemoryPluginModule(), kv.port);
+  t.after(() => active.stop({ reason: 'test' }));
+
+  await active.actions['memory.dispatch']!({
+    operation: 'kv.put',
+    input: { threadRef: 'default', key: 'deploy', value: 'node', updatedBy: 'user' },
+  });
+  // The plugin hands the threadRef through verbatim; it never derives a physical key itself.
+  assert.deepEqual(kv.writes, ['default/deploy']);
+  assert.deepEqual(
+    await active.actions['memory.dispatch']!({ operation: 'kv.get', input: { threadRef: 'default', key: 'deploy' } }),
+    {
+      key: 'deploy',
+      value: 'node',
+      threadId: 'default',
+      updatedBy: 'user',
+      updatedAt: (JSON.parse(kv.hashes.get('default')!.get('deploy')!) as { updatedAt: number }).updatedAt,
+    },
+  );
+});
+
+test('an unknown operation and an invalid payload are rejected at the boundary without touching storage', async (t) => {
+  const kv = fakeKv();
+  const active = await start(createMemoryPluginModule(), kv.port);
+  t.after(() => active.stop({ reason: 'test' }));
+
+  await assert.rejects(
+    async () => active.actions['memory.dispatch']!({ operation: 'kv.nope', input: {} }),
+    /unknown memory operation/,
+  );
+  await assert.rejects(
+    async () => active.actions['memory.dispatch']!({ operation: 'kv.put', input: { threadRef: 'thread-1' } }),
+    /key/,
+  );
+  assert.deepEqual(kv.writes, []);
+});
+
+test('after stop the dispatcher is revoked and writes stop', async () => {
+  const kv = fakeKv();
+  const active = await start(createMemoryPluginModule(), kv.port);
+  await active.stop({ reason: 'test' });
+  await assert.rejects(
+    async () =>
+      active.actions['memory.dispatch']!({
+        operation: 'kv.put',
+        input: { threadRef: 'thread-1', key: 'k', value: 'v', updatedBy: 'user' },
+      }),
+    /revoked|stopped|disposed/,
+  );
+  assert.deepEqual(kv.writes, []);
+});
