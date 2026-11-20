@@ -443,11 +443,18 @@ function renderPublishedScreenshots(content) {
     });
     if (cards.length) section.append(el('div',{className:'supplemental-cards'},cards));
     if (screenshotAttempt) {
-      section.append(note('上次上传结果待核对，已确认上传的截图会标为已上传。'),
-        button('核对截图上传结果',()=>changePublishedScreenshots('check-screenshots'),'primary'));
+      section.append(note('上次上传结果待核对。若已在原 Issue 确认没有这批截图，可重新选择。'),
+        el('div',{className:'supplemental-actions'},[
+          button('核对截图上传结果',()=>changePublishedScreenshots('check-screenshots'),'primary'),
+          button('确认未上传，重新选择',async()=>{
+            await changePublishedScreenshots('retry-screenshots',{confirmed:true});
+            state.screenshotSelection=[];
+          },'text'),
+        ]));
     } else {
       if (state.journal.screenshotCommentUnverified && !state.journal.screenshotsConfirmed) {
-        section.append(note('旧版本有截图上传记录待核对。补充新图前，可先打开原 Issue 查看。'));
+        section.append(note('旧版截图上传记录待核对。请查看原 Issue 的评论。'),
+          button('我已核对旧版截图',()=>changePublishedScreenshots('confirm-screenshots',{confirmed:true}),'text'));
       }
       const pick = el('label',{className:'secondary add-picture',text:'选择本地图片'});
       const picker = el('input',{type:'file',accept:'image/png,image/jpeg,image/webp',multiple:true,

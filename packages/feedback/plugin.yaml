@@ -20,7 +20,7 @@ configuration:
     kind: string
     required: false
   - key: githubToken
-    label: GitHub 访问令牌（自动提交时需要）
+    label: GitHub 访问令牌（未使用 GitHub CLI 登录时填写）
     kind: secret
     required: false
   - key: gitlabToken

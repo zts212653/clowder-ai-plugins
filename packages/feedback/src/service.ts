@@ -9,6 +9,7 @@ import { sanitize } from './sanitize.js';
 import type { Host, Journal, OwnerContext, Profile, Provider, Report, StoredAttachment, StoredFeedback } from './types.js';
 
 type ProviderFactory = (target: Profile) => Provider;
+const screenshotUploadTimeoutMs = 5 * 60_000;
 export class RevisionConflictError extends Error { readonly code = 'revision_conflict'; }
 export class FeedbackService {
   private readonly analysis: FeedbackAnalysis;
@@ -118,16 +119,32 @@ export class FeedbackService {
       return this.factory(target).preflight(context.signal);
     }
     const adapter = this.factory(journal.target);
-    if (['add-screenshots','remove-screenshot','upload-screenshots','check-screenshots'].includes(op)) {
+    if (['add-screenshots','remove-screenshot','upload-screenshots','check-screenshots','retry-screenshots','confirm-screenshots'].includes(op)) {
       if (journal.state !== 'published' || !journal.issue) throw new Error('请先确认 Issue 已创建');
       if (data.revision !== current?.revision) throw new RevisionConflictError('反馈记录已有更新，请重新打开');
+      if (op === 'confirm-screenshots') {
+        if (data.confirmed !== true || !journal.screenshotCommentUnverified || journal.screenshotsConfirmed) {
+          throw new Error('请先核对旧版截图记录并确认');
+        }
+        const updated = await publicWrite({...journal,screenshotsConfirmed:true});
+        return {...updated,message:'已确认核对旧版截图。'};
+      }
       const items = screenshotCandidates(journal);
       const sent = journal.screenshotSent ?? [];
       const attempt = journal.screenshotAttempt;
-      if (op === 'check-screenshots') {
+      if (op === 'check-screenshots' || op === 'retry-screenshots') {
         if (!attempt || !adapter.findIssueScreenshots) throw new Error('没有需要核对的截图');
+        const retry = op === 'retry-screenshots';
+        if (retry && data.confirmed !== true) throw new Error('请确认原 Issue 中没有这批截图');
         const found = await adapter.findIssueScreenshots(journal.issue, attempt.hashes, attempt.id, attempt.startedAt, context.signal);
-        if (found === undefined) return present(journal, current?.revision, { message:'还未查到上传回执，请稍后再核对。' });
+        if (found === undefined) {
+          if (!retry) return present(journal, current?.revision, {message:'还未查到上传回执。可稍后再核对，或在 Issue 中确认没有这批截图后重新选择。'});
+          if (!attempt.finished && Date.now() - attempt.startedAt < screenshotUploadTimeoutMs) {
+            throw new Error('上次上传可能仍在处理，请稍后核对');
+          }
+          const updated = await publicWrite({...journal,screenshotAttempt:undefined});
+          return {...updated,message:'可以重新选择截图并上传到同一个 Issue。'};
+        }
         const updated = await publicWrite({...journal,screenshotAttempt:undefined,screenshotSent:[...sent,...found]});
         return {...updated,message: found.length === attempt.hashes.length ? '截图已添加到 Issue。' : '已核对上传结果，可重新选择剩余截图。'};
       }
@@ -174,12 +191,15 @@ export class FeedbackService {
       const batch = {id:randomUUID(),hashes:selected.map(item => item.sha256),startedAt:Date.now()};
       const staged = await write({...journal,screenshotAttempt:batch});
       await context.assertCurrent();
-      const found = await adapter.attachToIssue(validated, pictures, batch.id, context.signal).catch(() => undefined);
-      if (found === undefined) return present(staged.journal, staged.revision, {message:'上传结果待核对，请在此检查。'});
-      const updated: Journal = {...staged.journal,screenshotAttempt:undefined,screenshotSent:[...sent,...found]};
+      const signal = AbortSignal.any([context.signal, AbortSignal.timeout(screenshotUploadTimeoutMs)]);
+      const found = await adapter.attachToIssue(validated, pictures, batch.id, signal).catch(() => undefined);
+      const updated: Journal = found === undefined
+        ? {...staged.journal,screenshotAttempt:{...batch,finished:true}}
+        : {...staged.journal,screenshotAttempt:undefined,screenshotSent:[...sent,...found]};
       const saved = await this.host.storage.compareAndSet(key, staged.revision ?? null, {...updated,updatedAt:Date.now()});
       if (!saved.applied) throw new RevisionConflictError('上传记录已更新，请重新打开反馈');
-      return present(updated, saved.revision, {message:found.length===selected.length ? '截图已添加到 Issue。' : '部分截图已添加，可选择剩余截图继续上传。'});
+      return present(updated, saved.revision, {message:found === undefined ? '上传结果待核对，请在此检查。'
+        : found.length===selected.length ? '截图已添加到 Issue。' : '部分截图已添加，可选择剩余截图继续上传。'});
     }
     if (op === 'manual') {
       if (!['draft','approved'].includes(journal.state)) throw new Error('请先核对当前提交结果');
