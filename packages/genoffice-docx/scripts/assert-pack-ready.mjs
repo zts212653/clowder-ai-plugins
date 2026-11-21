@@ -62,6 +62,7 @@ for (const required of [
   'package/THIRD_PARTY_NOTICES.md',
   'package/dist/index.js',
   'package/renderer/index.html',
+  'package/renderer/preview/index.html',
 ]) {
   if (!packEntrySet.has(required)) throw new Error(`npm pack omitted required entry: ${required}`);
 }
@@ -158,6 +159,9 @@ assert.deepEqual(
   manifest,
   'generated manifest.json is stale; rebuild from plugin.yaml',
 );
+const viewer = manifest.contributions.find((item) => item.type === 'content-preview-provider');
+assert.equal(viewer?.surface.entrypoint, 'renderer/preview/index.html');
+assert.equal(viewer.surface.integrity, sha256Sri(await readFile(join(packageRoot, viewer.surface.entrypoint))));
 const declaredIntegrity = manifest.contributions?.[0]?.surface?.integrity;
 const materializer = manifest.contributions?.[0]?.semanticMaterializer;
 assert.equal(materializer?.executionClass, 'dedicated-browser-worker');

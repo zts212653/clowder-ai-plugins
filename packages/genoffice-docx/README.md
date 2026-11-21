@@ -7,9 +7,11 @@
 ## 开始使用
 
 1. 安装并启用 `@clowder-ai/genoffice-docx`。
-2. 在宿主提供的文档入口打开 DOCX 文件，使用文档编辑器完成加载、编辑、评论和修订操作。
+2. 在 Workspace 文件树打开文档。DOCX 可协作编辑、评论和修订，PDF 与 PPTX 可只读翻页和缩放。有文本层的 PDF 可选择和搜索文本。
 
-支持的文件类型为 `application/vnd.openxmlformats-officedocument.wordprocessingml.document`。需要宿主支持对应的内容编辑器界面及文档访问控制；单独安装包不会生成一份独立文档授权。
+需要 Host 支持相应的插件能力及 Workspace 文件授权。预览保留源文件，复杂字体、SmartArt、三维及部分嵌入对象的显示可能与 PowerPoint 不同。无法预览时可通过文件菜单用系统默认应用打开。
+
+预览图像上限为 5000 万像素。PDF 放大时会按画布预算调低渲染分辨率。PPTX 中的部分 EMF、WMF 和 TIFF 图片可能显示为占位框。
 
 ## 文档隔离
 

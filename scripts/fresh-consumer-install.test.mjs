@@ -429,9 +429,9 @@ test('packed public packages install and import in a fresh npm consumer', async 
     const enterprisePackage = JSON.parse(
       await readFile(join(consumer, 'node_modules/@clowder-ai/enterprise-workflow/package.json'), 'utf8'),
     );
-    assert.equal(genofficePackage.version, '0.1.0-alpha.3');
-    assert.equal(genofficePackage.dependencies['@clowder-ai/plugin-contract'],
-      JSON.parse(await readFile(join(repoRoot, 'packages/genoffice-docx/package.json'), 'utf8')).dependencies['@clowder-ai/plugin-contract']);
+    const sourceGenoffice = JSON.parse(await readFile(join(repoRoot, 'packages/genoffice-docx/package.json'), 'utf8'));
+    assert.equal(genofficePackage.version, sourceGenoffice.version);
+    assert.deepEqual(genofficePackage.dependencies, sourceGenoffice.dependencies);
     assert.doesNotMatch(JSON.stringify(genofficePackage), /"workspace:/u);
     const sourceLock = JSON.parse(await readFile(join(repoRoot, 'packages/genoffice-docx/source-lock.json'), 'utf8'));
     const docxFixture = join(repoRoot, 'packages/genoffice-docx/.tmp/source', sourceLock.rootDirectory, 'fixtures/generated/simple.docx');
@@ -451,6 +451,10 @@ test('packed public packages install and import in a fresh npm consumer', async 
       const bytes = await readFile(join(root, manifest.contributions[0].surface.entrypoint));
       const integrity = 'sha256-' + createHash('sha256').update(bytes).digest('base64');
       if (integrity !== manifest.contributions[0].surface.integrity) process.exit(1);
+      const viewer = manifest.contributions.find(item => item.type === 'content-preview-provider');
+      if (viewer?.formats.map(item => item.extension).join(',') !== 'pdf,pptx') process.exit(1);
+      const preview = await readFile(join(root, viewer.surface.entrypoint));
+      if ('sha256-' + createHash('sha256').update(preview).digest('base64') !== viewer.surface.integrity) process.exit(1);
       const semantic = manifest.contributions[0].semanticMaterializer;
       if (semantic?.executionClass !== 'dedicated-browser-worker') process.exit(1);
       const workerPath = join(root, semantic.entrypoint);
