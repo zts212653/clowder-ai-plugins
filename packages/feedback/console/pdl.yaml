@@ -11,11 +11,11 @@ inserts:
         as: float
 popups:
   feedback:
-    at: trigger
+    at: center
+    focus: true
     exit:
       - x
       - esc
-    drag: true
 views:
   feedback.panel:
     type: frame

@@ -7,7 +7,7 @@ test('opening a record with no analysis clears fields omitted by JSON transport'
   const node=()=>({dataset:{},append(){},replaceChildren(){},addEventListener(){},querySelector(){return undefined;},scrollTop:0});
   const context=createContext({Blob,atob,
     document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},
-    el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'feedback-B'},
+    el:node,reportPreview:node,reportReader:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'feedback-B'},
     bridge:async()=>true,beforeClose:async()=>{},copyImage:async()=>{},normalizePicture:async()=>{},setTimeout:()=>0,clearTimeout:()=>{},console,
     call:async(input:{feedbackId?:string})=>input.feedbackId ? JSON.parse(JSON.stringify({
       journal:{id:'feedback-B',state:'draft',digest:'digest-B',target:{id:'test'},clientId:'member-B',projectRef:'C:/project-B',report:{title:'bug: B',body:'body B',attachments:[]}},
@@ -34,7 +34,7 @@ test('a prior poll cannot save its report into a newly prepared analysis draft',
   let release!: (value:unknown)=>void;
   const context=createContext({Blob,atob,
     document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[],createTextNode:(text:string)=>text},
-    el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'feedback-B'},bridge:async()=>true,beforeClose:async()=>{},copyImage:async()=>{},normalizePicture:async()=>{},setTimeout:()=>0,clearTimeout:()=>{},console,
+    el:node,reportPreview:node,reportReader:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'feedback-B'},bridge:async()=>true,beforeClose:async()=>{},copyImage:async()=>{},normalizePicture:async()=>{},setTimeout:()=>0,clearTimeout:()=>{},console,
     call:async(input: {op:string;report:{title:string;body:string}})=>{
       if(input.op==='bootstrap') return new Promise(()=>{});
       if(input.op==='analysis-status') return new Promise(resolve=>{release=resolve;});
@@ -63,7 +63,7 @@ test('an earlier save acknowledgement never marks newer input as saved', async (
   let release!: (value:unknown)=>void;
   const context=createContext({Blob,atob,
     document:{getElementById:node,querySelector:()=>status,querySelectorAll:()=>[]},
-    el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'feedback-B'},
+    el:node,reportPreview:node,reportReader:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'feedback-B'},
     bridge:async()=>true,beforeClose:async()=>{},copyImage:async()=>{},normalizePicture:async()=>{},setTimeout:()=>0,clearTimeout:()=>{},console,
     call:async(input:{op:string})=>input.op==='save'?new Promise(resolve=>{release=resolve;}):new Promise(()=>{}),
   });
@@ -90,7 +90,7 @@ test('closing waits for the automatic save of a completed analysis', async () =>
   const saving=new Promise<void>(resolve=>{started=resolve;});
   const node=()=>({dataset:{},append(){},replaceChildren(){},addEventListener(){},querySelector(){return undefined;},scrollTop:0});
   const context=createContext({Blob,atob,
-    document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,
+    document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},el:node,reportPreview:node,reportReader:node,feedbackForm:()=>[],feedbackHistory:node,
     crypto:{randomUUID:()=> 'draft'},setTimeout:()=>0,clearTimeout(){},console,copyImage:async()=>{},normalizePicture:async()=>{},
     bridge:async(type:string)=>{messages.push(type);},beforeClose:async(action:()=>Promise<void>)=>{closePanel=action;},
     call:async(input:{op:string;report:unknown})=>{
@@ -123,7 +123,7 @@ test('a stale window can preserve its edits as a new draft and then close', asyn
   let failCopy=false;
   const messages:string[]=[];
   const node=()=>({dataset:{},append(){},replaceChildren(){},addEventListener(){},querySelector(){},scrollTop:0});
-  const context=createContext({Blob,atob,document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,
+  const context=createContext({Blob,atob,document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},el:node,reportPreview:node,reportReader:node,feedbackForm:()=>[],feedbackHistory:node,
     crypto:{randomUUID:()=> 'copy'},setTimeout:()=>0,clearTimeout(){},console,normalizePicture:async()=>{},copyImage:async()=>{},
     beforeClose:async(action:()=>Promise<void>)=>{closePanel=action;},bridge:async(type:string)=>{messages.push(type);},
     call:async(input:{op:string;feedbackId?:string;report?:unknown})=>{
@@ -154,7 +154,7 @@ test('adding pictures refuses an oversized HTTP envelope before changing the ret
   const node=()=>({dataset:{},append(){},replaceChildren(){},querySelector(){return undefined;},addEventListener(){},scrollTop:0});
   const context=createContext({Blob,atob,
     document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},
-    el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'feedback-wire-budget'},
+    el:node,reportPreview:node,reportReader:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'feedback-wire-budget'},
     bridge:async()=>true,beforeClose:async()=>{},copyImage:async()=>{},setTimeout:()=>0,clearTimeout:()=>{},console,
     normalizePicture:async()=>({mime:'image/png',base64:'a'.repeat(4_000_000),original:{base64:'b'.repeat(4_000_000)}}),
     call:async()=>new Promise(()=>{}),
@@ -182,7 +182,7 @@ test('adding pictures refuses an oversized HTTP envelope before changing the ret
 test('legacy analysis settings are adopted, while a different saved context cannot apply an old report',async()=>{
   const node=()=>({dataset:{},append(){},replaceChildren(){},addEventListener(){},querySelector(){},scrollTop:0});
   const writes:Array<{clientId:string;projectRef:string}>=[];
-  const context=createContext({Blob,atob,document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},el:node,feedbackForm:()=>[],feedbackHistory:node,reportPreview:node,
+  const context=createContext({Blob,atob,document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},el:node,feedbackForm:()=>[],feedbackHistory:node,reportPreview:node,reportReader:node,
     crypto:{randomUUID:()=> 'draft'},beforeClose:async()=>{},bridge:async()=>true,setTimeout:()=>0,clearTimeout(){},console,
     call:async(input:{op:string;clientId:string;projectRef:string;report:unknown})=>{
       if(input.op==='bootstrap')return new Promise(()=>{});
@@ -210,7 +210,7 @@ test('a rejected multi-select preserves the saved draft when saving and reopenin
   let saveRequests=0;
   const context=createContext({atob,
     document:{getElementById:node,querySelector:()=>status,querySelectorAll:()=>[]},
-    el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'saved-draft'},
+    el:node,reportPreview:node,reportReader:node,feedbackForm:()=>[],feedbackHistory:node,crypto:{randomUUID:()=> 'saved-draft'},
     bridge:async()=>true,beforeClose:async()=>{},copyImage:async()=>{},Blob,setTimeout:()=>0,clearTimeout:()=>{},console,
     normalizePicture:async()=>({mime:'image/png',base64:'a'.repeat(4_000_000),original:{base64:'b'.repeat(4_000_000)}}),
     call:async(input:{op:string;feedbackId?:string;report?:typeof report})=>{

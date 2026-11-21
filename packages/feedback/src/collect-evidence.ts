@@ -3,14 +3,14 @@ import { isAbsolute, join, relative, sep } from 'node:path';
 
 /** Recipe-owned collection: two recent files per explicit log root, at most
  * 128 KiB each. No recursion, client HOME, environment dump or configuration. */
-export async function collectEvidence(root: string, now = Date.now(), projectRoot?: string) {
+export async function collectEvidence(root: string, now = Date.now(), projectRoot?: string, filenames?: readonly string[]) {
   const directory = await realpath(root);
   if (projectRoot) {
     const within = relative(await realpath(projectRoot), directory);
     if (within === '..' || within.startsWith(`..${sep}`) || isAbsolute(within)) throw new Error('Project log directory is outside the selected project');
   }
   const entries = (await readdir(directory, { withFileTypes: true }))
-    .filter(entry => entry.isFile() && /\.log$/.test(entry.name));
+    .filter(entry => entry.isFile() && (filenames ? filenames.includes(entry.name) : /\.log$/.test(entry.name)));
   const files = await Promise.all(entries.map(async entry => ({ path: join(directory, entry.name), info: await stat(join(directory, entry.name)) })));
   const records = await Promise.all(files.filter(file => file.info.mtimeMs >= now - 900_000)
     .sort((a, b) => b.info.mtimeMs - a.info.mtimeMs).slice(0, 2).map(async file => {
@@ -21,7 +21,13 @@ export async function collectEvidence(root: string, now = Date.now(), projectRoo
         await handle.read(bytes, 0, size, Math.max(0, file.info.size - size));
         return bytes.toString('utf8').split('\n').flatMap(line => {
           if (!line.trim()) return [];
-          if (!line.trimStart().startsWith('{')) return /error|warn|fail|错误|失败/i.test(line) ? [line.slice(0, 1000)] : [];
+          if (!line.trimStart().startsWith('{')) {
+            const timestamp = /^\[(?:main )?(\d{4}-\d{2}-\d{2}T[^\]]+)\]/.exec(line);
+            const time = timestamp ? Date.parse(timestamp[1]!) : undefined;
+            if (time !== undefined && (time < now - 900_000 || time > now)) return [];
+            if (filenames && (!timestamp || /\[(?:api|web|redis)\]\s+(?:env|cwd|spawn):/i.test(line))) return [];
+            return /error|warn|fail|timeout|exited early|错误|失败|超时/i.test(line) ? [line.slice(0, 1000)] : [];
+          }
           try {
             const row = JSON.parse(line) as { time?: number | string; level?: number; msg?: string; code?: string; err?: { code?: string; type?: string } };
             const time = typeof row.time === 'number' ? row.time : Date.parse(row.time ?? '');

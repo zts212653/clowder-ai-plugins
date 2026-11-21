@@ -1,6 +1,6 @@
 import { analysisKey, digest, feedbackKey } from './config.js';
 import type { Analysis } from './analysis.js';
-import type { Host, Journal, Profile } from './types.js';
+import type { Host, Journal, Profile, StoredFeedback } from './types.js';
 
 /** Owner index contains IDs only; report bytes and CAS revisions stay independent. */
 export class FeedbackRecords {
@@ -50,6 +50,10 @@ export class FeedbackRecords {
   async list(userId: string) {
     const ids = (await this.host.storage.get(`feedback-records:${digest(userId)}`))?.value as string[] | undefined;
     const rows = await Promise.all((ids ?? []).map(id=>this.host.storage.get(feedbackKey(userId,id))));
-    return rows.filter((row): row is NonNullable<typeof row>=>Boolean(row)).map(row=>row.value as Journal);
+    return rows.flatMap(row=>{
+      if (!row) return [];
+      const journal = row.value as StoredFeedback;
+      return 'deleted' in journal ? [] : [{journal,revision:row.revision}];
+    });
   }
 }
