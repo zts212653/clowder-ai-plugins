@@ -335,4 +335,29 @@ describe('ChatGPT page adapter multiline normalization', () => {
     assert.equal(fixture.getSendCount(), 0);
     assert.equal(restoreCount, 1);
   });
+
+  it('records focus, the composer kind and selection when native insert is refused', async () => {
+    const fixture = createNormalizedFixture();
+    fixture.document.execCommand = () => {
+      fixture.dom.window.getSelection().collapse(fixture.composer.querySelector('p'), 0);
+      return false;
+    };
+    const adapter = createAdapter(fixture);
+
+    await assert.rejects(adapter.appendMessage({
+      requestId: 'request-editor-context',
+      conversationId: 'conversation-7',
+      text: 'fixture-only text',
+      idempotencyKey: 'source-editor-context',
+    }), (error) => {
+      assert.equal(error.code, 'COMPOSER_NATIVE_INSERT_UNAVAILABLE');
+      assert.deepEqual(error.editorContext, {
+        documentFocused: true, visibility: 'visible', active: 'composer', composer: 'prosemirror', connected: true,
+        selection: { anchor: 'within_composer', focus: 'within_composer', anchorOffset: 0, focusOffset: 0, collapsed: true },
+      });
+      assert.equal(JSON.stringify(error.editorContext).includes('fixture-only text'), false);
+      return true;
+    });
+    assert.equal(fixture.getSendCount(), 0);
+  });
 });

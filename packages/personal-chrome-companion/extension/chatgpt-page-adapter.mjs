@@ -1,4 +1,5 @@
 import {
+  captureComposerContext,
   composerSnapshot,
   composerTextResult,
   insertComposerText,
@@ -337,8 +338,7 @@ function unsupportedComposerError({ code, message, composer, phase, adapterRevis
   });
 }
 
-function requireEmptyComposer(document, revisions) {
-  const composer = firstMatch(document, COMPOSER_SELECTORS);
+function requireEmptyComposer(document, composer, revisions) {
   if (!composer) throw new ChatGptPageAdapterError('COMPOSER_NOT_FOUND', 'ChatGPT composer was not found');
   const current = composerTextResult(document, composer);
   if (current.status === 'unsupported') {
@@ -354,7 +354,6 @@ function requireEmptyComposer(document, revisions) {
   if (current.text !== '') {
     throw new ChatGptPageAdapterError('COMPOSER_NOT_EMPTY', 'ChatGPT composer contains an owner draft');
   }
-  return composer;
 }
 
 function existingUserMessageIds(document) {
@@ -409,12 +408,15 @@ async function submitPageMessage({
   onAssistantObservationFailure,
 }) {
   requireMatchingConversation(location, conversationId, 'bound conversation does not match the current ChatGPT tab');
-  const composer = requireEmptyComposer(document, { adapterRevision, artifactRevision });
-  const snapshot = composerSnapshot(document, composer);
-  const existingIds = existingUserMessageIds(document);
-  let clicked = false;
+  const composer = firstMatch(document, COMPOSER_SELECTORS);
+  let snapshot;
+  let existingIds;
+  let submitAttempted = false;
   let mutated = false;
   try {
+    requireEmptyComposer(document, composer, { adapterRevision, artifactRevision });
+    snapshot = composerSnapshot(document, composer);
+    existingIds = existingUserMessageIds(document);
     insertComposerText(document, composer, text, () => {
       mutated = true;
     });
@@ -430,23 +432,27 @@ async function submitPageMessage({
       adapterRevision,
       artifactRevision,
     });
+    submitAttempted = true;
     sendButton.click();
-    clicked = true;
   } catch (error) {
-    if (error instanceof ChatGptPageAdapterError && error.diagnostic === undefined) {
-      error.diagnostic = {
-        v: 1,
-        errorCode: error.code,
-        fingerprint: composerDomFingerprint(composer, {
-          phase: 'failed_before_submit',
-          adapterRevision,
-          artifactRevision,
-        }),
-        nextAction: 'inspect_bound_tab',
-      };
+    if (submitAttempted) throw error;
+    const editorContext = captureComposerContext(document, composer);
+    const fingerprint =
+      error?.diagnostic?.fingerprint ??
+      composerDomFingerprint(composer, { phase: 'failed_before_submit', adapterRevision, artifactRevision });
+    let cause = error;
+    try {
+      if (mutated) restoreAfterNoSend(document, composer, snapshot);
+    } catch (restoreError) {
+      cause = restoreError;
     }
-    if (!clicked && mutated) restoreAfterNoSend(document, composer, snapshot);
-    throw error;
+    const failure =
+      cause instanceof ChatGptPageAdapterError
+        ? cause
+        : new ChatGptPageAdapterError('PAGE_ADAPTER_FAILED', 'ChatGPT page failed before submission');
+    failure.editorContext = editorContext;
+    failure.diagnostic ??= { v: 1, errorCode: failure.code, fingerprint, nextAction: 'inspect_bound_tab' };
+    throw failure;
   }
   await onProgress('submitted', { requestId, conversationId, idempotencyKey });
   let receipt;

@@ -1,5 +1,41 @@
 import { ChatGptPageAdapterError, inspectContentEditableText } from './chatgpt-page-contract.mjs';
 
+function composerRelation(composer, node) {
+  if (!node) return 'none';
+  if (node === composer) return 'composer';
+  return composer?.contains(node) ? 'within_composer' : 'outside';
+}
+
+function composerKind(composer, textarea) {
+  if (!composer) return 'missing';
+  if (textarea) return 'textarea';
+  return composer.classList.contains('ProseMirror') ? 'prosemirror' : 'contenteditable';
+}
+
+/** Capture the editor state before rollback, without recording draft or selected text. */
+export function captureComposerContext(document, composer) {
+  const textarea = composer instanceof document.defaultView.HTMLTextAreaElement;
+  const selection = document.defaultView.getSelection();
+  const anchor = composerRelation(composer, textarea ? composer : selection?.anchorNode);
+  const focus = composerRelation(composer, textarea ? composer : selection?.focusNode);
+  const offsetInComposer = (relation, offset) =>
+    relation === 'composer' || relation === 'within_composer' ? offset ?? null : null;
+  return {
+    documentFocused: document.hasFocus(),
+    visibility: document.visibilityState === 'visible' ? 'visible' : 'hidden',
+    active: composerRelation(composer, document.activeElement),
+    composer: composerKind(composer, textarea),
+    connected: composer?.isConnected === true,
+    selection: {
+      anchor,
+      focus,
+      anchorOffset: offsetInComposer(anchor, textarea ? composer.selectionStart : selection?.anchorOffset),
+      focusOffset: offsetInComposer(focus, textarea ? composer.selectionEnd : selection?.focusOffset),
+      collapsed: textarea ? composer.selectionStart === composer.selectionEnd : selection?.isCollapsed ?? true,
+    },
+  };
+}
+
 export function composerTextResult(document, composer) {
   return composer instanceof document.defaultView.HTMLTextAreaElement
     ? { status: 'ok', text: composer.value }

@@ -49,8 +49,8 @@ async function createNativeHostBridge(options) {
               ...message,
               observedRevisions: {
                 helper: helperArtifactRevision,
-                extension: '0.2.13',
-                pageAdapter: '2026-11-06.1',
+                extension: '0.2.14',
+                pageAdapter: '2026-11-20.1',
               },
             }
           : message;
@@ -115,8 +115,8 @@ function appendRequest(overrides = {}) {
     idempotencyKey: 'source-message-9',
     expectedRevisions: {
       helper: helperArtifactRevision,
-      extension: '0.2.13',
-      pageAdapter: '2026-11-06.1',
+      extension: '0.2.14',
+      pageAdapter: '2026-11-20.1',
     },
     ...overrides,
   };
@@ -237,6 +237,38 @@ describe('Native Messaging framing', () => {
 });
 
 describe('personal Chrome native host bridge', () => {
+  it('persists bounded pre-submit editor context in the native ledger only', async () => {
+    const paths = testPaths('editor-context');
+    const editorContext = {
+      documentFocused: false, visibility: 'hidden', active: 'composer', composer: 'prosemirror', connected: true,
+      selection: { anchor: 'composer', focus: 'within_composer', anchorOffset: 0, focusOffset: 1, collapsed: false },
+    };
+    const diagnostic = {
+      v: 1, errorCode: 'COMPOSER_NATIVE_INSERT_UNAVAILABLE', nextAction: 'inspect_bound_tab',
+      fingerprint: { v: 1, phase: 'failed_before_submit', adapterRevision: 'test', artifactRevision: 'test', nodes: [], truncated: false },
+    };
+    const secret = 'fixture-only-selected-text';
+    let bridge;
+    bridge = await createNativeHostBridge({
+      ...paths,
+      pairingSecret: 'a'.repeat(64),
+      sendNative: async (message) => bridge.acceptNativeMessage({
+        v: 2, kind: 'append_result', requestId: message.requestId, idempotencyKey: message.idempotencyKey,
+        status: 'failed', errorCode: diagnostic.errorCode, diagnostic,
+        editorContext: { ...editorContext, selection: { ...editorContext.selection, text: secret } },
+      }),
+    });
+    bridges.push(bridge);
+
+    const result = await localAppend(paths.socketPath, 'a'.repeat(64), appendRequest());
+    assert.equal(result.errorCode, diagnostic.errorCode);
+    assert.deepEqual(result.diagnostic, diagnostic);
+    assert.equal(result.editorContext, undefined);
+    const [entry] = (await loadLedger(paths.ledgerPath)).values();
+    assert.deepEqual(entry.editorContext, editorContext);
+    assert.equal((await readFile(paths.ledgerPath, 'utf8')).includes(secret), false);
+  });
+
   it('rejects a legacy v1 append before Chrome dispatch', async () => {
     const paths = testPaths('legacy-v1-append');
     const forwarded = [];
@@ -293,8 +325,8 @@ describe('personal Chrome native host bridge', () => {
       conversationId: 'conversation-7',
       expectedRevisions: {
         helper: helperArtifactRevision,
-        extension: '0.2.13',
-        pageAdapter: '2026-11-06.1',
+        extension: '0.2.14',
+        pageAdapter: '2026-11-20.1',
       },
     });
 
@@ -1521,8 +1553,8 @@ describe('native host install plan', () => {
         );
         const expectedRevisions = {
           helper: plan.artifactDigest,
-          extension: '0.2.13',
-          pageAdapter: '2026-11-06.1',
+          extension: '0.2.14',
+          pageAdapter: '2026-11-20.1',
         };
         const outboundPromise = readOneNativeMessage(child.stdout);
         const localResultPromise = localAppend(plan.socketPath, pairingSecret, appendRequest({ expectedRevisions }));

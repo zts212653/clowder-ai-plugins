@@ -133,6 +133,43 @@ export function safeAdapterDiagnostic(value) {
   };
 }
 
+const EDITOR_RELATIONS = new Set(['none', 'composer', 'within_composer', 'outside']);
+const COMPOSER_KINDS = new Set(['missing', 'textarea', 'contenteditable', 'prosemirror']);
+const PRE_SUBMIT_PHASES = new Set(['failed_before_submit', 'empty_check', 'before_submit']);
+
+function safeEditorOffset(relation, offset) {
+  return relation === 'composer' || relation === 'within_composer'
+    ? Number.isInteger(offset) && offset >= 0 && offset <= MAX_DOM_CHILD_INDEX
+    : offset === null;
+}
+
+function safeEditorContext(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const { documentFocused, visibility, active, composer, connected, selection } = value;
+  if (
+    typeof documentFocused !== 'boolean' ||
+    !['visible', 'hidden'].includes(visibility) ||
+    !EDITOR_RELATIONS.has(active) ||
+    !COMPOSER_KINDS.has(composer) ||
+    typeof connected !== 'boolean' ||
+    !selection ||
+    typeof selection !== 'object' ||
+    Array.isArray(selection)
+  ) return null;
+  const { anchor, focus, anchorOffset, focusOffset, collapsed } = selection;
+  if (
+    !EDITOR_RELATIONS.has(anchor) ||
+    !EDITOR_RELATIONS.has(focus) ||
+    !safeEditorOffset(anchor, anchorOffset) ||
+    !safeEditorOffset(focus, focusOffset) ||
+    typeof collapsed !== 'boolean'
+  ) return null;
+  return {
+    documentFocused, visibility, active, composer, connected,
+    selection: { anchor, focus, anchorOffset, focusOffset, collapsed },
+  };
+}
+
 export function failureFor(request, errorCode, details = {}) {
   const observedRevisions = safeRevisions(details.observedRevisions);
   const diagnostic = safeAdapterDiagnostic(details.diagnostic);
@@ -197,4 +234,8 @@ export function applyTerminalResult(entry, result) {
   else delete entry.observedRevisions;
   if (diagnostic) entry.diagnostic = diagnostic;
   else delete entry.diagnostic;
+  const editorContext =
+    !entry.submitted && PRE_SUBMIT_PHASES.has(diagnostic?.fingerprint.phase) ? safeEditorContext(result.editorContext) : null;
+  if (editorContext) entry.editorContext = editorContext;
+  else delete entry.editorContext;
 }
