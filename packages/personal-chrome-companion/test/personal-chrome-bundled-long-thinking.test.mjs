@@ -19,7 +19,7 @@ it('the actually bundled content script retains its exact helper context for a 3
     runInNewContext(source, { chrome, document: f.document, location: f.dom.window.location, MutationObserver: f.dom.window.MutationObserver, setTimeout, clearTimeout, TextEncoder, URL });
     const receipt = await new Promise((resolve) => listeners[0]({
       v: 2, kind: 'append_message_v2', requestId: 'bundle-long-request', conversationId: 'conversation-7', text: 'sanitized long source', idempotencyKey: 'bundle-source',
-      expectedRevisions: { helper: `sha512:${'0'.repeat(128)}`, extension: '0.2.13', pageAdapter: '2026-11-06.1' },
+      expectedRevisions: { helper: `sha512:${'0'.repeat(128)}`, extension: '0.2.14', pageAdapter: '2026-11-20.1' },
     }, {}, resolve));
     assert.equal(receipt.status, 'host_observed');
     context.mock.timers.tick(31 * 60_000);

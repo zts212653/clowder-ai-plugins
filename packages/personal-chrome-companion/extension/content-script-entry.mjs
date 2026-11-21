@@ -3,8 +3,8 @@ import { ASSISTANT_CONTEXT_RETENTION_MS } from './assistant-observation-lifetime
 
 (() => {
   const APPEND_PROTOCOL_VERSION = 2;
-  const EXTENSION_REVISION = '0.2.13';
-  const PAGE_ADAPTER_REVISION = '2026-11-06.1';
+  const EXTENSION_REVISION = '0.2.14';
+  const PAGE_ADAPTER_REVISION = '2026-11-20.1';
   const ASSISTANT_RETURN_RETRY_MS = 120_000;
   const previousListener = globalThis.__catCafePersonalChromeAdapterV2?.listener;
   if (typeof previousListener === 'function') chrome.runtime.onMessage.removeListener?.(previousListener);
@@ -127,6 +127,7 @@ import { ASSISTANT_CONTEXT_RETENTION_MS } from './assistant-observation-lifetime
           errorCode: typeof error?.code === 'string' ? error.code : 'PAGE_ADAPTER_FAILED',
           observedRevisions,
           ...(error?.diagnostic === undefined ? {} : { diagnostic: error.diagnostic }),
+          ...(error?.editorContext === undefined ? {} : { editorContext: error.editorContext }),
         });
       });
     return true;

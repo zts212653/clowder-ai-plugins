@@ -131,7 +131,7 @@ export function composerDomFingerprint(
       visit(child, childPath(path, child, index, markTruncated), depth + 1);
     }
   };
-  visit(element, 'composer', 0);
+  if (element) visit(element, 'composer', 0);
   return {
     v: 1,
     phase: boundedFingerprintToken(phase),
