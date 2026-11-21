@@ -8,7 +8,7 @@ export function assertPreviewImageSize(width: number, height: number): void {
 }
 
 export function pdfCanvasRatio(width: number, height: number, devicePixelRatio: number): number {
-  const bytes = width * height * 4;
-  if (bytes > PDF_CANVAS_BYTES) throw new PreviewRenderError('preview_limit_exceeded');
-  return Math.min(2, devicePixelRatio || 1, Math.sqrt(PDF_CANVAS_BYTES / bytes));
+  const budgetRatio = Math.sqrt(PDF_CANVAS_BYTES / (width * height * 4));
+  if (budgetRatio < 0.5) throw new PreviewRenderError('preview_limit_exceeded');
+  return Math.min(2, devicePixelRatio || 1, budgetRatio);
 }

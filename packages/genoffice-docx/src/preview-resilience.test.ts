@@ -13,7 +13,17 @@ test('PDF zoom retains the viewport and reduces only the canvas density at DPR 2
   const ratio = pdfCanvasRatio(width, height, 2);
   assert.ok(ratio >= 1 && ratio < 2);
   assert.ok(Math.floor(width * ratio) * Math.floor(height * ratio) * 4 <= PDF_CANVAS_BYTES);
-  assert.throws(() => pdfCanvasRatio(7000, 7000, 1), { code: 'preview_limit_exceeded' });
+});
+
+test('PDF zoom preserves 300% A4 on a 2560px display at DPR 1 and 2', () => {
+  const width = 2560 * 3;
+  const height = (width * 297) / 210;
+  for (const dpr of [1, 2]) {
+    const ratio = pdfCanvasRatio(width, height, dpr);
+    assert.ok(ratio >= 0.5 && ratio < 1);
+    assert.ok(Math.floor(width * ratio) * Math.floor(height * ratio) * 4 <= PDF_CANVAS_BYTES);
+  }
+  assert.throws(() => pdfCanvasRatio(12_000, 12_000, 1), { code: 'preview_limit_exceeded' });
 });
 
 test('the image pixel budget rejects larger dimensions before handing pixels to the browser', () => {

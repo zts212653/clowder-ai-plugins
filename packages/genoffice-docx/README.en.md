@@ -9,6 +9,8 @@ for collaborative editing — load, settle, comment, and tracked-change
 operations — inside a dedicated-origin sandboxed iframe with a semantic
 materializer worker. A compatible Host can also open read-only PDF and PPTX previews from the Workspace file tree. Both formats support paging and zoom. PDFs with a text layer also support selection and search. Complex fonts, SmartArt, 3D and some embedded objects may render differently from PowerPoint. The file menu can open the original in the system default application.
 
+Preview images are limited to 50 million pixels. PDF zoom reduces rendering resolution as needed to stay within the canvas budget. Some EMF, WMF, and TIFF images in PPTX may render as placeholders.
+
 ## What the plugin declares
 
 - The `edit-docx` feature, contributing the `genoffice-docx` content editor
