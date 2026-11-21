@@ -7,6 +7,8 @@ created: 2026-10-28
 
 # 问题反馈插件：设计与实施稿
 
+> 2026-11：Contract 0.4.0 删除了 manifest `ui` contribution；反馈入口与面板改由 PDL console 包提供，面板经 webhook `feedback/panel`（POST → `feedback.panel`）。下文的 UI contribution 方案为历史记录。
+
 状态：2026-10-29 已在插件 Draft #155、配套 Host Draft #1732 实施 [最小 Host 增量方案](minimal-host-plan.md)，专用诊断通道和 Client 改动已移除。当前差异包含正式插件代码，并非纯方案文档。旧模拟预览已由实际插件面板及打包浏览器验证替代；历史原型仍可从 Git 记录回溯。[验证与剩余边界](verification.md) 明确区分替身证据、真实安装/模型及内网验收。
 
 ## 原始诉求与已确认决定

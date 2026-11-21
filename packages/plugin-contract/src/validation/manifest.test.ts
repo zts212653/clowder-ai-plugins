@@ -82,3 +82,26 @@ test('returns the original caller-owned data only after full validation', () => 
     assert.equal(result.manifest, manifest);
   }
 });
+
+test('manifests reject host console declarations stored in console/pdl.yaml', () => {
+  const manifest = {
+    pluginId: 'example.console', version: '1.0.0', contractVersion: '0.1.0', name: 'Console',
+    features: [{ id: 'console', name: 'Console', resources: [] }],
+    runtime: { transport: 'builtin', entrypoint: 'dist/index.js' },
+  };
+  const pdl = {
+    ns: 'console', views: { page: { sources: { list: 'list' }, blocks: [] } },
+    requests: { list: { path: 'list' } },
+    components: { js: ["PDL_COMPONENTS['plugin:example.console/list'] = function (b, sc, root) { return ''; };"], css: [] },
+    replaces: { list: { use: 'plugin:example.console/list', props: ['from', 'row', 'empty'] } },
+  };
+  assert.equal(validateManifest(manifest).valid, true);
+  for (const consoleDeclaration of [pdl, {}]) {
+    const result = validateManifest({ ...manifest, pdl: consoleDeclaration });
+    assert.equal(result.valid, false);
+    if (!result.valid) {
+      assert.ok(result.errors.some(error =>
+        error.keyword === 'additionalProperties' && error.instancePath === ''));
+    }
+  }
+});

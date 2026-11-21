@@ -1,0 +1,15 @@
+plugin:
+  entries:
+    community: Community
+  panel:
+    desc: Community items and contribution records
+issueDraft:
+  title: Title
+  body: Body
+  create: Create draft
+  publish: Publish
+  published: Published
+  copy: Copy report
+chatCards:
+  field:
+    repo: Repository

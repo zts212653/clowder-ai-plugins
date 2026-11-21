@@ -3,22 +3,42 @@ import { z } from 'zod';
 import type { SuperagentHost } from './runtime.js';
 
 const id = z.string().trim().min(1).max(500);
-export const preferencesSchema = z
-  .object({
-    v: z.literal(1).default(1),
-    name: z.string().min(1).max(80).default('我的助手'),
-    enabled: z.boolean().default(false),
-    started: z.boolean().default(false),
-    coordinatorId: id.optional(),
-    workerIds: z.array(id).default([]),
-    threadIds: z.array(id).default([]),
-    responsibility: z.string().max(4000).default(''),
-  })
-  .strict();
-export type Preferences = z.infer<typeof preferencesSchema>;
+// Stored by the plugin; members and conversations are its configuration (scopeSchema).
+export const preferencesSchema = z.object({
+  v: z.literal(1).default(1),
+  name: z.string().min(1).max(80).default('我的助手'),
+  enabled: z.boolean().default(false),
+  started: z.boolean().default(false),
+  responsibility: z.string().max(4000).default(''),
+  // The scope earlier versions saved here; it still applies to each key the configuration leaves unset.
+  coordinatorId: id.optional(),
+  workerIds: z.array(id).optional(),
+  threadIds: z.array(id).optional(),
+});
+// A multiple member / thread configuration value is a JSON array string of ids (the saved scope is an array).
+const ids = z.preprocess((value) => (typeof value === 'string' ? JSON.parse(value) : (value ?? [])), z.array(id));
+const scopeSchema = z.object({ coordinatorId: id.optional(), workerIds: ids, threadIds: ids });
+export type Preferences = z.infer<typeof preferencesSchema> & z.infer<typeof scopeSchema>;
+export async function readPreferences(host: SuperagentHost): Promise<Preferences> {
+  const [row, coordinatorId, workerIds, threadIds] = await Promise.all([
+    host.storage.get('preferences'),
+    host.config.get('coordinatorId'),
+    host.config.get('workerIds'),
+    host.config.get('threadIds'),
+  ]);
+  const saved = preferencesSchema.parse(row?.value ?? {});
+  return {
+    ...saved,
+    ...scopeSchema.parse({
+      coordinatorId: coordinatorId ?? saved.coordinatorId,
+      workerIds: workerIds ?? saved.workerIds,
+      threadIds: threadIds ?? saved.threadIds,
+    }),
+  };
+}
 export async function editPreferences(
   host: SuperagentHost,
-  update: (value: Preferences) => Preferences,
+  update: (value: z.infer<typeof preferencesSchema>) => z.infer<typeof preferencesSchema>,
   current: () => Promise<void>,
 ) {
   for (let attempt = 0; attempt < 8; attempt++) {

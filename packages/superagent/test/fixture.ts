@@ -16,13 +16,11 @@ interface Fixture {
   subscriptions: Set<string>;
   history: Map<string, PluginThreadMessage[]>;
   messages: Map<string, PluginMessage>;
+  config: Map<string, string>;
   preferences: {
     v: number;
     enabled: boolean;
     name: string;
-    coordinatorId: string;
-    workerIds: string[];
-    threadIds: string[];
     responsibility: string;
   };
   seed: () => ReturnType<SuperagentHost['storage']['set']>;
@@ -52,24 +50,14 @@ export function fixture(): Fixture {
   const subscriptions = new Set<string>();
   const history = new Map<string, PluginThreadMessage[]>();
   const messages = new Map<string, PluginMessage>();
+  const config = new Map([
+    ['coordinatorId', 'coordinator'],
+    ['workerIds', '["worker"]'],
+    ['threadIds', '["source-a","source-b"]'],
+  ]);
   const host: SuperagentHost = {
     pluginInstanceId: 'installed-superagent',
-    config: { get: async () => undefined },
-    members: {
-      list: async () =>
-        ['coordinator', 'worker'].map((catId) => ({
-          catId,
-          displayName: catId,
-          defaultModel: 'test',
-          available: true,
-        })),
-      get: async (catId) => ({
-        catId,
-        displayName: catId,
-        defaultModel: 'test',
-        available: true,
-      }),
-    },
+    config: { get: async (key) => config.get(key) },
     log() {},
     storage: {
       get: async (key) => structuredClone(rows.get(key)),
@@ -191,9 +179,6 @@ export function fixture(): Fixture {
     v: 1,
     enabled: true,
     name: '我的助手',
-    coordinatorId: 'coordinator',
-    workerIds: ['worker'],
-    threadIds: ['source-a', 'source-b'],
     responsibility: 'Investigate, implement and verify entrusted sample work. Ask for decisions.',
   };
   const seed = () => host.storage.set('preferences', preferences);
@@ -213,6 +198,7 @@ export function fixture(): Fixture {
     subscriptions,
     history,
     messages,
+    config,
     preferences,
     seed,
     caller,

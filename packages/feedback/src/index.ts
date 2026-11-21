@@ -5,6 +5,14 @@ import { parseProfiles, record } from './config.js';
 import { sanitize } from './sanitize.js';
 import type { Host, OwnerContext } from './types.js';
 
+function json(status: number, payload: unknown) {
+  return {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+    body: JSON.stringify(payload ?? null),
+  };
+}
+
 /** Standard builtin module entrypoint; no native tool or anonymous publish surface is declared. */
 export default {
   create() {
@@ -19,10 +27,23 @@ export default {
         const html = await readFile(new URL('./panel.html', import.meta.url), 'utf8');
         return {
           actions: {
+            // The console reaches the panel through its webhook route: an HTTP request in, an HTTP response out.
             'feedback.panel': async (input: unknown, _native?: unknown, context?: OwnerContext) => {
               if (context?.kind !== 'owner-http-request' || context.pluginInstanceId !== host.pluginInstanceId) throw new Error('请通过左栏反馈入口打开面板');
               await context.assertCurrent();
               const request = record(record(input).request);
+              if (request.method === 'POST' && request.path === 'feedback/panel') {
+                try {
+                  const body = request.body;
+                  if (body && typeof body === 'object' && 'op' in body && body.op === 'open') return json(200, { html });
+                  return json(200, await service.dispatch(body, context));
+                } catch (error) {
+                  return json(400, {
+                    error: sanitize(error instanceof Error ? error.message : '反馈操作未完成').slice(0, 512),
+                    ...(error instanceof RevisionConflictError ? { code: error.code } : {}),
+                  });
+                }
+              }
               if (request.method !== 'GET' || request.path !== 'panel') throw new Error('面板资源仅支持声明的 GET 路由');
               return { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' }, body: html };
             },

@@ -413,6 +413,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.27",
+          "contractVersion": "0.3.2-candidate.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/collective-connector",
+            "version": "0.1.0-alpha.27",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.27.tgz",
+            "integrity": "sha512-yv9nfbQ3ZTfo0+aBOgVQd52sjcItpnBn6foo2E8D8NSNUIFs9MbH9pqTwQ0vRKzoOBBdD74TVpzE//wb6Uk0mQ==",
+            "shasum": "18f59d70fcbdd063f2f4bca00d36bd730c2f9e33",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/collective-connector"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.26",
           "contractVersion": "0.3.2-candidate.0",
           "manifestPath": "plugin.yaml",
@@ -749,16 +766,16 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.38",
+          "version": "0.1.0-alpha.41",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
             "kind": "npm",
             "packageName": "@clowder-ai/companion",
-            "version": "0.1.0-alpha.38",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/companion/-/companion-0.1.0-alpha.38.tgz",
-            "integrity": "sha512-Rfi8xNXa1eRvqCkeOiNmQHJAKIxTCAfnml5ggPu03h010w+M1QxsJ1hLutIxIMTYdhQLJWYiYfmYtH6yI0wh8w==",
-            "shasum": "6d8e3182e9eae01a43f4dd40baf450c51ad4a4b3",
+            "version": "0.1.0-alpha.41",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/companion/-/companion-0.1.0-alpha.41.tgz",
+            "integrity": "sha512-yOJJy8lotrZr4HZioxJSMHGo4oNwrhhH/hhyPR8b/nVuigRf3BTZJZCOqNhl5lYjJEGcaIgNSSZhChWwzaNIxw==",
+            "shasum": "e87ce3126305d8887da958e622f51e59804334b4",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/companion"
@@ -1183,6 +1200,23 @@
         "personal-chrome"
       ],
       "versions": [
+        {
+          "version": "0.1.0-alpha.11",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/personal-chrome-companion",
+            "version": "0.1.0-alpha.11",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/personal-chrome-companion/-/personal-chrome-companion-0.1.0-alpha.11.tgz",
+            "integrity": "sha512-baikQc5Yigho1S3QRUZl2slRp7cVBbKAV0goVlNLKOmGufLtRZlfhJdzorb1nwMVjhe0baL68hObxKW9xSQj0A==",
+            "shasum": "bf4e611efe2ccf3a282300fe10646484633ca8f7",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/personal-chrome-companion"
+            }
+          }
+        },
         {
           "version": "0.1.0-alpha.10",
           "contractVersion": "0.1.0",
@@ -2503,6 +2537,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.3",
+          "contractVersion": "0.4.0-candidate.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/feedback",
+            "version": "0.1.0-alpha.3",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/feedback/-/feedback-0.1.0-alpha.3.tgz",
+            "integrity": "sha512-OyPZksC5Y0K5tr/cwKhGX2SEmOzA0ABFZCQT2xkwyPFcLZp6O3mEATAmy1M62TrtGOV8m7RDu6flXiGa4g9uyw==",
+            "shasum": "12816e42a8db4077b7720efcf1a68b78c67df6d5",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/feedback"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.2",
           "contractVersion": "0.3.0",
           "manifestPath": "plugin.yaml",
@@ -2603,6 +2654,23 @@
         "schedule"
       ],
       "versions": [
+        {
+          "version": "0.1.0-alpha.47",
+          "contractVersion": "0.3.2-candidate.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/github-operations",
+            "version": "0.1.0-alpha.47",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.47.tgz",
+            "integrity": "sha512-hwcPXItrjtovQB+cu+iKY1MEHdEY/myZSRXcKNhOQ4PmgedNi8DwRnsbpmLMD1Wo+kH62P0vIWE38ofeQU915g==",
+            "shasum": "3eecade82ec5c699de285eb662153c4541db5e71",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/github-operations"
+            }
+          }
+        },
         {
           "version": "0.1.0-alpha.46",
           "contractVersion": "0.3.2-candidate.0",
@@ -2986,6 +3054,23 @@
         "快捷用语"
       ],
       "versions": [
+        {
+          "version": "0.1.0-alpha.4",
+          "contractVersion": "0.4.0-candidate.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/quick-phrases",
+            "version": "0.1.0-alpha.4",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/quick-phrases/-/quick-phrases-0.1.0-alpha.4.tgz",
+            "integrity": "sha512-WOcfPhjib4EGqVbuRlRxol1v5XSXlzTRjBjz9blmHl0YhEtbhfVxc/SQWMoXhj3JTafPZv+IhlPpiTvh8+rlRw==",
+            "shasum": "46438f66d090e7c99e36f464ff165537903293e4",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/quick-phrases"
+            }
+          }
+        },
         {
           "version": "0.1.0-alpha.3",
           "contractVersion": "0.3.0",
