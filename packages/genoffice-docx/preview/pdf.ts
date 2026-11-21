@@ -5,12 +5,11 @@
 import * as pdfjs from 'pdfjs-dist';
 import type { PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import { PreviewRenderError } from '../src/preview-errors';
+import { PDF_CANVAS_BYTES, pdfCanvasRatio, PREVIEW_IMAGE_PIXELS } from '../src/preview-limits';
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.25;
-const MAX_IMAGE_PIXELS = 50_000_000;
-const MAX_CANVAS_BYTES = 128 * 1024 * 1024;
 
 export async function mountPdfPreview(
   stage: HTMLElement,
@@ -34,8 +33,8 @@ export async function mountPdfPreview(
     useWorkerFetch: false,
     useWasm: false,
     stopAtErrors: true,
-    maxImageSize: MAX_IMAGE_PIXELS,
-    canvasMaxAreaInBytes: MAX_CANVAS_BYTES,
+    maxImageSize: PREVIEW_IMAGE_PIXELS,
+    canvasMaxAreaInBytes: PDF_CANVAS_BYTES,
     BinaryDataFactory: class {
       async fetch({ kind, filename }: { kind: string; filename: string }): Promise<Uint8Array> {
         if (!Object.hasOwn(resources, kind) || !Object.hasOwn(resources[kind]!, filename)) {
@@ -105,10 +104,8 @@ export async function mountPdfPreview(
     if (token !== renderToken) return;
     const scale = fitScale(page) * zoom;
     const viewport = page.getViewport({ scale });
-    const ratio = Math.min(2, window.devicePixelRatio || 1);
-    if (viewport.width * viewport.height * ratio * ratio * 4 > MAX_CANVAS_BYTES) {
-      throw new PreviewRenderError('preview_limit_exceeded');
-    }
+    const ratio = pdfCanvasRatio(viewport.width, viewport.height, window.devicePixelRatio);
+    canvas.style.removeProperty('display');
     canvas.width = Math.floor(viewport.width * ratio);
     canvas.height = Math.floor(viewport.height * ratio);
     canvas.style.width = `${viewport.width}px`;
@@ -152,6 +149,7 @@ export async function mountPdfPreview(
     const expected = renderToken;
     return request.catch((error: unknown) => {
       if (expected !== renderToken) return;
+      canvas.style.display = 'none';
       canvas.width = 0;
       canvas.height = 0;
       textLayer.replaceChildren();

@@ -52,7 +52,7 @@ await rm(appRoot, { recursive: true, force: true });
 await cp(join(packageRoot, 'preview'), join(appRoot, 'preview'), { recursive: true });
 // Mirror the package layout so `../src/preview-protocol` resolves inside the build tree.
 await mkdir(join(appRoot, 'src'), { recursive: true });
-for (const name of ['preview-protocol.ts', 'preview-errors.ts', 'preview-archive.ts']) {
+for (const name of ['preview-protocol.ts', 'preview-errors.ts', 'preview-archive.ts', 'preview-limits.ts']) {
   await copyFile(join(packageRoot, 'src', name), join(appRoot, 'src', name));
 }
 
@@ -68,6 +68,7 @@ run(process.execPath, [viteBin, 'build', '--config', 'vite.config.ts', '--base',
 
 await rm(rendererRoot, { recursive: true, force: true });
 await cp(join(appRoot, 'preview', 'dist'), rendererRoot, { recursive: true });
+await copyFile(join(sourceRoot, 'node_modules', 'image-size', 'LICENSE'), join(rendererRoot, 'image-size-LICENSE.txt'));
 // PDF.js can resolve page.render() after rejecting the image operator stream.
 // Record the budget rejection inside the same fake-worker module as the evaluator.
 const pdfWorker = await readFile(join(sourceRoot, 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.min.mjs'), 'utf8');

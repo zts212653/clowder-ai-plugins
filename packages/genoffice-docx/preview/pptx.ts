@@ -9,7 +9,13 @@ import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { openPptx } from '@genoffice/pptx-engine';
 import { buildRenderSlide, type RenderNode } from '@genoffice/pptx-render';
+import { BMP } from 'image-size/dist/types/bmp.js';
+import { GIF } from 'image-size/dist/types/gif.js';
+import { JPG } from 'image-size/dist/types/jpg.js';
+import { PNG } from 'image-size/dist/types/png.js';
+import { WEBP } from 'image-size/dist/types/webp.js';
 import { SlideThumb } from '../../slides/src/renderer/SlideThumb';
+import { assertPreviewImageSize } from '../src/preview-limits';
 import './pptx.css';
 
 const IMAGE_MIME: Readonly<Record<string, string>> = {
@@ -21,6 +27,7 @@ const IMAGE_MIME: Readonly<Record<string, string>> = {
   webp: 'image/webp',
   svg: 'image/svg+xml',
 };
+const rasterHeaders = [PNG, JPG, GIF, BMP, WEBP];
 
 function imageMime(ref: string): string | null {
   const ext = ref.slice(ref.lastIndexOf('.') + 1).toLowerCase();
@@ -66,12 +73,22 @@ async function decodeImages(urls: readonly string[]): Promise<Map<string, HTMLIm
 export async function mountPptxPreview(
   stage: HTMLElement,
   bytes: ArrayBuffer,
+  onRendered: (error?: unknown) => void,
 ): Promise<void> {
   const opened = await openPptx(new Uint8Array(bytes));
   const media = (ref: string): string | undefined => {
     const data = opened.archive.readBytes(ref);
     const mime = data ? imageMime(ref) : null;
-    return data && mime ? `data:${mime};base64,${toBase64(data)}` : undefined;
+    if (!data || !mime) return undefined;
+    // Read raster headers before creating a browser image or allocating a decoded bitmap.
+    const raster = rasterHeaders.find((parser) => parser.validate(data));
+    if (!raster && mime !== 'image/svg+xml') return undefined;
+    if (raster) {
+      const { width, height } = raster.calculate(data);
+      if (width === undefined || height === undefined) return undefined;
+      assertPreviewImageSize(width, height);
+    }
+    return `data:${mime};base64,${toBase64(data)}`;
   };
 
   if (opened.deck.slides.length === 0) throw new Error('preview_empty_presentation');
@@ -101,8 +118,7 @@ export async function mountPptxPreview(
   let current = 0;
   let zoom = 1;
   let revision = 0;
-  const render = async () => {
-    const expected = ++revision;
+  const render = async (expected: number) => {
     const width = Math.max(300, viewport.clientWidth - 24) * zoom;
     const source = opened.deck.slides[current]!;
     const slide = buildRenderSlide(source, opened.deck.size, { fitWidthPx: width, slideNo: current + 1, media });
@@ -111,28 +127,38 @@ export async function mountPptxPreview(
     collectImageUrls(slide.nodes, urls);
     const images = await decodeImages([...urls]);
     if (expected !== revision) return;
+    for (const image of images.values()) assertPreviewImageSize(image.naturalWidth, image.naturalHeight);
     root.render(createElement(SlideThumb, { slide, images, width }));
-    pageLabel.textContent = `${current + 1} / ${count}`;
     zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
-    prev.disabled = current === 0;
-    next.disabled = current + 1 === count;
     document.documentElement.dataset.previewPages = String(count);
     document.documentElement.dataset.previewPage = String(current + 1);
     document.documentElement.dataset.previewFormat = 'pptx';
+    onRendered();
   };
-  prev.onclick = () => { current = Math.max(0, current - 1); void render(); };
-  next.onclick = () => { current = Math.min(count - 1, current + 1); void render(); };
+  const renderCurrentSlide = () => {
+    const expected = ++revision;
+    prev.disabled = current === 0;
+    next.disabled = current + 1 === count;
+    pageLabel.textContent = `${current + 1} / ${count}`;
+    return render(expected).catch((error: unknown) => {
+      if (expected !== revision) return;
+      root.render(null);
+      onRendered(error);
+    });
+  };
+  prev.onclick = () => { current = Math.max(0, current - 1); void renderCurrentSlide(); };
+  next.onclick = () => { current = Math.min(count - 1, current + 1); void renderCurrentSlide(); };
   toolbar.querySelector<HTMLButtonElement>('[data-control=smaller]')!.onclick = () => {
     zoom = Math.max(1, zoom - 0.25);
-    void render();
+    void renderCurrentSlide();
   };
   toolbar.querySelector<HTMLButtonElement>('[data-control=larger]')!.onclick = () => {
     zoom = Math.min(3, zoom + 0.25);
-    void render();
+    void renderCurrentSlide();
   };
   await document.fonts.load('16px Carlito');
-  await render();
-  const observer = new ResizeObserver(() => void render());
+  await renderCurrentSlide();
+  const observer = new ResizeObserver(() => void renderCurrentSlide());
   observer.observe(stage);
   window.addEventListener('pagehide', () => {
     revision += 1;

@@ -46,8 +46,10 @@ startPreviewBridge({
         });
       } else {
         const { mountPptxPreview } = await import('./pptx');
-        await mountPptxPreview(stage, snapshot.bytes);
-        setStatus(snapshot.fileName);
+        await mountPptxPreview(stage, snapshot.bytes, (error) => {
+          if (error) showError(error);
+          else setStatus(snapshot.fileName);
+        });
       }
     })().catch(showError);
   },

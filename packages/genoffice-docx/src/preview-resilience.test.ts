@@ -2,8 +2,24 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readPreviewArchive } from './preview-archive.js';
 import { checkPreviewSignature, previewRenderError } from './preview-errors.js';
+import { assertPreviewImageSize, pdfCanvasRatio, PDF_CANVAS_BYTES } from './preview-limits.js';
 
 const bytes = (...values: number[]) => Uint8Array.of(...values);
+
+test('PDF zoom retains the viewport and reduces only the canvas density at DPR 2', () => {
+  assert.equal(pdfCanvasRatio(1100, 1556, 2), 2);
+  const width = 2475;
+  const height = 3501;
+  const ratio = pdfCanvasRatio(width, height, 2);
+  assert.ok(ratio >= 1 && ratio < 2);
+  assert.ok(Math.floor(width * ratio) * Math.floor(height * ratio) * 4 <= PDF_CANVAS_BYTES);
+  assert.throws(() => pdfCanvasRatio(7000, 7000, 1), { code: 'preview_limit_exceeded' });
+});
+
+test('the image pixel budget rejects larger dimensions before handing pixels to the browser', () => {
+  assert.doesNotThrow(() => assertPreviewImageSize(10_000, 5000));
+  assert.throws(() => assertPreviewImageSize(10_000, 5001), { code: 'preview_limit_exceeded' });
+});
 
 function entry(declared: number, chunks: Uint8Array[]) {
   let data: ((chunk: Uint8Array) => void) | undefined;
