@@ -80,7 +80,7 @@ if (!fontSection) throw new Error('upstream notice generator did not emit bundle
 for (const label of await bundledFontNoticeLabels(rendererRoot)) {
   if (!fontSection.includes(label)) throw new Error(`renderer font is missing its notice: ${label}`);
 }
-const noticePreamble = `GenOffice DOCX renderer — Third-Party Software Notices
+const noticePreamble = `GenOffice renderer — Third-Party Software Notices
 
 Generated from the exact GenOffice ${lock.tag} source with its frozen
 tools/gen-third-party-notices.mjs algorithm, scoped to renderer sources and
@@ -132,7 +132,7 @@ const sbom = {
   },
   packages: [
     {
-      name: 'GenOffice DOCX renderer',
+      name: 'GenOffice renderer',
       SPDXID: 'SPDXRef-Package-GenOffice-DOCX',
       versionInfo: lock.tag,
       downloadLocation: lock.archiveUrl,
@@ -269,8 +269,8 @@ async function discoverRendererSourceGlobs(root) {
       // A package without a readable manifest cannot join the renderer graph.
     }
   }
-  const seen = new Set(['apps/docs/src']);
-  const queue = ['apps/docs/src'];
+  const queue = ['apps/docs/src', 'apps/slides/src/renderer', 'apps/genoffice-preview-237/preview'];
+  const seen = new Set(queue);
   const specifier = /\b(?:from\s*|import\s*\(\s*|import\s+|require\s*\(\s*)['"]([^'"\n]+)['"]/g;
   while (queue.length > 0) {
     const sourceGlob = queue.shift();
