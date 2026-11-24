@@ -340,6 +340,17 @@
       "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
     },
     {
+      "pluginId": "official.companion.personal-chrome",
+      "version": "0.1.0-alpha.12",
+      "integrity": "sha512-o5KQEMWZCDSVZdF1gdyAkRbz7h0YllM4ni782AiTrIKeFnHw+ZPEj1MKdiwNOe0NQoVmfq1L/tjP6+b4v2NbRw==",
+      "disposition": "defer",
+      "owner": "codex62-sol",
+      "reviewBy": "2026-11-26T18:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/247",
+      "reason": "The matching Chrome extension and the Host must be available together before existing users can discover this candidate.",
+      "condition": "The paired Host with the PDL console (zts212653/clowder-ai#1982) is released, the exact archive and its matching Chrome extension are verified on it, and an existing bound conversation passes the real send-and-reply check."
+    },
+    {
       "pluginId": "official.feedback",
       "version": "0.1.0-alpha.3",
       "integrity": "sha512-OyPZksC5Y0K5tr/cwKhGX2SEmOzA0ABFZCQT2xkwyPFcLZp6O3mEATAmy1M62TrtGOV8m7RDu6flXiGa4g9uyw==",

@@ -553,10 +553,10 @@ export async function createNativeHostBridge(options) {
     const errorCode = safeErrorCode(message.errorCode) ? message.errorCode : 'NATIVE_DELIVERY_FAILED';
     await settle(
       key,
-      failureFor(message, errorCode, {
-        observedRevisions,
-        diagnostic: message.diagnostic,
-      }),
+      {
+        ...failureFor(message, errorCode, { observedRevisions, diagnostic: message.diagnostic }),
+        editorContext: message.editorContext,
+      },
     );
   }
 
