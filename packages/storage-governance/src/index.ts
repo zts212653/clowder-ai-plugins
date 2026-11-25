@@ -164,7 +164,10 @@ export default {
           return { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }, body };
         }
         return {
-          actions: { 'storage-governance.scan': action, 'storage-governance.panel': panel },
+          actions: {
+            'storage-governance.scan': action,
+            'storage-governance.panel': panel,
+          },
           stop() {
             controller.abort();
             scans.clear();
