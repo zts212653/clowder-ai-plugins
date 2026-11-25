@@ -1,2 +1,5 @@
 # Keep feedback publish inputs identical in Windows and CI checkouts.
 packages/feedback/** text=auto eol=lf
+
+# Vite preserves the preview HTML input bytes in the signed entrypoint.
+packages/genoffice-docx/preview/index.html text eol=lf
