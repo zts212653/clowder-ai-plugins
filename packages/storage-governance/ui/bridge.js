@@ -23,7 +23,7 @@
       var timer = setTimeout(function () {
         pending.delete(requestId);
         reject(new Error('操作超时。扫描可能仍在进行，请重新打开本页查看。'));
-      }, 65000);
+      }, 185000);
       pending.set(requestId, { resolve: resolve, reject: reject, timer: timer });
       parent.postMessage(
         {
