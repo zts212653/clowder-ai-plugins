@@ -71,6 +71,12 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
       candidates.push(filename.replace(/\.(?:jsonl(?:\.(?:zst|zstd))?|json)$/i, ''));
       const matches = filename.match(nativeRolloutId);
       if (matches) candidates.push(matches[0]);
+      // Kimi stores sessions as `session_<uuid>` directories while the chain may
+      // record only `<uuid>` (or the reverse). Match both spellings.
+      for (const candidate of candidates.slice()) {
+        if (candidate.startsWith('session_')) candidates.push(candidate.slice(8));
+        else if (candidate.length > 0) candidates.push('session_' + candidate);
+      }
       for (const candidate of candidates) {
         for (const id of native.get(candidate) ?? []) owners.add(id);
       }

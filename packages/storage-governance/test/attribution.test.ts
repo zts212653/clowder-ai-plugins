@@ -69,6 +69,34 @@ test('attributes Claude project files and DSH session directories', async (t) =>
   assert.equal(byThread.get('thread-dsh')?.category, 'native-session');
 });
 
+test('attributes Kimi session_ directories and Pi timestamped sessions', async (t) => {
+  const kimi = 'eeeeeeee-ffff-4aaa-8bbb-333333333333';
+  const pi = 'ffffffff-aaaa-4bbb-8ccc-444444444444';
+  const root = await fixture(t, {
+    [`kimi/sessions/wd_project/session_${kimi}/agents/main/wire.jsonl`]: 'kimi',
+    [`pi/sessions/--G--project--/2026-11-25T10-00-00-000Z_${pi}.jsonl`]: 'pi',
+  });
+  const result = await scan({
+    threads: [
+      { id: 'thread-kimi', title: 'Kimi' },
+      { id: 'thread-pi', title: 'Pi' },
+    ],
+    roots: [
+      { path: join(root, 'kimi/sessions'), category: 'native-session' },
+      { path: join(root, 'pi/sessions'), category: 'native-session' },
+    ],
+    files: [],
+    nativeSessions: [
+      { id: kimi, threadId: 'thread-kimi' },
+      { id: pi, threadId: 'thread-pi' },
+    ],
+    omissions: [],
+  });
+  const byThread = new Map(result.files.map((row) => [row.threadIds[0], row]));
+  assert.equal(byThread.get('thread-kimi')?.category, 'native-session');
+  assert.equal(byThread.get('thread-pi')?.category, 'native-session');
+});
+
 test('keeps an unregistered historical session as unassigned instead of inventing a thread', async (t) => {
   const root = await fixture(t, {
     'archived_sessions/rollout-2026-11-20T09-00-00-bbbbbbbb-cccc-4ddd-8eee-ffffffffffff.jsonl': 'old',
