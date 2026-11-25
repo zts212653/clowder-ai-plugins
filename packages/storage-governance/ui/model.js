@@ -47,7 +47,7 @@
     worktree: '工作树',
     plugin: '插件',
     host: 'Host',
-    unknown: '未知来源',
+    unknown: '未归属会话',
   };
   var RETAIN_LABELS = {
     protected: '受保护',
