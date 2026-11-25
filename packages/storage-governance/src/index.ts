@@ -11,7 +11,10 @@ interface OwnerContext {
 
 interface Host {
   pluginInstanceId: string;
-  conversationStorage?: { startRead(): Promise<Sources> };
+  conversationStorage?: {
+    startRead(): Promise<Sources>;
+    beginRead?(signal: AbortSignal): Promise<{ sources: Promise<Sources> }>;
+  };
 }
 
 type State =
@@ -48,17 +51,40 @@ export default {
           if (method === 'POST') {
             if (state?.state === 'running') return json(200, state);
             scans.set(owner.userId, { state: 'running' });
-            try {
-              const input = await sources.startRead();
-              void scanStorage(input, controller.signal)
-                .then(
-                  (result) => {
-                    if (!controller.signal.aborted) scans.set(owner.userId, { state: 'ready', result });
+            const finishScan = (input: Sources) => {
+              void scanStorage(input, controller.signal).then(
+                (result) => {
+                  if (!controller.signal.aborted) scans.set(owner.userId, { state: 'ready', result });
+                },
+                () => {
+                  if (!controller.signal.aborted) scans.set(owner.userId, { state: 'error', error: 'scan-failed' });
+                },
+              );
+            };
+            if (sources.beginRead) {
+              let accepted = false;
+              try {
+                const handle = await sources.beginRead(controller.signal);
+                accepted = true;
+                void handle.sources.then(
+                  (input) => {
+                    if (!controller.signal.aborted) finishScan(input);
                   },
                   () => {
-                    if (!controller.signal.aborted) scans.set(owner.userId, { state: 'error', error: 'scan-failed' });
+                    if (!controller.signal.aborted)
+                      scans.set(owner.userId, { state: 'error', error: 'sources-unavailable' });
                   },
                 );
+              } catch {
+                if (!controller.signal.aborted)
+                  scans.set(owner.userId, { state: 'error', error: 'sources-unavailable' });
+              }
+              // The handle is the contract: sources continue in the background and
+              // the page polls GET /scan. Never block the POST on source discovery.
+              return json(200, accepted ? { state: 'running' } : (scans.get(owner.userId) ?? { state: 'running' }));
+            }
+            try {
+              finishScan(await sources.startRead());
             } catch {
               scans.set(owner.userId, { state: 'error', error: 'sources-unavailable' });
             }
