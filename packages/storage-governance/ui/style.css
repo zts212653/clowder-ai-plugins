@@ -771,10 +771,8 @@ select {
 }
 
 .fold-path {
-  overflow: hidden;
   color: var(--ink);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .fold-detail {

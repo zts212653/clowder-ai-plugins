@@ -303,7 +303,7 @@
     var total = typeof summary.unscannedCount === 'number' ? summary.unscannedCount : summary.unscanned.length;
     var rows = summary.unscanned.map(function (root) {
       return el('div', { class: 'fold-row' }, [
-        el('div', { class: 'fold-path mono', text: root.path }),
+        el('div', { class: 'fold-path mono', title: root.path, text: root.path }),
         el('div', { class: 'fold-detail', text: root.reason }),
         el('div', {
           class: 'fold-side',
@@ -331,7 +331,7 @@
     var total = typeof summary.rootsCount === 'number' ? summary.rootsCount : summary.roots.length;
     var rows = summary.roots.map(function (root) {
       return el('div', { class: 'fold-row' }, [
-        el('div', { class: 'fold-path mono', text: root.path }),
+        el('div', { class: 'fold-path mono', title: root.path, text: root.path }),
         el('div', { class: 'fold-detail' }, [
           el('span', { class: 'tag', text: M.roleLabel(root.role) }),
           el('span', { class: 'fold-sep', text: '·' }),
