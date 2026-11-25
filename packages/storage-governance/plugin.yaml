@@ -20,8 +20,6 @@ features:
     contributions:
       - { type: webhook, id: storage-governance.page }
       - { type: webhook, id: storage-governance.scan }
-data:
-  - { name: storage-governance-inventory, dataClass: derived-user-visible, strategy: retained }
 runtime:
   transport: builtin
   entrypoint: dist/index.js

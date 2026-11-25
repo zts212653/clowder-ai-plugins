@@ -260,10 +260,7 @@ jobs:
         run: pnpm --filter @clowder-ai/quick-phrases build
 
       - name: Verify Storage Governance package
-        run: |
-          pnpm --filter @clowder-ai/storage-governance typecheck
-          pnpm --filter @clowder-ai/storage-governance build
-          pnpm --filter @clowder-ai/storage-governance test
+        run: pnpm --filter @clowder-ai/storage-governance typecheck && pnpm --filter @clowder-ai/storage-governance test
 
       - name: Build connector packages
         run: |
