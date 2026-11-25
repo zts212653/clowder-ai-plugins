@@ -3,7 +3,7 @@ version: 0.1.0-alpha.1
 contractVersion: 0.4.0-candidate.0
 name: 存储空间治理
 description:
-  default: 只读统计本机会话、作品、工作树与缓存占用的文件，按卷和类别展示容量、来源与漏扫原因。
+  default: 只读统计本机会话、作品、工作树、数据库与缓存占用的文件，按卷和类别展示容量、来源与漏扫原因。
   translations:
     en: Read-only inventory of files produced by sessions, works, worktrees and caches, grouped by volume, category and source.
 icon: { type: svg, src: assets/icon.svg }
