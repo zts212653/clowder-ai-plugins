@@ -483,12 +483,16 @@
     if (state.busy || state.phase === 'running') return;
     state.busy = true;
     state.notice = null;
+    state.phase = 'running';
+    state.active = syntheticProgress();
     render();
     try {
       var body = await request('POST', 'scan', {});
       applyBody(body);
     } catch (error) {
       state.busy = false;
+      state.active = null;
+      state.phase = state.summary ? 'ready' : 'idle';
       setNotice('danger', error instanceof Error ? error.message : String(error), {
         label: '重试',
         onClick: startScan,
