@@ -47,6 +47,7 @@
     worktree: '工作树',
     plugin: '插件',
     host: 'Host',
+    shared: '共享',
     unknown: '未归属会话',
   };
   var RETAIN_LABELS = {
@@ -131,7 +132,10 @@
 
   function sourceFor(row, threadsById) {
     var ids = Array.isArray(row.threadIds) ? row.threadIds : [];
-    if (ids.length === 0) return { kind: 'unknown' };
+    if (ids.length === 0) {
+      if (row.category === 'git' || row.category === 'database') return { kind: 'shared' };
+      return { kind: 'unknown' };
+    }
     var thread = threadsById && threadsById[ids[0]];
     var label = thread && thread.title ? thread.title : ids[0];
     if (ids.length > 1) label += ' +' + (ids.length - 1);
