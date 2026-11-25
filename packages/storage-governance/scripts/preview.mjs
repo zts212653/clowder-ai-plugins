@@ -25,14 +25,14 @@ const mock = `<script>
       return true;
     });
   }
-  function readyBody(url) {
-    var offset = Number(url.searchParams.get('offset') || '0');
-    var limit = Number(url.searchParams.get('limit') || '100');
+  function readyBody(query) {
+    var offset = Number(query.offset || '0');
+    var limit = Number(query.limit || '100');
     var body = {
-      volume: url.searchParams.get('volume') || '',
-      category: url.searchParams.get('category') || '',
-      threadId: url.searchParams.get('threadId') || '',
-      query: url.searchParams.get('query') || '',
+      volume: query.volume || '',
+      category: query.category || '',
+      threadId: query.threadId || '',
+      query: query.query || '',
     };
     var rows = selected(body);
     return Object.assign({}, data.report, {
@@ -40,6 +40,16 @@ const mock = `<script>
       total: rows.length,
       nextOffset: offset + limit < rows.length ? offset + limit : null,
     });
+  }
+  function queryFromUrl(url) {
+    return {
+      offset: url.searchParams.get('offset') || '0',
+      limit: url.searchParams.get('limit') || '100',
+      volume: url.searchParams.get('volume') || '',
+      category: url.searchParams.get('category') || '',
+      threadId: url.searchParams.get('threadId') || '',
+      query: url.searchParams.get('query') || '',
+    };
   }
   window.addEventListener('message', function (event) {
     if (event.source !== window) return;
@@ -50,19 +60,21 @@ const mock = `<script>
     var method = String(message.request.method || 'GET').toUpperCase();
     var path = String(message.request.path || 'scan');
     var url = new URL(path, 'http://preview.local/');
-    var body;
-    if (mode === 'empty') body = { state: 'idle' };
-    else if (mode === 'unavailable') body = { state: 'error', error: 'host-capability-unavailable' };
-    else if (mode === 'error') body = { state: 'error', error: 'scan-failed' };
-    else if (mode === 'scanning') body = { state: 'running' };
-    else if (method === 'POST') body = { state: 'running' };
-    else body = readyBody(url);
+    var body = message.request.body && message.request.body.query;
+    var reply;
+    if (mode === 'empty') reply = { state: 'idle' };
+    else if (mode === 'unavailable') reply = { state: 'error', error: 'host-capability-unavailable' };
+    else if (mode === 'error') reply = { state: 'error', error: 'scan-failed' };
+    else if (mode === 'scanning') reply = { state: 'running' };
+    else if (method === 'POST' && body) reply = readyBody(body);
+    else if (method === 'POST') reply = { state: 'running' };
+    else reply = readyBody(queryFromUrl(url));
     parent.postMessage(
       {
         channel: 'clowder-plugin-ui/v1',
         nonce: window.name,
         requestId: message.requestId,
-        result: { status: 200, body: body },
+        result: { status: 200, body: reply },
       },
       '*',
     );

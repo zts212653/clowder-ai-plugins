@@ -242,15 +242,24 @@ test('getRead ready results page through more than one hundred rows', async (t) 
     const readyBody = await waitForReady(active);
     assert.equal(readyBody.total, 250);
     assert.equal(getReadCalls, 1);
-    const first = bodyOf(await call(active, 'GET', { offset: '0', limit: '100' }));
+    const pageRequest = (body: Record<string, string>) =>
+      active.actions['storage-governance.scan'](
+        { request: { method: 'POST', path: 'scan', body: { query: body } } },
+        undefined,
+        owner,
+      );
+    const first = bodyOf(await pageRequest({ offset: '0', limit: '100' }));
     assert.equal((first.files as unknown[]).length, 100);
     assert.equal(first.nextOffset, 100);
-    const second = bodyOf(await call(active, 'GET', { offset: '100', limit: '100' }));
+    const second = bodyOf(await pageRequest({ offset: '100', limit: '100' }));
     assert.equal((second.files as unknown[]).length, 100);
     assert.equal(second.nextOffset, 200);
-    const last = bodyOf(await call(active, 'GET', { offset: '200', limit: '100' }));
+    const last = bodyOf(await pageRequest({ offset: '200', limit: '100' }));
     assert.equal((last.files as unknown[]).length, 50);
     assert.equal(last.nextOffset, undefined);
+    const directGet = bodyOf(await call(active, 'GET', { offset: '200', limit: '100' }));
+    assert.equal((directGet.files as unknown[]).length, 50);
+    assert.equal(directGet.nextOffset, undefined);
   } finally {
     active.stop();
   }

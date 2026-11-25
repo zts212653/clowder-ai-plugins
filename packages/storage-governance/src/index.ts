@@ -37,6 +37,32 @@ function json(status: number, payload: object) {
     body: JSON.stringify(payload) };
 }
 
+function pageOf(state: Extract<State, { state: 'ready' }>, raw: Record<string, unknown>) {
+  const str = (key: string) => (typeof raw[key] === 'string' ? raw[key].trim() : '');
+  const offset = Number(str('offset') || '0');
+  const limit = Number(str('limit') || '100');
+  if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 200)
+    return json(400, { error: 'invalid-page' });
+  const volume = str('volume').toUpperCase();
+  const threadId = str('threadId');
+  const category = str('category');
+  const term = str('query').toLowerCase();
+  const { files, omissions, ...report } = state.result;
+  const filtered = volume || threadId || category || term;
+  const matches = filtered
+    ? files.filter((row) => (!volume || row.volume.toUpperCase() === volume)
+      && (!threadId || (threadId === '__unknown__' ? !row.threadIds.length : row.threadIds.includes(threadId)))
+      && (!category || row.category === category)
+      && (!term || row.path.toLowerCase().includes(term)))
+    : files;
+  return json(200, {
+    state: 'ready', ...report, omissions: omissions.slice(0, 100), omissionCount: omissions.length,
+    ...(filtered ? { selection: summarize(matches) } : {}),
+    files: matches.slice(offset, offset + limit), total: matches.length,
+    ...(offset + limit < matches.length ? { nextOffset: offset + limit } : {}),
+  });
+}
+
 export default {
   create() {
     return {
@@ -72,6 +98,12 @@ export default {
           await owner.assertCurrent();
           const state = scans.get(owner.userId);
           if (!sources) return json(200, { state: 'error', error: 'host-capability-unavailable' });
+          const body = isRecord(input.request.body) ? input.request.body : {};
+          const postQuery = isRecord(body.query) ? body.query : undefined;
+          if (method === 'POST' && postQuery) {
+            if (state?.state !== 'ready') return json(200, state ?? { state: 'idle' });
+            return pageOf(state, postQuery);
+          }
 
           if (method === 'POST') {
             if (state?.state === 'running') return json(200, state);
@@ -131,30 +163,7 @@ export default {
           }
 
           if (state?.state !== 'ready') return json(200, state ?? { state: 'idle' });
-          const raw = isRecord(query) ? query : {};
-          const str = (key: string) => (typeof raw[key] === 'string' ? raw[key].trim() : '');
-          const offset = Number(str('offset') || '0');
-          const limit = Number(str('limit') || '100');
-          if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 200)
-            return json(400, { error: 'invalid-page' });
-          const volume = str('volume').toUpperCase();
-          const threadId = str('threadId');
-          const category = str('category');
-          const term = str('query').toLowerCase();
-          const { files, omissions, ...report } = state.result;
-          const filtered = volume || threadId || category || term;
-          const matches = filtered
-            ? files.filter((row) => (!volume || row.volume.toUpperCase() === volume)
-              && (!threadId || (threadId === '__unknown__' ? !row.threadIds.length : row.threadIds.includes(threadId)))
-              && (!category || row.category === category)
-              && (!term || row.path.toLowerCase().includes(term)))
-            : files;
-          return json(200, {
-            state: 'ready', ...report, omissions: omissions.slice(0, 100), omissionCount: omissions.length,
-            ...(filtered ? { selection: summarize(matches) } : {}),
-            files: matches.slice(offset, offset + limit), total: matches.length,
-            ...(offset + limit < matches.length ? { nextOffset: offset + limit } : {}),
-          });
+          return pageOf(state, isRecord(query) ? query : {});
         }
         async function panel(_input: unknown, _native?: unknown, owner?: OwnerContext) {
           if (owner?.kind !== 'owner-http-request' || owner.pluginInstanceId !== host.pluginInstanceId)

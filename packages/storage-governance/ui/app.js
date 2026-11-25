@@ -392,19 +392,20 @@
   }
 
   function queryFor(offset) {
-    var params = new URLSearchParams();
-    params.set('offset', String(offset));
-    params.set('limit', String(state.limit));
-    if (state.filters.query) params.set('query', state.filters.query);
-    if (state.filters.volume) params.set('volume', state.filters.volume);
-    if (state.filters.threadId) params.set('threadId', state.filters.threadId);
-    if (state.filters.category) params.set('category', state.filters.category);
-    return params.toString();
+    var query = { offset: String(offset), limit: String(state.limit) };
+    if (state.filters.query) query.query = state.filters.query;
+    if (state.filters.volume) query.volume = state.filters.volume;
+    if (state.filters.threadId) query.threadId = state.filters.threadId;
+    if (state.filters.category) query.category = state.filters.category;
+    return query;
   }
 
-  async function fetchScan(offset) {
-    var query = offset === undefined ? '' : '?' + queryFor(offset);
-    return request('GET', 'scan' + query);
+  function fetchState() {
+    return request('GET', 'scan');
+  }
+
+  function fetchPage(offset) {
+    return request('POST', 'scan', { query: queryFor(offset) });
   }
 
   function applyBody(body) {
@@ -468,7 +469,8 @@
     if (!state.summary) state.phase = 'loading';
     render();
     try {
-      applyBody(await fetchScan(0));
+      applyBody(await fetchState());
+      if (state.phase === 'ready') applyBody(await fetchPage(0));
     } catch (error) {
       state.phase = state.summary ? 'ready' : 'error';
       state.error = error instanceof Error ? error.message : String(error);
@@ -508,7 +510,7 @@
   async function poll() {
     if (state.phase !== 'running') return;
     try {
-      var body = await fetchScan(0);
+      var body = await fetchState();
       if (body.state === 'running') {
         state.active = syntheticProgress();
         render();
@@ -516,17 +518,7 @@
         return;
       }
       if (body.state === 'ready') {
-        var wasRunning = true;
-        state.report = body;
-        state.summary = mapSummary(body);
-        state.page = mapPage(body);
-        state.offset = 0;
-        state.active = null;
-        state.phase = 'ready';
-        state.busy = false;
-        state.filesLoading = false;
-        render();
-        if (wasRunning) setNotice('ok', '扫描完成。');
+        applyBody(await fetchPage(0));
         return;
       }
       applyBody(body);
@@ -543,7 +535,7 @@
     state.filesLoading = true;
     render();
     try {
-      var body = await fetchScan(state.offset);
+      var body = await fetchPage(state.offset);
       if (seq !== state.requestSeq) return;
       if (body.state === 'running') {
         applyBody(body);

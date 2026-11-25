@@ -8,20 +8,15 @@ inserts:
       icon: box
       open:
         node: storageGovernance.page
-        as: float
-popups:
-  storageGovernance:
-    at: trigger
-    exit:
-      - x
-      - esc
-    drag: true
+        anchor: shell
+        as: cover
+        backLabel: true
 views:
   storageGovernance.page:
-    type: frame
-    html:
-      request: page
-    popup: storageGovernance
+    blocks:
+      - type: frame
+        html:
+          request: page
     title: t:storageGovernance.title
     loading: t:storageGovernance.loading
     error: t:storageGovernance.error
