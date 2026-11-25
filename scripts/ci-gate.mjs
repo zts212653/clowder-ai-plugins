@@ -75,6 +75,7 @@ export function buildGateSteps() {
     { name: 'Superagent package gates', command: chain('@clowder-ai/superagent', ['typecheck', 'test', 'build']) },
     { name: 'Feedback package', command: chain('@clowder-ai/feedback', ['typecheck', 'build', 'test', 'lint']) },
     { name: 'Quick phrases package', command: chain('@clowder-ai/quick-phrases', ['typecheck', 'build', 'test']) },
+    { name: 'Storage Governance package', command: chain('@clowder-ai/storage-governance', ['typecheck', 'build', 'test']) },
     {
       name: 'Music module and installed native entrypoint',
       command: chain('@clowder-ai/music-generation', ['build', 'typecheck', 'test', 'test:installed']),

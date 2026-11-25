@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>存储空间治理</title>
+  <style>{{STYLE}}</style>
+</head>
+<body>
+  <main class="page" id="app">
+    <header class="page-head">
+      <div class="head-copy">
+        <div class="eyebrow">只读视图</div>
+        <h1 class="page-title">存储空间治理</h1>
+        <p class="page-sub">统计 Host 登记的会话、附件、作品、工作树、数据库与缓存占用。扫描只读，不移动、不删除任何文件。</p>
+      </div>
+      <div class="head-actions">
+        <span class="scan-meta" id="scan-meta" aria-live="polite"></span>
+        <button class="btn primary" id="scan-btn" type="button">开始扫描</button>
+      </div>
+    </header>
+
+    <div id="notice" class="notice-slot" aria-live="polite"></div>
+    <div id="progress" class="progress-slot"></div>
+    <div id="empty" class="empty-slot" hidden></div>
+
+    <div id="data" class="data" hidden>
+      <div id="totals"></div>
+
+      <section class="section" aria-labelledby="volumes-title">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title" id="volumes-title">卷</h2>
+            <p class="section-note">卷容量来自文件系统；本应用占用来自这次扫描。</p>
+          </div>
+        </div>
+        <div id="volumes"></div>
+      </section>
+
+      <section class="section" id="categories-section" aria-labelledby="categories-title">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title" id="categories-title">类别</h2>
+            <p class="section-note">逻辑大小、已分配空间和可回收估算分开计算；未知不按 0 处理。</p>
+          </div>
+        </div>
+        <div id="categories"></div>
+      </section>
+
+      <section class="section" id="files-section" aria-labelledby="files-title">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title" id="files-title">文件</h2>
+            <p class="section-note" id="result-count"></p>
+          </div>
+        </div>
+        <div class="toolbar">
+          <label class="sr-only" for="file-search">搜索路径或来源</label>
+          <input class="input search" id="file-search" type="search" placeholder="搜索路径" autocomplete="off" spellcheck="false">
+          <label class="sr-only" for="filter-volume">按卷筛选</label>
+          <select class="input select" id="filter-volume" aria-label="按卷筛选"></select>
+          <label class="sr-only" for="filter-thread">按来源筛选</label>
+          <select class="input select wide-select" id="filter-thread" aria-label="按来源筛选"></select>
+          <label class="sr-only" for="filter-category">按类别筛选</label>
+          <select class="input select" id="filter-category" aria-label="按类别筛选"></select>
+          <button class="btn ghost" id="clear-filters" type="button" hidden>清除筛选</button>
+        </div>
+        <div id="files-table"></div>
+        <div id="pager" class="pager"></div>
+      </section>
+
+      <div id="unscanned" class="fold-slot"></div>
+
+      <section class="section scope-section" id="scope-section" aria-labelledby="scope-title">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title" id="scope-title">扫描范围</h2>
+            <p class="section-note">只统计 Host 登记的根，不做全盘扫描。</p>
+          </div>
+        </div>
+        <div id="scope" class="fold-slot"></div>
+        <p class="scope-note" id="scope-note" hidden>硬链接按卷和文件身份去重；稀疏、压缩和写时复制共享块可能使已分配空间低于逻辑大小。</p>
+      </section>
+    </div>
+
+    <footer class="page-foot">
+      <span>扫描只读 · 不移动、不删除文件 · 硬链接按文件身份去重</span>
+      <span>逻辑大小是文件长度；已分配空间按卷统计；可回收估算只计可重建数据。</span>
+    </footer>
+  </main>
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-label="文件详情" hidden></aside>
+  {{SCRIPTS}}
+</body>
+</html>

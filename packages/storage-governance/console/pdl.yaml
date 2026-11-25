@@ -1,0 +1,25 @@
+ns: storageGovernance
+inserts:
+  - id: storage-governance
+    anchor: nav.cafe
+    at: inside
+    node:
+      title: t:storageGovernance.entry
+      icon: box
+      open:
+        node: storageGovernance.page
+        anchor: shell
+        as: cover
+        backLabel: true
+views:
+  storageGovernance.page:
+    type: frame
+    route: plug-storage-governance
+    html:
+      request: page
+    title: t:storageGovernance.title
+    loading: t:storageGovernance.loading
+    error: t:storageGovernance.error
+requests:
+  page:
+    path: panel
