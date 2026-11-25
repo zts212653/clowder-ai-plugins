@@ -190,7 +190,7 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
     files,
     volumes,
     categories: [...categories].map(([category, items]) => {
-      const usage = summarize(items);
+      const usage = summarize(items.filter((row) => !row.duplicateOf));
       return { category,
         fileCount: items.length,
         uniqueFiles: usage.reduce((total, row) => total + row.uniqueFiles, 0),

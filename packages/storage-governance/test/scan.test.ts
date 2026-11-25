@@ -34,6 +34,7 @@ test('counts a shared file once while preserving paths, session references, and 
   assert.equal(result.volumes[0].fileCount, 2);
   assert.equal(result.volumes[0].uniqueFiles, 1);
   assert.equal(result.volumes[0].logicalBytes, 9);
+  assert.equal(result.categories.reduce((sum, item) => sum + item.logicalBytes, 0), 9);
   const row = result.files.find((row) => row.path === file);
   assert.deepEqual(row?.threadIds, ['also', 'one']);
   assert.equal(row?.category, 'transcript');
