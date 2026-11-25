@@ -66,6 +66,7 @@
     'size-out-of-range': '大小超出可统计范围',
     'worktree-unavailable': '工作树标记缺失或不可用',
     'temp-directory-unavailable': '临时目录不可读',
+    'work-attribution-unavailable': '作品归属暂不可用，已计入共享或未归属',
   };
   var CATEGORY_RETENTION = {
     transcript: 'protected',
