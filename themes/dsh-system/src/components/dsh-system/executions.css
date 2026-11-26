@@ -1,0 +1,7 @@
+
+.dsh-home-live { width: 100%; min-width: 0; }
+.dsh-home-live .lr-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.dsh-home-live .lr-ctls { flex-wrap: wrap; }

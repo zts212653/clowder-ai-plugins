@@ -1,0 +1,2 @@
+# Preserve the exact bytes of the source shipped in the importable theme ZIP.
+src/** -text whitespace=trailing-space,space-before-tab,cr-at-eol

@@ -1,0 +1,118 @@
+.nav:has(#cafe-nav-scroll) > .nav-head {
+  min-height: 54px;
+  font-weight: 650;
+}
+
+#cafe-nav-scroll .dsh-shortcuts {
+  display: grid;
+  gap: 2px;
+  padding-block: 0 10px;
+}
+
+#cafe-nav-scroll .dsh-shortcuts [data-entry="home"],
+#cafe-nav-scroll .dsh-shortcuts [data-act="homeOpen"] {
+  display: flex;
+  justify-content: center;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-raised);
+  font-weight: 600;
+}
+
+#cafe-nav-scroll .dsh-shortcuts .nav-item:not([data-entry="home"]) { min-height: 34px; }
+#cafe-nav-scroll .dsh-shortcuts [data-entry="home"] { grid-row: 1; }
+#cafe-nav-scroll .dsh-shortcuts :is([data-entry="works"], [data-page="works"]) { grid-row: 2; }
+#cafe-nav-scroll .dsh-shortcuts > .pdl-slot { display: contents; }
+
+#cafe-nav-scroll .dsh-workspace-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 42px;
+  padding-inline: 8px 2px;
+  color: var(--fg-muted);
+}
+.dsh-workspace-label > span:first-child { margin-inline-end: auto; }
+
+#cafe-nav-scroll .gsec-h { --row-h-1: 34px; }
+#cafe-nav-scroll .gsec-h .lr-head { min-height: 34px; }
+#cafe-nav-scroll .cafe-trow {
+  --row-h-1: 34px;
+  --row-h: 48px;
+  --dsh-pin-width: 26px;
+  --dsh-thread-line-height: 18px;
+}
+
+#cafe-nav-scroll .cafe-trow > .lr-head {
+  min-height: 34px;
+  padding-inline-start: 30px;
+  padding-inline-end: var(--dsh-pin-width);
+  font-size: 13px;
+  line-height: var(--dsh-thread-line-height);
+}
+#cafe-nav-scroll .cafe-trow > .lr-head:focus-visible,
+#cafe-nav-scroll .gsec-h [tabindex]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  border-radius: 7px;
+}
+
+#cafe-nav-scroll .cafe-trow .lr-sub { font-size: 11px; line-height: 16px; }
+#cafe-nav-scroll .cafe-trow > .lr-head > .lr-aside { align-items: center; }
+#cafe-nav-scroll .cafe-trow .lr-aside-t { font-size: 11px; line-height: var(--dsh-thread-line-height); }
+#cafe-nav-scroll .cafe-trow .lr-pre {
+  inset: 50% 1px auto auto;
+  transform: translateY(-50%);
+  width: var(--dsh-pin-width);
+}
+#cafe-nav-scroll .cafe-trow:not(.pinned, :hover, :focus-within, .tap-on) .lr-pin {
+  opacity: 0;
+  pointer-events: none;
+}
+#cafe-nav-scroll .cafe-trow .lr-pin { min-width: 24px; min-height: 24px; color: var(--fg-muted); }
+#cafe-nav-scroll .cafe-trow .lr-pin .ic { width: 14px; height: 14px; }
+#cafe-nav-scroll .cafe-trow .lr-pin[aria-pressed="true"] .ic { fill: currentColor; }
+
+#cafe-nav-scroll .cafe-trow .lr-aside > .lr-acts.swap {
+  inset-block-start: 50%;
+  height: auto;
+  transform: translateY(-50%);
+  flex-direction: row-reverse;
+  padding-block-start: 0;
+  visibility: visible;
+  opacity: 0;
+  pointer-events: none;
+}
+#cafe-nav-scroll .cafe-trow .lr-acts.swap > .btn-icon { height: 24px; }
+#cafe-nav-scroll .cafe-trow:is(:hover, :focus-within, .tap-on) .lr-aside > .lr-acts.swap,
+body:has([data-pop="menu"]) #cafe-nav-scroll .cafe-trow .lr-acts.swap:has(:focus) {
+  opacity: 1;
+  pointer-events: auto;
+}
+#cafe-nav-scroll .cafe-trow .lr-acts.swap { transition: none; }
+
+.dsh-thread-status {
+  position: absolute;
+  inset-inline-start: 11px;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  pointer-events: none;
+}
+.dsh-thread-status[data-dsh-status="running"] {
+  inset-inline-start: 8px;
+  width: 13px;
+  height: 13px;
+  background: none;
+  border: 1.5px solid var(--line-strong);
+  border-inline-start-color: var(--fg-muted);
+  animation: mo-spin 1s linear infinite;
+}
+:root[data-motion="reduce"] .dsh-thread-status { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .dsh-thread-status { animation: none !important; }
+}

@@ -1,0 +1,75 @@
+.dsh-queue-stack {
+  width: 100%;
+  max-width: calc(var(--dsh-reading-width) + 2 * var(--dsh-composer-overhang));
+  margin-inline: auto;
+}
+.dsh-queue-stack > .lanes {
+  grid-template-columns: minmax(0, 1fr);
+  padding-inline: var(--sp-m);
+}
+.dsh-queue-stack > .lanes .lane { translate: none; }
+.dsh-queue-dock {
+  margin: 0 min(var(--dsh-composer-overhang), 16px) 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-nav);
+}
+.dsh-queue-dock .qlist {
+  max-height: min(180px, 24vh);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.dsh-queue-dock .qitem + .qitem { border-block-start: 1px solid var(--line); }
+.dsh-queue-dock .qitem > .lr-head { min-height: 36px; padding-inline: 8px; }
+.dsh-queue-dock .qitem .lr-main { padding-inline-end: 0; }
+.dsh-queue-dock .qitem .lr-acts {
+  position: static;
+  transform: none;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transition: none;
+}
+.dsh-queue-dock .qitem .lr-acts > .btn-icon { width: 28px; height: 28px; }
+.dsh-queue-dock .dsh-queue-attachments {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 55%;
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+.dsh-queue-dock .dsh-queue-attachments img {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--bg-field);
+}
+.dsh-queue-dock .dsh-queue-file {
+  min-width: 0;
+  max-width: 180px;
+  overflow: hidden;
+  padding-inline: 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dsh-queue-toggle {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 32px;
+  padding-inline: 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.dsh-queue-toggle:is(:hover, :focus-visible) { background: var(--bg-hover); }
+.dsh-queue-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }

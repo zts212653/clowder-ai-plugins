@@ -1,0 +1,159 @@
+
+.chat[data-ocontainer="main.chat"] {
+  --dsh-reading-width: clamp(680px, 64%, 920px);
+  --dsh-reading-gutter: 44px;
+  --dsh-composer-overhang: 16px;
+}
+.chat[data-ocontainer="main.chat"] > #stream {
+  container-type: inline-size;
+  scrollbar-gutter: stable both-edges;
+}
+.chat[data-ocontainer="main.chat"] > #stream > .stream-inner {
+  /* Long replies should follow the reading column instead of the default ten-column cap. */
+  --span-10: 100%;
+  box-sizing: border-box;
+  width: min(var(--dsh-reading-width), calc(100% - 2 * var(--dsh-reading-gutter)));
+  margin-inline: auto;
+  padding-inline: 0;
+}
+.chat[data-ocontainer="main.chat"] > .composer-wrap {
+  padding-inline: var(--dsh-reading-gutter);
+}
+.chat[data-ocontainer="main.chat"] > .composer-wrap .composer {
+  max-width: calc(var(--dsh-reading-width) + 2 * var(--dsh-composer-overhang));
+}
+.chat[data-ocontainer="main.chat"] > #stream .cat-bubble {
+  border-left: 0;
+  padding-inline-start: 0;
+}
+.chat[data-ocontainer="main.chat"] > #stream .cat-bubble::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: -8px;
+  width: 3px;
+  background: var(--c, var(--identity-fallback));
+  pointer-events: none;
+}
+.chat[data-ocontainer="main.chat"] > #stream .user-msg {
+  max-width: 70.2%;
+}
+.chat[data-ocontainer="main.chat"] > #stream .user-msg > .cafe-acts.mine {
+  left: auto;
+  right: 0;
+}
+.dsh-wide-table {
+  position: relative;
+  z-index: 2;
+  width: calc(100% + max(0px, (100cqi - 100%) / 2 - var(--dsh-reading-gutter)));
+  overflow-x: auto;
+  margin-block-end: var(--sp-m);
+}
+.dsh-wide-table > table { margin-block-end: 0; }
+.dsh-wide-table th { min-inline-size: 8rem; }
+.dsh-wide-table:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+[data-fold="middle"][data-foldable="1"][data-open="false"] .dsh-wide-table { interactivity: inert; }
+:is(.composer-wrap, .vw-hero, .vw-dock) .composer { border: 1px solid var(--line-strong); }
+:is(.composer-wrap, .vw-hero, .vw-dock) .composer:focus-within { border-color: var(--focus); }
+.composer > .toolbar:has(> #home-title) {
+  padding-block-end: var(--sp-xs);
+  border-block-end: 1px solid var(--line);
+}
+.composer .send:enabled { background: var(--switch-on); color: var(--fg-on-accent); }
+.pop [data-act="popPage"][data-v="browse"] {
+  margin-block-start: var(--sp-xs);
+  border-block-start: 1px solid var(--line);
+}
+.pop:has(#pp-path) .vw-label.below { overflow-wrap: anywhere; }
+
+/* The new-conversation composer lives in the hero, or in the dock during a preview. */
+.vw-hero:has(#home-title) {
+  max-width: 1000px;
+  padding-inline: clamp(12px, 2vw, 24px);
+}
+.vw-dock:has(#home-title) {
+  width: min(calc(anchor-size(inline) - 2 * clamp(12px, 2vw, 24px)), 952px);
+}
+.composer:has(#home-title) {
+  max-width: 952px;
+  container-type: inline-size;
+}
+.composer:has(#home-title) > .cells-row {
+  column-gap: var(--sp-xs);
+  flex-wrap: nowrap;
+}
+.composer:has(#home-title) > .cells-row:has([data-ckey="bar.git"], [data-ckey="bar.index"]) {
+  flex-wrap: wrap;
+}
+.composer:has(#home-title) :is([data-ckey="bar.proj"], [data-ckey="bar.target"]) > .target {
+  min-inline-size: 52px;
+}
+.composer:has(#home-title) .target { white-space: nowrap; }
+.composer:has(#home-title) [data-ckey="bar.pin"] > .target { flex-shrink: 0; }
+.composer:has(#home-title) .target > :is(.hide-sm, .auto-tag) {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.composer:has(#home-title) .target > :is(.ic, .avatar) { flex-shrink: 0; }
+@container (max-width: 480px) {
+  .composer:has(#home-title) > .cells-row:has([data-ckey="bar.git"], [data-ckey="bar.index"])::after {
+    content: '';
+    order: 1;
+    flex-basis: 100%;
+  }
+  .composer:has(#home-title) > .cells-row > :is([data-ckey="bar.git"], [data-ckey="bar.index"]) {
+    display: inline-flex;
+    order: 2;
+  }
+  .composer:has(#home-title) > .cells-row:has([data-ckey="bar.git"], [data-ckey="bar.index"]) .target:not([role="checkbox"]) {
+    max-inline-size: 24%;
+  }
+}
+@container (max-width: 360px) {
+  .composer:has(#home-title) .target { padding-inline: var(--sp-xs); }
+  /* Keep the complete action name in the accessibility tree. */
+  .composer:has(#home-title) .target > :is(.hide-sm, .cafe-ellip, .auto-tag) {
+    display: block;
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+@media (max-width: 960px) {
+  .chat[data-ocontainer="main.chat"] { --dsh-reading-gutter: 20px; }
+}
+@media (max-width: 520px) {
+  .chat[data-ocontainer="main.chat"] { --dsh-reading-gutter: 12px; }
+}
+
+[data-dsh-width-handle] {
+  position: absolute;
+  top: var(--row-h);
+  bottom: var(--row-h);
+  z-index: 1;
+  width: 22px;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  border-radius: 6px;
+}
+[data-dsh-width-handle="left"] { right: calc(50% + var(--dsh-reading-width) / 2 + var(--dsh-composer-overhang) + 2px); }
+[data-dsh-width-handle="right"] { left: calc(50% + var(--dsh-reading-width) / 2 + var(--dsh-composer-overhang) + 2px); }
+[data-dsh-width-handle]::after {
+  content: '';
+  position: absolute;
+  top: clamp(17px, var(--dsh-width-marker-y, 50%), calc(100% - 17px));
+  left: 50%;
+  width: 3px;
+  height: 30px;
+  translate: -50% -50%;
+  border-radius: 2px;
+  opacity: 0.58;
+  pointer-events: none;
+  background: var(--fg-muted);
+}
+[data-dsh-width-handle]:is(:hover, :focus-visible, [data-dragging])::after { opacity: 1; }
+[data-dsh-width-handle]:focus-visible { outline: 2px solid var(--focus); }

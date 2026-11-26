@@ -1,0 +1,149 @@
+id: dsh-system
+name: DSH Workbench · 系统底包
+version: "0.2.19"
+contractVersion: 0.4.0
+uses: [dsh-system]
+pdl:
+  layout:
+    background:
+      image: none
+      veil: 100
+  tokens:
+    base:
+      # 主操作：DSH 的按钮是近黑，不是彩色
+      --shade: "#0f1115"
+      --accent: "#0f1115"
+      --accent-hover: "#292929"
+      --accent-fg: "#4176e6"
+      --accent-soft: "#edf3fe"
+      --focus: "#4176e6"
+      --switch-on: "#4176e6"
+      --fg-on-accent: "#ffffff"
+      # 表面：rail < nav < page=group=raised
+      --bg-rail: "#f4f5f7"
+      --bg-nav: "#f9fafb"
+      --bg-page: "#ffffff"
+      --bg-group: "#ffffff"
+      --bg-raised: "#ffffff"
+      --bg-bubble: "#edf3fe"
+      --bg-field: "#f5f7fa"
+      --bg-hover: "rgba(15, 17, 21, 0.04)"
+      --bg-selected: "rgba(15, 17, 21, 0.07)"
+      --bg-code: "#f9fafb"
+      # 文字
+      --fg-strong: "#0f1115"
+      --fg: "#3c3c3d"
+      --fg-muted: "#61666b"
+      --fg-faint: "#81858c"
+      --fg-disabled: "#adb2b8"
+      --fg-muted-glass: "#3c3c3d"
+      --fg-faint-glass: "#61666b"
+      --fg-disabled-glass: "#81858c"
+      # 状态色取 DSH 静态色板
+      --ok: "#22c55e"
+      --warn: "#f59e0b"
+      --danger: "#ef4444"
+      --info: "#3b82f6"
+      --warn-soft: "#fef5e7"
+      --danger-soft: "#fef2f2"
+      # 成员身份色：DSH 的紫/蓝/绿/青/琥珀/粉
+      --name-1: "#7c3aed"
+      --name-2: "#2563eb"
+      --name-3: "#16a34a"
+      --name-4: "#0d9488"
+      --name-5: "#d97706"
+      --name-6: "#db2777"
+      --tint-1: "#ede9fe"
+      --tint-2: "#dbeafe"
+      --tint-3: "#dcfce7"
+      --tint-4: "#ccfbf1"
+      --tint-5: "#fef3c7"
+      --tint-6: "#fce7f3"
+      # 发丝线与叠加层：DSH border l1/l2/l3/l4 = 4% / 10% / 12% / 16%
+      --line: "rgba(15, 17, 21, 0.10)"
+      --line-strong: "rgba(15, 17, 21, 0.16)"
+      --d-hover: 4%
+      --d-selected: 8%
+      --d-inset: 5%
+      --d-code: 5%
+      --d-line: 8%
+      --d-line-strong: 14%
+      # 阴影：DSH 的 elevation 很轻，靠描边而不是重投影
+      --shadow-raised: "0 4px 12px rgba(15, 17, 21, 0.04), 0 1px 3px rgba(15, 17, 21, 0.03)"
+      --shadow-float: "0 0 0 1px rgba(15, 17, 21, 0.08), 0 4px 12px rgba(15, 17, 21, 0.05), 0 12px 32px rgba(15, 17, 21, 0.08)"
+      --shadow-dock: "0 6px 24px rgba(15, 17, 21, 0.06), 0 1px 3px rgba(15, 17, 21, 0.04)"
+      --glass-rail: "rgba(244, 245, 247, 0.90)"
+      --glass-nav: "rgba(249, 250, 251, 0.92)"
+      --glass-panel: "rgba(249, 250, 251, 0.94)"
+      --glass-raised: "rgba(255, 255, 255, 0.96)"
+      --glass-group: "rgba(255, 255, 255, 0.92)"
+      --glass-secondary: "rgba(255, 255, 255, 0.90)"
+      --glass-head: "rgba(255, 255, 255, 0.90)"
+      --term-bg: "#151517"
+      --term-fg: "#f9fafb"
+      --term-dim: "#adb2b8"
+    dark:
+      color-scheme: dark
+      # DSH 暗色：页面最深，侧栏比页面亮一档
+      --shade: "#000000"
+      --accent: "#f9fafb"
+      --accent-hover: "#ffffff"
+      --accent-fg: "#7aaaff"
+      --accent-soft: "#263148"
+      --focus: "#5686fe"
+      --switch-on: "#5686fe"
+      --fg-on-accent: "#0f1115"
+      --bg-rail: "#101012"
+      --bg-nav: "#1b1b1c"
+      --bg-page: "#151517"
+      --bg-group: "#232324"
+      --bg-raised: "#2c2c2e"
+      --bg-bubble: "#2c2c2e"
+      --bg-field: "#232324"
+      --bg-hover: "rgba(255, 255, 255, 0.06)"
+      --bg-selected: "rgba(255, 255, 255, 0.10)"
+      --bg-code: "#1b1b1c"
+      --fg-strong: "#f9fafb"
+      --fg: "#cfd3d6"
+      --fg-muted: "#adb2b8"
+      --fg-faint: "#81858c"
+      --fg-disabled: "#61666b"
+      --fg-muted-glass: "#cfd3d6"
+      --fg-faint-glass: "#adb2b8"
+      --fg-disabled-glass: "#81858c"
+      --ok: "#22c55e"
+      --warn: "#f59e0b"
+      --danger: "#f25a5a"
+      --info: "#60a5fa"
+      --warn-soft: "#27241f"
+      --danger-soft: "#3a1f1d"
+      --name-1: "#a78bfa"
+      --name-2: "#60a5fa"
+      --name-3: "#4ed17e"
+      --name-4: "#2dd4bf"
+      --name-5: "#f7ad31"
+      --name-6: "#f472b6"
+      --tint-1: "#2b2440"
+      --tint-2: "#1e2f4a"
+      --tint-3: "#1f3a2b"
+      --tint-4: "#173a38"
+      --tint-5: "#3a2f1a"
+      --tint-6: "#3a1f2e"
+      --line: "rgba(255, 255, 255, 0.08)"
+      --line-strong: "rgba(255, 255, 255, 0.16)"
+      --d-hover: 6%
+      --d-selected: 10%
+      --d-inset: 7%
+      --d-code: 8%
+      --d-line: 8%
+      --d-line-strong: 16%
+      --glass-rail: "rgba(16, 16, 18, 0.90)"
+      --glass-nav: "rgba(27, 27, 28, 0.92)"
+      --glass-panel: "rgba(27, 27, 28, 0.94)"
+      --glass-raised: "rgba(44, 44, 46, 0.96)"
+      --glass-group: "rgba(35, 35, 36, 0.92)"
+      --glass-secondary: "rgba(21, 21, 23, 0.90)"
+      --glass-head: "rgba(21, 21, 23, 0.90)"
+      --term-bg: "#0f0f0f"
+      --term-fg: "#f9fafb"
+      --term-dim: "#81858c"
