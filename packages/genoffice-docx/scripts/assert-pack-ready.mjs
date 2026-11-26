@@ -63,6 +63,8 @@ for (const required of [
   'package/dist/index.js',
   'package/renderer/index.html',
   'package/renderer/preview/index.html',
+  'package/renderer/THIRD-PARTY-NOTICES.txt',
+  'package/renderer/SBOM.spdx.json',
 ]) {
   if (!packEntrySet.has(required)) throw new Error(`npm pack omitted required entry: ${required}`);
 }

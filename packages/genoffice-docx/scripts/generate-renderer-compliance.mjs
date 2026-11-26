@@ -67,6 +67,17 @@ const upstreamNotice = (await readFile(generatedUpstreamNotice, 'utf8')).replace
 const bundledPackageNames = await bundledPackagesFromSourceMaps(rendererRoot);
 const upstreamPackages = parseNoticePackages(upstreamNotice);
 const packageByName = new Map(upstreamPackages.map((item) => [item.name, item]));
+// The PDF.js legacy modules already contain core-js, so their source maps only name PDF.js.
+const pdfWorker = await readFile(join(rendererRoot, 'preview', 'pdf.worker.js'), 'utf8');
+const coreJsVersion = pdfWorker.match(/github\.com\/zloirock\/core-js\/blob\/v(\d+\.\d+\.\d+)\/LICENSE/u)?.[1];
+if (!coreJsVersion) throw new Error('the PDF.js legacy worker no longer declares its embedded core-js version');
+bundledPackageNames.add('core-js');
+packageByName.set('core-js', {
+  name: 'core-js',
+  version: coreJsVersion,
+  license: 'MIT',
+  body: (await readFile(join(packageRoot, 'licenses', `core-js-${coreJsVersion}.txt`), 'utf8')).trimEnd(),
+});
 const missingPackages = [...bundledPackageNames].filter((name) => !packageByName.has(name));
 if (missingPackages.length > 0) {
   throw new Error(`renderer dependencies missing notices: ${missingPackages.join(', ')}`);
@@ -84,9 +95,10 @@ const noticePreamble = `GenOffice renderer — Third-Party Software Notices
 
 Generated from the exact GenOffice ${lock.tag} source with its frozen
 tools/gen-third-party-notices.mjs algorithm, scoped to renderer sources and
-without Electron/native application seeds. The npm package inventory is derived
-from the built renderer source maps; bundled font files are checked against the
-upstream-generated font notice section. This package ships only the renderer
+without Electron/native application seeds. The package inventory uses renderer
+source maps and the core-js license for the version embedded in legacy PDF.js.
+Bundled font files are checked against the upstream-generated font notices.
+This package ships only the renderer
 files enumerated in SBOM.spdx.json; Electron, Chromium, other Office
 applications, native sidecars, and enterprise code are excluded.
 
