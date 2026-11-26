@@ -36,7 +36,7 @@
   }
 
   PDL_COMPONENTS['plugin:official.storage-governance/themed-frame'] = function (props, scope, root) {
-    return pvBlocks([{ type: 'frame', html: props.html, title: props.title, message: themeMessage() }], scope, root);
+    return pvBlocks([{ type: 'frame', tall: true, html: props.html, title: props.title, message: themeMessage() }], scope, root);
   };
 
   onRender(function () {

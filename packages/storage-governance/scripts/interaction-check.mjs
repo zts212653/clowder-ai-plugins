@@ -123,6 +123,31 @@ try {
   assert.match(await evaluate("document.querySelector('#result-count').textContent"), /重复路径/u);
   pass('duplicate path note is visible');
 
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 440, deviceScaleFactor: 1, mobile: false });
+  await waitFor("innerHeight === 440", "compact viewport");
+  await evaluate("document.querySelectorAll('.file-row')[24].scrollIntoView({block:'center',behavior:'instant'})");
+  const scrollPosition = "(document.querySelector('.page-scroll') || document.scrollingElement).scrollTop";
+  const beforeDetails = await evaluate(scrollPosition);
+  assert.ok(beforeDetails > 500, 'start deep in the file list');
+  const rowPath = (index) => evaluate("document.querySelectorAll('.file-row')[" + index + "].getAttribute('aria-label')");
+  const drawerPath = () => evaluate("document.querySelector('.drawer-path').textContent");
+  for (const index of [24, 25]) {
+    await evaluate("document.querySelectorAll('.file-row')[" + index + "].click()");
+    await waitFor("document.querySelector('#drawer').hidden === false", 'file drawer');
+    assert.equal(await drawerPath(), await rowPath(index));
+    assert.equal(await evaluate(scrollPosition), beforeDetails, 'opening details preserves the list scroll');
+  }
+  assert.equal(await evaluate("document.scrollingElement.scrollTop"), 0, 'the list scrolls inside its pane');
+  await evaluate("document.querySelector('#drawer').scrollTop = 100");
+  assert.ok(await evaluate("document.querySelector('#drawer').scrollTop > 0"), 'details can scroll independently');
+  assert.equal(await evaluate(scrollPosition), beforeDetails);
+  await evaluate("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))");
+  await waitFor("document.querySelector('#drawer').hidden === true", 'drawer close');
+  assert.equal(await evaluate(scrollPosition), beforeDetails, 'closing details preserves the list scroll');
+  assert.equal(await evaluate("document.activeElement.getAttribute('aria-label')"), await rowPath(25));
+  await send('Emulation.clearDeviceMetricsOverride');
+  pass('opening, switching, scrolling and closing details preserve the list position');
+
   await evaluate(
     "Array.from(document.querySelectorAll('.category-row')).find(row=>row.textContent.includes('临时文件')).click()",
   );
@@ -180,13 +205,6 @@ try {
     .filter((request) => request.method === 'POST' && request.body && request.body.query);
   assert.ok(pageRequests.length > 0);
   assert.ok(pageRequests.every((request) => request.body.query.summary === 'false'));
-
-  await evaluate("document.querySelector('#files-table tbody tr').click()");
-  await waitFor("document.querySelector('#drawer').hidden === false", 'file drawer');
-  assert.ok((await evaluate("document.querySelector('.drawer-path').textContent")).length > 20);
-  await evaluate("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))");
-  await waitFor("document.querySelector('#drawer').hidden === true", 'drawer close');
-  pass('file row opens details and Escape closes it');
 
   await evaluate("document.querySelector('#file-search').value='worktrees'; document.querySelector('#file-search').dispatchEvent(new Event('input'))");
   await waitFor("/筛选后/.test(document.querySelector('#result-count').textContent)", 'search filter');

@@ -327,13 +327,13 @@
           class: 'file-row',
           tabindex: '0',
           'aria-label': row.path,
-          onClick: function () {
-            handlers.onRow(row);
+          onClick: function (event) {
+            handlers.onRow(row, event.currentTarget);
           },
           onKeydown: function (event) {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
-              handlers.onRow(row);
+              handlers.onRow(row, event.currentTarget);
             }
           },
         },

@@ -1,0 +1,11 @@
+/* Fit the self-scrolling frame below the cover's back button. */
+.cover-in:has(> .vw-view > iframe[data-frame-key="storageGovernance.page"]) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cover-in > .vw-view > iframe[data-frame-key="storageGovernance.page"] {
+  flex: 1 1 0;
+  min-height: 0;
+}

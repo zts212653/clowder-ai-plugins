@@ -48,7 +48,7 @@
     busy: false,
     filesLoading: false,
     notice: null,
-    drawer: null,
+    drawerTrigger: null,
     error: '',
     requestSeq: 0,
     summaryKey: '',
@@ -881,8 +881,8 @@
     void loadFiles(false);
   }
 
-  function openDrawer(row) {
-    state.drawer = row;
+  function openDrawer(row, trigger) {
+    state.drawerTrigger = trigger;
     R.clear(els.drawer);
     els.drawer.appendChild(
       R.renderDrawer(row, {
@@ -899,14 +899,17 @@
       }),
     );
     els.drawer.hidden = false;
-    var focusable = els.drawer.querySelector('button');
-    if (focusable) focusable.focus();
+    els.drawer.scrollTop = 0;
+    els.drawer.querySelector('button').focus({ preventScroll: true });
   }
 
   function closeDrawer() {
-    state.drawer = null;
+    var trigger = state.drawerTrigger;
+    var restoreFocus = els.drawer.contains(document.activeElement);
+    state.drawerTrigger = null;
     els.drawer.hidden = true;
     R.clear(els.drawer);
+    if (restoreFocus && trigger && trigger.isConnected) trigger.focus({ preventScroll: true });
   }
 
   function bind() {
