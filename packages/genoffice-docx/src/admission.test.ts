@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { validateManifest } from '@clowder-ai/plugin-contract';
+import { validateManifest } from '../../plugin-contract/dist/index.js';
 import { parse as parseYaml } from 'yaml';
 
 import {

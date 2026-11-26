@@ -92,6 +92,8 @@ run(process.execPath, [join(packageRoot, 'scripts', 'build-semantic-worker.mjs')
 
 if (!hardenedIndex.includes("connect-src 'none'")) throw new Error('renderer CSP is not fail-closed');
 
+run(process.execPath, [join(packageRoot, 'scripts', 'build-preview-renderer.mjs')], packageRoot);
+
 const integrity = sha256Sri(await readFile(indexPath));
 const manifestPath = join(packageRoot, 'plugin.yaml');
 const manifest = parseDocument(await readFile(manifestPath, 'utf8'));
@@ -103,7 +105,7 @@ manifest.setIn(['contributions', 0, 'semanticMaterializer'], {
   protocolVersion: '1.0.0',
 });
 await writeFile(manifestPath, String(manifest));
-run(process.execPath, [join(packageRoot, 'scripts', 'generate-manifest.mjs')], packageRoot);
+run(process.execPath, ['--import', 'tsx', join(packageRoot, 'scripts', 'generate-manifest.mjs')], packageRoot);
 
 await copyFile(join(sourceRoot, 'LICENSE'), join(packageRoot, 'LICENSE'));
 await copyFile(join(sourceRoot, 'NOTICE'), join(packageRoot, 'NOTICE'));

@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { validateManifest } from '@clowder-ai/plugin-contract';
+import { validateManifest } from '../../plugin-contract/src/validation/manifest.ts';
 import { parse } from 'yaml';
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
