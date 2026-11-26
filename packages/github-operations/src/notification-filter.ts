@@ -30,7 +30,11 @@ function isExactSelfReceipt(
   const delivery = receipt?.delivery;
   if (!task?.subjectKey || !active || !receipt || delivery?.kind !== 'delivered' || !snapshot.headSha) return false;
   if (receipt.reviewerCatId !== task.ownerCatId || receipt.reviewerThreadId !== task.threadId) return false;
-  if (receipt.headGeneration !== active.generation || receipt.currentHeadSha !== snapshot.headSha || delivery.headSha !== snapshot.headSha) return false;
+  // HEAD occurrences and wait renewals have independent generation counters.
+  // Prove delivery freshness inside the review aggregate, including a returning SHA.
+  if (!Number.isSafeInteger(receipt.headGeneration) || receipt.headGeneration < 1 ||
+      receipt.lastDeliveredHeadGeneration !== receipt.headGeneration || receipt.lastDeliveredHeadSha !== snapshot.headSha ||
+      receipt.currentHeadSha !== snapshot.headSha || delivery.headSha !== snapshot.headSha) return false;
   const anchor = /#(pullrequestreview|issuecomment|discussion_r)-?([1-9][0-9]*)$/.exec(delivery.githubUrl);
   if (!anchor) return false;
   const [, surface, id] = anchor;
