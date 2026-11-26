@@ -341,12 +341,12 @@
     },
     {
       "pluginId": "official.quick-phrases",
-      "version": "0.1.0-alpha.5",
-      "integrity": "sha512-iOTC3kbmOwNAezorD7WZcTPFMYSlNUHzNoZZQa9aZwLzIURDrBVhlQznoZjjRW+R3mhWAz8GzoTrgtmerGAMWg==",
+      "version": "0.1.0",
+      "integrity": "sha512-4kyTRXa1VKwWDQ7gvhxXevtBSeC4/jP8lCX+LO0sZFQ1FeKyY3vDqTmNQDG1AcxDs3PI/IKISZztF0viheSEVg==",
       "disposition": "activate",
       "owner": "codex",
       "reviewBy": "2026-12-03T08:00:00Z",
-      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/248"
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/252"
     },
     {
       "pluginId": "official.feedback",

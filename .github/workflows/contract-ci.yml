@@ -445,11 +445,12 @@ jobs:
           package-directory: packages/github-operations
           npm-token: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish quick phrases prerelease
+      - name: Publish Quick Phrases stable release
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/quick-phrases
           npm-token: ''
+          latest-stable-version: '0.1.0'
 
       # Publication and discovery are separate transitions. The PR already
       # declared an owner; the daily audit delivers durable follow-up reminders.

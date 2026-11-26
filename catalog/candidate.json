@@ -3055,16 +3055,16 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.5",
+          "version": "0.1.0",
           "contractVersion": "0.4.0-candidate.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
             "kind": "npm",
             "packageName": "@clowder-ai/quick-phrases",
-            "version": "0.1.0-alpha.5",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/quick-phrases/-/quick-phrases-0.1.0-alpha.5.tgz",
-            "integrity": "sha512-iOTC3kbmOwNAezorD7WZcTPFMYSlNUHzNoZZQa9aZwLzIURDrBVhlQznoZjjRW+R3mhWAz8GzoTrgtmerGAMWg==",
-            "shasum": "a06c5186f2439c99cd53a8ce9d6b14833f1c3aaa",
+            "version": "0.1.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/quick-phrases/-/quick-phrases-0.1.0.tgz",
+            "integrity": "sha512-4kyTRXa1VKwWDQ7gvhxXevtBSeC4/jP8lCX+LO0sZFQ1FeKyY3vDqTmNQDG1AcxDs3PI/IKISZztF0viheSEVg==",
+            "shasum": "d7d67777ac3601ae0dcfdc8827b3a7cfe03e26c4",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/quick-phrases"

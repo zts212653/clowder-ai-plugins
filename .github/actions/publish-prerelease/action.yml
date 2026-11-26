@@ -1,5 +1,5 @@
 name: Publish verified prerelease
-description: Pack, publish, and verify one immutable public prerelease without explicitly promoting latest
+description: Pack, publish, and verify one immutable public release
 
 inputs:
   package-directory:
@@ -10,7 +10,11 @@ inputs:
     required: false
     default: ''
   allowed-stable-version:
-    description: Exact stable version authorized by this workflow (empty = prerelease versions only)
+    description: Exact stable version authorized to publish to next
+    required: false
+    default: ''
+  latest-stable-version:
+    description: Exact stable version authorized to publish to latest
     required: false
     default: ''
 
@@ -24,6 +28,7 @@ runs:
         PACKAGE_DIRECTORY: ${{ inputs.package-directory }}
         PACK_JSON_PATH: ${{ runner.temp }}/prerelease-pack.json
         ALLOWED_STABLE_VERSION: ${{ inputs.allowed-stable-version }}
+        LATEST_STABLE_VERSION: ${{ inputs.latest-stable-version }}
       run: |
         set -euo pipefail
         if [[ ! "$PACKAGE_DIRECTORY" =~ ^packages/[a-z0-9-]+$ ]]; then
@@ -51,7 +56,12 @@ runs:
             `packed identity mismatch: ${artifact.name}@${artifact.version} != ${packageJson.name}@${packageJson.version}`,
           );
         }
-        if (!artifact.version.includes('-') && artifact.version !== process.env.ALLOWED_STABLE_VERSION) {
+        const stable = !artifact.version.includes('-');
+        const latestVersion = process.env.LATEST_STABLE_VERSION;
+        if (latestVersion && (!stable || artifact.version !== latestVersion)) {
+          throw new Error(`latest publication is not authorized: ${artifact.version}`);
+        }
+        if (stable && !latestVersion && artifact.version !== process.env.ALLOWED_STABLE_VERSION) {
           throw new Error(`stable publication is not authorized: ${artifact.version}`);
         }
 
@@ -62,6 +72,7 @@ runs:
             `version=${artifact.version}`,
             `filename=${artifact.filename}`,
             `integrity=${artifact.integrity}`,
+            `tag=${latestVersion ? 'latest' : 'next'}`,
           ].join('\n') + '\n',
         );
         NODE
@@ -135,13 +146,14 @@ runs:
           exit 1
         fi
 
-    - name: Publish prerelease to next
+    - name: Publish to the verified registry tag
       if: steps.registry.outputs.already_published != 'true'
       shell: bash
       env:
         NODE_AUTH_TOKEN: ${{ inputs.npm-token }}
         PACKAGE_TARBALL: ${{ runner.temp }}/${{ steps.pack.outputs.filename }}
-      run: npm publish "$PACKAGE_TARBALL" --tag next --provenance --access public
+        PUBLISH_TAG: ${{ steps.pack.outputs.tag }}
+      run: npm publish "$PACKAGE_TARBALL" --tag "$PUBLISH_TAG" --provenance --access public
 
     - name: Inspect published registry state
       shell: bash
@@ -150,6 +162,7 @@ runs:
         PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
         EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
         ALLOWED_STABLE_VERSION: ${{ inputs.allowed-stable-version }}
+        PUBLISH_TAG: ${{ steps.pack.outputs.tag }}
         HAD_PREVIOUS_LATEST: ${{ steps.registry.outputs.had_previous_latest }}
         PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
         PREVIOUS_NEXT: ${{ steps.registry.outputs.previous_next }}
@@ -175,12 +188,17 @@ runs:
         if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
           throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);
         }
-        const expectedNext = process.env.PACKAGE_VERSION;
+        const publishingLatest = process.env.PUBLISH_TAG === 'latest';
+        const expectedNext = publishingLatest ? process.env.PREVIOUS_NEXT || undefined : process.env.PACKAGE_VERSION;
         if (distTags.next !== expectedNext) {
           throw new Error(`registry next tag mismatch: ${distTags.next}`);
         }
 
-        if (process.env.HAD_PREVIOUS_LATEST === 'true') {
+        if (publishingLatest) {
+          if (distTags.latest !== process.env.PACKAGE_VERSION) {
+            throw new Error(`registry latest tag mismatch: ${distTags.latest}`);
+          }
+        } else if (process.env.HAD_PREVIOUS_LATEST === 'true') {
           if (distTags.latest !== process.env.PREVIOUS_LATEST) {
             throw new Error(`registry latest tag mismatch: ${distTags.latest}`);
           }
@@ -214,6 +232,7 @@ runs:
         PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
         EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
         ALLOWED_STABLE_VERSION: ${{ inputs.allowed-stable-version }}
+        PUBLISH_TAG: ${{ steps.pack.outputs.tag }}
         HAD_PREVIOUS_LATEST: ${{ steps.registry.outputs.had_previous_latest }}
         PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
         PREVIOUS_NEXT: ${{ steps.registry.outputs.previous_next }}
@@ -236,11 +255,16 @@ runs:
         if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
           throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);
         }
-        const expectedNext = process.env.PACKAGE_VERSION;
+        const publishingLatest = process.env.PUBLISH_TAG === 'latest';
+        const expectedNext = publishingLatest ? process.env.PREVIOUS_NEXT || undefined : process.env.PACKAGE_VERSION;
         if (distTags.next !== expectedNext) {
           throw new Error(`registry next tag mismatch: ${distTags.next}`);
         }
-        if (process.env.HAD_PREVIOUS_LATEST === 'true') {
+        if (publishingLatest) {
+          if (distTags.latest !== process.env.PACKAGE_VERSION) {
+            throw new Error(`registry latest tag mismatch: ${distTags.latest}`);
+          }
+        } else if (process.env.HAD_PREVIOUS_LATEST === 'true') {
           if (distTags.latest !== process.env.PREVIOUS_LATEST) {
             throw new Error(`registry latest tag mismatch: ${distTags.latest}`);
           }

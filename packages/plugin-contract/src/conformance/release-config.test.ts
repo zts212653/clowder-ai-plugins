@@ -159,7 +159,8 @@ function assertPrereleaseDistTagsVerified(action: string): void {
     'the historical NPM_TOKEN route must not require unproven dist-tag deletion authority',
   );
   for (const name of ['Inspect published registry state','Verify final registry state']) {
-    assert.match(namedActionStep(action,name), /const expectedNext = process.env.PACKAGE_VERSION/);
+    assert.match(namedActionStep(action,name), /const expectedNext = publishingLatest \? process\.env\.PREVIOUS_NEXT \|\| undefined : process\.env\.PACKAGE_VERSION/);
+    assert.match(namedActionStep(action,name), /if \(publishingLatest\) \{\n\s+if \(distTags\.latest !== process\.env\.PACKAGE_VERSION\)/);
   }
   assert.doesNotMatch(action, /retained-artifact|RETAINED_ARTIFACT|prepare-retained-publish-artifact/);
 
@@ -238,7 +239,7 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string, action = pre
     assert.doesNotMatch(namedActionStep(action, name), /NODE_AUTH_TOKEN|inputs\.npm-token/,
       `${name} must not receive the write token`);
   }
-  assert.match(namedActionStep(action, 'Publish prerelease to next'), /NODE_AUTH_TOKEN: \$\{\{ inputs\.npm-token \}\}/);
+  assert.match(namedActionStep(action, 'Publish to the verified registry tag'), /NODE_AUTH_TOKEN: \$\{\{ inputs\.npm-token \}\}/);
   assert.doesNotMatch(
     validateJob,
     /NPM_TOKEN|NODE_AUTH_TOKEN/,
@@ -499,10 +500,12 @@ test('main publishes the public dependency chain through one hardened action', (
     );
   }
   const quickPhrasesStep = releaseWorkflow.match(
-    /      - name: Publish quick phrases prerelease\n[\s\S]*?(?=      # Publication)/,
+    /      - name: Publish Quick Phrases stable release\n[\s\S]*?(?=      # Publication)/,
   )?.[0];
   assert.ok(quickPhrasesStep, 'quick-phrases must retain its publication step after existing packages');
-  assert.match(quickPhrasesStep, /npm-token: ''/, 'quick-phrases first publication must be OIDC-only');
+  assert.match(quickPhrasesStep, /npm-token: ''/, 'quick-phrases publication must be OIDC-only');
+  assert.match(quickPhrasesStep, /latest-stable-version: '0\.1\.0'/);
+  assert.equal(releaseWorkflow.match(/latest-stable-version:/g)?.length, 1);
   assert.doesNotMatch(quickPhrasesStep, /secrets\.NPM_TOKEN/);
   assert.match(
     releaseWorkflow,
@@ -523,7 +526,7 @@ test('main publishes the public dependency chain through one hardened action', (
   assert.match(publishArtifactPacker, /createHash\('sha512'\)/);
   assert.match(prereleasePublishAction, /npm publish "\$PACKAGE_TARBALL"/);
   assert.match(prereleasePublishAction, /metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY/);
-  assert.match(prereleasePublishAction, /npm publish "\$PACKAGE_TARBALL" --tag next --provenance --access public/);
+  assert.match(prereleasePublishAction, /npm publish "\$PACKAGE_TARBALL" --tag "\$PUBLISH_TAG" --provenance --access public/);
   assert.match(prereleasePublishAction, /distTags\.next !== expectedNext/);
   assert.match(prereleasePublishAction, /distTags\.latest !== process\.env\.PREVIOUS_LATEST/);
   assert.match(prereleasePublishAction, /process\.env\.PACKAGE_VERSION\.includes\('-'\)/);
@@ -1010,7 +1013,8 @@ test('publication inspection guards reject token leakage and tag relaxation', ()
   const tokenLeak = replaceNamedActionStepOnce('Inspect published registry state',
     '        PACKAGE_NAME:', '        NODE_AUTH_TOKEN: ${{ inputs.npm-token }}\n        PACKAGE_NAME:');
   const tagRelaxation = replaceNamedActionStepOnce('Verify final registry state',
-    'const expectedNext = process.env.PACKAGE_VERSION;', 'const expectedNext = process.env.PREVIOUS_NEXT;');
+    'const expectedNext = publishingLatest ? process.env.PREVIOUS_NEXT || undefined : process.env.PACKAGE_VERSION;',
+    'const expectedNext = process.env.PREVIOUS_NEXT;');
   assert.throws(() => assertAuthorizedTokenPublicationBaseline(releaseWorkflow, tokenLeak));
   assert.throws(() => assertPrereleaseDistTagsVerified(tagRelaxation));
 });
