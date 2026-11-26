@@ -4,6 +4,7 @@ import { mkdir, rmdir, symlink, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { FeedbackService } from '../src/service.js';
+import { analysisKey } from '../src/config.js';
 import { diagnosticEnvironment } from '../src/diagnostic-environment.js';
 import { fixture } from './service-fixture.js';
 
@@ -68,6 +69,39 @@ test('activity tracks analysis outside the panel until its exact result is viewe
   assert.deepEqual(await activity(),{ running:0, unread:1 });
   await f.call({op:'view-analysis',runId});
   assert.deepEqual(await activity(),{ running:0, unread:0 });
+});
+
+test('activity queries one active thread once, never writes, and tracks two unread results separately', async () => {
+  const f = analysisFixture();
+  const threadId = f.thread.id;
+  const feedback = await Promise.all(['first-feedback','second-feedback'].map(id=>f.service.dispatch({
+    op:'save',feedbackId:id,targetId:'clowder',report:{title:id,body:'初始草稿',attachments:[]},
+  },f.ctx)));
+  assert.equal(feedback.length,2);
+  const ids = ['first-feedback','second-feedback'];
+  for (const id of ids) {
+    await f.host.storage.compareAndSet(analysisKey('owner',id),null,{
+      id,owner:'owner',state:'running',activationId:'previous-runtime',threadId,threadUrl:f.thread.deepLinkUrl,
+      linkedThreadId:threadId,projectRef:f.thread.projectRef,catId:'configured-cat',messageId:id,hash:'hash',material:'',
+    });
+  }
+  let reads = 0, writes = 0;
+  Object.assign(f.host.threads!,{ readMessages:async()=>{
+    reads++;
+    return ids.map(id=>({
+      id:'reply-'+id,sender:{kind:'cat',catId:'configured-cat'},content:'# bug: 已定位\n\n这是报告正文。',
+      response:{inputMessageIds:[id],status:'completed'},
+    }));
+  } });
+  const write = f.host.storage.compareAndSet;
+  f.host.storage.compareAndSet = (...args)=>{writes++;return write(...args);};
+  const activity = () => f.service.activity({...f.ctx,operation:'read'});
+  assert.deepEqual(await activity(),{running:0,unread:2});
+  assert.equal(reads,1);
+  assert.equal(writes,0);
+  await f.service.dispatch({op:'bootstrap',feedbackId:ids[0]},f.ctx);
+  await f.service.dispatch({op:'view-analysis',feedbackId:ids[0],runId:ids[0]},f.ctx);
+  assert.deepEqual(await activity(),{running:0,unread:1});
 });
 
 test('missing reports and late results are explicit; direct feedback remains independent', async () => {

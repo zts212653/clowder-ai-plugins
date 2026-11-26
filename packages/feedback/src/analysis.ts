@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { PluginThreadMessage } from '@clowder-ai/plugin-sdk';
 import { dirname, join } from 'node:path';
 import { collectEvidence } from './collect-evidence.js';
 import { analysisKey, digest, feedbackTitle, record, text } from './config.js';
@@ -42,23 +43,28 @@ export class FeedbackAnalysis {
     return next;
   }
 
-  async status(userId: string, resume = false, feedbackId?: string) {
+  async status(userId: string, resume = false, feedbackId?: string, readOnly?: Map<string, Promise<readonly PluginThreadMessage[] | undefined>>) {
     const key = analysisKey(userId,feedbackId);
     const stored = await this.host.storage.get(key);
     if (!stored) return undefined;
     let run = stored.value as Analysis;
+    const reconcile = (change: (current: Analysis) => Analysis) =>
+      readOnly ? Promise.resolve(change(run)) : this.update(key, change, run.id);
     // Ordinary response records are durable truth even if a live delivery was
     // missed, the panel was closed or this plugin was updated during analysis.
-    if (run.messageId && this.host.threads?.readMessages && (['starting', 'running', 'blocked', 'interrupted'].includes(run.state) || run.state === 'failed' && run.outcome === 'completed')) {
-      const rows = await this.host.threads.readMessages(run.threadId, {limit: run.linkedThreadId ? 100 : 30}).catch(() => undefined);
-      if (!rows) run = await this.update(key, current => ['starting','running','blocked','interrupted'].includes(current.state)
-        ? {...current,state:'failed',error:'暂时无法读取分析对话；草稿已保留，可直接反馈或重新检查。'} : current,run.id);
+    if (run.messageId && this.host.threads?.readMessages &&
+        (['starting', 'running', 'blocked', 'interrupted'].includes(run.state) || !readOnly && run.state === 'failed' && run.outcome === 'completed')) {
+      const messages = readOnly?.get(run.threadId) ?? this.host.threads.readMessages(run.threadId, {limit: run.linkedThreadId ? 100 : 30}).catch(() => undefined);
+      readOnly?.set(run.threadId,messages);
+      const rows = await messages;
+      if (!rows && !readOnly) run = await reconcile(current => ['starting','running','blocked','interrupted'].includes(current.state)
+        ? {...current,state:'failed',error:'暂时无法读取分析对话；草稿已保留，可直接反馈或重新检查。'} : current);
       const replies = rows?.filter(row => row.sender.kind === 'cat' && row.sender.catId === run.catId && row.response?.inputMessageIds.includes(run.messageId!));
       const reply = replies?.reverse().find(row => !run.linkedThreadId || row.response?.inputMessageIds.length === 1);
       if (!reply && run.linkedThreadId && replies?.some(row => row.response?.status === 'completed')) {
         const error = '成员合并回复了多条请求，草稿已保留。请查看原会话，选用相关回复，或单独重新分析。';
-        run = await this.update(key, current => !['starting','running','blocked','interrupted'].includes(current.state) ? current
-          : {...current,state:'failed',outcome:'completed',error}, run.id);
+        run = await reconcile(current => !['starting','running','blocked','interrupted'].includes(current.state) ? current
+          : {...current,state:'failed',outcome:'completed',error});
       } else if (reply?.response) {
         const response = reply.response;
         if (response.status === 'completed') {
@@ -66,25 +72,25 @@ export class FeedbackAnalysis {
           const redact = (value: string) => run.linkedThreadId
             ? sanitizeThreadText(value, run.projectRef, run.linkedThreadId, run.threadUrl)
             : sanitize(value, [run.projectRef]);
-          run = await this.update(key, current => !(['starting','running','blocked','interrupted'].includes(current.state) || current.state === 'failed' && current.outcome === 'completed') ? current : ({...current,
+          run = await reconcile(current => !(['starting','running','blocked','interrupted'].includes(current.state) || current.state === 'failed' && current.outcome === 'completed') ? current : ({...current,
             state: report ? 'ready' : 'failed', outcome: 'completed',
             ...(report ? {candidate:{title:redact(current.kind ? feedbackTitle(current.kind,report.title) : report.title),
               body:current.summary ? [redact(report.body).slice(0,Math.max(0,99_998-current.summary.source.length)),current.summary.source].filter(Boolean).join('\n\n') : redact(report.body)}} : {}),
             error: report ? undefined : '分析已完成，但回复不是有效报告；可打开分析对话检查或重新分析。',
             progress: '分析完成，报告已整理', receivedChars: reply.content.length,
-          }), run.id);
+          }));
         } else if (response.status !== 'processing') {
-          run = await this.update(key, current => ['starting','running','blocked','interrupted'].includes(current.state)
-            ? {...current,state:'failed',error:'分析已停止或失败；草稿已保留，请打开分析对话查看。'} : current, run.id);
+          run = await reconcile(current => ['starting','running','blocked','interrupted'].includes(current.state)
+            ? {...current,state:'failed',error:'分析已停止或失败；草稿已保留，请打开分析对话查看。'} : current);
         } else {
           run = {...run, progress:reply.content.length ? '已收到 Agent 回复，正在等待本轮完成' : 'Agent 正在分析问题与诊断资料',receivedChars:reply.content.length};
         }
       }
     }
     if (run.activationId !== this.activationId && ['preparing', 'starting', 'running', 'blocked'].includes(run.state)) {
-      run = await this.update(key, current => ({ ...current, state: 'interrupted', error: '插件曾停用或重启，无法核验上次分析是否完成；请打开原对话核对，或重新准备。' }));
+      run = await reconcile(current => ({ ...current, state: 'interrupted', error: '插件曾停用或重启，无法核验上次分析是否完成；请打开原对话核对，或重新准备。' }));
     }
-    if (resume && !run.linkedThreadId && ['starting', 'running', 'blocked'].includes(run.state)) {
+    if (resume && !readOnly && !run.linkedThreadId && ['starting', 'running', 'blocked'].includes(run.state)) {
       try { await this.host.messaging?.subscribe({ threadId: run.threadId, method: 'feedback.delivery', includeOwnMessages: false }); }
       catch {
         run = await this.update(key, current => ({ ...current, state: 'failed', error: '无法恢复分析订阅；草稿已保留，可直接反馈或打开原对话查看。' }));

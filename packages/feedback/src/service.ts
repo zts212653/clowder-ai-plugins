@@ -28,10 +28,12 @@ export class FeedbackService {
     if (context?.kind !== 'owner-http-request' || context.operation !== 'read' || context.pluginInstanceId !== this.host.pluginInstanceId)
       throw new Error('反馈动态仅对已登录用户可见');
     await context.assertCurrent();
-    const items = await this.history(context.userId);
+    const messages = new Map<string, Promise<readonly PluginThreadMessage[] | undefined>>();
+    const journals = (await this.records.list(context.userId)).filter(({journal}) => journal.state==='draft' && !journal.supersededBy && !journal.handoffAt);
+    const runs = await Promise.all(journals.map(({journal})=>this.analysis.status(context.userId,false,journal.id,messages)));
     return {
-      running: items.filter(item => ['preparing','starting','running'].includes(item.status)).length,
-      unread: items.filter(item => item.unread).length,
+      running: runs.filter(run => run?.state==='preparing' || run?.state==='starting' || run?.state==='running').length,
+      unread: runs.filter(run => run?.state==='ready' && !run.viewed).length,
     };
   }
 
@@ -440,8 +442,7 @@ export class FeedbackService {
         : analysis?.state==='ready' || journal.reviewReady ? 'ready' : 'draft';
       return {id:journal.id,title:journal.report.title,...(status==='draft'&&journal.state==='draft'?{deleteRevision:revision}:{}),kind:journal.report.kind ?? (/^feat:/i.test(journal.report.title)?'feat':'bug'),status,
         updatedAt:Math.max(journal.updatedAt ?? journal.createdAt ?? 0,analysis?.startedAt ?? 0),analyzed:analysis?.state==='ready',issueId:journal.issue?.id,issueUrl:journal.issue?.url,threadUrl:journal.linkedThread?.deepLinkUrl ?? analysis?.threadUrl,
-        unread:status==='ready' && analysis?.state==='ready' && 'viewed' in analysis &&
-          (analysis.viewed===false || analysis.viewed===undefined && (journal.report.title!==analysis.title || journal.report.body!==analysis.body)),
+        unread:status==='ready' && analysis?.state==='ready' && 'viewed' in analysis && !analysis.viewed,
         linkedThreadLabel:journal.linkedThread ? journal.linkedThread.title ?? '未命名会话' : undefined,
         screenshotsPending:journal.state==='published' && (journal.screenshotAttempt || (journal.screenshotCommentUnverified && !journal.screenshotsConfirmed))
           ? 'verify' : undefined};

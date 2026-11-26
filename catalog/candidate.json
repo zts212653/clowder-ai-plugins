@@ -2545,8 +2545,8 @@
             "packageName": "@clowder-ai/feedback",
             "version": "0.1.0-alpha.15",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/feedback/-/feedback-0.1.0-alpha.15.tgz",
-            "integrity": "sha512-5dL+RhcPnSrlxBWsImUlLNeV9Q0U0xDkyE1GPZ4ZolYF7CmpjhygOze1ZVDaIk6ZSvLaGgcLxKZ3vlx1dZwBlQ==",
-            "shasum": "7ce7c56d405cbfaefd1bf1e5a04e873a98b43025",
+            "integrity": "sha512-oM9rxAtTwZvL0UM9LpCqJsV7++c8QiUuSzCk12k1XhYBd5tyYT19o3fM/AEC/UxDrwb/QA4anL0dwEUfTFvk/A==",
+            "shasum": "e1e7dd17902789d9a3efa9a2bf7f6d223fe90a12",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/feedback"
