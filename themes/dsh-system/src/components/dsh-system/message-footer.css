@@ -1,0 +1,82 @@
+.dsh-message-meta {
+  display: flex;
+  grid-column: 2;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+  padding-inline: 0;
+  color: var(--fg-muted);
+  font-size: 11px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.dsh-message-meta time { white-space: nowrap; }
+.dsh-message-model { max-width: 100%; overflow-wrap: anywhere; }
+.dsh-message-model + .dsh-message-unreported {
+  padding-inline-start: 6px;
+  border-inline-start: 1px solid var(--line);
+}
+.user-msg > .dsh-message-meta {
+  contain: inline-size;
+  flex-wrap: nowrap;
+  grid-column: 1;
+  flex-direction: row-reverse;
+}
+.dsh-message-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 24px;
+  min-height: 24px;
+  padding-inline: 5px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.dsh-message-usage {
+  background: var(--bg-field);
+  white-space: nowrap;
+}
+.dsh-message-control[data-act="dshCopyMessage"] {
+  opacity: 0;
+  pointer-events: none;
+}
+.cafe-m:is(:hover, :focus-within) .dsh-message-control,
+.dsh-message-control[data-act="dshCopyMessage"][data-copied] { opacity: 1; pointer-events: auto; }
+.dsh-message-control:is(:hover, :focus-visible) { background: var(--bg-hover); color: var(--fg-strong); }
+.dsh-message-control:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+@media (hover: none) {
+  .dsh-message-control[data-act="dshCopyMessage"] { opacity: 1; pointer-events: auto; }
+}
+.dsh-usage-popover {
+  position: fixed;
+  inset: auto;
+  position-area: block-start span-inline-end;
+  position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  max-width: min(320px, calc(100vw - 24px));
+  margin: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  color: var(--fg);
+  box-shadow: 0 6px 20px rgb(0 0 0 / .12);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dsh-usage-popover dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  padding-block-start: 6px;
+  border-block-start: 1px solid var(--line);
+}
+
+.dsh-usage-popover dt { color: var(--fg-muted); }
+.dsh-usage-popover dd { margin: 0; text-align: end; overflow-wrap: anywhere; }
