@@ -215,12 +215,18 @@ async function addFiles(files) {
   invalidate();
 }
 async function saveReview(checkTarget = true) {
+  const viewedAnalysis = state.analysis?.state==='ready' && !state.analysis.viewed &&
+    state.report.title===state.analysis.title && state.report.body===state.analysis.body ? state.analysis : undefined;
   if(!['review','handoff'].includes(state.stage) || app.dataset.stage === 'analyzing'){
     Object.assign(state,{reviewView:'report',reviewImage:0,reviewScroll:0,preview:true});
   }
   await flushDraft();
   const saved = await recordCall({ op: 'save', targetId: state.targetId, clientId: state.clientId, projectRef: state.projectRef, linkedThreadId:state.linkedThread?.id??null, revision: state.revision, report: state.report });
   Object.assign(state, saved, { report: saved.journal.report, dirty: false, consent: false, stage: 'review',saveError:'',saveErrorCode:'' });
+  if(viewedAnalysis) {
+    await recordCall({op:'view-analysis',runId:viewedAnalysis.id});
+    viewedAnalysis.viewed=true;
+  }
   state.automatic = false;
   if (checkTarget) await checkRoute();
 }
@@ -746,5 +752,6 @@ beforeClose(async()=>{
 run(async()=>{
   const initial=await call({op:'bootstrap',resume:true});state.targets=initial.targets;state.clients=initial.clients??[];state.items=initial.items??[];
   state.clientId=state.clients[0]?.id??'';state.targetId=state.targets[0]?.id??'';
-  if(initial.journal)await openRecord(initial.journal.id,initial);
+  if(initial.items?.some(item=>item.unread) && !initial.items.some(item=>item.unread && item.id===initial.journal?.id)) await showHistory();
+  else if(initial.journal)await openRecord(initial.journal.id,initial);
 });

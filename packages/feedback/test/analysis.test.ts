@@ -41,6 +41,33 @@ test('analysis uses the configured ordinary member, returns promptly and survive
   assert.ok(!result.body.includes('private-output'));
 });
 
+test('activity tracks analysis outside the panel until its exact result is viewed', async () => {
+  const f = analysisFixture();
+  const activity = () => f.service.activity({...f.ctx, operation:'read'});
+  const report = { title:'启动失败', body:'无法打开', attachments:[] };
+  const prepared = await f.call({op:'prepare-analysis',report,projectRef:f.host.dataPath});
+  assert.deepEqual(await activity(),{ running:0, unread:0 });
+  const started = await f.call({op:'analyze',clientId:'configured-cat',hash:prepared.hash,confirmed:true});
+  const runId = (started.analysis as { id:string }).id;
+  assert.deepEqual(await activity(),{ running:1, unread:0 });
+  const threadId = f.thread.id;
+  const executionId = 'execution-activity';
+  await f.service.receiveDelivery({kind:'execution_status',deliveryId:'start',threadId,executionId,state:'started',replyTo:'request-message'});
+  await f.service.receiveDelivery({kind:'message',deliveryId:'answer',threadId,executionId,envelope:{
+    actor:{kind:'cat',id:'configured-cat'},payload:{elements:[{kind:'text',payload:{text:'# bug: 启动失败\n\n已复现启动失败。'}}]},
+  }});
+  await f.service.receiveDelivery({kind:'execution_status',deliveryId:'end',threadId,executionId,state:'settled',chainDone:true,outcome:'completed'});
+  assert.deepEqual(await activity(),{ running:0, unread:1 });
+  const other = new FeedbackService(f.host, () => f.adapter);
+  assert.deepEqual(await other.activity({...f.ctx,operation:'read'}),{ running:0, unread:1 });
+  assert.deepEqual(await other.activity({...f.ctx,userId:'another-owner',operation:'read'}),{ running:0, unread:0 });
+  await f.call({op:'bootstrap'});
+  await f.call({op:'view-analysis',runId:'obsolete'});
+  assert.deepEqual(await activity(),{ running:0, unread:1 });
+  await f.call({op:'view-analysis',runId});
+  assert.deepEqual(await activity(),{ running:0, unread:0 });
+});
+
 test('missing reports and late results are explicit; direct feedback remains independent', async () => {
   const f = analysisFixture();
   const prepared = await f.call({ op: 'prepare-analysis', report: { title: '失败', body: '无法运行', attachments: [] } });

@@ -16,7 +16,7 @@ export function feedbackHistory(items,{open,copyUrl,deleteId,requestDelete,cance
         el('button',{type:'button',className:'secondary history-delete-confirm-button',text:'确认删除',disabled:busy,onClick:confirmDelete}),
       ])
       : el('div',{className:'history-actions'},[
-        el('button',{type:'button',className:'secondary',text:item.status==='published'?'查看反馈':item.status==='draft'?'继续填写':item.status==='ready'||item.status==='manual'?'继续投递':item.status==='unknown'?'核对结果':'查看进度',disabled:busy,onClick:()=>open(item.id)}),
+        el('button',{type:'button',className:'secondary',text:item.unread?'查看分析结果':item.status==='published'?'查看反馈':item.status==='draft'?'继续填写':item.status==='ready'||item.status==='manual'?'继续投递':item.status==='unknown'?'核对结果':'查看进度',disabled:busy,onClick:()=>open(item.id)}),
         ...(item.issueUrl?[el('button',{type:'button',className:'text',disabled:busy,text:item.issueId?`复制 Issue #${item.issueId} 链接`:'复制 Issue 链接',onClick:()=>copyUrl(item.issueUrl)})]:[]),
         ...(item.linkedThreadLabel&&item.threadUrl?[el('button',{type:'button',className:'text',disabled:busy,text:'复制会话链接',onClick:()=>copyUrl(item.threadUrl)})]:[]),
         ...(item.deleteRevision!==undefined?[el('button',{type:'button',className:'text history-delete',text:'删除草稿',disabled:busy,'data-delete-draft':'',onClick:()=>requestDelete(item)})]:[]),

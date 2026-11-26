@@ -6,6 +6,9 @@ inserts:
     node:
       title: t:feedback.plugin.entry
       icon: msg
+      sources:
+        feedbackActivity: activity
+      activity: '@feedbackActivity.badge'
       open:
         node: feedback.panel
         as: float
@@ -28,3 +31,6 @@ views:
 requests:
   panel:
     path: panel
+  activity:
+    path: activity
+    refreshMs: 5000

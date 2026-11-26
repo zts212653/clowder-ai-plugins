@@ -2537,6 +2537,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.15",
+          "contractVersion": "0.4.0-candidate.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/feedback",
+            "version": "0.1.0-alpha.15",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/feedback/-/feedback-0.1.0-alpha.15.tgz",
+            "integrity": "sha512-o5BlLRPnl/OcaqwNotb6AXvH5Frxr94DgsbzpS8wVb5oYF3fp/JJzdl+NGpr3+1+tAxMOnuHa9zVXlc858Jb+w==",
+            "shasum": "dc58088d88ea99ff24f8c12e584f0ecbed1b4dd2",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/feedback"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.14",
           "contractVersion": "0.4.0-candidate.0",
           "manifestPath": "plugin.yaml",

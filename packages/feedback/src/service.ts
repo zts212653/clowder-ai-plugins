@@ -24,6 +24,17 @@ export class FeedbackService {
 
   receiveDelivery(input: unknown) { return this.analysis.receiveDelivery(input); }
 
+  async activity(context: OwnerContext | undefined) {
+    if (context?.kind !== 'owner-http-request' || context.operation !== 'read' || context.pluginInstanceId !== this.host.pluginInstanceId)
+      throw new Error('反馈动态仅对已登录用户可见');
+    await context.assertCurrent();
+    const items = await this.history(context.userId);
+    return {
+      running: items.filter(item => ['preparing','starting','running'].includes(item.status)).length,
+      unread: items.filter(item => item.unread).length,
+    };
+  }
+
   async dispatch(input: unknown, context: OwnerContext | undefined): Promise<unknown> {
     if (context?.kind !== 'owner-http-request' || context.operation !== 'write' || !context.requestIdentity || context.pluginInstanceId !== this.host.pluginInstanceId) throw new Error('反馈仅能由已登录用户在插件面板中操作');
     await context.assertCurrent();
@@ -163,7 +174,7 @@ export class FeedbackService {
       const prepared = await this.analysis.dispatch({...request,op:'prepare-analysis'},context,thread,{material,source});
       return this.analysis.dispatch({...request,op:'analyze',hash:prepared.hash,confirmed:true},context,thread);
     }
-    if (['prepare-analysis', 'analyze', 'analysis-status', 'cancel-analysis'].includes(op)) {
+    if (['prepare-analysis', 'analyze', 'analysis-status', 'cancel-analysis', 'view-analysis'].includes(op)) {
       if (!journal || journal.owner !== context.userId) throw new Error('反馈记录不存在');
       if (op === 'prepare-analysis' && ['writing','unknown','upload_failed','published'].includes(journal.state)) throw new Error('此记录暂不能重新分析，可以新建另一条反馈');
       const thread = journal.linkedThread && (op === 'prepare-analysis' || op === 'analyze')
@@ -429,11 +440,13 @@ export class FeedbackService {
         : analysis?.state==='ready' || journal.reviewReady ? 'ready' : 'draft';
       return {id:journal.id,title:journal.report.title,...(status==='draft'&&journal.state==='draft'?{deleteRevision:revision}:{}),kind:journal.report.kind ?? (/^feat:/i.test(journal.report.title)?'feat':'bug'),status,
         updatedAt:Math.max(journal.updatedAt ?? journal.createdAt ?? 0,analysis?.startedAt ?? 0),analyzed:analysis?.state==='ready',issueId:journal.issue?.id,issueUrl:journal.issue?.url,threadUrl:journal.linkedThread?.deepLinkUrl ?? analysis?.threadUrl,
+        unread:status==='ready' && analysis?.state==='ready' && 'viewed' in analysis && !analysis.viewed &&
+          (journal.report.title!==analysis.title || journal.report.body!==analysis.body),
         linkedThreadLabel:journal.linkedThread ? journal.linkedThread.title ?? '未命名会话' : undefined,
         screenshotsPending:journal.state==='published' && (journal.screenshotAttempt || (journal.screenshotCommentUnverified && !journal.screenshotsConfirmed))
           ? 'verify' : undefined};
     }));
-    return items.sort((a,b)=>b.updatedAt-a.updatedAt);
+    return items.sort((a,b)=>Number(b.unread)-Number(a.unread)||b.updatedAt-a.updatedAt);
   }
 }
 function pageCursor<Key extends 'timestamp' | 'lastActiveAt'>(value: unknown, field: Key) {

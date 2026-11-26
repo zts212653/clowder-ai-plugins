@@ -41,6 +41,13 @@ export default {
               if (context?.kind !== 'owner-http-request' || context.pluginInstanceId !== host.pluginInstanceId) throw new Error('请通过左栏反馈入口打开面板');
               await context.assertCurrent();
               const request = record(record(input).request);
+              if (request.method === 'GET' && request.path === 'activity') {
+                const activity = await service.activity(context);
+                const badge = activity.unread
+                  ? { kind:'unread', label:activity.running ? '有分析结果待查看，另有分析进行中' : '有分析结果待查看' }
+                  : activity.running ? { kind:'busy', label:'分析中' } : null;
+                return json(200, { badge });
+              }
               if (request.method === 'POST' && request.path === 'feedback/panel') {
                 const body = request.body;
                 const framed = body != null && typeof body === 'object' && 'input' in body;

@@ -426,6 +426,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/251",
       "reason": "This candidate expands linked feedback to preserve operator-authored messages and reuse previous analysis.",
       "condition": "Verify the archived candidate and one-click draft on the supported next Host before reviewing catalog activation separately."
+    },
+    {
+      "pluginId": "official.feedback",
+      "version": "0.1.0-alpha.15",
+      "integrity": "sha512-o5BlLRPnl/OcaqwNotb6AXvH5Frxr94DgsbzpS8wVb5oYF3fp/JJzdl+NGpr3+1+tAxMOnuHa9zVXlc858Jb+w==",
+      "disposition": "defer",
+      "owner": "codex",
+      "reviewBy": "2026-12-10T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/251",
+      "reason": "This candidate updates the conversation avatar and projects feedback analysis activity.",
+      "condition": "Verify the archived candidate with a Host that supports live PDL entry activity before reviewing activation."
     }
   ]
 }

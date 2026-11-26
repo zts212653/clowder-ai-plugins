@@ -14,7 +14,7 @@ export type Analysis = {
   activationId: string;
   catId?: string; messageId?: string; triggerMessageId?: string; executionId?: string;
   candidate?: { title: string; body: string }; outcome?: string; error?: string;
-  startedAt?: number; progress?: string; receivedChars?: number;
+  startedAt?: number; progress?: string; receivedChars?: number; viewed?: true;
   journalDigest?: string;
   linkedThreadId?: string;
   summary?: {source:string};
@@ -91,13 +91,20 @@ export class FeedbackAnalysis {
       }
     }
     return { id: run.id, state: run.state, threadUrl: run.threadUrl, error: run.error, hash: run.hash, material: run.material, recipeVersion, progress:run.progress,receivedChars:run.receivedChars,startedAt:run.startedAt,journalDigest:run.journalDigest,clientId:run.catId,projectRef:run.projectRef,linkedThreadId:run.linkedThreadId,summary:run.summary ? true : undefined,
-      ...(run.state === 'ready' ? run.candidate : {}) };
+      ...(run.state === 'ready' ? { ...run.candidate, viewed:run.viewed } : {}) };
   }
 
   async dispatch(data: Record<string, unknown>, context: OwnerContext, linkedThread?: import('@clowder-ai/plugin-sdk').PluginThreadSummary, summaryInput?: {material:string;source:string}) {
     const feedbackId = data.feedbackId === undefined ? undefined : text(data.feedbackId,80);
     const key = analysisKey(context.userId,feedbackId);
     if (data.op === 'analysis-status') return { analysis: await this.status(context.userId,false,feedbackId) };
+    if (data.op === 'view-analysis') {
+      const runId = text(data.runId,80);
+      await context.assertCurrent();
+      await this.update(key, current => current.id === runId && current.state === 'ready' && !current.viewed
+        ? { ...current, viewed:true } : current);
+      return {};
+    }
     if (data.op === 'cancel-analysis') {
       const run = await this.update(key, current => ({ ...current, state: 'cancelled' }));
       if (run.threadId && !run.linkedThreadId) await this.host.messaging?.unsubscribe({ threadId: run.threadId }).catch(() => undefined); // Local cancellation already rejects later reports.

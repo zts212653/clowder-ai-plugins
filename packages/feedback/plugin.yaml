@@ -1,5 +1,5 @@
 pluginId: official.feedback
-version: 0.1.0-alpha.14
+version: 0.1.0-alpha.15
 contractVersion: 0.4.0-candidate.0
 name: 问题反馈
 description:
@@ -32,6 +32,7 @@ contributions:
   - { type: message-subscription, id: feedback.results, binding: feedback.identity, action: { method: feedback.delivery }, presentation: v2 }
   - { type: webhook, id: feedback.http, path: feedback, methods: [POST], requestBodyLimitBytes: 15728640, action: { method: feedback.http } }
   - { type: webhook, id: feedback.page, path: panel, methods: [GET], action: { method: feedback.panel } }
+  - { type: webhook, id: feedback.activity, path: activity, methods: [GET], action: { method: feedback.panel } }
   - { type: webhook, id: feedback.panel-route, path: feedback/panel, methods: [POST], requestBodyLimitBytes: 15728640, action: { method: feedback.panel } }
 features:
   - id: feedback
@@ -42,6 +43,7 @@ features:
       - { type: message-subscription, id: feedback.results }
       - { type: webhook, id: feedback.http }
       - { type: webhook, id: feedback.page }
+      - { type: webhook, id: feedback.activity }
       - { type: webhook, id: feedback.panel-route }
 data:
   - { name: feedback-journal, dataClass: user-authored, strategy: retained }
