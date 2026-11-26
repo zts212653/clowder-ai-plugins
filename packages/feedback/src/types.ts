@@ -14,7 +14,8 @@ export interface Host {
   members?: import('@clowder-ai/plugin-sdk').ModulePluginHostShape['members'];
   threads?: Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'create' | 'get' | 'list'> &
     Partial<Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'readMessages' | 'getCats'>>;
-  messaging?: Pick<import('@clowder-ai/plugin-sdk').ModulePluginHostShape['messaging'], 'send' | 'subscribe' | 'unsubscribe' | 'findSent'>;
+  messaging?: Pick<import('@clowder-ai/plugin-sdk').ModulePluginHostShape['messaging'], 'send' | 'subscribe' | 'unsubscribe' | 'findSent'> &
+    Partial<Pick<import('@clowder-ai/plugin-sdk').ModulePluginHostShape['messaging'], 'get'>>;
 }
 export interface Command { executable: string; args: string[] }
 export interface Profile {

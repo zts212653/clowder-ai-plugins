@@ -10,7 +10,7 @@ The prominent Feedback records view shows independent drafts, analysis progress,
 
 The console uses the package's `console/pdl.yaml` and `console/i18n`.
 
-Link new feedback to an existing conversation to see its past feedback and member replies. Use a selected reply to fill an editable draft, or run analysis in that same conversation. Review the selected content before submitting. After verifying the Issue, send its link back to the conversation to follow up there.
+Link new feedback to an existing conversation to see your original descriptions, member replies and past feedback. Summarize and fill combines redacted originals with existing findings in an editable draft. It can reuse a single recognizable feedback report or ask an available member in the same conversation to summarize the replies. You can still bring in a single reply or start further analysis there. Review the draft before submitting. After verifying the Issue, send its link back to the conversation to follow up there.
 
 Requires a `next` Host that supports plugin PDL consoles. Analysis uses configured members, threads, messaging and optional `runtimeInfo.get()`. Install, test and enable Feedback in Plugin Settings, then open its sidebar entry. To try a source build, build with `pnpm --filter @clowder-ai/feedback build` and install a local packed archive.
 

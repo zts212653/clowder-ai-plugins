@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { PluginThreadMessage, PluginThreadSummary } from '@clowder-ai/plugin-sdk';
 import { attachments } from './attachments.js';
 import { AttachmentVault } from './attachment-vault.js';
 import { FeedbackAnalysis } from './analysis.js';
@@ -42,8 +43,8 @@ export class FeedbackService {
       if (!this.host.threads?.readMessages) return { feedback, messages: [] };
       const rows = await this.host.threads.readMessages(thread.id, { limit: threadPageSize, before: pageCursor(data.before, 'timestamp') });
       const first = rows[0];
-      const messages = rows.filter(importableMessage).reverse().map(({ id, timestamp, content }) => ({
-        id, timestamp, excerpt: sanitizeThreadText(content, thread.projectRef ?? '', thread.id, thread.deepLinkUrl).trim().slice(0, 240),
+      const messages = (await this.conversationSources(rows, thread, context.userId)).reverse().map(({ id, timestamp, kind, content }) => ({
+        id, timestamp, kind, excerpt:content.slice(0,240), ...(kind==='owner' && content.length>240 ? {fullText:content} : {}),
       }));
       return { feedback, messages, next: rows.length === threadPageSize && first ? { id:first.id, timestamp:first.timestamp } : undefined };
     }
@@ -106,13 +107,44 @@ export class FeedbackService {
       if (!result.applied) throw new RevisionConflictError('草稿已有更新，请刷新记录后再删除');
       return {items:await this.history(context.userId)};
     }
-    if (op === 'analysis-members') {
+    if (op === 'analysis-members' || op === 'summarize-thread') {
       if (!journal || journal.owner !== context.userId || !journal.linkedThread) throw new Error('请先保存关联会话');
       const thread = await this.visibleThread(journal.linkedThread.id);
       const [cats, members] = await Promise.all([this.host.threads?.getCats?.(thread.id), this.host.members?.list()]);
       const routable = new Set(cats?.routableNow.map(cat => cat.catId));
-      return {clients:(members ?? []).filter(member => member.available && routable.has(member.catId))
-        .map(member => ({id:member.catId,label:member.displayName,model:member.defaultModel}))};
+      const clients = (members ?? []).filter(member => member.available && routable.has(member.catId))
+        .map(member => ({id:member.catId,label:member.displayName,model:member.defaultModel}));
+      if (op === 'analysis-members') return {clients};
+      if (data.confirmed !== true) throw new Error('请确认使用会话文字生成草稿');
+      if (!['draft','approved'].includes(journal.state)) throw new Error('此反馈不能重新填入总结，请新建一条反馈');
+      if (data.revision !== current?.revision) throw new RevisionConflictError('草稿已有更新，请重新打开');
+      const client = clients.find(member => member.id===journal.clientId) ?? clients[0];
+      if (!this.host.threads?.readMessages) throw new Error('当前宿主无法读取会话文字');
+      const before = pageCursor(data.before,'timestamp');
+      const recent = await this.host.threads.readMessages(thread.id,{limit:60});
+      const window = before ? [...await this.host.threads.readMessages(thread.id,{limit:threadPageSize,before}),...recent] : recent;
+      const rows = await this.conversationSources([...new Map(window.map(row=>[row.id,row])).values()],thread,context.userId);
+      const original = rows.filter(row=>row.kind==='owner');
+      const findings = rows.filter(row=>row.kind==='analysis').slice(-5);
+      if (!findings.length) throw new Error('还没有可供整理的成员分析');
+      const draft = journal.report;
+      const excerpts = (items:typeof rows) => items.map(row=>row.content.slice(0,1800)).join('\n\n') || '本次读取范围内没有相关文字。';
+      const own = original.length>6 ? [original[0]!,...original.slice(-5)] : original;
+      const kind = draft.kind ?? 'bug';
+      const ownText = excerpts(own);
+      const addition = sanitizeThreadText(draft.body,thread.projectRef ?? '',thread.id,thread.deepLinkUrl).trim();
+      const formal = findings.length===1 && /^#\s+(?:bug|feat):/mu.test(findings[0]!.content) ? parseReport(findings[0]!.content) : undefined;
+      const source = `## 我的原话\n\n${ownText}${addition ? `\n\n## 我的补充\n\n${addition}` : ''}`;
+      if (formal || !client) {
+        const title = feedbackTitle(kind, formal?.title ?? sanitizeThreadText(thread.title ?? '',thread.projectRef ?? '',thread.id,thread.deepLinkUrl), ownText);
+        const report = { ...draft, kind, title, body:`## 已有分析\n\n${formal?.body ?? excerpts(findings)}\n\n${source}`.slice(0,100_000) };
+        const saved = await publicWrite({...journal,report,state:'draft',reviewReady:true,digest:digest({id:journal.id,report,target:journal.target,linkedThreadId:thread.id})});
+        return { ...saved, summarySource:formal?'reused':'combined' };
+      }
+      const material = `草稿类型：${kind}\n\n## 已有分析\n${excerpts(findings)}\n\n${source.slice(0,16_000)}`;
+      const request = {feedbackId:journal.id,report:draft,clientId:client.id,journalDigest:journal.digest};
+      const prepared = await this.analysis.dispatch({...request,op:'prepare-analysis'},context,thread,{material,source});
+      return this.analysis.dispatch({...request,op:'analyze',hash:prepared.hash,confirmed:true},context,thread);
     }
     if (['prepare-analysis', 'analyze', 'analysis-status', 'cancel-analysis'].includes(op)) {
       if (!journal || journal.owner !== context.userId) throw new Error('反馈记录不存在');
@@ -348,6 +380,22 @@ export class FeedbackService {
     return thread;
   }
 
+  private async conversationSources(rows: readonly PluginThreadMessage[], thread: PluginThreadSummary, owner: string) {
+    const items = await Promise.all(rows.map(async row => {
+      if (!row.content.trim()) return undefined;
+      let kind: 'analysis' | 'owner';
+      if (importableMessage(row)) kind = 'analysis';
+      else if (row.sender.kind === 'owner') {
+        const message = await this.host.messaging?.get?.(row.id);
+        if (!message || message.threadId!==thread.id || message.userId!==owner ||
+            (message.from ? message.from.kind!=='user' : message.catId!==null)) return undefined;
+        kind = 'owner';
+      } else return undefined;
+      return {id:row.id,timestamp:row.timestamp,kind,content:sanitizeThreadText(row.content,thread.projectRef ?? '',thread.id,thread.deepLinkUrl).trim().slice(0,4000)};
+    }));
+    return items.filter(item=>item!==undefined);
+  }
+
   private async history(userId: string, threadId?: string) {
     let journals=await this.records.list(userId);
     if (threadId !== undefined) {
@@ -378,7 +426,7 @@ function pageCursor<Key extends 'timestamp' | 'lastActiveAt'>(value: unknown, fi
   if (typeof position !== 'number' || !Number.isSafeInteger(position) || position < 0) throw new Error('翻页位置无效，请刷新列表');
   return { id: text(cursor.id, field === 'timestamp' ? 256 : 500), [field]: position } as { id: string } & Record<Key, number>;
 }
-function importableMessage(message: import('@clowder-ai/plugin-sdk').PluginThreadMessage) {
+function importableMessage(message: PluginThreadMessage) {
   return message.sender.kind === 'cat' && (!message.response || message.response.status === 'completed') && Boolean(message.content.trim());
 }
 function screenshotCandidates(journal: Journal): StoredAttachment[] {

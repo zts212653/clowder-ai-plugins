@@ -85,6 +85,68 @@ test('changing the linked conversation invalidates prepared material', async () 
   assert.equal(f.sends.length, 0);
 });
 
+test('owner messages are shown and one action summarizes them with the existing analysis in the same thread', async () => {
+  const f = linkedFixture();
+  const userText = '主页最近作品一片空白，切到全部作品可以看到。token=owner-secret';
+  f.rows.push(
+    {id:'original',timestamp:10,sender:{kind:'owner'},content:userText},
+    {id:'plugin-message',timestamp:11,sender:{kind:'owner'},content:'plugin-canary'},
+    {id:'other-owner',timestamp:12,sender:{kind:'owner'},content:'different-owner-canary'},
+    {id:'analysis',timestamp:20,sender:{kind:'cat',catId:'analyst'},content:'已复现，入口未发作品请求。'},
+    {id:'progress',timestamp:21,sender:{kind:'cat',catId:'analyst'},content:'unfinished-canary',
+      response:{executionId:'active',inputMessageIds:['original'],status:'processing',startedAt:20}},
+  );
+  Object.assign(f.host.messaging!, {get:async (id:string)=>({
+    id,threadId:f.thread.id,userId:id==='other-owner'?'stranger':'owner',from:id==='plugin-message'?{kind:'plugin'}:{kind:'user'},
+  })});
+  const page = await f.call({op:'thread-context',threadId:f.thread.id}) as unknown as {messages:{id:string;kind:string;excerpt:string}[]};
+  assert.deepEqual(page.messages.map(({id,kind})=>({id,kind})), [{id:'analysis',kind:'analysis'},{id:'original',kind:'owner'}]);
+  assert.match(page.messages[1]!.excerpt, /主页最近作品一片空白/);
+  assert.doesNotMatch(JSON.stringify(page),/owner-secret|plugin-canary|different-owner-canary|unfinished-canary/);
+
+  await f.call({op:'save',targetId:'clowder',linkedThreadId:f.thread.id,draftOnly:true,report:{kind:'bug',body:'需要保留的手写补充'}});
+  await assert.rejects(f.call({op:'summarize-thread'}),/确认/);
+  const sent = await f.call({op:'summarize-thread',confirmed:true}) as unknown as {analysis:{summary?:true;clientId:string}};
+  assert.equal(sent.analysis.summary,true);
+  assert.equal(sent.analysis.clientId,'analyst');
+  assert.equal(f.threadCreates(),0);
+  assert.equal(f.sends.length,1);
+  assert.equal(f.sends[0]!.threadId,f.thread.id);
+  const material=JSON.stringify(f.sends[0]!.payload);
+  assert.match(material,/主页最近作品一片空白/);
+  assert.match(material,/入口未发作品请求/);
+  assert.match(material,/需要保留的手写补充/);
+  assert.doesNotMatch(material,/owner-secret|plugin-canary|different-owner-canary|unfinished-canary/);
+  f.rows.push({id:'summary',timestamp:30,sender:{kind:'cat',catId:'analyst'},content:'# bug: 首页最近作品空白\n\n## 问题描述\n已有证据。',
+    response:{executionId:'summary-run',inputMessageIds:['send-1'],status:'completed',startedAt:25}});
+  const ready = await f.call({op:'analysis-status'}) as unknown as {analysis:{state:string;title:string;body:string}};
+  assert.equal(ready.analysis.state,'ready');
+  assert.equal(ready.analysis.title,'bug: 首页最近作品空白');
+  assert.match(ready.analysis.body,/## 我的原话[\s\S]+主页最近作品一片空白/);
+  assert.match(ready.analysis.body,/## 我的补充[\s\S]+需要保留的手写补充/);
+  assert.equal(f.creates(),0);
+});
+
+test('one action can fill an existing formatted report or combine findings without waking a member', async () => {
+  for (const formatted of [true,false]) {
+    const f=linkedFixture();
+    f.rows.push({id:'own',timestamp:1,sender:{kind:'owner'},content:'第一次点开时没有结果。'},
+      {id:'conclusion',timestamp:2,sender:{kind:'cat',catId:'analyst'},content:formatted?'# bug: 打开没有结果\n\n已确认加载失败。':'已确认加载失败。'});
+    Object.assign(f.host.messaging!,{get:async()=>({id:'own',threadId:f.thread.id,userId:'owner',from:{kind:'user'}})});
+    if(!formatted) f.host.members!.list=async()=>[];
+    await f.save();
+    const result=await f.call({op:'summarize-thread',confirmed:true}) as Awaited<ReturnType<typeof f.call>> & {summarySource:string};
+    assert.equal(result.summarySource,formatted?'reused':'combined');
+    assert.match(result.journal.report.body,/第一次点开时没有结果/);
+    assert.match(result.journal.report.body,/已确认加载失败/);
+    assert.match(result.journal.report.body,/界面打不开/);
+    assert.equal(result.journal.reviewReady,true);
+    assert.equal(f.sends.length,0);
+    assert.equal(f.threadCreates(),0);
+    assert.equal(f.creates(),0);
+  }
+});
+
 test('only members routable in the linked conversation can start its analysis', async () => {
   const f = linkedFixture();
   await f.save();

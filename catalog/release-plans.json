@@ -415,6 +415,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/251",
       "reason": "This candidate adds reuse of existing conversations on top of the feedback panel work in #242.",
       "condition": "Verify this archive with the target next Host including linked analysis and the Issue receipt in an existing conversation, then review public catalog activation separately."
+    },
+    {
+      "pluginId": "official.feedback",
+      "version": "0.1.0-alpha.14",
+      "integrity": "sha512-XipOCEEcMEyoWo97udTw9kjNiwRlXMNDZG+/L90qn1lF9yS7iSF5PZ72+J8n2odrebPXARZ3UFB9M3rTf1cGcA==",
+      "disposition": "defer",
+      "owner": "codex",
+      "reviewBy": "2026-12-10T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/251",
+      "reason": "This candidate expands linked feedback to preserve operator-authored messages and reuse previous analysis.",
+      "condition": "Verify the archived candidate and one-click draft on the supported next Host before reviewing catalog activation separately."
     }
   ]
 }

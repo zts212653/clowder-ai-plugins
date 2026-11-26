@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { collectEvidence } from './collect-evidence.js';
 import { analysisKey, digest, feedbackTitle, record, text } from './config.js';
 import { diagnosticEnvironment } from './diagnostic-environment.js';
-import { instructions, recipeVersion } from './recipe.js';
+import { instructions, recipeVersion, summaryInstructions } from './recipe.js';
 import { sanitize, sanitizeThreadText } from './sanitize.js';
 import { parseReport } from './report.js';
 import type { Host, OwnerContext } from './types.js';
@@ -17,6 +17,7 @@ export type Analysis = {
   startedAt?: number; progress?: string; receivedChars?: number;
   journalDigest?: string;
   linkedThreadId?: string;
+  summary?: {source:string};
   kind?: 'bug' | 'feat';
 };
 
@@ -67,7 +68,8 @@ export class FeedbackAnalysis {
             : sanitize(value, [run.projectRef]);
           run = await this.update(key, current => !(['starting','running','blocked','interrupted'].includes(current.state) || current.state === 'failed' && current.outcome === 'completed') ? current : ({...current,
             state: report ? 'ready' : 'failed', outcome: 'completed',
-            ...(report ? {candidate:{title:redact(current.kind ? feedbackTitle(current.kind,report.title) : report.title),body:redact(report.body)}} : {}),
+            ...(report ? {candidate:{title:redact(current.kind ? feedbackTitle(current.kind,report.title) : report.title),
+              body:current.summary ? `${redact(report.body)}\n\n${current.summary.source}`.slice(0,100_000) : redact(report.body)}} : {}),
             error: report ? undefined : '分析已完成，但回复不是有效报告；可打开分析对话检查或重新分析。',
             progress: '分析完成，报告已整理', receivedChars: reply.content.length,
           }), run.id);
@@ -88,11 +90,11 @@ export class FeedbackAnalysis {
         run = await this.update(key, current => ({ ...current, state: 'failed', error: '无法恢复分析订阅；草稿已保留，可直接反馈或打开原对话查看。' }));
       }
     }
-    return { id: run.id, state: run.state, threadUrl: run.threadUrl, error: run.error, hash: run.hash, material: run.material, recipeVersion, progress:run.progress,receivedChars:run.receivedChars,startedAt:run.startedAt,journalDigest:run.journalDigest,clientId:run.catId,projectRef:run.projectRef,linkedThreadId:run.linkedThreadId,
+    return { id: run.id, state: run.state, threadUrl: run.threadUrl, error: run.error, hash: run.hash, material: run.material, recipeVersion, progress:run.progress,receivedChars:run.receivedChars,startedAt:run.startedAt,journalDigest:run.journalDigest,clientId:run.catId,projectRef:run.projectRef,linkedThreadId:run.linkedThreadId,summary:run.summary ? true : undefined,
       ...(run.state === 'ready' ? run.candidate : {}) };
   }
 
-  async dispatch(data: Record<string, unknown>, context: OwnerContext, linkedThread?: import('@clowder-ai/plugin-sdk').PluginThreadSummary) {
+  async dispatch(data: Record<string, unknown>, context: OwnerContext, linkedThread?: import('@clowder-ai/plugin-sdk').PluginThreadSummary, summaryInput?: {material:string;source:string}) {
     const feedbackId = data.feedbackId === undefined ? undefined : text(data.feedbackId,80);
     const key = analysisKey(context.userId,feedbackId);
     if (data.op === 'analysis-status') return { analysis: await this.status(context.userId,false,feedbackId) };
@@ -108,8 +110,18 @@ export class FeedbackAnalysis {
       const previous = await this.host.storage.get(key);
       if (previous && (previous.value as Analysis).state === 'preparing') throw new Error('上次项目对话准备结果待核对；不会重复创建，请先检查或停止上次等待');
       if (previous && ['starting', 'running', 'blocked'].includes((previous.value as Analysis).state)) throw new Error('当前分析仍在进行，请先停止等待或回到报告');
-      const environment = await runtimeInfo.get();
       const report = record(data.report);
+      if (summaryInput && linkedThread) {
+        const hash = digest({ ...summaryInput, threadId:linkedThread.id });
+        const run: Analysis = {id:randomUUID(),activationId:this.activationId,owner:context.userId,state:'prepared',
+          threadId:linkedThread.id,threadUrl:linkedThread.deepLinkUrl,projectRef:linkedThread.projectRef ?? '',linkedThreadId:linkedThread.id,
+          hash,material:summaryInput.material,summary:{source:summaryInput.source},catId:text(data.clientId,200),journalDigest:text(data.journalDigest,64),
+          kind:report.kind==='feat'?'feat':'bug'};
+        await context.assertCurrent();
+        if (!(await this.host.storage.compareAndSet(key,previous?.revision ?? null,run)).applied) throw new Error('草稿整理已在另一个窗口开始，请重新检查');
+        return { hash, analysis: await this.status(context.userId,false,feedbackId) };
+      }
+      const environment = await runtimeInfo.get();
       const title = text(report.title, 200); const body = text(report.body, 100_000);
       if (!title.trim()) throw new Error('请先填写反馈内容');
       const parentThreadId = data.parentThreadId === undefined || data.parentThreadId === '' ? undefined : text(data.parentThreadId, 500);
@@ -168,8 +180,9 @@ export class FeedbackAnalysis {
     // The durable starting state makes an uncertain send visible, rather than
     // silently issuing a second invocation after a connection failure.
     const threadContext = linkedThread ? '\n\n请结合本会话中已有的相关结论和历史反馈，标明适用范围。只在反馈报告里保留必要事实，不引用私聊、内部会话链接或会话 ID。' : '';
+    const prompt = run.summary ? summaryInstructions : instructions + threadContext;
     const sent = await messaging.send({ threadId: run.threadId, idempotencyKey: `feedback-analysis:${run.id}`, wake: { catId, ...(linkedThread ? { exact:true } : {}) },
-      payload: { provenance: { epistemicStatus: 'user_intent' }, elements: [{ elementId: run.id, kind: 'text', payload: { text: `${instructions}${threadContext}\n\n${run.material}` } }] } });
+      payload: { provenance: { epistemicStatus: 'user_intent' }, elements: [{ elementId: run.id, kind: 'text', payload: { text: `${prompt}\n\n${run.material}` } }] } });
     await this.update(key, current => ({ ...current, messageId: sent.messageId, state: current.state === 'starting' ? 'running' : current.state }), run.id);
     return { analysis: await this.status(context.userId,false,feedbackId) };
   }
