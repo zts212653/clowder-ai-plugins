@@ -159,9 +159,11 @@
   }
 
   function fileType(path) {
+    if (/\.avd[\\/]snapshots[\\/][^\\/]+[\\/]ram\.img$/i.test(path))
+      return { id: 'disk-image', label: '模拟器内存快照' };
     var ext = extensionOf(path);
     if (['img', 'iso', 'vhd', 'vhdx', 'qcow2', 'dmg', 'vmdk', 'wim', 'vdi'].indexOf(ext) >= 0)
-      return { id: 'disk-image', label: '磁盘映像', note: '不是图片' };
+      return { id: 'disk-image', label: '磁盘映像' };
     if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp', 'ico', 'avif', 'heic', 'tif', 'tiff'].indexOf(ext) >= 0)
       return { id: 'image', label: '图片' };
     if (['jsonl', 'json', 'yaml', 'yml', 'toml', 'xml', 'csv', 'tsv'].indexOf(ext) >= 0)

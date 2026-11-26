@@ -149,6 +149,7 @@
       },
       volumes: volumes,
       categories: categories,
+      worktreeCount: nullableNumber(report.worktreeCount),
       roots: (report.roots || []).map(function (root) {
         return {
           id: String(root.path || ''),
@@ -539,7 +540,9 @@
       ? state.summary.categories.map(function (category) {
           return {
             value: category.id,
-            label: category.label + ' · ' + F.countText(category.fileCount),
+            label: category.id === 'worktree' && state.summary.worktreeCount !== null
+              ? category.label + ' · ' + F.countText(state.summary.worktreeCount) + ' 个目录'
+              : category.label + ' · ' + F.countText(category.fileCount),
           };
         })
       : M.knownCategories().map(function (id) {
@@ -658,15 +661,19 @@
     throw new Error('存储清单返回了未知状态。');
   }
 
+  async function applyScanPage(body) {
+    if (body.state === 'ready' && (state.view === 'worktrees' || state.worktreePath || M.filterActive(state.filters))) {
+      var page = await fetchPage(0);
+      body = page.state === 'ready' ? Object.assign({}, body, page) : page;
+    }
+    applyBody(body);
+  }
+
   async function boot() {
     if (!state.summary) state.phase = 'loading';
     render();
     try {
-      var body = await fetchState();
-      if (body.state === 'ready' && !Array.isArray(body.files) && !Array.isArray(body.worktrees)) {
-        body = Object.assign({}, body, await fetchPage(0));
-      }
-      applyBody(body);
+      await applyScanPage(await fetchState());
     } catch (error) {
       state.phase = state.summary ? 'ready' : 'error';
       state.error = error instanceof Error ? error.message : String(error);
@@ -713,16 +720,7 @@
         schedulePoll(1000);
         return;
       }
-      if (body.state === 'ready') {
-        if (state.view === 'files' && !M.filterActive(state.filters)) {
-          applyBody(body);
-        } else {
-          var page = await fetchPage(0);
-          applyBody(Object.assign({}, body, page));
-        }
-        return;
-      }
-      applyBody(body);
+      await applyScanPage(body);
     } catch (error) {
       setNotice('warn', '扫描状态暂时读不到：' + (error instanceof Error ? error.message : String(error)));
       schedulePoll(3000);
@@ -744,6 +742,10 @@
       }
       if (body.state !== 'ready') {
         applyBody(body);
+        return;
+      }
+      if (body.scannedAt && body.scannedAt !== state.summary.scanId) {
+        await boot();
         return;
       }
       state.page = mapPage(body);
@@ -803,6 +805,7 @@
     state.filters.category = 'worktree';
     state.view = 'files';
     state.worktreePath = directory.worktreePath || directory.path || '';
+    state.filters.query = '';
     state.offset = 0;
     void loadFiles(true);
     var target = document.getElementById('files-section');

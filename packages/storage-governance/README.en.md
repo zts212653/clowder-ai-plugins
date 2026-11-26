@@ -2,7 +2,7 @@
 
 [Chinese guide](README.md)
 
-Inspect the disk space used by Clowder AI files by volume, conversation, and category. Enable the plugin, open Storage Governance from the navigation, and start a scan. The inventory supports path search, filters, pagination, and per-file details.
+Inspect the disk space used by Clowder AI files by volume, conversation, and category. Enable the plugin, open Storage Governance from the navigation, and start a scan. The inventory supports path search, filters, pagination, and per-file details. Select Worktrees to see registered Git worktree roots and their disk usage. Open a root to inspect its individual files. Registered nested worktrees are counted separately.
 
 ## Coverage
 
