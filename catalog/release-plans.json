@@ -401,7 +401,7 @@
       "disposition": "defer",
       "owner": "codex",
       "reviewBy": "2026-12-10T08:00:00Z",
-      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/242",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/251",
       "reason": "This candidate adds reuse of existing conversations on top of the feedback panel work in #242.",
       "condition": "Verify this archive with the target next Host including linked analysis and the Issue receipt in an existing conversation, then review public catalog activation separately."
     }
