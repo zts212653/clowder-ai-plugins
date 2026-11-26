@@ -15,6 +15,8 @@
     categories: document.getElementById('categories'),
     categoriesSection: document.getElementById('categories-section'),
     files: document.getElementById('files-table'),
+    filesTitle: document.getElementById('files-title'),
+    viewSwitch: document.getElementById('view-switch'),
     pager: document.getElementById('pager'),
     unscanned: document.getElementById('unscanned'),
     scope: document.getElementById('scope'),
@@ -38,6 +40,8 @@
     summary: null,
     active: null,
     page: null,
+    view: 'files',
+    worktreePath: '',
     filters: { query: '', volume: '', threadId: '', category: '' },
     offset: 0,
     limit: 50,
@@ -47,6 +51,9 @@
     drawer: null,
     error: '',
     requestSeq: 0,
+    summaryKey: '',
+    categoryKey: null,
+    filterOptionsKey: '',
     pollTimer: null,
     searchTimer: null,
     noticeTimer: null,
@@ -160,8 +167,12 @@
     };
   }
 
-  function mapPage(report) {
-    var threads = threadsById(report);
+  function worktreeRootFor(path) {
+    return M.worktreeOf(path, state.summary ? state.summary.roots : []);
+  }
+
+  function mapFilesPage(report) {
+    var threads = threadsById(state.report || report);
     var rows = (report.files || []).map(function (row) {
       var category = String(row.category || 'unknown');
       return {
@@ -174,16 +185,63 @@
         allocatedBytes: row.allocatedBytes === undefined ? null : row.allocatedBytes,
         modifiedAt: nullableNumber(row.modifiedAt),
         retention: M.retentionFor(category),
+        worktreePath: String(row.worktreePath || '') || worktreeRootFor(row.path) || state.worktreePath || '',
         flags: row.duplicateOf ? ['hardlink-deduped'] : [],
       };
     });
     return {
+      kind: 'files',
       scanId: report.scannedAt || 'current',
       revision: 0,
       rows: rows,
       nextOffset: typeof report.nextOffset === 'number' ? report.nextOffset : null,
       totalMatched: typeof report.total === 'number' ? report.total : rows.length,
     };
+  }
+
+  function mapWorktreesPage(report) {
+    var threads = threadsById(state.report || report);
+    var source = Array.isArray(report.worktrees)
+      ? report.worktrees
+      : Array.isArray(report.directories)
+        ? report.directories
+        : null;
+    if (!source) {
+      return {
+        kind: 'worktrees',
+        unavailable: true,
+        scanId: report.scannedAt || 'current',
+        revision: 0,
+        rows: [],
+        nextOffset: null,
+        totalMatched: 0,
+      };
+    }
+    var rows = source.map(function (row) {
+      var worktreePath = String(row.path || row.worktreePath || '');
+      return {
+        id: worktreePath,
+        path: worktreePath,
+        worktreePath: worktreePath,
+        volumeId: String(row.volume || '?'),
+        logicalBytes: num(row.logicalBytes),
+        allocatedBytes: row.allocatedBytes === undefined ? null : row.allocatedBytes,
+        fileCount: num(row.fileCount === undefined ? row.uniqueFiles : row.fileCount),
+        source: M.sourceFor({ threadIds: row.threadIds || [], category: 'worktree' }, threads),
+      };
+    });
+    return {
+      kind: 'worktrees',
+      scanId: report.scannedAt || 'current',
+      revision: 0,
+      rows: rows,
+      nextOffset: typeof report.nextOffset === 'number' ? report.nextOffset : null,
+      totalMatched: typeof report.total === 'number' ? report.total : rows.length,
+    };
+  }
+
+  function mapPage(report) {
+    return state.view === 'worktrees' ? mapWorktreesPage(report) : mapFilesPage(report);
   }
 
   function syntheticProgress() {
@@ -218,6 +276,18 @@
   }
 
   function render() {
+    renderChrome();
+    if (!state.summary) return;
+    renderStatic();
+    renderFilesView();
+    var optionsKey = filterOptionsKey();
+    if (optionsKey !== state.filterOptionsKey) {
+      syncFilters();
+      state.filterOptionsKey = optionsKey;
+    }
+  }
+
+  function renderChrome() {
     var running = state.phase === 'running';
     var dataVisible = state.summary !== null;
     var showEmpty =
@@ -253,59 +323,155 @@
     }
 
     els.data.hidden = !dataVisible;
-    R.clear(els.totals);
-    R.clear(els.volumes);
-    R.clear(els.categories);
-    R.clear(els.files);
-    R.clear(els.pager);
-    R.clear(els.unscanned);
-    R.clear(els.scope);
-    els.categoriesSection.hidden = true;
-    els.scopeSection.hidden = true;
-    els.scopeNote.hidden = true;
+    if (!dataVisible) els.resultCount.textContent = '';
+  }
 
-    if (!dataVisible) {
-      els.resultCount.textContent = '';
+  function summaryRenderKey(summary) {
+    return [
+      summary.scanId,
+      summary.totals.logicalBytes,
+      summary.totals.allocatedBytes,
+      summary.totals.fileCount,
+      summary.volumes.map(function (volume) { return volume.id + ':' + volume.appAllocatedBytes; }).join(','),
+      summary.categories.map(function (category) {
+        return category.id + ':' + category.logicalBytes + ':' + category.fileCount;
+      }).join(','),
+      summary.roots.length,
+      summary.unscanned.length,
+    ].join('|');
+  }
+
+  function renderStatic() {
+    var summary = state.summary;
+    var key = summaryRenderKey(summary);
+    if (key !== state.summaryKey) {
+      state.summaryKey = key;
+      state.categoryKey = null;
+      R.clear(els.totals);
+      R.clear(els.volumes);
+      R.clear(els.unscanned);
+      R.clear(els.scope);
+      els.totals.appendChild(R.renderTotals(summary));
+      els.volumes.appendChild(R.renderVolumes(summary));
+      var unscanned = R.renderUnscanned(summary);
+      if (unscanned) els.unscanned.appendChild(unscanned);
+      var scope = R.renderScope(summary);
+      els.scopeSection.hidden = !scope;
+      if (scope) {
+        els.scope.appendChild(scope);
+        els.scopeNote.hidden = false;
+      } else {
+        els.scopeNote.hidden = true;
+      }
+    }
+    if (state.categoryKey !== state.filters.category) {
+      state.categoryKey = state.filters.category;
+      R.clear(els.categories);
+      els.categoriesSection.hidden = summary.categories.length === 0;
+      if (!els.categoriesSection.hidden) {
+        els.categories.appendChild(
+          R.renderCategories(summary, {
+            category: state.filters.category,
+            onCategory: pickCategory,
+          }),
+        );
+      }
+    }
+  }
+
+  function renderFilesView() {
+    var loading = state.filesLoading;
+    var page = state.page;
+    els.files.setAttribute('aria-busy', loading ? 'true' : 'false');
+    els.files.classList.toggle('is-loading', loading);
+
+    // Polling a running scan must not repaint the last file table every second.
+    if (state.phase === 'running' && page && !loading) {
+      renderViewSwitch();
+      syncFilterValues();
       return;
     }
 
-    els.totals.appendChild(R.renderTotals(state.summary));
-    els.volumes.appendChild(R.renderVolumes(state.summary));
-    els.categoriesSection.hidden = state.summary.categories.length === 0;
-    if (!els.categoriesSection.hidden) {
-      els.categories.appendChild(
-        R.renderCategories(state.summary, {
-          category: state.filters.category,
-          onCategory: pickCategory,
-        }),
-      );
-    }
-    els.files.appendChild(
-      R.renderFiles(state.page, {
-        filtered: M.filterActive(state.filters),
-        onRow: openDrawer,
-        onClearFilters: clearFilters,
-      }),
-    );
-    var pager = R.renderPager(state.page, {
-      offset: state.offset,
-      busy: state.filesLoading,
-      onPrev: previousPage,
-      onNext: nextPage,
-    });
-    if (pager) els.pager.appendChild(pager);
-    var unscanned = R.renderUnscanned(state.summary);
-    if (unscanned) els.unscanned.appendChild(unscanned);
-    var scope = R.renderScope(state.summary);
-    els.scopeSection.hidden = !scope;
-    if (scope) {
-      els.scope.appendChild(scope);
-      els.scopeNote.hidden = false;
+    if (!loading || !page) {
+      R.clear(els.files);
+      R.clear(els.pager);
+      if (loading) {
+        els.files.appendChild(R.el('div', { class: 'table-loading', text: '正在读取清单…' }));
+      } else if (state.view === 'worktrees') {
+        els.files.appendChild(
+          R.renderWorktrees(page, {
+            filtered: M.filterActive(state.filters),
+            onDirectory: openWorktree,
+            onClearFilters: clearFilters,
+            onScan: startScan,
+          }),
+        );
+      } else {
+        els.files.appendChild(
+          R.renderFiles(page, {
+            filtered: M.filterActive(state.filters),
+            onRow: openDrawer,
+            onClearFilters: clearFilters,
+          }),
+        );
+      }
+      if (!loading) {
+        var pager = R.renderPager(page, {
+          offset: state.offset,
+          busy: false,
+          onPrev: previousPage,
+          onNext: nextPage,
+        });
+        if (pager) els.pager.appendChild(pager);
+      }
     }
 
-    syncFilters();
+    renderViewSwitch();
+    if (els.filesTitle) {
+      els.filesTitle.textContent = state.view === 'worktrees'
+        ? '工作树'
+        : state.worktreePath
+          ? '工作树 · ' + M.worktreeName(state.worktreePath)
+          : '文件';
+    }
+    syncFilterValues();
     els.resultCount.textContent = resultText();
     els.clear.hidden = !M.filterActive(state.filters);
+  }
+
+  function renderViewSwitch() {
+    R.clear(els.viewSwitch);
+    var visible = state.filters.category === 'worktree' || state.view === 'worktrees' || !!state.worktreePath;
+    els.viewSwitch.hidden = !visible;
+    if (!visible) return;
+    var label = state.view === 'worktrees'
+      ? '按实际工作树目录聚合，点击目录展开文件'
+      : state.worktreePath
+        ? '工作树 · ' + M.worktreeName(state.worktreePath)
+        : '文件视图';
+    els.viewSwitch.appendChild(R.el('span', { class: 'view-label', text: label }));
+    if (state.view === 'worktrees') {
+      els.viewSwitch.appendChild(R.el('button', {
+        class: 'btn ghost',
+        type: 'button',
+        text: '按文件查看',
+        onClick: switchToFiles,
+      }));
+    } else if (state.worktreePath) {
+      els.viewSwitch.appendChild(R.el('button', {
+        class: 'btn ghost',
+        type: 'button',
+        text: '返回工作树',
+        onClick: openWorktrees,
+      }));
+    } else {
+      els.viewSwitch.appendChild(R.el('button', {
+        class: 'btn ghost',
+        type: 'button',
+        text: '按工作树汇总',
+        onClick: openWorktrees,
+      }));
+    }
   }
 
   function metaText(running) {
@@ -318,17 +484,49 @@
   }
 
   function resultText() {
-    if (state.filesLoading) return '正在读取文件清单…';
+    if (state.filesLoading) {
+      return state.page ? '正在更新… · 保留上次可用结果' : '正在读取清单…';
+    }
     if (!state.page) return '';
+    if (state.page.unavailable) return '工作树汇总不可用 · 请重新扫描或更新 Host';
     var prefix = M.filterActive(state.filters) ? '筛选后 ' : '';
+    if (state.view === 'worktrees') {
+      return prefix + F.countText(state.page.totalMatched) + ' 个工作树 · 文件数为各目录内路径数';
+    }
     var duplicate =
       !M.filterActive(state.filters) &&
       state.page.totalMatched !== state.summary.totals.fileCount;
-    return prefix + F.countText(state.page.totalMatched) + ' 个文件' +
-      (duplicate ? ' · 清单含重复路径，总量按文件身份去重' : '');
+    return prefix + F.countText(state.page.totalMatched) + ' 个文件'
+      + (state.worktreePath ? ' · 当前工作树目录内' : '')
+      + (duplicate ? ' · 清单含重复路径，总量按文件身份去重' : '');
+  }
+
+  function filterOptionsKey() {
+    if (!state.summary) return '';
+    var threads = state.report && Array.isArray(state.report.threads) ? state.report.threads : [];
+    return [
+      state.summary.scanId,
+      state.summary.volumes.map(function (volume) { return volume.id; }).join(','),
+      state.summary.categories.map(function (category) { return category.id; }).join(','),
+      threads.map(function (thread) { return thread.id + ':' + (thread.title || ''); }).join(','),
+    ].join('|');
+  }
+
+  function syncFilterValues() {
+    var volumes = state.summary ? state.summary.volumes || [] : [];
+    var threads = state.report && Array.isArray(state.report.threads) ? state.report.threads : [];
+    var categories = state.summary ? state.summary.categories || [] : [];
+    els.volume.value = state.filters.volume;
+    els.thread.value = state.filters.threadId;
+    els.category.value = state.filters.category;
+    els.volume.disabled = volumes.length === 0;
+    els.thread.disabled = threads.length === 0;
+    els.category.disabled = categories.length === 0;
+    if (els.search.value !== state.filters.query) els.search.value = state.filters.query;
   }
 
   function syncFilters() {
+    if (!state.summary) return;
     var volumes = state.summary.volumes || [];
     fillSelect(
       els.volume,
@@ -356,41 +554,42 @@
       }),
       '全部来源',
     );
-    els.volume.value = state.filters.volume;
-    els.thread.value = state.filters.threadId;
-    els.category.value = state.filters.category;
-    els.volume.disabled = volumes.length === 0;
-    els.thread.disabled = threads.length === 0;
-    els.category.disabled = categories.length === 0;
-    if (els.search.value !== state.filters.query) els.search.value = state.filters.query;
+    syncFilterValues();
   }
 
   function fillSelect(select, options, allLabel) {
-    var current = select.value;
-    var fragment = document.createDocumentFragment();
-    var all = document.createElement('option');
-    all.value = '';
-    all.textContent = allLabel;
-    fragment.appendChild(all);
-    options.forEach(function (option) {
-      var node = document.createElement('option');
-      node.value = option.value;
-      node.textContent = option.label;
-      fragment.appendChild(node);
-    });
-    select.replaceChildren(fragment);
-    var exists = options.some(function (option) {
-      return option.value === current;
-    });
-    select.value = exists ? current : '';
+    var key = allLabel + '\u0000' + options.map(function (option) {
+      return option.value + '\u0001' + option.label;
+    }).join('\u0002');
+    if (select._sgOptionsKey !== key) {
+      select._sgOptionsKey = key;
+      var fragment = document.createDocumentFragment();
+      var all = document.createElement('option');
+      all.value = '';
+      all.textContent = allLabel;
+      fragment.appendChild(all);
+      options.forEach(function (option) {
+        var node = document.createElement('option');
+        node.value = option.value;
+        node.textContent = option.label;
+        fragment.appendChild(node);
+      });
+      select.replaceChildren(fragment);
+    }
   }
 
   function queryFor(offset) {
-    var query = { offset: String(offset), limit: String(state.limit) };
+    var query = {
+      offset: String(offset),
+      limit: String(state.limit),
+      view: state.view,
+      summary: 'false',
+    };
     if (state.filters.query) query.query = state.filters.query;
     if (state.filters.volume) query.volume = state.filters.volume;
     if (state.filters.threadId) query.threadId = state.filters.threadId;
     if (state.filters.category) query.category = state.filters.category;
+    if (state.view === 'files' && state.worktreePath) query.worktreePath = state.worktreePath;
     return query;
   }
 
@@ -463,8 +662,11 @@
     if (!state.summary) state.phase = 'loading';
     render();
     try {
-      applyBody(await fetchState());
-      if (state.phase === 'ready') applyBody(await fetchPage(0));
+      var body = await fetchState();
+      if (body.state === 'ready' && !Array.isArray(body.files) && !Array.isArray(body.worktrees)) {
+        body = Object.assign({}, body, await fetchPage(0));
+      }
+      applyBody(body);
     } catch (error) {
       state.phase = state.summary ? 'ready' : 'error';
       state.error = error instanceof Error ? error.message : String(error);
@@ -512,7 +714,12 @@
         return;
       }
       if (body.state === 'ready') {
-        applyBody(await fetchPage(0));
+        if (state.view === 'files' && !M.filterActive(state.filters)) {
+          applyBody(body);
+        } else {
+          var page = await fetchPage(0);
+          applyBody(Object.assign({}, body, page));
+        }
         return;
       }
       applyBody(body);
@@ -527,7 +734,7 @@
     if (reset) state.offset = 0;
     var seq = ++state.requestSeq;
     state.filesLoading = true;
-    render();
+    renderFilesView();
     try {
       var body = await fetchPage(state.offset);
       if (seq !== state.requestSeq) return;
@@ -541,24 +748,84 @@
       }
       state.page = mapPage(body);
       state.filesLoading = false;
-      render();
+      renderFilesView();
     } catch (error) {
       if (seq !== state.requestSeq) return;
       state.filesLoading = false;
+      renderFilesView();
       setNotice('danger', '文件清单读取失败：' + (error instanceof Error ? error.message : String(error)));
     }
   }
 
-  function pickCategory(id) {
-    state.filters.category = state.filters.category === id ? '' : id;
+  function chooseCategory(id) {
+    state.filters.category = id;
+    state.view = id === 'worktree' ? 'worktrees' : 'files';
+    state.worktreePath = '';
+    state.offset = 0;
+    if (state.summary) {
+      state.categoryKey = null;
+      renderStatic();
+    }
     void loadFiles(true);
+  }
+
+  function pickCategory(id) {
+    if (state.filters.category === id) {
+      state.filters.category = '';
+      state.view = 'files';
+      state.worktreePath = '';
+      state.offset = 0;
+      if (state.summary) {
+        state.categoryKey = null;
+        renderStatic();
+      }
+      void loadFiles(true);
+    } else {
+      chooseCategory(id);
+    }
     var target = document.getElementById('files-section');
     if (target) target.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 
+  function openWorktrees() {
+    state.filters.category = 'worktree';
+    state.view = 'worktrees';
+    state.worktreePath = '';
+    state.offset = 0;
+    if (state.summary) {
+      state.categoryKey = null;
+      renderStatic();
+    }
+    void loadFiles(true);
+  }
+
+  function openWorktree(directory) {
+    state.filters.category = 'worktree';
+    state.view = 'files';
+    state.worktreePath = directory.worktreePath || directory.path || '';
+    state.offset = 0;
+    void loadFiles(true);
+    var target = document.getElementById('files-section');
+    if (target && typeof target.scrollIntoView === 'function') target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
+  function switchToFiles() {
+    state.view = 'files';
+    state.worktreePath = '';
+    state.offset = 0;
+    void loadFiles(true);
+  }
+
   function clearFilters() {
     state.filters = { query: '', volume: '', threadId: '', category: '' };
+    state.view = 'files';
+    state.worktreePath = '';
+    state.offset = 0;
     els.search.value = '';
+    if (state.summary) {
+      state.categoryKey = null;
+      renderStatic();
+    }
     void loadFiles(true);
   }
 
@@ -620,8 +887,7 @@
       void loadFiles(true);
     });
     els.category.addEventListener('change', function () {
-      state.filters.category = els.category.value;
-      void loadFiles(true);
+      chooseCategory(els.category.value);
     });
     els.clear.addEventListener('click', clearFilters);
     document.addEventListener('keydown', function (event) {

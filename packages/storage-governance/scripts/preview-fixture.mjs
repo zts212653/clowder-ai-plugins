@@ -13,6 +13,12 @@ const THREADS = [
   { id: 'thread_cache', title: '缓存与临时目录清理' },
 ];
 
+const WORKTREES = [
+  { path: 'G:\\AIwork\\clowder-ai\\worktrees\\host-pr-2065-storage', threadId: 'thread_storage' },
+  { path: 'G:\\AIwork\\clowder-ai\\worktrees\\runtime-memory-20261125', threadId: 'thread_runtime' },
+  { path: 'G:\\AIwork\\clowder-ai\\worktrees\\plugin-storage-governance', threadId: 'thread_plugin' },
+];
+
 const CATEGORIES = [
   { id: 'transcript', count: 3800, min: 1 * MB, max: 40 * MB, volume: 'C:', path: (i) => `C:\\Users\\Administrator\\.cat-cafe\\transcripts\\threads\\${THREADS[i % 3].id}\\${String(i).padStart(5, '0')}.jsonl` },
   { id: 'native-session', count: 2400, min: 1 * MB, max: 60 * MB, volume: 'C:', path: (i) => `C:\\Users\\Administrator\\.codex\\sessions\\2026\\11\\24\\rollout-2026-11-24T${String(i % 24).padStart(2, '0')}-${String(i % 60).padStart(2, '0')}-00-${String(i).padStart(5, '0')}.jsonl` },
@@ -49,6 +55,17 @@ function rows() {
         allocatedBytes: allocated,
         modifiedAt: NOW - serial * 37 * 60 * 1000,
       };
+      if (category.id === 'worktree') {
+        const worktree = WORKTREES[index % WORKTREES.length];
+        row.worktreePath = worktree.path;
+        row.path = worktree.path + '\\packages\\' + ['api', 'web', 'shared'][index % 3] + '\\src\\' + String(index).padStart(5, '0') + '.ts';
+        row.threadIds = [worktree.threadId];
+        if (index === 0) {
+          row.path = worktree.path + '\\artifacts\\disk.img';
+          row.logicalBytes = 4 * GB;
+          row.allocatedBytes = 4 * GB;
+        }
+      }
       if (category.id === 'worktree' && index % 97 === 0 && output.length > 0) {
         row.duplicateOf = output[output.length - 1].path;
       }
@@ -102,15 +119,41 @@ function aggregate(allRows) {
   };
 }
 
+function worktrees(allRows) {
+  const groups = new Map();
+  for (const row of allRows) {
+    if (row.category !== 'worktree' || !row.worktreePath) continue;
+    const group = groups.get(row.worktreePath) || {
+      path: row.worktreePath,
+      volume: row.volume,
+      logicalBytes: 0,
+      allocatedBytes: 0,
+      fileCount: 0,
+      threadIds: new Set(),
+    };
+    groups.set(row.worktreePath, group);
+    group.logicalBytes += row.logicalBytes;
+    if (row.allocatedBytes === undefined || row.allocatedBytes === null) group.allocatedBytes = null;
+    else if (group.allocatedBytes !== null) group.allocatedBytes += row.allocatedBytes;
+    group.fileCount += 1;
+    for (const threadId of row.threadIds || []) group.threadIds.add(threadId);
+  }
+  return [...groups.values()]
+    .map((group) => ({ ...group, threadIds: [...group.threadIds] }))
+    .sort((left, right) => right.logicalBytes - left.logicalBytes);
+}
+
 export function makeFixture(state = 'ready') {
   const allRows = rows();
   const { volumes, categories } = aggregate(allRows);
+  const worktreeEntries = worktrees(allRows);
   const report = {
     state: 'ready',
     scannedAt: new Date(NOW - 8 * 60 * 1000).toISOString(),
     volumes,
     categories,
     threads: THREADS,
+    worktrees: worktreeEntries,
     files: allRows.slice(0, 100),
     omissions: [
       { path: 'C:\\Users\\Administrator\\.claude\\projects\\--C-Users-Administrator-AppData-Local-Clowder-AI-project--', reason: 'unreadable', count: 1 },
@@ -124,10 +167,10 @@ export function makeFixture(state = 'ready') {
       { path: 'E:\\clowder-ai\\user-state\\.cat-cafe', category: 'database' },
       { path: 'C:\\Users\\Administrator\\.cat-cafe\\transcripts\\threads', category: 'transcript', optional: true },
       { path: 'C:\\Users\\Administrator\\.claude\\projects', category: 'native-session', optional: true },
-      { path: 'G:\\AIwork\\clowder-ai\\worktrees\\host-pr-2065-storage', category: 'worktree' },
+      ...WORKTREES.map((worktree) => ({ path: worktree.path, category: 'worktree', threadId: worktree.threadId })),
       { path: 'C:\\Users\\Administrator\\AppData\\Local\\Temp', category: 'temp' },
     ],
-    rootCount: 5,
+    rootCount: 4 + WORKTREES.length,
     nextOffset: allRows.length > 100 ? 100 : null,
   };
   if (state === 'idle') return { report: { state: 'idle' }, rows: allRows };

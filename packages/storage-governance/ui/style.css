@@ -619,18 +619,80 @@ select {
 }
 
 .path-cell {
-  width: 44%;
-  max-width: 0;
+  width: 34%;
+  max-width: 520px;
 }
 
 .path-text {
   display: block;
-  overflow: hidden;
   color: var(--ink);
   font-family: var(--mono);
   font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.worktree-cell {
+  width: 14%;
+  max-width: 200px;
+}
+
+.worktree-label {
+  display: block;
+  overflow: hidden;
+  color: var(--body);
+  font-family: var(--mono);
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.type-tag {
+  font-variant-numeric: tabular-nums;
+}
+
+.type-disk-image {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.view-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+.view-switch[hidden] {
+  display: none;
+}
+
+.view-switch .view-label {
+  flex: 1 1 240px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.worktree-table {
+  min-width: 760px;
+}
+
+.worktree-table .path-cell {
+  width: 55%;
+  max-width: none;
+}
+
+.worktree-row .path-text {
+  white-space: normal;
+}
+
+#files-table.is-loading {
+  opacity: 0.7;
 }
 
 .row-flag {
@@ -948,7 +1010,7 @@ select {
   }
 
   .file-table {
-    min-width: 760px;
+    min-width: 1120px;
   }
 
   .fold-row {

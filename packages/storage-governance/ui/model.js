@@ -147,6 +147,61 @@
     return { kind: 'thread', id: ids[0], label: label };
   }
 
+  function baseName(path) {
+    var parts = String(path || '').split(/[\\/]/).filter(Boolean);
+    return parts.length > 0 ? parts[parts.length - 1] : String(path || '');
+  }
+
+  function extensionOf(path) {
+    var name = baseName(path).toLowerCase();
+    var index = name.lastIndexOf('.');
+    return index > 0 && index < name.length - 1 ? name.slice(index + 1) : '';
+  }
+
+  function fileType(path) {
+    var ext = extensionOf(path);
+    if (['img', 'iso', 'vhd', 'vhdx', 'qcow2', 'dmg', 'vmdk', 'wim', 'vdi'].indexOf(ext) >= 0)
+      return { id: 'disk-image', label: '磁盘映像', note: '不是图片' };
+    if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp', 'ico', 'avif', 'heic', 'tif', 'tiff'].indexOf(ext) >= 0)
+      return { id: 'image', label: '图片' };
+    if (['jsonl', 'json', 'yaml', 'yml', 'toml', 'xml', 'csv', 'tsv'].indexOf(ext) >= 0)
+      return { id: 'data', label: '结构化文本' };
+    if (['sqlite', 'sqlite3', 'db', 'sql'].indexOf(ext) >= 0) return { id: 'database', label: '数据库' };
+    if (['log', 'out', 'err'].indexOf(ext) >= 0) return { id: 'log', label: '日志' };
+    if (['md', 'txt', 'rst', 'adoc'].indexOf(ext) >= 0) return { id: 'text', label: '文本' };
+    if (['zip', 'tar', 'gz', 'tgz', 'zst', 'zstd', '7z', 'rar', 'bz2', 'xz'].indexOf(ext) >= 0)
+      return { id: 'archive', label: '压缩包' };
+    if (['js', 'mjs', 'cjs', 'ts', 'mts', 'cts', 'tsx', 'jsx', 'py', 'go', 'rs', 'java', 'kt', 'c', 'cc', 'cpp', 'h', 'hpp', 'cs', 'rb', 'php', 'swift', 'sh', 'ps1', 'bat', 'cmd', 'css', 'scss', 'html', 'vue', 'svelte'].indexOf(ext) >= 0)
+      return { id: 'source', label: '源码' };
+    if (['exe', 'dll', 'so', 'dylib', 'bin', 'node', 'wasm'].indexOf(ext) >= 0)
+      return { id: 'binary', label: '程序/二进制' };
+    if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods'].indexOf(ext) >= 0)
+      return { id: 'document', label: '文档' };
+    if (['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v'].indexOf(ext) >= 0) return { id: 'video', label: '视频' };
+    if (['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac'].indexOf(ext) >= 0) return { id: 'audio', label: '音频' };
+    if (!ext) return { id: 'unknown', label: '无扩展名' };
+    return { id: 'other', label: ext.toUpperCase() + ' 文件' };
+  }
+
+  function worktreeName(path) {
+    return baseName(path) || String(path || '');
+  }
+
+  function worktreeOf(path, roots) {
+    var target = String(path || '');
+    var matches = (roots || []).filter(function (root) {
+      if (!root || root.category !== 'worktree' || !root.path) return false;
+      var prefix = String(root.path).replace(/[\\/]+$/, '') + '\\';
+      var alt = String(root.path).replace(/[\\/]+$/, '') + '/';
+      return target.toLowerCase() === String(root.path).toLowerCase()
+        || target.toLowerCase().indexOf(prefix.toLowerCase()) === 0
+        || target.toLowerCase().indexOf(alt.toLowerCase()) === 0;
+    }).sort(function (left, right) {
+      return String(right.path).length - String(left.path).length;
+    });
+    return matches.length > 0 ? String(matches[0].path) : '';
+  }
+
   function isTerminalScan(scan) {
     return scan !== null && ['complete', 'partial', 'failed', 'cancelled'].indexOf(scan.state) >= 0;
   }
@@ -194,6 +249,10 @@
     knownCategories: knownCategories,
     omissionReason: omissionReason,
     sourceFor: sourceFor,
+    baseName: baseName,
+    fileType: fileType,
+    worktreeName: worktreeName,
+    worktreeOf: worktreeOf,
     isTerminalScan: isTerminalScan,
     viewPhase: viewPhase,
     scanProgressPercent: scanProgressPercent,

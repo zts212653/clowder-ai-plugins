@@ -6,7 +6,7 @@ import { makeFixture } from './preview-fixture.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const html = await readFile(join(root, 'dist', 'page.html'), 'utf8');
 const fixture = makeFixture('ready');
-const data = { report: fixture.report, rows: fixture.rows };
+const data = { report: fixture.report, rows: fixture.rows, worktrees: fixture.report.worktrees };
 
 const mock = `<script>
 (function () {
@@ -18,6 +18,7 @@ const mock = `<script>
       if (body.volume && row.volume.toUpperCase() !== String(body.volume).toUpperCase()) return false;
       if (body.category && row.category !== body.category) return false;
       if (body.threadId && (row.threadIds || []).indexOf(body.threadId) < 0) return false;
+      if (body.worktreePath && row.worktreePath !== body.worktreePath) return false;
       if (body.query) {
         var haystack = row.path.toLowerCase() + ' ' + (row.threadIds || []).join(' ').toLowerCase();
         if (haystack.indexOf(String(body.query).toLowerCase()) < 0) return false;
@@ -25,18 +26,30 @@ const mock = `<script>
       return true;
     });
   }
+  function selectedWorktrees(query) {
+    return data.worktrees.filter(function (worktree) {
+      if (query.volume && String(worktree.volume).toUpperCase() !== String(query.volume).toUpperCase()) return false;
+      if (query.threadId && (worktree.threadIds || []).indexOf(query.threadId) < 0) return false;
+      if (query.query && worktree.path.toLowerCase().indexOf(String(query.query).toLowerCase()) < 0) return false;
+      return true;
+    });
+  }
   function readyBody(query) {
     var offset = Number(query.offset || '0');
     var limit = Number(query.limit || '100');
+    if (query.view === 'worktrees' && window.__sgNoWorktrees) {
+      return { state: 'ready', scannedAt: data.report.scannedAt, view: 'worktrees', total: 0, files: [] };
+    }
     var body = {
       volume: query.volume || '',
       category: query.category || '',
       threadId: query.threadId || '',
       query: query.query || '',
+      worktreePath: query.worktreePath || '',
     };
-    var rows = selected(body);
+    var rows = query.view === 'worktrees' ? selectedWorktrees(query) : selected(body);
     return Object.assign({}, data.report, {
-      files: rows.slice(offset, offset + limit),
+      ...(query.view === 'worktrees' ? { worktrees: rows.slice(offset, offset + limit) } : { files: rows.slice(offset, offset + limit) }),
       total: rows.length,
       nextOffset: offset + limit < rows.length ? offset + limit : null,
     });
@@ -44,14 +57,14 @@ const mock = `<script>
   function queryFromUrl(url) {
     return {
       offset: url.searchParams.get('offset') || '0',
-      limit: url.searchParams.get('limit') || '100',
+      limit: url.searchParams.get('limit') || '50',
       volume: url.searchParams.get('volume') || '',
       category: url.searchParams.get('category') || '',
       threadId: url.searchParams.get('threadId') || '',
       query: url.searchParams.get('query') || '',
     };
   }
-  window.addEventListener('message', function (event) {
+  window.addEventListener('message', async function (event) {
     if (event.source !== window) return;
     var message = event.data;
     if (!message || message.channel !== 'clowder-plugin-ui/v1' || !message.request) return;
@@ -59,6 +72,9 @@ const mock = `<script>
     event.stopImmediatePropagation();
     var method = String(message.request.method || 'GET').toUpperCase();
     var path = String(message.request.path || 'scan');
+    window.__sgRequests = window.__sgRequests || [];
+    window.__sgRequests.push({ method: method, path: path, body: message.request.body || null });
+    if (window.__sgDelay) await new Promise((resolve) => setTimeout(resolve, window.__sgDelay));
     var url = new URL(path, 'http://preview.local/');
     var body = message.request.body && message.request.body.query;
     var reply;

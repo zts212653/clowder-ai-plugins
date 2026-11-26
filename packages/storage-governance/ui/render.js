@@ -189,6 +189,74 @@
     ]);
   }
 
+  function renderWorktrees(page, handlers) {
+    if (!page) return el('div', { class: 'table-loading', text: '正在读取工作树汇总…' });
+    if (page.unavailable) {
+      return el('div', { class: 'table-empty' }, [
+        el('p', { text: '当前 Host 没有返回完整的工作树汇总，不能显示可能不完整的目录合计。请重新扫描或更新 Host 后重试。' }),
+        handlers.onScan
+          ? el('button', { class: 'btn ghost', type: 'button', text: '重新扫描', onClick: handlers.onScan })
+          : null,
+      ]);
+    }
+    if (page.rows.length === 0) {
+      return el('div', { class: 'table-empty' }, [
+        el('p', { text: handlers.filtered ? '没有匹配的工作树。' : '这次扫描没有工作树目录。' }),
+        handlers.filtered
+          ? el('button', { class: 'btn ghost', type: 'button', text: '清除筛选', onClick: handlers.onClearFilters })
+          : null,
+      ]);
+    }
+    var rows = page.rows.map(function (row) {
+      var cells = [
+        el('td', { class: 'path-cell' }, [
+          el('span', { class: 'path-text', title: row.path, text: row.path }),
+          el('span', { class: 'row-flag', text: '目录' }),
+        ]),
+        el('td', { class: 'mono', text: row.volumeId }),
+        el('td', { class: 'num usage', text: F.bytesText(row.allocatedBytes) }),
+        el('td', { class: 'num', text: F.bytesText(row.logicalBytes) }),
+        el('td', { class: 'num', text: F.countText(row.fileCount) }),
+        el('td', { class: 'source-cell' }, [
+          el('span', { class: 'source-label', text: M.sourceLabel(row.source) }),
+          row.source.id ? el('span', { class: 'source-id', text: row.source.id }) : null,
+        ]),
+      ];
+      return el(
+        'tr',
+        {
+          class: 'file-row worktree-row',
+          tabindex: '0',
+          'aria-label': '展开工作树：' + row.path,
+          onClick: function () {
+            handlers.onDirectory(row);
+          },
+          onKeydown: function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handlers.onDirectory(row);
+            }
+          },
+        },
+        cells,
+      );
+    });
+    return el('div', { class: 'table-wrap' }, [
+      el('table', { class: 'data-table worktree-table' }, [
+        el('caption', { class: 'sr-only', text: '按实际工作树目录汇总的占用' }),
+        el('thead', {}, el('tr', {}, [
+          el('th', { scope: 'col', text: '工作树目录' }),
+          el('th', { scope: 'col', text: '卷' }),
+          el('th', { scope: 'col', class: 'num usage', text: '磁盘占用', 'aria-sort': 'descending' }),
+          el('th', { scope: 'col', class: 'num', text: '文件大小' }),
+          el('th', { scope: 'col', class: 'num', text: '文件', title: '该工作树目录内的路径数（含重复路径）' }),
+          el('th', { scope: 'col', text: '来源' }),
+        ])),
+        el('tbody', {}, rows),
+      ]),
+    ]);
+  }
+
   function renderFiles(page, handlers) {
     if (!page) return el('div', { class: 'table-loading', text: '正在读取文件清单…' });
     if (page.rows.length === 0) {
@@ -203,7 +271,9 @@
       return row.modifiedAt !== null;
     });
     var headers = [
+      el('th', { scope: 'col', text: '类型' }),
       el('th', { scope: 'col', text: '路径' }),
+      el('th', { scope: 'col', text: '工作树' }),
       el('th', { scope: 'col', text: '类别' }),
       el('th', { scope: 'col', text: '来源' }),
       el('th', { scope: 'col', text: '卷' }),
@@ -213,7 +283,13 @@
     if (showModified) headers.push(el('th', { scope: 'col', text: '修改时间' }));
     var rows = page.rows.map(function (row) {
       var flag = row.flags.length > 0 ? row.flags[0] : null;
+      var type = M.fileType(row.path);
       var cells = [
+        el('td', {}, el('span', {
+          class: 'tag type-tag type-' + type.id,
+          title: type.note ? type.label + ' · ' + type.note : type.label,
+          text: type.label,
+        })),
         el('td', { class: 'path-cell' }, [
           el('span', { class: 'path-text', title: row.path, text: row.path }),
           flag
@@ -224,6 +300,13 @@
               })
             : null,
         ]),
+        el('td', { class: 'worktree-cell' }, row.worktreePath
+          ? el('span', {
+              class: 'worktree-label',
+              title: row.worktreePath,
+              text: M.worktreeName(row.worktreePath),
+            })
+          : el('span', { class: 'muted', text: '—' })),
         el('td', {}, el('span', { class: 'tag', text: M.categoryLabel(row.category) })),
         el('td', { class: 'source-cell' }, [
           el('span', { class: 'source-label', text: M.sourceLabel(row.source) }),
@@ -473,6 +556,8 @@
           }),
         ]),
         el('dl', { class: 'detail-list' }, [
+          detail('类型', M.fileType(row.path).label),
+          detail('工作树', row.worktreePath || '不属于工作树'),
           detail('类别', M.categoryLabel(row.category)),
           detail('来源', M.sourceLabel(row.source)),
           detail('来源标识', row.source.id || '未提供'),
@@ -503,6 +588,7 @@
     renderTotals: renderTotals,
     renderVolumes: renderVolumes,
     renderCategories: renderCategories,
+    renderWorktrees: renderWorktrees,
     renderFiles: renderFiles,
     renderPager: renderPager,
     renderUnscanned: renderUnscanned,

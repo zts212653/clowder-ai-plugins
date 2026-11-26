@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -92,9 +93,18 @@ function pass(label) {
   console.log(`PASS ${label}`);
 }
 
+async function screenshot(name) {
+  const capture = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+  await writeFile(join(root, 'test-output', name), Buffer.from(capture.data, 'base64'));
+}
+
 try {
   await send('Runtime.enable');
+  await send('Page.enable');
   await waitFor("document.querySelector('#totals .stat-value') !== null", 'initial screen');
+  const initialRequests = await evaluate("window.__sgRequests || []");
+  assert.ok(initialRequests.some((request) => request.method === 'GET' && request.path === 'scan'));
+  assert.equal(initialRequests.filter((request) => request.method === 'POST').length, 0, 'opening must use the GET scan first page');
 
   const totals = await evaluate("Array.from(document.querySelectorAll('#totals .stat-value')).map(n=>n.textContent)");
   assert.ok(totals.some((value) => /TB|GB/.test(value)), `totals should show bytes: ${totals}`);
@@ -127,15 +137,49 @@ try {
   pass('clear filters restores the full table');
 
   await evaluate(
+    "window.__staticVolumes = document.querySelector('#volumes .volume-card'); window.__staticCategories = document.querySelector('#categories .category-row')",
+  );
+  await evaluate("window.__sgDelay = 260");
+  await evaluate(
     "document.querySelector('#filter-thread').value='thread_storage'; document.querySelector('#filter-thread').dispatchEvent(new Event('change'))",
   );
+  await sleep(50);
+  assert.equal(
+    await evaluate("document.querySelector('#files-table').getAttribute('aria-busy')"),
+    'true',
+    'filter request should mark the table busy',
+  );
+  assert.equal(
+    await evaluate("document.querySelectorAll('#files-table tbody tr').length"),
+    50,
+    'the last usable rows should remain while the filter request is in flight',
+  );
+  assert.match(await evaluate("document.querySelector('#result-count').textContent"), /正在更新/u);
   await waitFor("/筛选后/.test(document.querySelector('#result-count').textContent)", 'thread filter');
+  await evaluate("window.__sgDelay = 0");
+  assert.equal(await evaluate("document.querySelector('#files-table').getAttribute('aria-busy')"), 'false');
   assert.ok((await evaluate("document.querySelectorAll('#files-table tbody tr').length")) > 0);
-  pass('thread filter narrows the table by source');
+  pass('filter keeps the last usable rows while loading');
+  assert.equal(
+    await evaluate("document.querySelector('#volumes .volume-card') === window.__staticVolumes"),
+    true,
+    'thread filter must not rebuild volume cards',
+  );
+  assert.equal(
+    await evaluate("document.querySelector('#categories .category-row') === window.__staticCategories"),
+    true,
+    'thread filter must not rebuild the category table',
+  );
+  pass('thread filter narrows the table without rebuilding static summary');
 
   await evaluate("document.querySelector('#clear-filters').click()");
   await waitFor("document.querySelector('#filter-thread').value === ''", 'clear thread filter');
   pass('clear filters resets the thread filter');
+
+  const pageRequests = (await evaluate("window.__sgRequests || []"))
+    .filter((request) => request.method === 'POST' && request.body && request.body.query);
+  assert.ok(pageRequests.length > 0);
+  assert.ok(pageRequests.every((request) => request.body.query.summary === 'false'));
 
   await evaluate("document.querySelector('#files-table tbody tr').click()");
   await waitFor("document.querySelector('#drawer').hidden === false", 'file drawer');
@@ -154,6 +198,60 @@ try {
   await evaluate("document.querySelector('#pager button:last-child').click()");
   await waitFor("/第 51–100 条/.test(document.querySelector('#pager').textContent)", 'second page');
   pass('pagination advances by offset');
+
+  await evaluate("window.__sgNoWorktrees = true");
+  await evaluate(
+    "Array.from(document.querySelectorAll('.category-row')).find(row=>row.textContent.includes('工作树')).click()",
+  );
+  await waitFor("/工作树汇总不可用/.test(document.querySelector('#result-count').textContent)", 'worktree unavailable');
+  assert.equal(await evaluate("document.querySelectorAll('.worktree-row').length"), 0);
+  assert.match(await evaluate("document.querySelector('#files-table').textContent"), /没有返回完整的工作树汇总/u);
+  await evaluate("window.__sgNoWorktrees = false");
+  await evaluate(
+    "Array.from(document.querySelectorAll('#view-switch button')).find(button => button.textContent.includes('按文件查看')).click()",
+  );
+  await waitFor("document.querySelector('#files-title').textContent === '文件'", 'worktree files fallback view');
+  await evaluate(
+    "Array.from(document.querySelectorAll('#view-switch button')).find(button => button.textContent.includes('按工作树汇总')).click()",
+  );
+  await waitFor("document.querySelector('#files-title').textContent === '工作树'", 'worktree summary');
+  await waitFor("document.querySelectorAll('.worktree-row').length > 1", 'worktree rows');
+  assert.match(await evaluate("document.querySelector('#result-count').textContent"), /个工作树/u);
+  assert.match(await evaluate("document.querySelector('#result-count').textContent"), /文件数为各目录内路径数/u);
+  assert.match(await evaluate("document.querySelector('.worktree-row .path-text').title"), /worktrees/u);
+  assert.match(await evaluate("document.querySelector('#view-switch').textContent"), /按文件查看/u);
+  await screenshot('worktree-summary.png');
+  await evaluate("document.querySelector('.worktree-row').click()");
+  await waitFor("/^工作树 · /.test(document.querySelector('#files-title').textContent)", 'worktree drill');
+  await waitFor("document.querySelectorAll('#files-table tbody tr').length > 0", 'worktree files');
+  assert.match(await evaluate("document.querySelector('#result-count').textContent"), /个文件/u);
+  assert.match(await evaluate("document.querySelector('#result-count').textContent"), /当前工作树目录内/u);
+  assert.ok(
+    await evaluate("Array.from(document.querySelectorAll('.type-tag')).some(tag => tag.textContent === '磁盘映像')"),
+    'a .img file must be labelled disk image, not image',
+  );
+  await screenshot('worktree-files.png');
+  await evaluate(
+    "Array.from(document.querySelectorAll('#view-switch button')).find(button => button.textContent.includes('返回工作树')).click()",
+  );
+  await waitFor("document.querySelector('#files-title').textContent === '工作树'", 'return to worktree summary');
+  const requests = await evaluate("window.__sgRequests || []");
+  assert.ok(requests.length > 0);
+  assert.ok(requests.every((request) => !String(request.path).includes('?')), 'requests must not append a query to the GET path');
+  assert.ok(
+    requests.some((request) => request.method === 'POST' && request.body && request.body.query && request.body.query.view),
+    'file/worktree pages must use POST query',
+  );
+  assert.equal(
+    await evaluate("document.querySelector('.worktree-row .path-text').textContent === document.querySelector('.worktree-row .path-text').title"),
+    true,
+    'worktree path must be available in full',
+  );
+  pass('worktree summary drills into a directory and labels .img as disk image');
+
+  await evaluate("document.querySelector('#clear-filters').click()");
+  await waitFor("document.querySelector('#filter-category').value === ''", 'clear worktree view');
+  await waitFor("document.querySelector('#files-title').textContent === '文件'", 'file view after worktrees');
 
   await evaluate("document.querySelector('#scan-btn').click()");
   await waitFor("document.querySelector('#progress .progress-card') !== null", 'scan progress');
