@@ -269,3 +269,36 @@ test('getRead ready results page through more than one hundred rows', async (t) 
     active.stop();
   }
 });
+
+test('records a completed scan duration and uses it after reopening the plugin', async () => {
+  const samples = new Map<string, { revision: number; value: unknown }>();
+  const storage = {
+    async get(key: string) { return samples.get(key); },
+    async compareAndSet(key: string, expected: number | null, value: unknown) {
+      const revision = samples.get(key)?.revision ?? null;
+      if (revision !== expected) return { applied: false };
+      samples.set(key, { revision: (revision ?? 0) + 1, value });
+      return { applied: true };
+    },
+  };
+  const create = () => plugin.create().start({
+    pluginInstanceId: 'fixture', conversationStorage: { startRead: async () => emptySources }, storage,
+  });
+  const previous = create();
+  try {
+    assert.equal(bodyOf(await call(previous, 'POST')).previousDurationMs, undefined);
+    await waitForReady(previous);
+  } finally {
+    previous.stop();
+  }
+  const estimate = samples.get('last-scan-duration:owner')?.value;
+  assert.ok(typeof estimate === 'number' && estimate > 0);
+  const current = create();
+  try {
+    const response = bodyOf(await call(current, 'POST'));
+    assert.equal(response.state, 'running');
+    assert.equal(response.previousDurationMs, estimate);
+  } finally {
+    current.stop();
+  }
+});

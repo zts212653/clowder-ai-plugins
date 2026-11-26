@@ -18,6 +18,10 @@ type ReadState =
 
 interface Host {
   pluginInstanceId: string;
+  storage?: {
+    get(key: string): Promise<{ revision: number; value: unknown } | undefined>;
+    compareAndSet(key: string, expected: number | null, value: unknown): Promise<{ applied: boolean }>;
+  };
   conversationStorage?: {
     startRead(): Promise<Sources>;
     beginRead?(): Promise<void>;
@@ -56,6 +60,12 @@ export default {
         const controller = new AbortController();
         const scans = new Map<string, State>();
         const previousDurations = new Map<string, number>();
+        const durationKey = (userId: string) => 'last-scan-duration:' + userId;
+        async function saveDuration(userId: string, duration: number) {
+          previousDurations.set(userId, duration);
+          const stored = await host.storage?.get(durationKey(userId));
+          await host.storage?.compareAndSet(durationKey(userId), stored?.revision ?? null, duration);
+        }
         const readStages = new Map<string, 'sources' | 'scan'>();
         const polling = new Set<string>();
         const sources = host.conversationStorage;
@@ -65,11 +75,11 @@ export default {
           void scanStorage(input, controller.signal, (progress) => {
             running.progress = progress;
           }).then(indexStorage).then(
-            (index) => {
+            async (index) => {
               if (!controller.signal.aborted) {
                 readStages.delete(userId);
-                previousDurations.set(userId, Date.now() - running.startedAt);
-                scans.set(userId, { state: 'ready', index });
+                await saveDuration(userId, Math.max(1, Date.now() - running.startedAt)).catch(() => undefined);
+                if (!controller.signal.aborted) scans.set(userId, { state: 'ready', index });
               }
             },
             () => {
@@ -104,6 +114,13 @@ export default {
               progress: { phase: 'preparing', rootsDone: 0, rootsTotal: 0, filesSeen: 0 },
             };
             scans.set(owner.userId, running);
+            if (running.previousDurationMs === undefined && host.storage) {
+              const stored = await host.storage.get(durationKey(owner.userId)).catch(() => undefined);
+              const value = stored?.value;
+              if (typeof value === 'number' && Number.isFinite(value) && value > 0)
+                running.previousDurationMs = value;
+              if (controller.signal.aborted) return json(200, { state: 'idle' });
+            }
             if (sources.beginRead && sources.getRead) {
               readStages.set(owner.userId, 'sources');
               try {

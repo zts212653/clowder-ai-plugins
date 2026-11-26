@@ -271,14 +271,11 @@
         detail: '按上次扫描 ' + F.durationText(state.lastScanMs) + ' 估算',
       };
     }
-    if (progress.rootsDone >= 3 && progress.rootsDone < progress.rootsTotal && elapsed >= 10000) {
-      var remaining = elapsed * (progress.rootsTotal - progress.rootsDone) / progress.rootsDone;
-      return {
-        text: '预计还需约 ' + F.durationText(remaining),
-        detail: '按已完成范围粗估，大目录可能拉长用时',
-      };
-    }
-    return { text: '正在估算剩余时间' };
+    if (state.lastScanMs) return {
+      text: '本次已超过上次用时，仍在扫描',
+      detail: '上次扫描用时约 ' + F.durationText(state.lastScanMs),
+    };
+    return { text: '正在估算剩余时间', detail: '需要一次本机实测用时作为参考' };
   }
 
   function errorText(body) {

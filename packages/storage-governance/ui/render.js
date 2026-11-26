@@ -469,7 +469,7 @@
             })
           : null,
       ]),
-      progressBar(percent, '扫描进度', percent === null),
+      progressBar(percent, '扫描范围进度', percent === null || percent === 0),
       el('div', { class: 'progress-estimate' }, [
         el('strong', { text: estimate.text }),
         estimate.detail ? el('span', { text: estimate.detail }) : null,
