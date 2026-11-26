@@ -26,6 +26,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.5",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/genoffice-docx",
+            "version": "0.1.0-alpha.5",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/genoffice-docx/-/genoffice-docx-0.1.0-alpha.5.tgz",
+            "integrity": "sha512-urofeZ0CCh2he/f2rgKpINhT2uyhtbTtuqO5iV9rsYwdUDBX7yrMG9Wl1RWgAjxqqcJeUYSSYHlpgNiyIoF36w==",
+            "shasum": "3e01495de1b6aadf291d87dd6b23e2f0d042314e",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/genoffice-docx"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.4",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",

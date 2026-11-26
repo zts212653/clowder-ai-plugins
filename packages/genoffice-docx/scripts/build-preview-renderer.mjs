@@ -71,7 +71,10 @@ await cp(join(appRoot, 'preview', 'dist'), rendererRoot, { recursive: true });
 await copyFile(join(sourceRoot, 'node_modules', 'image-size', 'LICENSE'), join(rendererRoot, 'image-size-LICENSE.txt'));
 // PDF.js can resolve page.render() after rejecting the image operator stream.
 // Record the budget rejection inside the same fake-worker module as the evaluator.
-const pdfWorker = await readFile(join(sourceRoot, 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.min.mjs'), 'utf8');
+const pdfWorker = await readFile(
+  join(sourceRoot, 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.min.mjs'),
+  'utf8',
+);
 const imageLimitMarker = '"Image exceeded maximum allowed size and was removed.";';
 if (pdfWorker.split(imageLimitMarker).length !== 2) throw new Error('Frozen PDF.js image budget branch changed');
 const workerWithImageBudget = pdfWorker.replace(imageLimitMarker, imageLimitMarker + 'previewImageBudgetPages.add(this.pageIndex);');

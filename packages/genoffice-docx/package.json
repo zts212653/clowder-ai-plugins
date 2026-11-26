@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/genoffice-docx",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "description": "GenOffice DOCX editing and read-only PDF and PPTX preview for Clowder AI",
   "license": "Apache-2.0",
   "type": "module",
