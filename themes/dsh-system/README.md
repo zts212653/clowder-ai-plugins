@@ -4,10 +4,14 @@
 
 ## 安装或更新
 
-1. 下载 [dsh-system-0.2.19.theme.zip](dsh-system-0.2.19.theme.zip)。
+1. 下载 [dsh-system-0.2.20.theme.zip](dsh-system-0.2.20.theme.zip)。
 2. 在 Clowder AI 打开「设置 → 主题 → 导入」，选择 ZIP，然后启用「DSH Workbench · 系统底包」。
 
 已使用该主题时，导入会更新同一个主题包。基于它保存的自定义字号可以继续使用。此包通过主题设置安装。
+
+## 0.2.20
+
+- 侧栏「新对话」在浅色和深色下都提供悬停底色及键盘焦点框，和下方快捷入口间隔 12px。
 
 ## 0.2.19
 
@@ -16,4 +20,4 @@
 
 主题声明版本为 `0.4.0`。验收使用的 Host 构建修订为 `1741121f0ab031084daf93f8d1a1b885620d8f9d`。
 
-源码在 [src/](src/) 下。ZIP 内的 16 个文件与该目录逐字节一致，根目录为 `theme.yaml`。ZIP 的 SHA-256 为 `CE510BB84EA1D162F967DD3DDF6CDDAF28C5AA9E913E29C8FBCD30F4CBE6A486`。
+源码在 [src/](src/) 下。ZIP 内的 16 个文件与该目录逐字节一致，根目录为 `theme.yaml`。ZIP 的 SHA-256 为 `B76177A4ED07C8B93ABF676AFE3C0E41836541E5ACF9E1413E7DEB0A878B0C6E`。

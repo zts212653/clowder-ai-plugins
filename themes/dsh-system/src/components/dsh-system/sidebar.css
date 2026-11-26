@@ -9,15 +9,25 @@
   padding-block: 0 10px;
 }
 
-#cafe-nav-scroll .dsh-shortcuts [data-entry="home"],
-#cafe-nav-scroll .dsh-shortcuts [data-act="homeOpen"] {
+#cafe-nav-scroll .dsh-shortcuts :is([data-entry="home"], [data-act="homeOpen"]) {
   display: flex;
   justify-content: center;
   min-height: 42px;
+  margin-block-end: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--bg-raised);
   font-weight: 600;
+}
+
+@media (hover: hover) {
+  #cafe-nav-scroll .dsh-shortcuts :is([data-entry="home"], [data-act="homeOpen"]):hover {
+    background: color-mix(in srgb, var(--bg-raised), var(--fg-strong) 7%);
+  }
+}
+#cafe-nav-scroll .dsh-shortcuts :is([data-entry="home"], [data-act="homeOpen"]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
 }
 
 #cafe-nav-scroll .dsh-shortcuts .nav-item:not([data-entry="home"]) { min-height: 34px; }
