@@ -14,11 +14,15 @@ function linkedFixture() {
     threads: {
       list: async ({ threadIds }: { threadIds?: string[] }) => !threadIds || threadIds.includes(thread.id) ? [thread] : [],
       get: async () => thread,
+      getCats: async (id: string) => {
+        assert.equal(id, thread.id);
+        return { participants: [], routableNow: [{catId:'analyst'}], routableNotJoined:[{catId:'outside'}], notRoutable:[] };
+      },
       create: async () => { creates++; return thread; },
       readMessages: async (id: string) => { assert.equal(id, thread.id); return rows; },
     },
     runtimeInfo: { get: async () => ({ version: 'test', platform: 'win32', architecture: 'x64', nodeVersion: '24', projectRoot: f.host.dataPath, logDirectory: f.host.dataPath }) },
-    members: { get: async () => ({ available: true }), list: async () => [] },
+    members: { get: async () => ({ available: true }), list: async () => ['analyst','outside'].map(catId=>({catId,available:true,displayName:catId,defaultModel:'test'})) },
     messaging: { subscribe: async () => assert.fail('linked runs use timeline readback'), unsubscribe: async () => assert.fail('do not unsubscribe shared threads'),
       send: async (input: (typeof sends)[number]) => { sends.push(input); return { messageId: 'send-' + sends.length, threadId: thread.id }; } },
   });
@@ -81,6 +85,44 @@ test('changing the linked conversation invalidates prepared material', async () 
   assert.equal(f.sends.length, 0);
 });
 
+test('only members routable in the linked conversation can start its analysis', async () => {
+  const f = linkedFixture();
+  await f.save();
+  const listed = await f.call({ op:'analysis-members' }) as unknown as { clients: {id: string}[] };
+  assert.deepEqual(listed.clients.map(client=>client.id), ['analyst']);
+  const prepared = await f.call({op:'prepare-analysis'}) as unknown as {hash: string};
+  await assert.rejects(f.call({op:'analyze',clientId:'outside', hash:prepared.hash, confirmed:true}), /原会话/);
+  assert.equal(f.sends.length, 0);
+});
+
+test('a verified receipt already sent to the conversation survives a journal write interruption', async () => {
+  const f = linkedFixture();
+  const { journal } = await f.save();
+  const { digest } = journal;
+  await f.call({op:'approve',digest,confirmed:true});
+  await f.call({op:'submit',digest});
+  Object.assign(f.host.messaging!,{
+    findSent: async ({idempotencyKey}: {idempotencyKey:string}) => f.sends.some(sent=>sent.idempotencyKey===idempotencyKey)
+      ? {threadId:f.thread.id,messageId:'send-1',content:'Issue #12',routedCatIds:[]} : null,
+  });
+  const cas = f.host.storage.compareAndSet;
+  let fail = true;
+  f.host.storage.compareAndSet = async (key, revision, value) => {
+    if (fail && (value as {linkedIssueMessageId?:string})?.linkedIssueMessageId==='send-1') {
+      fail = false;
+      return {applied:false};
+    }
+    return cas(key,revision,value);
+  };
+  await assert.rejects(f.call({op:'sync-thread-issue',digest}), /另一个窗口/);
+  const reopened = new FeedbackService(f.host,()=>f.adapter);
+  const { revision } = await reopened.dispatch({op:'bootstrap',feedbackId:journal.id},f.ctx) as {revision:number};
+  const result = await reopened.dispatch({op:'sync-thread-issue',feedbackId:journal.id,digest,revision},f.ctx) as {journal:{linkedIssueMessageId?:string}};
+  assert.equal(result.journal.linkedIssueMessageId,'send-1');
+  assert.equal(f.sends.length,1);
+  assert.equal(f.creates(),1);
+});
+
 test('two feedbacks in the same conversation recover their own replies after reopening', async () => {
   const f = linkedFixture();
   const run = async (feedbackId: string) => {
@@ -90,6 +132,16 @@ test('two feedbacks in the same conversation recover their own replies after reo
   };
   await run('first');
   await run('second');
+  f.rows.push({
+    id:'combined', timestamp:19, sender:{kind:'cat',catId:'analyst'}, content:'# bug: 两条一起处理\n\n无法分别归属',
+    response:{executionId:'combined-run',inputMessageIds:['send-1','send-2'],status:'completed',startedAt:10},
+  });
+  for (const feedbackId of ['first','second']) {
+    const { analysis } = await f.call({op:'analysis-status',feedbackId}) as unknown as {analysis:{state:string;error:string;title?:string}};
+    assert.equal(analysis.state,'failed');
+    assert.match(analysis.error,/合并回复/);
+    assert.equal(analysis.title,undefined);
+  }
   f.rows.push(...['第一条结论','第二条结论'].map((title,index) => ({
     id:'reply-'+index, timestamp:20+index, sender:{kind:'cat' as const,catId:'analyst'}, content:`# bug: ${title}\n\n核实的结果`,
     response:{executionId:'execution-'+index,inputMessageIds:[`send-${index+1}`],status:'completed' as const,startedAt:10},

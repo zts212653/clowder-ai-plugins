@@ -13,7 +13,7 @@ export function feedbackForm(state, {input,note,pictureCards,addFiles,invalidate
       note('可粘贴截图，也可选择本地图片。')]),pictureCards(),note('请勿填写密码或令牌；截图不会交给模型。')])];
 }
 
-export function analysisSettings(state, {invalidate,note}) {
+export function analysisSettings(state, {invalidate,note,clients}) {
   const updateContext=(field,value)=>{
     if(state[field]===value)return;
     state[field]=value;
@@ -21,7 +21,7 @@ export function analysisSettings(state, {invalidate,note}) {
     invalidate();
   };
   const member=el('select',{id:'analysis-member','aria-label':'分析成员',disabled:state.busy,onChange:event=>updateContext('clientId',event.target.value)},
-    state.clients.map(value=>el('option',{value:value.id,text:`${value.label} · ${value.model}`})));
+    clients.map(value=>el('option',{value:value.id,text:`${value.label} · ${value.model}`})));
   member.value=state.clientId;
   return el('div',{className:'analysis-settings'},[
     el('h2',{text:'由谁来分析？'}),note(state.linkedThread

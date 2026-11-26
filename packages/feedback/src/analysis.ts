@@ -52,8 +52,13 @@ export class FeedbackAnalysis {
       const rows = await this.host.threads.readMessages(run.threadId, {limit: run.linkedThreadId ? 100 : 30}).catch(() => undefined);
       if (!rows) run = await this.update(key, current => ['starting','running','blocked','interrupted'].includes(current.state)
         ? {...current,state:'failed',error:'暂时无法读取分析对话；草稿已保留，可直接反馈或重新检查。'} : current,run.id);
-      const reply = rows && [...rows].reverse().find(row => row.sender.kind === 'cat' && row.sender.catId === run.catId && row.response?.inputMessageIds.includes(run.messageId!));
-      if (reply?.response) {
+      const replies = rows?.filter(row => row.sender.kind === 'cat' && row.sender.catId === run.catId && row.response?.inputMessageIds.includes(run.messageId!));
+      const reply = replies?.reverse().find(row => !run.linkedThreadId || row.response?.inputMessageIds.length === 1);
+      if (!reply && run.linkedThreadId && replies?.some(row => row.response?.status === 'completed')) {
+        const error = '成员合并回复了多条请求，草稿已保留。请查看原会话，选用相关回复，或单独重新分析。';
+        run = await this.update(key, current => !['starting','running','blocked','interrupted'].includes(current.state) ? current
+          : {...current,state:'failed',outcome:'completed',error}, run.id);
+      } else if (reply?.response) {
         const response = reply.response;
         if (response.status === 'completed') {
           const report = parseReport(reply.content);
@@ -152,6 +157,9 @@ export class FeedbackAnalysis {
     const catId = text(data.clientId, 200);
     const member = await members.get(catId);
     if (!member?.available) throw new Error('所选成员目前不可用，可更换成员或直接反馈');
+    if (linkedThread && !(await threads.getCats?.(linkedThread.id))?.routableNow.some(cat => cat.catId === catId)) {
+      throw new Error('所选成员当前无法在原会话中接收分析请求，请返回选择原会话中的可用成员');
+    }
     await this.update(key, current => {
       if (current.state !== 'prepared') throw new Error('分析准备已变化，请重新检查');
       return { ...current, activationId: this.activationId, state: 'starting', catId,startedAt:Date.now(),progress:'分析请求已发送，等待 Agent 开始' };
@@ -160,7 +168,7 @@ export class FeedbackAnalysis {
     // The durable starting state makes an uncertain send visible, rather than
     // silently issuing a second invocation after a connection failure.
     const threadContext = linkedThread ? '\n\n请结合本会话中已有的相关结论和历史反馈，标明适用范围。只在反馈报告里保留必要事实，不引用私聊、内部会话链接或会话 ID。' : '';
-    const sent = await messaging.send({ threadId: run.threadId, idempotencyKey: `feedback-analysis:${run.id}`, wake: { catId },
+    const sent = await messaging.send({ threadId: run.threadId, idempotencyKey: `feedback-analysis:${run.id}`, wake: { catId, ...(linkedThread ? { exact:true } : {}) },
       payload: { provenance: { epistemicStatus: 'user_intent' }, elements: [{ elementId: run.id, kind: 'text', payload: { text: `${instructions}${threadContext}\n\n${run.material}` } }] } });
     await this.update(key, current => ({ ...current, messageId: sent.messageId, state: current.state === 'starting' ? 'running' : current.state }), run.id);
     return { analysis: await this.status(context.userId,false,feedbackId) };

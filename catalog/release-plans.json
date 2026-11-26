@@ -408,7 +408,7 @@
     {
       "pluginId": "official.feedback",
       "version": "0.1.0-alpha.13",
-      "integrity": "sha512-bLieqLo9l/Do9nGST04W6blcXFpki6paA/P0/yuG7vao8jWm4Xc8sWXjEx2nKbizYKgUmwQEEBohQKGjNbyzYw==",
+      "integrity": "sha512-wwvTjzEAkjom7SiHpAPk/9najIr9hot/6OgkFcUUBWs+jnCXg17B8TYE75+d4ba6dLy0Dhc1g3tDYBOYxFKoVw==",
       "disposition": "defer",
       "owner": "codex",
       "reviewBy": "2026-12-10T08:00:00Z",

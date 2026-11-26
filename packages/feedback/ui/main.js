@@ -230,7 +230,13 @@ async function prepareAnalysis() {
   await saveReview(false); state.error = '';
   const prepared = await recordCall({ op: 'prepare-analysis', report: state.report, logs: state.report.kind!=='feat', projectRef: state.projectRef, clientId:state.clientId, journalDigest:state.journal.digest });
   Object.assign(state, prepared, { stage: 'scope',contextChanged:false });
-  if (!state.clients.some(c => c.id === state.clientId)) state.clientId = state.clients[0]?.id ?? '';
+}
+async function configureAnalysis() {
+  await flushDraft();
+  state.linkedClients=state.linkedThread ? (await recordCall({op:'analysis-members'})).clients : undefined;
+  const clients=state.linkedClients ?? state.clients;
+  if (!clients.some(client=>client.id===state.clientId)) state.clientId=clients[0]?.id ?? '';
+  state.stage='configure';
 }
 async function analyze() {
   analysisEpoch++;
@@ -593,10 +599,10 @@ function render() {
     footer.append(button('刷新记录',showHistory),button('新建反馈',startNew,'primary'));
   } else if (state.stage === 'edit') {
     const linked = state.linkedThread;
-    const threadControl = linked ? button(`会话：${linked.title || '未命名会话'}`,()=>showThread(linked),'text thread-name') :
-      button('关联已有会话',()=>browseThreads(),'text');
+    const threadControl = linked ? button(`会话：${linked.title || '未命名会话'}`,()=>showThread(linked),'secondary thread-name') :
+      button('关联已有会话',()=>browseThreads(),'secondary');
     content.append(...feedbackForm(state,{input,note,button,pictureCards,addFiles,invalidate,run,render,threadControl}));
-    footer.append(button('保存草稿',flushDraft,'text'),button('直接反馈',saveReview),button(linked?'在原会话分析':'生成分析报告',async()=>{await flushDraft();state.stage='configure';},'primary'));
+    footer.append(button('保存草稿',flushDraft,'text'),button('直接反馈',saveReview),button(linked?'在原会话分析':'生成分析报告',configureAnalysis,'primary'));
     if(state.analysis?.state==='ready'&&matchesAnalysisContext(state.analysis))footer.append(button('查看本条分析报告',async()=>{state.report.title=state.analysis.title;state.report.body=state.analysis.body;await saveReview();},'text'));
   } else if (state.stage === 'choose-thread') {
     const { items, next }=state.threadPage;
@@ -637,10 +643,11 @@ function render() {
     footer.append(button('返回反馈',async()=>{state.stage='edit';},'text'),button('选择其他会话',()=>browseThreads(),'text'),
       linked ? button('解除关联',()=>selectThread(undefined),'text') : button('关联此会话',()=>selectThread(thread),'primary'));
   } else if(state.stage==='configure') {
-    content.append(analysisSettings(state,{invalidate,note}));
-    if(!state.clients.length)content.append(note('还没有可用的分析成员，请先在宿主设置中配置 Agent Client。也可以跳过分析，直接反馈。','notice'));
+    const clients=state.linkedClients ?? state.clients;
+    content.append(analysisSettings(state,{invalidate,note,clients}));
+    if(!clients.length)content.append(note(state.linkedThread?'原会话没有可接收分析请求的成员。可回到原会话加入成员，或跳过分析直接反馈。':'还没有可用的分析成员，请先在宿主设置中配置 Agent Client。也可以跳过分析，直接反馈。','notice'));
     content.append(el('p',{'data-context-notice':'',role:'status',className:'notice',text:'分析上下文已改变，需要重新分析。现有正文会保留，便于继续编辑。',hidden:!state.contextChanged}));
-    footer.append(button('返回填写',async()=>{await flushDraft();state.stage='edit';},'text'),button('跳过分析',saveReview),button('准备分析材料',prepareAnalysis,'primary',!state.clients.some(client=>client.id===state.clientId)));
+    footer.append(button('返回填写',async()=>{await flushDraft();state.stage='edit';},'text'),button('跳过分析',saveReview),button('准备分析材料',prepareAnalysis,'primary',!clients.some(client=>client.id===state.clientId)));
   } else if (['scope', 'analyzing'].includes(state.stage)) {
     const client = state.clients.find(c=>c.id===(state.analysis?.clientId??state.clientId));
     content.append(el('div', { className: 'notice', text: `分析成员：${client?.label ?? '已选成员'} · ${client?.model ?? ''}。${state.report.kind === 'feat' ? '版本和功能建议' : '版本、问题描述及近期错误线索'}先在本地脱敏，再交给该成员分析；如其模型在云端，脱敏材料会发送到该模型。截图不交给模型。` }),
@@ -652,7 +659,7 @@ function render() {
     if (state.analysis?.threadUrl) content.append(button(state.linkedThread?'复制原会话链接':'复制分析会话链接',()=>copyLink(state.analysis.threadUrl),'text'));
     if (['blocked', 'preparing'].includes(state.analysis?.state)) content.append(note(state.analysis.error || 'Client 需要处理，请打开分析对话。', 'notice'));
     if (state.stage === 'analyzing') footer.append(button('停止等待，保留草稿', async () => { analysisEpoch++; clearTimeout(analysisTimer); const result = await recordCall({ op: 'cancel-analysis' }); state.analysis = result.analysis; state.stage = 'scope'; state.error = '已停止等待；这不会强制终止 Client，可打开分析对话查看。'; }));
-    else footer.append(button('更改分析设置',async()=>{state.stage='configure';},'text'),button('跳过分析', saveReview), ['failed', 'cancelled', 'interrupted'].includes(state.analysis?.state)
+    else footer.append(button('更改分析设置',configureAnalysis,'text'),button('跳过分析', saveReview), ['failed', 'cancelled', 'interrupted'].includes(state.analysis?.state)
       ? button('重新准备材料', prepareAnalysis, 'primary') : button('开始分析', analyze, 'primary', !state.clientId));
   } else if (['review', 'handoff', 'submitting'].includes(state.stage)) {
     content.className='content review-content';

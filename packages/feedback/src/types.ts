@@ -13,8 +13,8 @@ export interface Host {
   runtimeInfo?: import('@clowder-ai/plugin-sdk').PluginRuntimeInfoHost;
   members?: import('@clowder-ai/plugin-sdk').ModulePluginHostShape['members'];
   threads?: Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'create' | 'get' | 'list'> &
-    Partial<Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'readMessages'>>;
-  messaging?: Pick<import('@clowder-ai/plugin-sdk').ModulePluginHostShape['messaging'], 'send' | 'subscribe' | 'unsubscribe'>;
+    Partial<Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'readMessages' | 'getCats'>>;
+  messaging?: Pick<import('@clowder-ai/plugin-sdk').ModulePluginHostShape['messaging'], 'send' | 'subscribe' | 'unsubscribe' | 'findSent'>;
 }
 export interface Command { executable: string; args: string[] }
 export interface Profile {

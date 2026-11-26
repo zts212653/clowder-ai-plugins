@@ -106,6 +106,14 @@ export class FeedbackService {
       if (!result.applied) throw new RevisionConflictError('草稿已有更新，请刷新记录后再删除');
       return {items:await this.history(context.userId)};
     }
+    if (op === 'analysis-members') {
+      if (!journal || journal.owner !== context.userId || !journal.linkedThread) throw new Error('请先保存关联会话');
+      const thread = await this.visibleThread(journal.linkedThread.id);
+      const [cats, members] = await Promise.all([this.host.threads?.getCats?.(thread.id), this.host.members?.list()]);
+      const routable = new Set(cats?.routableNow.map(cat => cat.catId));
+      return {clients:(members ?? []).filter(member => member.available && routable.has(member.catId))
+        .map(member => ({id:member.catId,label:member.displayName,model:member.defaultModel}))};
+    }
     if (['prepare-analysis', 'analyze', 'analysis-status', 'cancel-analysis'].includes(op)) {
       if (!journal || journal.owner !== context.userId) throw new Error('反馈记录不存在');
       if (op === 'prepare-analysis' && ['writing','unknown','upload_failed','published'].includes(journal.state)) throw new Error('此记录暂不能重新分析，可以新建另一条反馈');
@@ -156,11 +164,13 @@ export class FeedbackService {
       if (journal.state !== 'published' || !journal.issue || !journal.linkedThread) throw new Error('请先核实已投递的 Issue 和关联会话');
       if (journal.linkedIssueMessageId) return present(journal, current?.revision);
       if (data.revision !== current?.revision) throw new RevisionConflictError('反馈记录已有更新，请重新打开');
-      if (!this.host.messaging) throw new Error('当前宿主无法向关联会话发送回执');
+      const messaging = this.host.messaging;
+      if (!messaging) throw new Error('当前宿主无法向关联会话发送回执');
       const thread = await this.visibleThread(journal.linkedThread.id);
-      const idempotencyKey = `feedback-issue:${journal.id}`;
+      const address = { threadId:thread.id, idempotencyKey:`feedback-issue:${journal.id}` };
+      const original = await messaging.findSent?.(address);
       await context.assertCurrent();
-      const sent = await this.host.messaging.send({ threadId:thread.id, idempotencyKey,
+      const sent = original ?? await messaging.send({ ...address,
         payload:{ provenance:{ epistemicStatus:'user_intent' }, elements:[{ elementId:journal.id, kind:'text', payload:{ text:`问题反馈已投递 · Issue #${journal.issue.id}\n${journal.issue.url}` } }] } });
       return publicWrite({ ...journal, linkedIssueMessageId:sent.messageId });
     }
