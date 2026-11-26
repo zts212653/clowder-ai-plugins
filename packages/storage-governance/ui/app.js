@@ -104,7 +104,7 @@
       return left.id.localeCompare(right.id);
     });
     var categories = (report.categories || []).map(mapCategory).sort(function (left, right) {
-      return right.logicalBytes - left.logicalBytes || left.id.localeCompare(right.id);
+      return (right.allocatedBytes ?? -1) - (left.allocatedBytes ?? -1) || left.id.localeCompare(right.id);
     });
     var logical = 0;
     var allocated = volumes.length > 0 ? 0 : null;
@@ -114,11 +114,6 @@
       files += volume.fileCount;
       if (volume.appAllocatedBytes === null) allocated = null;
       else if (allocated !== null) allocated += volume.appAllocatedBytes;
-    });
-    var reclaimable = categories.length > 0 ? 0 : null;
-    categories.forEach(function (category) {
-      if (category.reclaimableBytes === null) reclaimable = null;
-      else if (reclaimable !== null) reclaimable += category.reclaimableBytes;
     });
     var omissions = (report.omissions || []).map(function (row) {
       var count = num(row.count);
@@ -142,7 +137,6 @@
       totals: {
         logicalBytes: logical,
         allocatedBytes: allocated,
-        reclaimableBytes: reclaimable,
         fileCount: files,
         volumeCount: volumes.length,
       },

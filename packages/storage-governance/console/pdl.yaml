@@ -14,9 +14,12 @@ inserts:
 views:
   storageGovernance.page:
     blocks:
-      - type: frame
-        html:
-          request: page
+      - type: component
+        use: plugin:official.storage-governance/themed-frame
+        props:
+          html:
+            request: page
+          title: t:storageGovernance.title
     title: t:storageGovernance.title
     loading: t:storageGovernance.loading
     error: t:storageGovernance.error

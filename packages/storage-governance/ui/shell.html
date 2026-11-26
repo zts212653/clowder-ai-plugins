@@ -27,12 +27,13 @@
 
     <div id="data" class="data" hidden>
       <div id="totals"></div>
+      <p class="section-note capacity-note">想知道占了多少硬盘，看「磁盘占用」。稀疏或压缩文件的占用可能小于显示的「文件大小」。</p>
 
       <section class="section" aria-labelledby="volumes-title">
         <div class="section-head">
           <div>
             <h2 class="section-title" id="volumes-title">卷</h2>
-            <p class="section-note">卷容量来自文件系统；本应用占用来自这次扫描。</p>
+            <p class="section-note">整盘用量包含系统和其他应用；本应用占用只计本次扫描范围。</p>
           </div>
         </div>
         <div id="volumes"></div>
@@ -42,7 +43,6 @@
         <div class="section-head">
           <div>
             <h2 class="section-title" id="categories-title">类别</h2>
-            <p class="section-note">逻辑大小、已分配空间和可回收估算分开计算；未知不按 0 处理。</p>
           </div>
         </div>
         <div id="categories"></div>
@@ -80,13 +80,12 @@
           </div>
         </div>
         <div id="scope" class="fold-slot"></div>
-        <p class="scope-note" id="scope-note" hidden>硬链接按卷和文件身份去重；稀疏、压缩和写时复制共享块可能使已分配空间低于逻辑大小。</p>
+        <p class="scope-note" id="scope-note" hidden>同一磁盘上的硬链接保留所有路径，汇总时只计一次。</p>
       </section>
     </div>
 
     <footer class="page-foot">
       <span>扫描只读 · 不移动、不删除文件 · 硬链接按文件身份去重</span>
-      <span>逻辑大小是文件长度；已分配空间按卷统计；可回收估算只计可重建数据。</span>
     </footer>
   </main>
   <aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-label="文件详情" hidden></aside>

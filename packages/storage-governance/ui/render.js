@@ -39,8 +39,8 @@
     if (node) node.replaceChildren();
   }
 
-  function stat(label, value, note) {
-    return el('div', { class: 'stat' }, [
+  function stat(label, value, note, primary) {
+    return el('div', { class: primary ? 'stat stat-primary' : 'stat' }, [
       el('div', { class: 'stat-label', text: label }),
       el('div', { class: 'stat-value', text: value }),
       note ? el('div', { class: 'stat-note', text: note }) : null,
@@ -76,13 +76,8 @@
   function renderTotals(summary) {
     var totals = summary.totals;
     return el('div', { class: 'totals' }, [
-      stat('逻辑大小', F.bytesText(totals.logicalBytes), '文件长度合计'),
-      stat('已分配空间', totals.allocatedBytes === null ? '未知' : F.bytesText(totals.allocatedBytes), '按卷分配量'),
-      stat(
-        '可回收估算',
-        totals.reclaimableBytes === null ? '未知' : F.bytesText(totals.reclaimableBytes),
-        '只计可重建数据',
-      ),
+      stat('磁盘占用', F.bytesText(totals.allocatedBytes), '这次扫描测得的落盘空间，已去重', true),
+      stat('文件大小', F.bytesText(totals.logicalBytes), '文件显示大小的合计'),
       stat('文件', F.countText(totals.fileCount), F.countText(totals.volumeCount) + ' 个卷'),
     ]);
   }
@@ -97,9 +92,9 @@
       var used = known ? Math.max(0, volume.totalBytes - volume.freeBytes) : null;
       var usedPercent = known ? F.percent(used, volume.totalBytes) : null;
       var shareText =
-        volume.totalBytes !== null && volume.totalBytes > 0
-          ? '占卷 ' + F.percentText(volume.appLogicalBytes, volume.totalBytes) + '（逻辑）'
-          : '占卷未知';
+        volume.appAllocatedBytes !== null && volume.totalBytes > 0
+          ? '占本盘总容量 ' + F.percentText(volume.appAllocatedBytes, volume.totalBytes)
+          : '占本盘比例未知';
       return el('article', { class: 'volume-card' }, [
         el('div', { class: 'volume-head' }, [
           el('span', { class: 'volume-id', text: volume.id }),
@@ -117,10 +112,10 @@
           el('span', { text: known ? '可用 ' + F.bytesText(volume.freeBytes) : '可用未知' }),
         ]),
         el('div', { class: 'volume-app' }, [
-          el('strong', { text: '本应用 ' + F.bytesText(volume.appLogicalBytes) }),
+          el('strong', { text: '本应用占用 ' + F.bytesText(volume.appAllocatedBytes) }),
           el('span', {
             text:
-              (volume.appAllocatedBytes === null ? '已分配未知' : '已分配 ' + F.bytesText(volume.appAllocatedBytes)) +
+              '文件大小 ' + F.bytesText(volume.appLogicalBytes) +
               ' · ' +
               F.countText(volume.fileCount) +
               ' 个文件',
@@ -135,7 +130,7 @@
   function renderCategories(summary, handlers) {
     var selected = handlers.category || '';
     var rows = (summary.categories || []).map(function (category) {
-      var share = F.percent(category.logicalBytes, summary.totals.logicalBytes);
+      var share = F.percent(category.allocatedBytes, summary.totals.allocatedBytes);
       var reclaim =
         category.reclaimableBytes === null
           ? category.retention === 'protected'
@@ -169,8 +164,8 @@
               el('span', { style: { width: (share === null ? 0 : share) + '%' } }),
             ),
           ]),
+          el('td', { class: 'num usage', text: F.bytesText(category.allocatedBytes) }),
           el('td', { class: 'num', text: F.bytesText(category.logicalBytes) }),
-          el('td', { class: 'num', text: category.allocatedBytes === null ? '未知' : F.bytesText(category.allocatedBytes) }),
           el('td', { class: 'num', text: reclaim }),
           el('td', { class: 'num', text: F.countText(category.fileCount) }),
           el('td', {}, el('span', { class: 'retain retain-' + category.retention, text: M.retainLabel(category.retention) })),
@@ -183,8 +178,8 @@
         el('caption', { class: 'sr-only', text: '按类别汇总的占用' }),
         el('thead', {}, el('tr', {}, [
           el('th', { scope: 'col', text: '类别' }),
-          el('th', { scope: 'col', class: 'num', text: '逻辑' }),
-          el('th', { scope: 'col', class: 'num', text: '已分配' }),
+          el('th', { scope: 'col', class: 'num usage', text: '磁盘占用' }),
+          el('th', { scope: 'col', class: 'num', text: '文件大小' }),
           el('th', { scope: 'col', class: 'num', text: '可回收估算' }),
           el('th', { scope: 'col', class: 'num', text: '文件' }),
           el('th', { scope: 'col', text: '保留' }),
@@ -212,8 +207,8 @@
       el('th', { scope: 'col', text: '类别' }),
       el('th', { scope: 'col', text: '来源' }),
       el('th', { scope: 'col', text: '卷' }),
-      el('th', { scope: 'col', class: 'num', text: '逻辑' }),
-      el('th', { scope: 'col', class: 'num', text: '已分配' }),
+      el('th', { scope: 'col', class: 'num usage', text: '磁盘占用', 'aria-sort': 'descending' }),
+      el('th', { scope: 'col', class: 'num', text: '文件大小' }),
     ];
     if (showModified) headers.push(el('th', { scope: 'col', text: '修改时间' }));
     var rows = page.rows.map(function (row) {
@@ -235,8 +230,8 @@
           row.source.id ? el('span', { class: 'source-id', text: row.source.id }) : null,
         ]),
         el('td', { class: 'mono', text: row.volumeId }),
+        el('td', { class: 'num usage', text: F.bytesText(row.allocatedBytes) }),
         el('td', { class: 'num', text: F.bytesText(row.logicalBytes) }),
-        el('td', { class: 'num', text: row.allocatedBytes === null ? '未知' : F.bytesText(row.allocatedBytes) }),
       ];
       if (showModified) {
         cells.push(el('td', { class: 'muted nowrap', text: F.dateText(row.modifiedAt) }));
@@ -482,8 +477,8 @@
           detail('来源', M.sourceLabel(row.source)),
           detail('来源标识', row.source.id || '未提供'),
           detail('卷', row.volumeId),
-          detail('逻辑大小', F.bytesText(row.logicalBytes)),
-          detail('已分配空间', row.allocatedBytes === null ? '未知' : F.bytesText(row.allocatedBytes)),
+          detail('磁盘占用', F.bytesText(row.allocatedBytes)),
+          detail('文件大小', F.bytesText(row.logicalBytes)),
           detail('修改时间', F.dateText(row.modifiedAt)),
           detail('保留属性', M.retainLabel(row.retention)),
         ]),

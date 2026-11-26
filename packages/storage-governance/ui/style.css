@@ -347,7 +347,7 @@ select {
 
 .totals {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   overflow: hidden;
   border: 1px solid var(--hairline);
   border-radius: 12px;
@@ -374,6 +374,15 @@ select {
   font: 400 22px/1.2 var(--serif);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+}
+
+.stat-primary .stat-value {
+  color: var(--primary);
+  font-size: 28px;
+}
+
+.capacity-note {
+  margin: 8px 0 0;
 }
 
 .stat-note {
@@ -520,6 +529,11 @@ select {
 
 .data-table tbody tr:last-child td {
   border-bottom: 0;
+}
+
+.data-table .usage {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .data-table .num {

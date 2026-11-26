@@ -8,6 +8,14 @@
   window.addEventListener('message', function (event) {
     if (event.source !== parent) return;
     var data = event.data;
+    if (data && data.type === 'storage-governance.theme') {
+      var style = document.documentElement.style;
+      Object.entries(data.colors).forEach(function (entry) {
+        style.setProperty(entry[0], entry[1]);
+      });
+      style.colorScheme = data.mode;
+      return;
+    }
     if (!data || data.channel !== channel || data.nonce !== nonce) return;
     var request = pending.get(data.requestId);
     if (!request) return;

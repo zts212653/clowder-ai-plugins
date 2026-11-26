@@ -102,6 +102,14 @@ try {
   assert.match(await evaluate("document.querySelector('#pager').textContent"), /13,970/u);
   pass('first page shows totals, 50 rows and the full pager count');
 
+  assert.equal(await evaluate("document.querySelector('#totals .stat-label').textContent"), '磁盘占用');
+  assert.deepEqual(
+    await evaluate("Array.from(document.querySelectorAll('#files-table th.num')).map(th => th.textContent)"),
+    ['磁盘占用', '文件大小'],
+  );
+  assert.match(await evaluate("document.querySelector('.capacity-note').textContent"), /稀疏或压缩/u);
+  pass('disk usage is the primary metric and the first numeric file column');
+
   assert.match(await evaluate("document.querySelector('#result-count').textContent"), /重复路径/u);
   pass('duplicate path note is visible');
 

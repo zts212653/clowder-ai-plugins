@@ -1,5 +1,4 @@
-storageGovernance:
-  entry: 存储空间治理
-  title: 存储空间治理
-  loading: 正在读取存储清单…
-  error: 存储清单读取失败
+entry: 存储空间治理
+title: 存储空间治理
+loading: 正在读取存储清单…
+error: 存储清单读取失败

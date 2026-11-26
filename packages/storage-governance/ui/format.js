@@ -23,7 +23,8 @@
   function bytesText(value) {
     var parsed = bytes(value);
     if (parsed === null) return '未知';
-    var digits = parsed.unit === 'B' ? 0 : parsed.value < 10 ? 1 : 0;
+    var showFraction = parsed.value < 10 || ['GB', 'TB', 'PB'].includes(parsed.unit);
+    var digits = parsed.unit === 'B' || !showFraction ? 0 : 1;
     return parsed.value.toFixed(digits) + ' ' + parsed.unit;
   }
 

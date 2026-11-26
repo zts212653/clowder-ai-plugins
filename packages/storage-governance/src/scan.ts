@@ -176,7 +176,12 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
     if (!results.has(pathKey(source.path))) await walk(source.path, source.category, [], undefined, true, source.optional);
   }
 
-  const files = [...results.values()].sort((a, b) => b.logicalBytes - a.logicalBytes || a.path.localeCompare(b.path));
+  const files = [...results.values()].sort(
+    (a, b) =>
+      (b.allocatedBytes ?? -1) - (a.allocatedBytes ?? -1) ||
+      b.logicalBytes - a.logicalBytes ||
+      a.path.localeCompare(b.path),
+  );
   const volumes = await Promise.all(summarize(files).map(async (usage) => {
     const stats = await statfs(usage.volume, { bigint: true }).catch(() => undefined);
     return {
