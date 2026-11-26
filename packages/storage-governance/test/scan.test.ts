@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import plugin from '../src/index.js';
+import { indexStorage, pageStorage } from '../src/pages.js';
 import { scanStorage, type Sources } from '../src/scan.js';
 
 test('counts a shared file once while preserving paths, session references, and skipped junctions', async (t) => {
@@ -38,6 +39,7 @@ test('counts a shared file once while preserving paths, session references, and 
   const row = result.files.find((row) => row.path === file);
   assert.deepEqual(row?.threadIds, ['also', 'one']);
   assert.equal(row?.category, 'transcript');
+  assert.equal(row?.worktreePath, root);
   assert.equal(result.files.filter((row) => row.duplicateOf).length, 1);
   assert.equal(result.omissions.find((row) => row.path.endsWith('junction'))?.reason, 'link-or-mount');
 });
@@ -62,4 +64,63 @@ test('requires the owning instance and pages an asynchronous scan only for its r
   assert.equal(result.state, 'ready');
   assert.equal(result.total, 0);
   handle.stop();
+});
+
+test('shows registered worktree directories with deduplicated totals and lazy file pages', async (t) => {
+  const base = await mkdtemp(join(tmpdir(), 'storage-worktrees-'));
+  t.after(() => rm(base, { recursive: true, force: true }));
+  const worktree = join(base, 'checkout-a');
+  const nested = join(worktree, 'nested');
+  const sibling = join(base, 'checkout-ab');
+  await Promise.all([mkdir(nested, { recursive: true }), mkdir(sibling, { recursive: true })]);
+  const snapshot = join(worktree, 'ram.img');
+  const attachment = join(worktree, 'attached.txt');
+  const nestedFile = join(nested, 'nested.bin');
+  const unownedFile = join(sibling, 'unknown.txt');
+  const alias = join(worktree, 'snapshot-alias.img');
+  await Promise.all([
+    writeFile(snapshot, 'abcdef'),
+    writeFile(attachment, 'hi'),
+    writeFile(nestedFile, '123'),
+    writeFile(unownedFile, 'x'),
+    writeFile(join(worktree, '.git'), 'excluded Git link'),
+  ]);
+  await link(snapshot, alias);
+  const result = await scanStorage({
+    roots: [
+      { path: worktree, category: 'worktree', threadId: 'one' },
+      { path: nested, category: 'worktree', threadId: 'nested' },
+      { path: sibling, category: 'worktree' },
+    ],
+    files: [{ path: attachment, category: 'attachment', threadId: 'extra' }],
+    threads: [{ id: 'one', title: 'Source' }],
+    nativeSessions: [],
+    omissions: [],
+  }, new AbortController().signal);
+  const index = indexStorage(result);
+  const all = pageStorage(index, { view: 'worktrees' });
+  assert.ok(all && 'worktrees' in all);
+  assert.equal(all.total, 3);
+  assert.ok('threads' in all && all.threads.length === 1);
+  const group = all.worktrees.find((row) => row.path === worktree);
+  assert.equal(group?.fileCount, 3);
+  assert.equal(group?.uniqueFiles, 2);
+  assert.equal(group?.logicalBytes, 8);
+  assert.deepEqual(group?.threadIds, ['extra', 'one']);
+
+  const opened = pageStorage(index, { view: 'files', worktreePath: worktree, category: 'worktree', summary: false });
+  assert.ok(opened && 'files' in opened);
+  assert.ok(!('threads' in opened) && !('categories' in opened) && !('selection' in opened));
+  assert.equal(opened.worktree?.path, worktree);
+  assert.deepEqual(opened.files.map((row) => row.path).sort(), [alias, attachment, snapshot].sort());
+  assert.ok(opened.files.every((row) => row.worktreePath === worktree));
+  const search = pageStorage(index, { view: 'worktrees', query: 'checkout-a', offset: 1, limit: 1, summary: false });
+  assert.ok(search && 'worktrees' in search);
+  assert.equal(search.total, 3);
+  assert.equal(search.nextOffset, 2);
+
+  const unassigned = pageStorage(index, { threadId: '__unknown__', category: 'worktree', summary: false });
+  assert.ok(unassigned && 'files' in unassigned);
+  assert.deepEqual(unassigned.files.map((row) => row.path), [unownedFile]);
+  assert.equal(pageStorage(index, { worktreePath: base })?.total, 0);
 });

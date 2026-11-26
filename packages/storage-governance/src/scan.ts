@@ -1,7 +1,7 @@
 import { lstat, opendir, realpath, statfs } from 'node:fs/promises';
-import { basename, isAbsolute, join, parse, resolve, sep } from 'node:path';
+import { basename, dirname, isAbsolute, join, parse, resolve, sep } from 'node:path';
 
-interface Source {
+export interface Source {
   path: string;
   category: string;
   threadId?: string;
@@ -16,7 +16,7 @@ export interface Sources {
   omissions: { path: string; reason: string; count: number }[];
 }
 
-interface StorageFile {
+export interface StorageFile {
   path: string;
   volume: string;
   category: string;
@@ -25,6 +25,7 @@ interface StorageFile {
   allocatedBytes: number | null;
   modifiedAt: number;
   duplicateOf?: string;
+  worktreePath?: string;
 }
 
 interface Volume {
@@ -47,6 +48,7 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
   const identities = new Map<string, StorageFile>();
   const rootsByPath = indexSources(sources.roots);
   const filesByPath = indexSources(sources.files);
+  const worktreeRoots = indexSources(sources.roots.filter((source) => source.category === 'worktree'));
   const native = new Map<string, Set<string>>();
   const omissions = new Map(sources.omissions.map((row) => [row.reason + '\n' + row.path, { ...row }]));
 
@@ -88,6 +90,7 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
     path: string,
     category: string,
     inherited: readonly string[],
+    parentWorktree?: string,
     device?: bigint,
     directFile = false,
     optional = false,
@@ -114,6 +117,7 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
     const specific = rootsByPath.get(key);
     const owners = specific ? [...new Set([...inherited, ...specific.owners])] : inherited;
     const location = specific?.source.category ?? category;
+    const worktreePath = worktreeRoots.get(key)?.source.path ?? parentWorktree;
     if (stats.isDirectory() && !directFile) {
       if (directories.has(key)) return;
       directories.add(key);
@@ -125,9 +129,9 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
       try {
         for await (const entry of entries) {
           const child = join(path, entry.name);
-          if (location === 'worktree' && entry.name === '.git') continue;
+          if (worktreePath && entry.name === '.git') continue;
           if (entry.isSymbolicLink()) omit(child, 'link-or-mount');
-          else await walk(child, location, owners, stats.dev);
+          else await walk(child, location, owners, worktreePath, stats.dev);
         }
       } catch (error) {
         signal.throwIfAborted();
@@ -157,6 +161,7 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
     const allocatedBytes = typeof stats.blocks === 'bigint' ? safeBytes(stats.blocks * 512n) : null;
     const row: StorageFile = {
       path, volume, category: categoryForFile, threadIds, logicalBytes, allocatedBytes, modifiedAt: Number(stats.mtimeMs),
+      ...(worktreePath ? { worktreePath } : {}),
     };
     if (stats.nlink > 1n && stats.ino !== 0n && stats.dev !== 0n) {
       const identity = String(stats.dev) + ':' + String(stats.ino);
@@ -170,10 +175,14 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
   const roots = [...rootsByPath.values()].sort((a, b) => a.source.path.length - b.source.path.length);
   for (const { source } of roots) {
     if (directories.has(pathKey(source.path))) continue;
-    await walk(source.path, source.category, [], undefined, false, source.optional);
+    await walk(source.path, source.category, [], undefined, undefined, false, source.optional);
   }
   for (const { source } of filesByPath.values()) {
-    if (!results.has(pathKey(source.path))) await walk(source.path, source.category, [], undefined, true, source.optional);
+    if (results.has(pathKey(source.path))) continue;
+    let parent = dirname(source.path);
+    while (!worktreeRoots.has(pathKey(parent)) && dirname(parent) !== parent) parent = dirname(parent);
+    const worktree = worktreeRoots.get(pathKey(parent))?.source;
+    await walk(source.path, source.category, [], worktree?.path, undefined, true, source.optional);
   }
 
   const files = [...results.values()].sort(
@@ -218,6 +227,8 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
   };
 }
 
+export type StorageResult = Awaited<ReturnType<typeof scanStorage>>;
+
 function indexSources(sources: Source[]) {
   const rows = new Map<string, { source: Source; owners: Set<string> }>();
   for (const source of sources) {
@@ -243,7 +254,7 @@ export function summarize(files: readonly StorageFile[]) {
     };
     volumes.set(volume.volume, volume);
     volume.fileCount += 1;
-    const identity = pathKey(file.duplicateOf ?? file.path);
+    const identity = file.duplicateOf ?? file.path;
     if (seen.has(identity)) continue;
     seen.add(identity);
     volume.uniqueFiles += 1;

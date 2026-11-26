@@ -241,6 +241,8 @@ test('getRead ready results page through more than one hundred rows', async (t) 
     assert.deepEqual(bodyOf(await call(active, 'GET')), { state: 'running' });
     const readyBody = await waitForReady(active);
     assert.equal(readyBody.total, 250);
+    assert.equal((readyBody.files as unknown[]).length, 50);
+    assert.equal(readyBody.nextOffset, 50);
     assert.equal(getReadCalls, 1);
     const pageRequest = (body: Record<string, string>) =>
       active.actions['storage-governance.scan'](
