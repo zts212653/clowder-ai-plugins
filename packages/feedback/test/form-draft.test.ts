@@ -10,7 +10,7 @@ test('changing member and project after saving the description survives close an
   };
   let closePanel!:()=>Promise<void>;
   const saved:Array<{clientId:string;projectRef:string;report:unknown}>=[];
-  const context=createContext({Blob,el,document:{getElementById:el,querySelector:()=>null,querySelectorAll:()=>[]},crypto:{randomUUID:()=> 'draft'},
+  const context=createContext({Blob,el,document:{addEventListener(){},getElementById:el,querySelector:()=>null,querySelectorAll:()=>[]},crypto:{randomUUID:()=> 'draft'},
     beforeClose:async(action:()=>Promise<void>)=>{closePanel=action;},bridge:async()=>true,copyImage:async()=>{},normalizePicture:async()=>{},reportPreview:el,feedbackHistory:el,
     setTimeout:()=>0,clearTimeout(){},console,call:async(input:{op:string;clientId:string;projectRef:string;report:unknown})=>{
       if(input.op==='save'){saved.push(structuredClone(input));return{journal:{id:'draft',state:'draft',digest:'saved',target:{id:'clowder'},...input},revision:saved.length};}

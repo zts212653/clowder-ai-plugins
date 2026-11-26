@@ -62,6 +62,8 @@ test('activity tracks analysis outside the panel until its exact result is viewe
   assert.deepEqual(await other.activity({...f.ctx,operation:'read'}),{ running:0, unread:1 });
   assert.deepEqual(await other.activity({...f.ctx,userId:'another-owner',operation:'read'}),{ running:0, unread:0 });
   await f.call({op:'bootstrap'});
+  await f.call({op:'save',targetId:'clowder',report:{title:'bug: 启动失败',body:'已复现启动失败。',attachments:[]}});
+  assert.deepEqual(await activity(),{ running:0, unread:1 });
   await f.call({op:'view-analysis',runId:'obsolete'});
   assert.deepEqual(await activity(),{ running:0, unread:1 });
   await f.call({op:'view-analysis',runId});

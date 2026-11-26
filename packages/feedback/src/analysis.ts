@@ -14,7 +14,7 @@ export type Analysis = {
   activationId: string;
   catId?: string; messageId?: string; triggerMessageId?: string; executionId?: string;
   candidate?: { title: string; body: string }; outcome?: string; error?: string;
-  startedAt?: number; progress?: string; receivedChars?: number; viewed?: true;
+  startedAt?: number; progress?: string; receivedChars?: number; viewed?: boolean;
   journalDigest?: string;
   linkedThreadId?: string;
   summary?: {source:string};
@@ -182,7 +182,7 @@ export class FeedbackAnalysis {
     }
     await this.update(key, current => {
       if (current.state !== 'prepared') throw new Error('分析准备已变化，请重新检查');
-      return { ...current, activationId: this.activationId, state: 'starting', catId,startedAt:Date.now(),progress:'分析请求已发送，等待 Agent 开始' };
+      return { ...current, activationId: this.activationId, state: 'starting', catId,startedAt:Date.now(),viewed:false,progress:'分析请求已发送，等待 Agent 开始' };
     }, run.id);
     if (!linkedThread) await messaging.subscribe({ threadId: run.threadId, method: 'feedback.delivery', includeOwnMessages: false });
     // The durable starting state makes an uncertain send visible, rather than

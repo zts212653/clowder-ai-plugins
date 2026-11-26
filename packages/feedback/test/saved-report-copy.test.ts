@@ -28,7 +28,7 @@ async function panel(stage: 'review' | 'handoff' = 'review') {
   let pause: (() => Promise<void>) | undefined;
   const reportPreview = (body: string) => node('article', { 'aria-label': '报告正文预览', text: body });
   const context = createContext({ Blob, atob, console,
-    document: { getElementById: (id: string) => id === 'app' ? app : elements.get(id), querySelector: (selector: string) => selector === '[aria-label="报告正文预览"]' ? elements.get('preview') : null, querySelectorAll: () => [] },
+    document: { addEventListener(){}, getElementById: (id: string) => id === 'app' ? app : elements.get(id), querySelector: (selector: string) => selector === '[aria-label="报告正文预览"]' ? elements.get('preview') : null, querySelectorAll: () => [] },
     el: node, reportPreview, reportReader: reportPreview, feedbackForm: () => [], feedbackHistory: node,
     crypto: { randomUUID: () => saved.journal.id }, copyImage: async () => {}, normalizePicture: async () => {}, beforeClose: async () => {},
     setTimeout: (action: () => void, delay: number) => { if (delay === 500) timers.push(action); return 0; }, clearTimeout() {},

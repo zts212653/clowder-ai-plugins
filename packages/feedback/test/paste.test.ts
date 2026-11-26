@@ -7,7 +7,7 @@ test('pasting an image uses the file attachment path, while text paste stays nat
   const listeners = new Map<string, (event: unknown) => Promise<void>>();
   const node = () => ({dataset:{},append(){},replaceChildren(){},querySelector(){},addEventListener:(type:string,handler:(event:unknown)=>Promise<void>)=>listeners.set(type,handler)});
   const normalized: unknown[]=[];
-  const context = createContext({document:{getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,
+  const context = createContext({document:{addEventListener(){},getElementById:node,querySelector:()=>null,querySelectorAll:()=>[]},el:node,reportPreview:node,feedbackForm:()=>[],feedbackHistory:node,
     Blob,atob,crypto:{randomUUID:()=> 'draft'},bridge:async()=>true,beforeClose:async()=>{},copyImage:async()=>{},normalizePicture:async(file:unknown)=>{normalized.push(file);return{mime:'image/png',name:'paste.png',base64:'cG5n'};},
     setTimeout:()=>0,clearTimeout(){},console,call:async()=>({targets:[],clients:[],items:[]})});
   const source = await readFile(new URL('../ui/main.js',import.meta.url),'utf8');

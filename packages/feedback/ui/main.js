@@ -14,6 +14,7 @@ let pendingDraft=Promise.resolve();
 let pendingAction=Promise.resolve();
 let editVersion=0;
 let unbindReader;
+let viewingAnalysis;
 async function copyLink(url) {
   await bridge('clipboard.text',url);
   state.feedbackNotice='链接已复制，可在浏览器打开。';
@@ -215,18 +216,12 @@ async function addFiles(files) {
   invalidate();
 }
 async function saveReview(checkTarget = true) {
-  const viewedAnalysis = state.analysis?.state==='ready' && !state.analysis.viewed &&
-    state.report.title===state.analysis.title && state.report.body===state.analysis.body ? state.analysis : undefined;
   if(!['review','handoff'].includes(state.stage) || app.dataset.stage === 'analyzing'){
     Object.assign(state,{reviewView:'report',reviewImage:0,reviewScroll:0,preview:true});
   }
   await flushDraft();
   const saved = await recordCall({ op: 'save', targetId: state.targetId, clientId: state.clientId, projectRef: state.projectRef, linkedThreadId:state.linkedThread?.id??null, revision: state.revision, report: state.report });
   Object.assign(state, saved, { report: saved.journal.report, dirty: false, consent: false, stage: 'review',saveError:'',saveErrorCode:'' });
-  if(viewedAnalysis) {
-    await recordCall({op:'view-analysis',runId:viewedAnalysis.id});
-    viewedAnalysis.viewed=true;
-  }
   state.automatic = false;
   if (checkTarget) await checkRoute();
 }
@@ -733,7 +728,20 @@ function render() {
   const reader=app.querySelector('[data-report-reader]');
   if(reader) unbindReader=bindReportReader(reader,state.reviewScroll,position=>{state.reviewScroll=position;});
   else unbindReader=undefined;
+  markDisplayedAnalysis();
 }
+function markDisplayedAnalysis() {
+  const analysis=state.analysis;
+  if(document.hidden || state.busy || state.stage!=='review' || state.reviewView!=='report' ||
+    analysis?.state!=='ready' || analysis.viewed || viewingAnalysis===analysis ||
+    state.report.title!==analysis.title || state.report.body!==analysis.body) return;
+  viewingAnalysis=analysis;
+  const feedbackId=state.feedbackId;
+  void recordCall({op:'view-analysis',runId:analysis.id},feedbackId)
+    .then(()=>{analysis.viewed=true;},()=>{})
+    .finally(()=>{if(viewingAnalysis===analysis)viewingAnalysis=undefined;});
+}
+document.addEventListener('visibilitychange',markDisplayedAnalysis);
 render();
 app.addEventListener('paste', event => {
   if(state.stage!=='edit'||state.busy||locked())return;

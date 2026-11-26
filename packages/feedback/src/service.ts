@@ -440,8 +440,8 @@ export class FeedbackService {
         : analysis?.state==='ready' || journal.reviewReady ? 'ready' : 'draft';
       return {id:journal.id,title:journal.report.title,...(status==='draft'&&journal.state==='draft'?{deleteRevision:revision}:{}),kind:journal.report.kind ?? (/^feat:/i.test(journal.report.title)?'feat':'bug'),status,
         updatedAt:Math.max(journal.updatedAt ?? journal.createdAt ?? 0,analysis?.startedAt ?? 0),analyzed:analysis?.state==='ready',issueId:journal.issue?.id,issueUrl:journal.issue?.url,threadUrl:journal.linkedThread?.deepLinkUrl ?? analysis?.threadUrl,
-        unread:status==='ready' && analysis?.state==='ready' && 'viewed' in analysis && !analysis.viewed &&
-          (journal.report.title!==analysis.title || journal.report.body!==analysis.body),
+        unread:status==='ready' && analysis?.state==='ready' && 'viewed' in analysis &&
+          (analysis.viewed===false || analysis.viewed===undefined && (journal.report.title!==analysis.title || journal.report.body!==analysis.body)),
         linkedThreadLabel:journal.linkedThread ? journal.linkedThread.title ?? '未命名会话' : undefined,
         screenshotsPending:journal.state==='published' && (journal.screenshotAttempt || (journal.screenshotCommentUnverified && !journal.screenshotsConfirmed))
           ? 'verify' : undefined};
