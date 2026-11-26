@@ -340,6 +340,15 @@
       "condition": "Activate after the paired Host with the PDL console (zts212653/clowder-ai#1982) is released and this exact archive is verified on it."
     },
     {
+      "pluginId": "official.quick-phrases",
+      "version": "0.1.0-alpha.5",
+      "integrity": "sha512-iOTC3kbmOwNAezorD7WZcTPFMYSlNUHzNoZZQa9aZwLzIURDrBVhlQznoZjjRW+R3mhWAz8GzoTrgtmerGAMWg==",
+      "disposition": "activate",
+      "owner": "codex",
+      "reviewBy": "2026-12-03T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/248"
+    },
+    {
       "pluginId": "official.feedback",
       "version": "0.1.0-alpha.3",
       "integrity": "sha512-OyPZksC5Y0K5tr/cwKhGX2SEmOzA0ABFZCQT2xkwyPFcLZp6O3mEATAmy1M62TrtGOV8m7RDu6flXiGa4g9uyw==",

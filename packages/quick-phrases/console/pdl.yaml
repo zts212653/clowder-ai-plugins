@@ -5,7 +5,7 @@ inserts:
     at: inside
     node:
       title: t:quickPhrases.title
-      icon: bolt
+      icon: bookmark
       scope: page
       open:
         node: quickPhrases.pop
@@ -40,7 +40,9 @@ views:
             from: $.phrases.items
             empty: t:quickPhrases.empty
             row:
-              title: "@text"
+              title:
+                text: "@text"
+                tip: "@text"
               act:
                 of: $.pending
                 map:
