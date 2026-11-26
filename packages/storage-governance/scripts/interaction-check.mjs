@@ -256,9 +256,19 @@ try {
   await evaluate("document.querySelector('#scan-btn').click()");
   await waitFor("document.querySelector('#progress .progress-card') !== null", 'scan progress');
   assert.ok(await evaluate("document.querySelector('#scan-btn').disabled"));
+  assert.match(await evaluate("document.querySelector('#progress').textContent"), /已用/u);
+  assert.match(await evaluate("document.querySelector('#progress').textContent"), /首次扫描|上次扫描|预计/u);
+  assert.ok(await evaluate("document.querySelector('.bar.is-indeterminate') !== null"));
+  await screenshot('scan-progress.png');
   await waitFor("/扫描完成/.test(document.querySelector('#notice').textContent)", 'scan completion');
   assert.match(await evaluate("document.querySelector('#pager').textContent"), /13,970/u);
   pass('scan starts, shows progress and completes');
+
+  await evaluate("document.querySelector('#scan-btn').click()");
+  await waitFor("document.querySelector('#progress .progress-card') !== null", 'second scan progress');
+  assert.match(await evaluate("document.querySelector('#progress').textContent"), /上次扫描|预计/u);
+  await waitFor("/扫描完成/.test(document.querySelector('#notice').textContent)", 'second scan completion');
+  pass('second scan uses the remembered duration for ETA');
 
   assert.deepEqual(errors, []);
   pass('no runtime exceptions');

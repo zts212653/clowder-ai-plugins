@@ -57,19 +57,21 @@
     ]);
   }
 
-  function progressBar(percent, label) {
+  function progressBar(percent, label, indeterminate) {
     var fill = percent === null ? 0 : percent;
+    var attrs = {
+      class: 'bar' + (indeterminate ? ' is-indeterminate' : percent === null ? ' is-pending' : ''),
+      role: 'progressbar',
+      'aria-label': label,
+      'aria-valuemin': '0',
+      'aria-valuemax': '100',
+    };
+    if (indeterminate) attrs['aria-valuetext'] = '正在扫描，暂无精确进度';
+    else attrs['aria-valuenow'] = percent === null ? '0' : String(Math.round(percent));
     return el(
       'div',
-      {
-        class: 'bar' + (percent === null ? ' is-pending' : ''),
-        role: 'progressbar',
-        'aria-label': label,
-        'aria-valuemin': '0',
-        'aria-valuemax': '100',
-        'aria-valuenow': percent === null ? '0' : String(Math.round(percent)),
-      },
-      el('span', { style: { width: fill + '%' } }),
+      attrs,
+      el('span', { style: indeterminate ? null : { width: fill + '%' } }),
     );
   }
 
@@ -441,6 +443,7 @@
   function renderProgress(scan, handlers) {
     var percent = M.scanProgressPercent(scan);
     var progress = scan.progress;
+    var elapsed = scan.startedAt ? Math.max(0, Date.now() - scan.startedAt) : 0;
     var meta = progress.rootsTotal > 0
       ? [
           M.phaseLabel(progress.phase),
@@ -449,6 +452,8 @@
           F.bytesText(progress.bytesSeen),
         ].join(' · ')
       : '正在读取目录与文件大小';
+    meta += ' · 已用 ' + F.durationText(elapsed);
+    var estimate = handlers.estimate || { text: '正在估算…', detail: '' };
     return el('div', { class: 'progress-card', role: 'status' }, [
       el('div', { class: 'progress-head' }, [
         el('div', {}, [
@@ -465,7 +470,11 @@
             })
           : null,
       ]),
-      progressBar(percent, '扫描进度'),
+      progressBar(percent, '扫描进度', percent === null),
+      el('div', { class: 'progress-estimate' }, [
+        el('strong', { text: estimate.text }),
+        estimate.detail ? el('span', { text: estimate.detail }) : null,
+      ]),
       progress.currentRoot
         ? el('div', { class: 'progress-current mono', title: progress.currentRoot, text: progress.currentRoot })
         : null,

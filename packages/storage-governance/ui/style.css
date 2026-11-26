@@ -294,6 +294,43 @@ select {
   width: 0;
 }
 
+.bar.is-indeterminate > span {
+  width: 36%;
+  animation: sg-indeterminate 1.6s linear infinite;
+}
+
+.progress-estimate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.progress-estimate strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+@keyframes sg-indeterminate {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(280%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar.is-indeterminate > span {
+    width: 100%;
+    animation: none;
+    opacity: 0.35;
+  }
+}
+
 .progress-current {
   margin-top: 8px;
   overflow: hidden;
