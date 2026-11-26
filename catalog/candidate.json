@@ -2662,7 +2662,7 @@
             "kind": "npm",
             "packageName": "@clowder-ai/github-operations",
             "version": "0.1.0-alpha.48",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/clowder-ai-github-operations-0.1.0-alpha.48.tgz",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.48.tgz",
             "integrity": "sha512-wfckSKiq402V/hWsb1P/wYlURCXeEoyoANar9TENGidvWLAGwoTJwqG55wgd/k8mCb89Z49KAjkKXd8Vmd5blw==",
             "shasum": "8434f66cab66fa772ea4ff31c34004a89fba87ba",
             "provenance": {
