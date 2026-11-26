@@ -134,7 +134,7 @@ async function browseThreads(before) {
 }
 async function showThread(thread, before) {
   await flushDraft();
-  const page = await call({op:'thread-context',threadId:thread.id,before});
+  const page = await call({op:'thread-context',threadId:thread.id,before,feedbackId:state.feedbackId});
   state.threadContext = {thread, before, ...page};
   state.stage = 'thread-context';
 }
@@ -427,7 +427,8 @@ function renderReview(content, footer) {
   if (state.journal?.issue && issueMayExist()) route.append(button('复制待核验的 Issue 链接',()=>copyLink(state.journal.issue.url),'text'));
   if (state.stage === 'submitting') route.append(note('正在提交并核验回执…','review-route-condition hint'));
 
-  content.append(reviewTabs,el('div',{className:'review-layout','data-delivery':deliveryView,'data-has-images':showImages},[
+  const summarySources=!deliveryView && /^## 我的原话$/m.test(state.report.body) && /^## 已有分析$/m.test(state.report.body);
+  content.append(reviewTabs,...(summarySources?[note('草稿包含我的原话和已有分析','hint summary-draft-sources')]:[]),el('div',{className:'review-layout','data-delivery':deliveryView,'data-has-images':showImages},[
     documentArea,el('div',{className:'review-side'},[...(photos?[photos]:[]),route]),
   ]));
 
@@ -638,13 +639,14 @@ function render() {
     footer.append(button('返回反馈',async()=>{state.stage='edit';},'text'));
     if(next)footer.append(button('更早的会话',()=>browseThreads(next)));
   } else if (state.stage === 'thread-context') {
-    const { thread, feedback, messages, before, next }=state.threadContext;
+    const { thread, feedback, messages, before, next, summaryAvailable }=state.threadContext;
     const linked=state.linkedThread?.id===thread.id;
     const original=messages.filter(item=>item.kind==='owner').reverse();
     const findings=messages.filter(item=>item.kind==='analysis');
     const ownText=message=>el('li',{},[note(new Date(message.timestamp).toLocaleString('zh-CN')),
       message.fullText ? el('details',{className:'thread-original'},[
         el('summary',{text:message.excerpt+'…'}),el('p',{text:message.fullText}),
+        ...(message.truncated?[note('这条原话的预览已截断。')]:[]),
       ]) : el('p',{text:message.excerpt}),
     ]);
     content.append(el('h2',{className:'thread-title',text:thread.title || '未命名会话'}),
@@ -667,12 +669,12 @@ function render() {
           button('用作反馈草稿',()=>selectThread(thread,message.id)),
         ]),
         el('p',{text:message.excerpt}),
-      ]))) : note('这一页没有可用的成员回复。'));
+      ]))) : note(summaryAvailable?'可结合同会话的近期分析整理这页原话。':'这一页没有可用的成员回复。'));
     if(next)content.append(button('更早的消息',()=>showThread(thread,next)));
-    if(findings.length)footer.append(note('总结使用脱敏文字，所用成员可能连接云端模型。','hint summary-disclosure'));
+    if(summaryAvailable)footer.append(note('总结优先使用本页脱敏原话，整理成员可能连接云端模型。','hint summary-disclosure'));
     footer.append(button('返回反馈',async()=>{state.stage='edit';},'text'),button('选择其他会话',()=>browseThreads(),'text'),
-      linked ? button('解除关联',()=>selectThread(undefined),'text') : button('关联此会话',()=>selectThread(thread),findings.length?'secondary':'primary'));
-    if(findings.length)footer.append(button('总结并填入',()=>summarizeThread(thread,before),'primary'));
+      linked ? button('解除关联',()=>selectThread(undefined),'text') : button('关联此会话',()=>selectThread(thread),summaryAvailable?'secondary':'primary'));
+    if(summaryAvailable)footer.append(button('总结并填入',()=>summarizeThread(thread,before),'primary'));
   } else if(state.stage==='configure') {
     const clients=state.linkedClients ?? state.clients;
     content.append(analysisSettings(state,{invalidate,note,clients}));

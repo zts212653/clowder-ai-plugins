@@ -92,17 +92,19 @@ test('owner messages are shown and one action summarizes them with the existing 
     {id:'original',timestamp:10,sender:{kind:'owner'},content:userText},
     {id:'plugin-message',timestamp:11,sender:{kind:'owner'},content:'plugin-canary'},
     {id:'other-owner',timestamp:12,sender:{kind:'owner'},content:'different-owner-canary'},
+    {id:'unknown-author',timestamp:13,sender:{kind:'owner'},content:'unknown-author-canary'},
     {id:'analysis',timestamp:20,sender:{kind:'cat',catId:'analyst'},content:'已复现，入口未发作品请求。'},
     {id:'progress',timestamp:21,sender:{kind:'cat',catId:'analyst'},content:'unfinished-canary',
       response:{executionId:'active',inputMessageIds:['original'],status:'processing',startedAt:20}},
   );
   Object.assign(f.host.messaging!, {get:async (id:string)=>({
-    id,threadId:f.thread.id,userId:id==='other-owner'?'stranger':'owner',from:id==='plugin-message'?{kind:'plugin'}:{kind:'user'},
+    id,threadId:f.thread.id,userId:id==='other-owner'?'stranger':'owner',catId:null,
+    from:id==='unknown-author'?undefined:id==='plugin-message'?{kind:'plugin'}:{kind:'user'},
   })});
   const page = await f.call({op:'thread-context',threadId:f.thread.id}) as unknown as {messages:{id:string;kind:string;excerpt:string}[]};
   assert.deepEqual(page.messages.map(({id,kind})=>({id,kind})), [{id:'analysis',kind:'analysis'},{id:'original',kind:'owner'}]);
   assert.match(page.messages[1]!.excerpt, /主页最近作品一片空白/);
-  assert.doesNotMatch(JSON.stringify(page),/owner-secret|plugin-canary|different-owner-canary|unfinished-canary/);
+  assert.doesNotMatch(JSON.stringify(page),/owner-secret|plugin-canary|different-owner-canary|unknown-author-canary|unfinished-canary/);
 
   await f.call({op:'save',targetId:'clowder',linkedThreadId:f.thread.id,draftOnly:true,report:{kind:'bug',body:'需要保留的手写补充'}});
   await assert.rejects(f.call({op:'summarize-thread'}),/确认/);
@@ -116,13 +118,14 @@ test('owner messages are shown and one action summarizes them with the existing 
   assert.match(material,/主页最近作品一片空白/);
   assert.match(material,/入口未发作品请求/);
   assert.match(material,/需要保留的手写补充/);
-  assert.doesNotMatch(material,/owner-secret|plugin-canary|different-owner-canary|unfinished-canary/);
+  assert.doesNotMatch(material,/owner-secret|plugin-canary|different-owner-canary|unknown-author-canary|unfinished-canary/);
   f.rows.push({id:'summary',timestamp:30,sender:{kind:'cat',catId:'analyst'},content:'# bug: 首页最近作品空白\n\n## 问题描述\n已有证据。',
     response:{executionId:'summary-run',inputMessageIds:['send-1'],status:'completed',startedAt:25}});
   const ready = await f.call({op:'analysis-status'}) as unknown as {analysis:{state:string;title:string;body:string}};
   assert.equal(ready.analysis.state,'ready');
   assert.equal(ready.analysis.title,'bug: 首页最近作品空白');
   assert.match(ready.analysis.body,/## 我的原话[\s\S]+主页最近作品一片空白/);
+  assert.match(ready.analysis.body,/## 已有分析[\s\S]+入口未发作品请求/);
   assert.match(ready.analysis.body,/## 我的补充[\s\S]+需要保留的手写补充/);
   assert.equal(f.creates(),0);
 });
@@ -131,7 +134,8 @@ test('one action can fill an existing formatted report or combine findings witho
   for (const formatted of [true,false]) {
     const f=linkedFixture();
     f.rows.push({id:'own',timestamp:1,sender:{kind:'owner'},content:'第一次点开时没有结果。'},
-      {id:'conclusion',timestamp:2,sender:{kind:'cat',catId:'analyst'},content:formatted?'# bug: 打开没有结果\n\n已确认加载失败。':'已确认加载失败。'});
+      {id:'conclusion',timestamp:2,sender:{kind:'cat',catId:'analyst'},content:formatted?'# bug: 打开没有结果\n\n已确认加载失败。':'已确认加载失败。'},
+      {id:'followup',timestamp:3,sender:{kind:'cat',catId:'analyst'},content:'我会接着跟进。'});
     Object.assign(f.host.messaging!,{get:async()=>({id:'own',threadId:f.thread.id,userId:'owner',from:{kind:'user'}})});
     if(!formatted) f.host.members!.list=async()=>[];
     await f.save();
@@ -145,6 +149,43 @@ test('one action can fill an existing formatted report or combine findings witho
     assert.equal(f.threadCreates(),0);
     assert.equal(f.creates(),0);
   }
+});
+
+test('a saved ready report wins over newer ordinary replies and remains ready after filling the draft', async () => {
+  const f=linkedFixture();
+  await f.save();
+  const prepared=await f.call({op:'prepare-analysis'}) as unknown as {hash:string};
+  const run=await f.call({op:'analyze',clientId:'analyst',hash:prepared.hash,confirmed:true}) as unknown as {analysis:{id:string}};
+  f.rows.push({id:'report',timestamp:1,sender:{kind:'cat',catId:'analyst'},content:'# bug: 已核实的报告\n\n已经重现。',
+    response:{executionId:'original-analysis',inputMessageIds:['send-1'],status:'completed',startedAt:0}});
+  await f.call({op:'analysis-status'});
+  f.rows.splice(0,1,{id:'later',timestamp:2,sender:{kind:'cat',catId:'analyst'},content:'后续讨论暂时没有新的结论。'});
+  const result=await f.call({op:'summarize-thread',confirmed:true});
+  assert.equal(result.journal.report.title,'bug: 已核实的报告');
+  assert.match(result.journal.report.body,/已经重现/);
+  const status=await f.call({op:'analysis-status'}) as unknown as {analysis:{state:string;id:string}};
+  assert.equal(status.analysis.id,run.analysis.id);
+  assert.equal(status.analysis.state,'ready');
+  assert.equal(f.sends.length,1);
+});
+
+test('one click favors original descriptions on the viewed page and labels excerpts that were shortened', async () => {
+  const f=linkedFixture();
+  const old={id:'old',timestamp:1,sender:{kind:'owner' as const},content:'这是最初的问题。'+'原'.repeat(5000)+'未展示结尾'};
+  const newer={id:'new',timestamp:40,sender:{kind:'owner' as const},content:'这句是后续问候。'};
+  const conclusion={id:'conclusion',timestamp:42,sender:{kind:'cat' as const,catId:'analyst'},content:'# bug: 已有结论\n\n未能加载。'};
+  f.host.threads!.readMessages=async (_id, options)=>options.before?[old]:[newer,conclusion];
+  Object.assign(f.host.messaging!,{get:async(id:string)=>({id,userId:'owner',threadId:f.thread.id,from:{kind:'user'}})});
+  await f.save();
+  const before={id:'new',timestamp:40};
+  const context=await f.call({op:'thread-context',threadId:f.thread.id,before}) as unknown as {summaryAvailable:boolean;messages:{truncated:boolean}[]};
+  assert.equal(context.summaryAvailable,true);
+  assert.equal(context.messages[0]?.truncated,true);
+  const result=await f.call({op:'summarize-thread',before,confirmed:true});
+  assert.match(result.journal.report.body,/这是最初的问题/);
+  assert.match(result.journal.report.body,/原话已截断/);
+  assert.doesNotMatch(result.journal.report.body,/后续问候|未展示结尾/);
+  assert.equal(f.sends.length,0);
 });
 
 test('only members routable in the linked conversation can start its analysis', async () => {

@@ -191,6 +191,7 @@ details{margin:12px 0}summary{color:var(--feedback-accent);min-height:32px;paddi
 .thread-original { margin-block: 0 8px; }
 .thread-original p, .thread-original summary { white-space: pre-wrap; overflow-wrap: anywhere; }
 footer .summary-disclosure { flex-basis: 100%; text-align: start; margin: 0; }
+.summary-draft-sources { margin: 0; flex: none; }
 .thread-link { max-width: 640px; margin: 0 auto 12px; flex-wrap: wrap; }
 @media (max-height: 460px) {
   .review-content { padding-block: 8px; }

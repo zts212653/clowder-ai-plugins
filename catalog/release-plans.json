@@ -419,7 +419,7 @@
     {
       "pluginId": "official.feedback",
       "version": "0.1.0-alpha.14",
-      "integrity": "sha512-Ud2c6YkoLQb7IVn8RQj6GguKtCjSuy9rvPspUhwEW1mnv6HOxLBW0CjcekeumcaFmntmouF8GJ+xm3dvfqUR+g==",
+      "integrity": "sha512-Y0WL7NqdFhP9cBne+kPIKj/U59lifnyp7SXqkm0mxI0EKY+NginzMGqkWEtusFi15hUJmueuCgpX2dEB0/W5vg==",
       "disposition": "defer",
       "owner": "codex",
       "reviewBy": "2026-12-10T08:00:00Z",

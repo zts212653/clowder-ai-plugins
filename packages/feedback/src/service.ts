@@ -41,12 +41,16 @@ export class FeedbackService {
       await this.records.migrate(context.userId, targets);
       const feedback = await this.history(context.userId, thread.id);
       if (!this.host.threads?.readMessages) return { feedback, messages: [] };
-      const rows = await this.host.threads.readMessages(thread.id, { limit: threadPageSize, before: pageCursor(data.before, 'timestamp') });
+      const before = pageCursor(data.before, 'timestamp');
+      const rows = await this.host.threads.readMessages(thread.id, { limit: threadPageSize, before });
       const first = rows[0];
-      const messages = (await this.conversationSources(rows, thread, context.userId)).reverse().map(({ id, timestamp, kind, content }) => ({
-        id, timestamp, kind, excerpt:content.slice(0,240), ...(kind==='owner' && content.length>240 ? {fullText:content} : {}),
+      const messages = (await this.conversationSources(rows, thread, context.userId)).reverse().map(({ id, timestamp, kind, content, truncated }) => ({
+        id, timestamp, kind, excerpt:content.slice(0,240), truncated, ...(kind==='owner' && content.length>240 ? {fullText:content} : {}),
       }));
-      return { feedback, messages, next: rows.length === threadPageSize && first ? { id:first.id, timestamp:first.timestamp } : undefined };
+      const summaryAvailable = feedback.some(item=>item.id===data.feedbackId && item.analyzed) ||
+        messages.some(message=>message.kind==='analysis') ||
+        Boolean(before && (await this.host.threads.readMessages(thread.id,{limit:threadPageSize})).some(importableMessage));
+      return { feedback, messages, summaryAvailable, next: rows.length === threadPageSize && first ? { id:first.id, timestamp:first.timestamp } : undefined };
     }
     const selectionKey = `feedback-selection:${digest(context.userId)}`;
     const remember = async (id: string | null) => {
@@ -121,27 +125,40 @@ export class FeedbackService {
       const client = clients.find(member => member.id===journal.clientId) ?? clients[0];
       if (!this.host.threads?.readMessages) throw new Error('当前宿主无法读取会话文字');
       const before = pageCursor(data.before,'timestamp');
-      const recent = await this.host.threads.readMessages(thread.id,{limit:60});
-      const window = before ? [...await this.host.threads.readMessages(thread.id,{limit:threadPageSize,before}),...recent] : recent;
-      const rows = await this.conversationSources([...new Map(window.map(row=>[row.id,row])).values()],thread,context.userId);
-      const original = rows.filter(row=>row.kind==='owner');
-      const findings = rows.filter(row=>row.kind==='analysis').slice(-5);
-      if (!findings.length) throw new Error('还没有可供整理的成员分析');
+      const [recent, earlier, previous] = await Promise.all([
+        this.host.threads.readMessages(thread.id,{limit:60}),
+        before ? this.host.threads.readMessages(thread.id,{limit:threadPageSize,before}) : undefined,
+        this.analysis.status(context.userId,false,journal.id),
+      ]);
+      const window = [...new Map([...(earlier ?? []),...recent].map(row=>[row.id,row])).values()]
+        .sort((a,b)=>a.timestamp-b.timestamp || a.id.localeCompare(b.id));
+      const rows = await this.conversationSources(window,thread,context.userId);
+      const owners = rows.filter(row=>row.kind==='owner');
+      const viewed = new Set((earlier ?? recent.slice(-threadPageSize)).map(row=>row.id));
+      const pageOwners = owners.filter(row=>viewed.has(row.id));
+      const original = pageOwners.length ? pageOwners : owners;
+      const findings = rows.filter(row=>row.kind==='analysis');
+      const formal = previous?.state==='ready' && previous.linkedThreadId===thread.id && !previous.summary && previous.title && previous.body
+        ? {title:previous.title,body:previous.body}
+        : findings.slice().reverse().map(row=>/^#\s+(?:bug|feat):/mu.test(row.content)?parseReport(row.content):undefined).find(report=>report!==undefined);
+      if (!formal && !findings.length) throw new Error('还没有可供整理的成员分析');
       const draft = journal.report;
-      const excerpts = (items:typeof rows) => items.map(row=>row.content.slice(0,1800)).join('\n\n') || '本次读取范围内没有相关文字。';
-      const own = original.length>6 ? [original[0]!,...original.slice(-5)] : original;
+      const own = original.slice(0,6);
       const kind = draft.kind ?? 'bug';
-      const ownText = excerpts(own);
+      const ownText = own.length ? own.map(row=>row.content.slice(0,1800)+
+        (row.truncated || row.content.length>1800 ? '\n（原话已截断，可回到关联会话查看）' : '')).join('\n\n') : '本次读取范围内没有你的文字。';
       const addition = sanitizeThreadText(draft.body,thread.projectRef ?? '',thread.id,thread.deepLinkUrl).trim();
-      const formal = findings.length===1 && /^#\s+(?:bug|feat):/mu.test(findings[0]!.content) ? parseReport(findings[0]!.content) : undefined;
-      const source = `## 我的原话\n\n${ownText}${addition ? `\n\n## 我的补充\n\n${addition}` : ''}`;
-      if (formal || !client) {
+      const findingsText = formal?.body ?? findings.slice(-5).map(row=>row.content.slice(0,1800) +
+        (row.truncated || row.content.length>1800 ? '\n（分析摘录已截断）' : '')).join('\n\n');
+      const source = `## 我的原话\n\n${ownText}${original.length>own.length ? `\n\n（本页另有 ${original.length-own.length} 条原话未带入）` : ''}\n\n## 已有分析\n\n${findingsText.length>12_000 ? findingsText.slice(0,12_000)+'\n（分析摘录已截断）' : findingsText}${addition ? `\n\n## 我的补充\n\n${addition}` : ''}`;
+      if (source.length>100_000) throw new Error('原有正文与所选内容超出草稿长度，请缩短当前草稿或更换会话页');
+      if (formal || !client || previous?.state==='ready') {
         const title = feedbackTitle(kind, formal?.title ?? sanitizeThreadText(thread.title ?? '',thread.projectRef ?? '',thread.id,thread.deepLinkUrl), ownText);
-        const report = { ...draft, kind, title, body:`## 已有分析\n\n${formal?.body ?? excerpts(findings)}\n\n${source}`.slice(0,100_000) };
+        const report = { ...draft, kind, title, body:source };
         const saved = await publicWrite({...journal,report,state:'draft',reviewReady:true,digest:digest({id:journal.id,report,target:journal.target,linkedThreadId:thread.id})});
         return { ...saved, summarySource:formal?'reused':'combined' };
       }
-      const material = `草稿类型：${kind}\n\n## 已有分析\n${excerpts(findings)}\n\n${source.slice(0,16_000)}`;
+      const material = `草稿类型：${kind}\n\n${source.slice(0,24_000)}${source.length>24_000 ? '\n（仅提供脱敏摘录，完整补充留在草稿）' : ''}`;
       const request = {feedbackId:journal.id,report:draft,clientId:client.id,journalDigest:journal.digest};
       const prepared = await this.analysis.dispatch({...request,op:'prepare-analysis'},context,thread,{material,source});
       return this.analysis.dispatch({...request,op:'analyze',hash:prepared.hash,confirmed:true},context,thread);
@@ -387,11 +404,11 @@ export class FeedbackService {
       if (importableMessage(row)) kind = 'analysis';
       else if (row.sender.kind === 'owner') {
         const message = await this.host.messaging?.get?.(row.id);
-        if (!message || message.threadId!==thread.id || message.userId!==owner ||
-            (message.from ? message.from.kind!=='user' : message.catId!==null)) return undefined;
+        if (!message || message.threadId!==thread.id || message.userId!==owner || message.from?.kind!=='user') return undefined;
         kind = 'owner';
       } else return undefined;
-      return {id:row.id,timestamp:row.timestamp,kind,content:sanitizeThreadText(row.content,thread.projectRef ?? '',thread.id,thread.deepLinkUrl).trim().slice(0,4000)};
+      const content = sanitizeThreadText(row.content,thread.projectRef ?? '',thread.id,thread.deepLinkUrl).trim();
+      return {id:row.id,timestamp:row.timestamp,kind,content:content.slice(0,4000),truncated:content.length>4000};
     }));
     return items.filter(item=>item!==undefined);
   }

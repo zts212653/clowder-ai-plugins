@@ -69,7 +69,7 @@ export class FeedbackAnalysis {
           run = await this.update(key, current => !(['starting','running','blocked','interrupted'].includes(current.state) || current.state === 'failed' && current.outcome === 'completed') ? current : ({...current,
             state: report ? 'ready' : 'failed', outcome: 'completed',
             ...(report ? {candidate:{title:redact(current.kind ? feedbackTitle(current.kind,report.title) : report.title),
-              body:current.summary ? `${redact(report.body)}\n\n${current.summary.source}`.slice(0,100_000) : redact(report.body)}} : {}),
+              body:current.summary ? [redact(report.body).slice(0,Math.max(0,99_998-current.summary.source.length)),current.summary.source].filter(Boolean).join('\n\n') : redact(report.body)}} : {}),
             error: report ? undefined : '分析已完成，但回复不是有效报告；可打开分析对话检查或重新分析。',
             progress: '分析完成，报告已整理', receivedChars: reply.content.length,
           }), run.id);
@@ -112,6 +112,7 @@ export class FeedbackAnalysis {
       if (previous && ['starting', 'running', 'blocked'].includes((previous.value as Analysis).state)) throw new Error('当前分析仍在进行，请先停止等待或回到报告');
       const report = record(data.report);
       if (summaryInput && linkedThread) {
+        if (previous && (previous.value as Analysis).state==='ready') throw new Error('已有报告已就绪，请重新打开并直接复用');
         const hash = digest({ ...summaryInput, threadId:linkedThread.id });
         const run: Analysis = {id:randomUUID(),activationId:this.activationId,owner:context.userId,state:'prepared',
           threadId:linkedThread.id,threadUrl:linkedThread.deepLinkUrl,projectRef:linkedThread.projectRef ?? '',linkedThreadId:linkedThread.id,
