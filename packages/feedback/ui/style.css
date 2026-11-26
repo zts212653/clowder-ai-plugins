@@ -186,7 +186,7 @@ details{margin:12px 0}summary{color:var(--feedback-accent);min-height:32px;paddi
 .thread-picker button { max-width: 100%; text-align: left; white-space: normal; }
 .thread-picker p { margin: 4px 0; }
 .thread-filter { margin-bottom: 10px; }
-.thread-excerpt { margin-bottom: 4px; }
+.thread-reply { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
 .thread-history summary { cursor: pointer; margin: 6px 0; }
 .thread-link { max-width: 640px; margin: 0 auto 12px; flex-wrap: wrap; }
 @media (max-height: 460px) {

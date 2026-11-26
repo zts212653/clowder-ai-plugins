@@ -627,13 +627,15 @@ function render() {
       el('h3',{text:'使用已有分析'}),
       note('选一条回复填入草稿，再检查将要提交的内容。'),
       messages.length ? el('ul',{className:'thread-picker'},messages.map(message=>el('li',{},[
-        el('div',{className:'thread-excerpt'},[note(new Date(message.timestamp).toLocaleString('zh-CN')),el('p',{text:message.excerpt})]),
-        button('用作反馈草稿',()=>selectThread(thread,message.id)),
+        el('div',{className:'thread-reply'},[
+          note(new Date(message.timestamp).toLocaleString('zh-CN')),
+          button('用作反馈草稿',()=>selectThread(thread,message.id)),
+        ]),
+        el('p',{text:message.excerpt}),
       ]))) : note('这一页没有可用的成员回复。'));
     if(next)content.append(button('更早的回复',()=>showThread(thread,next)));
-    footer.append(button('选择其他会话',()=>browseThreads(),'text'),
+    footer.append(button('返回反馈',async()=>{state.stage='edit';},'text'),button('选择其他会话',()=>browseThreads(),'text'),
       linked ? button('解除关联',()=>selectThread(undefined),'text') : button('关联此会话',()=>selectThread(thread),'primary'));
-    if(linked)footer.append(button('返回反馈',async()=>{state.stage='edit';}));
   } else if(state.stage==='configure') {
     content.append(analysisSettings(state,{invalidate,note}));
     if(!state.clients.length)content.append(note('还没有可用的分析成员，请先在宿主设置中配置 Agent Client。也可以跳过分析，直接反馈。','notice'));
