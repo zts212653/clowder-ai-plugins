@@ -30,6 +30,7 @@ export type FeedbackKind = 'bug' | 'feat';
 export interface Report { kind?: FeedbackKind; title: string; body: string; attachments: Attachment[] }
 export interface StoredReport { kind?: FeedbackKind; title: string; body: string; attachments: StoredAttachment[] }
 export interface RemoteIssue { id: string; url: string; title: string; body: string }
+export type LinkedThread = Pick<import('@clowder-ai/plugin-sdk').PluginThreadSummary, 'id' | 'title' | 'deepLinkUrl'>;
 export interface Journal {
   version: 1; id: string; owner: string; report: StoredReport; target: Profile; digest: string;
   state: 'draft' | 'approved' | 'writing' | 'upload_failed' | 'unknown' | 'published'; issue?: RemoteIssue; safeError?: string;
@@ -43,6 +44,8 @@ export interface Journal {
   screenshotSent?: string[];
   screenshotAttempt?: { id: string; hashes: string[]; startedAt: number; finished?: true; retryConfirmed?: true };
   clientId?: string; projectRef?: string;
+  linkedThread?: LinkedThread;
+  linkedIssueMessageId?: string;
   createdAt?: number; updatedAt?: number; reviewReady?: boolean; handoffAt?: number; supersededBy?: string;
 }
 export type StoredFeedback = Journal | { deleted: true };

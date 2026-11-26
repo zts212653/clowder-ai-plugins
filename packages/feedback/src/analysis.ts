@@ -4,7 +4,7 @@ import { collectEvidence } from './collect-evidence.js';
 import { analysisKey, digest, feedbackTitle, record, text } from './config.js';
 import { diagnosticEnvironment } from './diagnostic-environment.js';
 import { instructions, recipeVersion } from './recipe.js';
-import { sanitize } from './sanitize.js';
+import { sanitize, sanitizeThreadText } from './sanitize.js';
 import { parseReport } from './report.js';
 import type { Host, OwnerContext } from './types.js';
 
@@ -16,6 +16,7 @@ export type Analysis = {
   candidate?: { title: string; body: string }; outcome?: string; error?: string;
   startedAt?: number; progress?: string; receivedChars?: number;
   journalDigest?: string;
+  linkedThreadId?: string;
   kind?: 'bug' | 'feat';
 };
 
@@ -48,7 +49,7 @@ export class FeedbackAnalysis {
     // Ordinary response records are durable truth even if a live delivery was
     // missed, the panel was closed or this plugin was updated during analysis.
     if (run.messageId && this.host.threads?.readMessages && (['starting', 'running', 'blocked', 'interrupted'].includes(run.state) || run.state === 'failed' && run.outcome === 'completed')) {
-      const rows = await this.host.threads.readMessages(run.threadId, {limit: 30}).catch(() => undefined);
+      const rows = await this.host.threads.readMessages(run.threadId, {limit: run.linkedThreadId ? 100 : 30}).catch(() => undefined);
       if (!rows) run = await this.update(key, current => ['starting','running','blocked','interrupted'].includes(current.state)
         ? {...current,state:'failed',error:'暂时无法读取分析对话；草稿已保留，可直接反馈或重新检查。'} : current,run.id);
       const reply = rows && [...rows].reverse().find(row => row.sender.kind === 'cat' && row.sender.catId === run.catId && row.response?.inputMessageIds.includes(run.messageId!));
@@ -56,9 +57,12 @@ export class FeedbackAnalysis {
         const response = reply.response;
         if (response.status === 'completed') {
           const report = parseReport(reply.content);
+          const redact = (value: string) => run.linkedThreadId
+            ? sanitizeThreadText(value, run.projectRef, run.linkedThreadId, run.threadUrl)
+            : sanitize(value, [run.projectRef]);
           run = await this.update(key, current => !(['starting','running','blocked','interrupted'].includes(current.state) || current.state === 'failed' && current.outcome === 'completed') ? current : ({...current,
             state: report ? 'ready' : 'failed', outcome: 'completed',
-            ...(report ? {candidate:{title:sanitize(current.kind ? feedbackTitle(current.kind,report.title) : report.title,[current.projectRef]),body:sanitize(report.body,[current.projectRef])}} : {}),
+            ...(report ? {candidate:{title:redact(current.kind ? feedbackTitle(current.kind,report.title) : report.title),body:redact(report.body)}} : {}),
             error: report ? undefined : '分析已完成，但回复不是有效报告；可打开分析对话检查或重新分析。',
             progress: '分析完成，报告已整理', receivedChars: reply.content.length,
           }), run.id);
@@ -73,27 +77,28 @@ export class FeedbackAnalysis {
     if (run.activationId !== this.activationId && ['preparing', 'starting', 'running', 'blocked'].includes(run.state)) {
       run = await this.update(key, current => ({ ...current, state: 'interrupted', error: '插件曾停用或重启，无法核验上次分析是否完成；请打开原对话核对，或重新准备。' }));
     }
-    if (resume && ['starting', 'running', 'blocked'].includes(run.state)) {
+    if (resume && !run.linkedThreadId && ['starting', 'running', 'blocked'].includes(run.state)) {
       try { await this.host.messaging?.subscribe({ threadId: run.threadId, method: 'feedback.delivery', includeOwnMessages: false }); }
       catch {
         run = await this.update(key, current => ({ ...current, state: 'failed', error: '无法恢复分析订阅；草稿已保留，可直接反馈或打开原对话查看。' }));
       }
     }
-    return { id: run.id, state: run.state, threadUrl: run.threadUrl, error: run.error, hash: run.hash, material: run.material, recipeVersion, progress:run.progress,receivedChars:run.receivedChars,startedAt:run.startedAt,journalDigest:run.journalDigest,clientId:run.catId,projectRef:run.projectRef,
+    return { id: run.id, state: run.state, threadUrl: run.threadUrl, error: run.error, hash: run.hash, material: run.material, recipeVersion, progress:run.progress,receivedChars:run.receivedChars,startedAt:run.startedAt,journalDigest:run.journalDigest,clientId:run.catId,projectRef:run.projectRef,linkedThreadId:run.linkedThreadId,
       ...(run.state === 'ready' ? run.candidate : {}) };
   }
 
-  async dispatch(data: Record<string, unknown>, context: OwnerContext) {
+  async dispatch(data: Record<string, unknown>, context: OwnerContext, linkedThread?: import('@clowder-ai/plugin-sdk').PluginThreadSummary) {
     const feedbackId = data.feedbackId === undefined ? undefined : text(data.feedbackId,80);
     const key = analysisKey(context.userId,feedbackId);
     if (data.op === 'analysis-status') return { analysis: await this.status(context.userId,false,feedbackId) };
     if (data.op === 'cancel-analysis') {
       const run = await this.update(key, current => ({ ...current, state: 'cancelled' }));
-      if (run.threadId) await this.host.messaging?.unsubscribe({ threadId: run.threadId }).catch(() => undefined); // Local cancellation already rejects later reports.
+      if (run.threadId && !run.linkedThreadId) await this.host.messaging?.unsubscribe({ threadId: run.threadId }).catch(() => undefined); // Local cancellation already rejects later reports.
       return { analysis: await this.status(context.userId,false,feedbackId) };
     }
     const { threads, messaging, members, runtimeInfo } = this.host;
     if (!threads || !messaging || !members || !runtimeInfo) throw new Error('Host 缺少普通线程或运行信息能力，可直接提交或手动创建');
+    if (linkedThread && !threads.readMessages) throw new Error('当前宿主无法从关联会话读取分析结果');
     if (data.op === 'prepare-analysis') {
       const previous = await this.host.storage.get(key);
       if (previous && (previous.value as Analysis).state === 'preparing') throw new Error('上次项目对话准备结果待核对；不会重复创建，请先检查或停止上次等待');
@@ -104,7 +109,7 @@ export class FeedbackAnalysis {
       if (!title.trim()) throw new Error('请先填写反馈内容');
       const parentThreadId = data.parentThreadId === undefined || data.parentThreadId === '' ? undefined : text(data.parentThreadId, 500);
       const projectRef = parentThreadId || data.projectRef === undefined || data.projectRef === '' ? undefined : text(data.projectRef, 4096);
-      const pending: Analysis = { id: randomUUID(), activationId: this.activationId, owner: context.userId, threadId: '', threadUrl: '', projectRef: '', hash: '', material: '', state: 'preparing', ...(data.clientId===undefined?{}:{catId:text(data.clientId,200)}), ...(report.kind === 'bug' || report.kind === 'feat' ? {kind:report.kind} : {}), ...(data.journalDigest === undefined ? {} : {journalDigest:text(data.journalDigest,64)}), error: '正在准备项目对话或结果待核对；不会自动重复创建。' };
+      const pending: Analysis = { id: randomUUID(), activationId: this.activationId, owner: context.userId, threadId: '', threadUrl: '', projectRef: '', hash: '', material: '', state: 'preparing', linkedThreadId:linkedThread?.id, ...(data.clientId===undefined?{}:{catId:text(data.clientId,200)}), ...(report.kind === 'bug' || report.kind === 'feat' ? {kind:report.kind} : {}), ...(data.journalDigest === undefined ? {} : {journalDigest:text(data.journalDigest,64)}), error: '正在准备项目对话或结果待核对；不会自动重复创建。' };
       await context.assertCurrent();
       if (!(await this.host.storage.compareAndSet(key, previous?.revision ?? null, pending)).applied) throw new Error('分析准备已在另一个窗口变化，请重新检查');
       const firstSentence = title
@@ -113,10 +118,10 @@ export class FeedbackAnalysis {
       const description = sanitize(firstSentence,[projectRef ?? '',environment.projectRoot,environment.logDirectory]).trim() || '反馈分析';
       const characters = [...description];
       const shortTitle = characters.length > 64 ? `${characters.slice(0,64).join('').trimEnd()}…` : description;
-      const thread = await threads.create({ title: `问题反馈：${shortTitle}`, ...(parentThreadId ? { parentThreadId } : {}), ...(projectRef ? { projectRef } : {}) });
+      const thread = linkedThread ?? await threads.create({ title: `问题反馈：${shortTitle}`, ...(parentThreadId ? { parentThreadId } : {}), ...(projectRef ? { projectRef } : {}) });
       const project = thread.projectRef ?? environment.projectRoot;
       await this.update(key, current => ({ ...current, threadId: thread.id, threadUrl: thread.deepLinkUrl, projectRef: project }), pending.id);
-      await this.host.storage.compareAndSet(`analysis-thread:${thread.id}`, null, { key, id: pending.id });
+      if (!linkedThread) await this.host.storage.compareAndSet(`analysis-thread:${thread.id}`, null, { key, id: pending.id });
       const diagnostics = await diagnosticEnvironment(environment, project);
       const now = Date.now();
       const evidence = data.logs === true ? await Promise.all([
@@ -143,6 +148,7 @@ export class FeedbackAnalysis {
     const stored = await this.host.storage.get(key);
     const run = stored?.value as Analysis | undefined;
     if (!run || run.state !== 'prepared' || run.hash !== data.hash || data.confirmed !== true) throw new Error('请先检查并确认当前脱敏材料');
+    if (run.linkedThreadId !== linkedThread?.id || (linkedThread && run.journalDigest !== data.journalDigest)) throw new Error('关联会话或草稿已有变化，请重新准备分析材料');
     const catId = text(data.clientId, 200);
     const member = await members.get(catId);
     if (!member?.available) throw new Error('所选成员目前不可用，可更换成员或直接反馈');
@@ -150,11 +156,12 @@ export class FeedbackAnalysis {
       if (current.state !== 'prepared') throw new Error('分析准备已变化，请重新检查');
       return { ...current, activationId: this.activationId, state: 'starting', catId,startedAt:Date.now(),progress:'分析请求已发送，等待 Agent 开始' };
     }, run.id);
-    await messaging.subscribe({ threadId: run.threadId, method: 'feedback.delivery', includeOwnMessages: false });
+    if (!linkedThread) await messaging.subscribe({ threadId: run.threadId, method: 'feedback.delivery', includeOwnMessages: false });
     // The durable starting state makes an uncertain send visible, rather than
     // silently issuing a second invocation after a connection failure.
+    const threadContext = linkedThread ? '\n\n请结合本会话中已有的相关结论和历史反馈，标明适用范围。只在反馈报告里保留必要事实，不引用私聊、内部会话链接或会话 ID。' : '';
     const sent = await messaging.send({ threadId: run.threadId, idempotencyKey: `feedback-analysis:${run.id}`, wake: { catId },
-      payload: { provenance: { epistemicStatus: 'user_intent' }, elements: [{ elementId: run.id, kind: 'text', payload: { text: `${instructions}\n\n${run.material}` } }] } });
+      payload: { provenance: { epistemicStatus: 'user_intent' }, elements: [{ elementId: run.id, kind: 'text', payload: { text: `${instructions}${threadContext}\n\n${run.material}` } }] } });
     await this.update(key, current => ({ ...current, messageId: sent.messageId, state: current.state === 'starting' ? 'running' : current.state }), run.id);
     return { analysis: await this.status(context.userId,false,feedbackId) };
   }

@@ -62,7 +62,7 @@ async function saveDraft(asNew=false) {
   if(!['edit','configure','review','handoff'].includes(state.stage)||(!state.dirty&&!asNew)||locked()||!hasDraft())return;
   const id=state.feedbackId, version=editVersion;
   const status=document.querySelector('[data-save-status]');if(status)status.textContent='正在保存草稿…';
-  const saved=await recordCall({op:'save',draftOnly:asNew||['edit','configure'].includes(state.stage),targetId:state.targetId,clientId:state.clientId,projectRef:state.projectRef,revision:asNew?undefined:state.revision,report:state.report},asNew?crypto.randomUUID():id);
+  const saved=await recordCall({op:'save',draftOnly:asNew||['edit','configure'].includes(state.stage),targetId:state.targetId,clientId:state.clientId,projectRef:state.projectRef,linkedThreadId:state.linkedThread?.id??null,revision:asNew?undefined:state.revision,report:state.report},asNew?crypto.randomUUID():id);
   if(state.feedbackId!==id)return;
   state.journal=saved.journal;state.revision=saved.revision;state.saveError='';state.saveErrorCode='';state.selectionSaved=saved.selectionSaved;
   if(asNew){state.feedbackId=saved.journal.id;state.analysis=undefined;state.stage='edit';state.error='';}
@@ -86,6 +86,7 @@ async function startNew(){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();
   await call({op:'new'});
   Object.assign(state,{feedbackId:crypto.randomUUID(),report:{kind:'bug',title:'',body:'',attachments:[]},journal:undefined,revision:undefined,analysis:undefined,
+    linkedThread:undefined,
     stage:'edit',dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,projectRef:'',contextChanged:false,preview:true,
     reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,githubCli:undefined,screenshotSelection:[],screenshotPreview:undefined,feedbackNotice:''});
 }
@@ -103,13 +104,13 @@ async function refreshHistory(){
 async function openRecord(id,value){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();
   value??=await call({op:'bootstrap',feedbackId:id});
-  Object.assign(state,value,{feedbackId:id,report:{...value.journal.report,kind:value.journal.report.kind??(/^feat:/i.test(value.journal.report.title)?'feat':'bug')},
+  Object.assign(state,value,{feedbackId:id,linkedThread:value.journal.linkedThread,report:{...value.journal.report,kind:value.journal.report.kind??(/^feat:/i.test(value.journal.report.title)?'feat':'bug')},
     targetId:value.journal.target.id,analysis:value.analysis,material:value.analysis?.material,hash:value.analysis?.hash,contextChanged:false,preflight:undefined,dirty:false,consent:false,automatic:false,error:'',saveError:'',saveErrorCode:'',selectionSaved:true,preview:true,
     reviewView:'report',reviewImage:0,reviewScroll:0,routeDirty:false,routeProblem:undefined,tokenIssue:undefined,githubCli:undefined,screenshotSelection:[],screenshotPreview:undefined,feedbackNotice:''});
   state.clientId=value.journal.clientId??value.analysis?.clientId??state.clientId;state.projectRef=value.journal.projectRef??value.analysis?.projectRef??'';
-  const sameContext=value.analysis?.clientId===state.clientId&&(value.analysis?.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||'');
+  const sameContext=matchesAnalysisContext(value.analysis);
   state.stage=value.journal.state==='published'?'published-report':value.journal.reviewReady||locked()?'review':'edit';
-  if(value.journal.state!=='published'&&sameContext&&['prepared','preparing','starting','running','blocked'].includes(value.analysis?.state)){
+  if(value.journal.state!=='published'&&sameContext&&(!state.linkedThread||value.analysis?.journalDigest===value.journal.digest)&&['prepared','preparing','starting','running','blocked'].includes(value.analysis?.state)){
     state.material=value.analysis.material;state.hash=value.analysis.hash;state.stage=value.analysis.state==='prepared'?'scope':'analyzing';
     if(state.stage==='analyzing')analysisTimer=setTimeout(refreshAnalysis,1500);
   }else if(value.analysis?.state==='ready'&&!locked()){
@@ -118,6 +119,52 @@ async function openRecord(id,value){
   }
   if(state.stage==='review'&&!locked())await checkRoute();
   if(value.journal.state!=='published'&&['failed','interrupted'].includes(value.analysis?.state))state.error=value.analysis.error;
+}
+function matchesAnalysisContext(analysis) {
+  return analysis && analysis.clientId===state.clientId && analysis.linkedThreadId===state.linkedThread?.id &&
+    (analysis.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||'');
+}
+async function browseThreads(before) {
+  await flushDraft();
+  const page = await call({op:'list-threads',before});
+  state.threadPage = page;
+  state.stage = 'choose-thread';
+}
+async function showThread(thread, before) {
+  await flushDraft();
+  const page = await call({op:'thread-context',threadId:thread.id,before});
+  state.threadContext = {thread, before, ...page};
+  state.stage = 'thread-context';
+}
+async function selectThread(thread, sourceMessageId) {
+  const previousId=state.linkedThread?.id;
+  const saved=await recordCall({op:'save', draftOnly:!sourceMessageId, targetId:state.targetId, clientId:state.clientId, projectRef:'',
+    revision:state.revision, linkedThreadId:thread?.id??null, report:state.report, sourceMessageId, sourceBefore:state.threadContext?.before});
+  Object.assign(state,saved,{linkedThread:saved.journal.linkedThread,projectRef:saved.journal.projectRef??'',dirty:false,consent:false,
+    stage:sourceMessageId?'review':'edit',saveError:'',saveErrorCode:''});
+  if (previousId!==thread?.id || sourceMessageId) {
+    analysisEpoch++;
+    clearTimeout(analysisTimer);
+    state.analysis=undefined; state.material=undefined; state.hash=undefined;
+  }
+  if (sourceMessageId) {
+    state.report=saved.journal.report;
+    state.preview=true; state.reviewView='report'; state.reviewScroll=0;
+    await checkRoute();
+  }
+}
+function renderThreadSync(content) {
+  const { linkedThread, linkedIssueMessageId, issue, digest }=state.journal;
+  if (!linkedThread || !issue) return;
+  content.append(el('div',{className:'history-actions thread-link'},[
+    note(`关联会话 · ${linkedThread.title || '未命名会话'}`),
+    linkedIssueMessageId ? el('span',{className:'hint',role:'status',text:'Issue 链接已发回会话'}) :
+      button('把 Issue 链接发回会话', async()=>{
+        const result=await recordCall({op:'sync-thread-issue',digest,revision:state.revision});
+        Object.assign(state,result);
+      }),
+    button('复制会话链接',()=>copyLink(linkedThread.deepLinkUrl),'text'),
+  ]));
 }
 function locked() { return ['writing', 'unknown', 'published', 'upload_failed'].includes(state.journal?.state); }
 function issueMayExist() { return ['writing', 'unknown'].includes(state.journal?.state); }
@@ -154,7 +201,7 @@ async function saveReview(checkTarget = true) {
     Object.assign(state,{reviewView:'report',reviewImage:0,reviewScroll:0,preview:true});
   }
   await flushDraft();
-  const saved = await recordCall({ op: 'save', targetId: state.targetId, clientId: state.clientId, projectRef: state.projectRef, revision: state.revision, report: state.report });
+  const saved = await recordCall({ op: 'save', targetId: state.targetId, clientId: state.clientId, projectRef: state.projectRef, linkedThreadId:state.linkedThread?.id??null, revision: state.revision, report: state.report });
   Object.assign(state, saved, { report: saved.journal.report, dirty: false, consent: false, stage: 'review',saveError:'',saveErrorCode:'' });
   state.automatic = false;
   if (checkTarget) await checkRoute();
@@ -503,11 +550,12 @@ function render() {
   const scroll = app.dataset.stage === state.stage ? app.querySelector('.content')?.scrollTop ?? 0 : 0;
   const stageIndex = state.stage === 'edit' ? 0 : ['configure','scope', 'analyzing'].includes(state.stage) ? 1 : ['review','handoff', 'submitting'].includes(state.stage) ? 2 : 3;
   const header = el('header', {}, [el('div',{className:'heading-row'},[
-    el('div',{},[el('h1',{text:state.stage==='history'?'反馈记录':'问题反馈'}),note(state.stage==='edit'?'描述问题，图片可选。':state.stage==='history'?'草稿、分析和投递进度都在这里。':state.stage==='published-report'?'投递时的报告':state.stage==='published-screenshots'?'补充截图':['填写问题','分析与脱敏','检查与提交','反馈完成'][stageIndex])]),
+    el('div',{},[el('h1',{text:state.stage==='history'?'反馈记录':state.stage==='choose-thread'?'关联已有会话':state.stage==='thread-context'?'会话中的反馈':'问题反馈'}),
+      ...(!['choose-thread','thread-context'].includes(state.stage)?[note(state.stage==='edit'?'描述问题，图片可选。':state.stage==='history'?'草稿、分析和投递进度都在这里。':state.stage==='published-report'?'投递时的报告':state.stage==='published-screenshots'?'补充截图':['填写问题','分析与脱敏','检查与提交','反馈完成'][stageIndex])]:[])]),
     el('div',{className:'feedback-nav'},[button('新建反馈',startNew,'text'),button('反馈记录',showHistory,'secondary')])])]);
   const content = el('section', { className: 'content' }); const footer = el('footer');
   if (state.error) content.append(el('p', { role: 'alert', className: 'error', text: state.error }));
-  if (state.feedbackNotice && ['scope','analyzing','published-report'].includes(state.stage)) {
+  if (state.feedbackNotice && ['scope','analyzing','published-report','thread-context'].includes(state.stage)) {
     content.append(el('p',{role:'status',className:'hint',text:state.feedbackNotice}));
   }
   if(['edit','configure','review','handoff'].includes(state.stage)){
@@ -544,9 +592,48 @@ function render() {
     }));
     footer.append(button('刷新记录',showHistory),button('新建反馈',startNew,'primary'));
   } else if (state.stage === 'edit') {
-    content.append(...feedbackForm(state,{input,note,button,pictureCards,addFiles,invalidate,run,render}));
-    footer.append(button('保存草稿',flushDraft,'text'),button('直接反馈',saveReview),button('生成分析报告',async()=>{await flushDraft();state.stage='configure';},'primary'));
-    if(state.analysis?.state==='ready'&&state.analysis.clientId===state.clientId&&(state.analysis.projectRef||state.projectRoot||'')===(state.projectRef||state.projectRoot||''))footer.append(button('查看本条分析报告',async()=>{state.report.title=state.analysis.title;state.report.body=state.analysis.body;await saveReview();},'text'));
+    const linked = state.linkedThread;
+    const threadControl = linked ? button(`会话：${linked.title || '未命名会话'}`,()=>showThread(linked),'text thread-name') :
+      button('关联已有会话',()=>browseThreads(),'text');
+    content.append(...feedbackForm(state,{input,note,button,pictureCards,addFiles,invalidate,run,render,threadControl}));
+    footer.append(button('保存草稿',flushDraft,'text'),button('直接反馈',saveReview),button(linked?'在原会话分析':'生成分析报告',async()=>{await flushDraft();state.stage='configure';},'primary'));
+    if(state.analysis?.state==='ready'&&matchesAnalysisContext(state.analysis))footer.append(button('查看本条分析报告',async()=>{state.report.title=state.analysis.title;state.report.body=state.analysis.body;await saveReview();},'text'));
+  } else if (state.stage === 'choose-thread') {
+    const { items, next }=state.threadPage;
+    const entries=items.map(thread=>el('li',{},[
+      button(thread.title || '未命名会话',()=>showThread(thread)),
+      note(new Date(thread.lastActiveAt).toLocaleString('zh-CN')),
+    ]));
+    const empty=el('p',{className:'hint',role:'status',text:'本页没有匹配的会话。',hidden:entries.length>0});
+    if(entries.length) content.append(el('input',{type:'text',className:'thread-filter',placeholder:'按标题筛选本页会话','aria-label':'筛选本页会话',onInput:event=>{
+      const query=event.target.value.trim().toLocaleLowerCase();
+      entries.forEach((entry,index)=>{entry.hidden=!(items[index].title||'未命名会话').toLocaleLowerCase().includes(query);});
+      empty.hidden=entries.some(entry=>!entry.hidden);
+    }}));
+    content.append(empty,el('ul',{className:'thread-picker'},entries));
+    footer.append(button('返回反馈',async()=>{state.stage='edit';},'text'));
+    if(next)footer.append(button('更早的会话',()=>browseThreads(next)));
+  } else if (state.stage === 'thread-context') {
+    const { thread, feedback, messages, next }=state.threadContext;
+    const linked=state.linkedThread?.id===thread.id;
+    content.append(el('h2',{className:'thread-title',text:thread.title || '未命名会话'}),
+      feedback.length ? el('details',{className:'thread-history'},[
+        el('summary',{text:`历史反馈（${feedback.length}）`}),
+        el('ul',{className:'thread-picker'},feedback.map(item=>el('li',{},[
+          el('span',{text:item.title}),
+          item.issueUrl ? button(`复制 Issue #${item.issueId} 链接`,()=>copyLink(item.issueUrl),'text') : note('尚未投递'),
+        ]))),
+      ]) : note('这个会话还没有反馈记录。'),
+      el('h3',{text:'使用已有分析'}),
+      note('选一条回复填入草稿，再检查将要提交的内容。'),
+      messages.length ? el('ul',{className:'thread-picker'},messages.map(message=>el('li',{},[
+        el('div',{className:'thread-excerpt'},[note(new Date(message.timestamp).toLocaleString('zh-CN')),el('p',{text:message.excerpt})]),
+        button('用作反馈草稿',()=>selectThread(thread,message.id)),
+      ]))) : note('这一页没有可用的成员回复。'));
+    if(next)content.append(button('更早的回复',()=>showThread(thread,next)));
+    footer.append(button('选择其他会话',()=>browseThreads(),'text'),
+      linked ? button('解除关联',()=>selectThread(undefined),'text') : button('关联此会话',()=>selectThread(thread),'primary'));
+    if(linked)footer.append(button('返回反馈',async()=>{state.stage='edit';}));
   } else if(state.stage==='configure') {
     content.append(analysisSettings(state,{invalidate,note}));
     if(!state.clients.length)content.append(note('还没有可用的分析成员，请先在宿主设置中配置 Agent Client。也可以跳过分析，直接反馈。','notice'));
@@ -560,7 +647,7 @@ function render() {
     if (state.stage === 'analyzing') content.append(el('div',{className:'analysis-progress',role:'status','aria-live':'polite'},[
       el('p',{'data-analysis-progress':'',text:state.analysis?.progress ?? '请求已发送，等待 Agent 开始分析'}),
       el('p',{'data-analysis-elapsed':'',className:'hint',text:'完成后会自动展示报告，可关闭面板稍后回来。'})]));
-    if (state.analysis?.threadUrl) content.append(button('复制分析对话链接',()=>copyLink(state.analysis.threadUrl),'text'));
+    if (state.analysis?.threadUrl) content.append(button(state.linkedThread?'复制原会话链接':'复制分析会话链接',()=>copyLink(state.analysis.threadUrl),'text'));
     if (['blocked', 'preparing'].includes(state.analysis?.state)) content.append(note(state.analysis.error || 'Client 需要处理，请打开分析对话。', 'notice'));
     if (state.stage === 'analyzing') footer.append(button('停止等待，保留草稿', async () => { analysisEpoch++; clearTimeout(analysisTimer); const result = await recordCall({ op: 'cancel-analysis' }); state.analysis = result.analysis; state.stage = 'scope'; state.error = '已停止等待；这不会强制终止 Client，可打开分析对话查看。'; }));
     else footer.append(button('更改分析设置',async()=>{state.stage='configure';},'text'),button('跳过分析', saveReview), ['failed', 'cancelled', 'interrupted'].includes(state.analysis?.state)
@@ -575,10 +662,13 @@ function render() {
     content.append(el('div',{className:'issue-confirmed published-heading'},[
       el('h2',{text:report.title}),
       ...(issue?[button(`复制 Issue #${issue.id} 链接`,()=>copyLink(issue.url),'text')]:[]),
-    ]),report.body.trim()?reportReader(report.body,el):note('这条反馈没有正文。','hint'));
+    ]));
+    renderThreadSync(content);
+    content.append(report.body.trim()?reportReader(report.body,el):note('这条反馈没有正文。','hint'));
     footer.append(button('返回记录',showHistory,'text'));
     if (issue) footer.append(button('补充截图',async()=>{state.stage='published-screenshots';}));
   } else if (state.stage === 'submitted' || state.stage === 'published-screenshots') {
+    if(state.stage==='submitted')renderThreadSync(content);
     renderPublishedScreenshots(content);
     if (state.stage === 'published-screenshots') footer.append(button('返回投递报告',async()=>{state.stage='published-report';}));
     else footer.append(button('继续反馈', startNew,'text'), button('完成', () => bridge('close')));

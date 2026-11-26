@@ -1,6 +1,6 @@
 import { el } from './bridge.js';
 
-export function feedbackForm(state, {input,note,pictureCards,addFiles,invalidate,run,render}) {
+export function feedbackForm(state, {input,note,pictureCards,addFiles,invalidate,run,render,threadControl}) {
   const kind=state.report.kind ?? 'bug';
   const types=el('fieldset',{className:'feedback-types'},[el('legend',{text:'反馈类型'}),...[
     ['bug','问题反馈'],['feat','功能建议']
@@ -9,6 +9,7 @@ export function feedbackForm(state, {input,note,pictureCards,addFiles,invalidate
   return [types,input('描述','body',true),el('div',{className:'attachments'},[
     el('div',{className:'attachment-tools'},[
       el('label',{className:'secondary add-picture',text:'＋ 添加图片'},[el('input',{'aria-label':'添加图片',type:'file',accept:'image/png,image/jpeg,image/webp',multiple:true,disabled:state.busy,onChange:event=>run(()=>addFiles(event.target.files))})]),
+      threadControl,
       note('可粘贴截图，也可选择本地图片。')]),pictureCards(),note('请勿填写密码或令牌；截图不会交给模型。')])];
 }
 
@@ -23,8 +24,10 @@ export function analysisSettings(state, {invalidate,note}) {
     state.clients.map(value=>el('option',{value:value.id,text:`${value.label} · ${value.model}`})));
   member.value=state.clientId;
   return el('div',{className:'analysis-settings'},[
-    el('h2',{text:'由谁来分析？'}),note('选好分析成员和项目，再检查将发送的脱敏材料。'),
+    el('h2',{text:'由谁来分析？'}),note(state.linkedThread
+      ? `将在「${state.linkedThread.title || '未命名会话'}」继续分析，并使用该会话的项目。`
+      : '选好分析成员和项目，再检查将发送的脱敏材料。'),
     el('label',{className:'field'},[el('span',{className:'label',text:'分析成员'}),member]),
-    el('label',{className:'field'},[el('span',{className:'label',text:'相关项目目录（可选）'}),
-      el('input',{'aria-label':'相关项目目录',type:'text',value:state.projectRef,maxLength:4096,placeholder:'留空使用当前实例的项目',disabled:state.busy,onInput:event=>updateContext('projectRef',event.target.value)})])]);
+    ...(!state.linkedThread?[el('label',{className:'field'},[el('span',{className:'label',text:'相关项目目录（可选）'}),
+      el('input',{'aria-label':'相关项目目录',type:'text',value:state.projectRef,maxLength:4096,placeholder:'留空使用当前实例的项目',disabled:state.busy,onInput:event=>updateContext('projectRef',event.target.value)})])]:[])]);
 }

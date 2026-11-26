@@ -10,9 +10,11 @@ The prominent Feedback records view shows independent drafts, analysis progress,
 
 The console uses the package's `console/pdl.yaml` and `console/i18n`.
 
+Link new feedback to an existing conversation to see its past feedback and member replies. Use a selected reply to fill an editable draft, or run analysis in that same conversation. Review the selected content before submitting. After verifying the Issue, send its link back to the conversation to follow up there.
+
 Requires a `next` Host that supports plugin PDL consoles. Analysis uses configured members, threads, messaging and optional `runtimeInfo.get()`. Install, test and enable Feedback in Plugin Settings, then open its sidebar entry. To try a source build, build with `pnpm --filter @clowder-ai/feedback build` and install a local packed archive.
 
-New analysis conversations use the title format `问题反馈：<short description>` in the selected project.
+Feedback without a linked conversation starts analysis in a new `问题反馈：<short description>` conversation in the selected project.
 
 The default target is the public `zts212653/clowder-ai` repository. On GitHub.com, use an existing GitHub CLI login or configure `githubToken` in Settings → Plugins → Feedback. GitLab uses the `gitlabToken` secret field. Return to Feedback records to resume the draft and recheck delivery before confirming. Copy the Issue or manual creation URL from the panel to continue in a browser. Keep credentials in the Host secret fields.
 

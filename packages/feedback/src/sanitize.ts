@@ -27,4 +27,8 @@ export function sanitize(text: string, roots: readonly string[] = []): string {
     .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '[ID]');
 }
 
+export function sanitizeThreadText(value: string, projectRef: string, threadId: string, threadUrl: string) {
+  return sanitize(value.replaceAll(threadUrl, '[会话链接]').replaceAll(threadId, '[会话 ID]'), [projectRef]);
+}
+
 function escape(value: string): string { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }

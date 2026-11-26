@@ -179,16 +179,28 @@ details{margin:12px 0}summary{color:var(--feedback-accent);min-height:32px;paddi
 .history-delete-confirm { flex-wrap: wrap; gap: 8px; }
 .history-delete-confirm span { flex: 1; color: var(--feedback-ink); }
 .history-delete-confirm-button { color: var(--feedback-danger); background: var(--feedback-danger-bg); }
+.thread-name { max-width: 220px; text-overflow: ellipsis; overflow: hidden; }
+.thread-title, .thread-picker, .thread-link { overflow-wrap: anywhere; }
+.thread-picker { display: grid; gap: 8px; list-style: none; margin: 0 0 16px; padding: 0; }
+.thread-picker li { border-bottom: 1px solid var(--feedback-border); padding: 0 0 8px; }
+.thread-picker button { max-width: 100%; text-align: left; white-space: normal; }
+.thread-picker p { margin: 4px 0; }
+.thread-filter { margin-bottom: 10px; }
+.thread-excerpt { margin-bottom: 4px; }
+.thread-history summary { cursor: pointer; margin: 6px 0; }
+.thread-link { max-width: 640px; margin: 0 auto 12px; flex-wrap: wrap; }
 @media (max-height: 460px) {
   .review-content { padding-block: 8px; }
   #app[data-review-delivery=true] .review-content { overflow-y: auto; scrollbar-width: none; }
   .review-layout[data-has-images=true] .review-image-stage { min-height: 74px; }
 }
 @media (max-height: 380px) {
-  #app:is([data-stage=edit], [data-stage=history]) header { padding-block: 5px; padding-inline-start: 12px; }
-  #app:is([data-stage=edit], [data-stage=history]) footer { padding: 5px 12px; }
+  #app:is([data-stage=edit], [data-stage=history], [data-stage=choose-thread], [data-stage=thread-context]) header { padding-block: 5px; padding-inline-start: 12px; }
+  #app:is([data-stage=edit], [data-stage=history], [data-stage=choose-thread], [data-stage=thread-context]) footer { padding: 5px 12px; }
   #app:is([data-stage=edit], [data-stage=history]) .heading-row p { display: none; }
   #app[data-stage=history] .content { padding: 8px 12px; }
+  #app:is([data-stage=choose-thread], [data-stage=thread-context]) .content { padding: 8px 12px; }
+  #app[data-stage=thread-context] h3 { font-size: 14px; margin: 8px 0 0; }
   .history-item { padding: 12px; }
   #app[data-stage=edit] .content { display: flex; padding: 6px 12px; gap: 5px; }
   #app[data-stage=edit] .feedback-types legend { width: auto; padding: 4px 0; }

@@ -8,6 +8,7 @@ export function feedbackHistory(items,{open,copyUrl,deleteId,requestDelete,cance
   return el('div',{className:'history-list'},items.map(item=>el('article',{className:'history-item','data-feedback-id':item.id},[
     el('div',{className:'history-heading'},[el('h2',{text:item.title}),el('span',{className:`status status-${item.status}`,text:item.screenshotsPending==='verify'?'请核对截图':item.status==='ready'&&item.analyzed?'分析完成 · 待投递':labels[item.status]??'待查看'})]),
     el('p',{className:'hint',text:`${item.kind==='feat'?'功能建议':'问题反馈'} · ${item.updatedAt?new Date(item.updatedAt).toLocaleString('zh-CN'):'历史记录'}`}),
+    ...(item.linkedThreadLabel?[el('p',{className:'hint thread-title',text:`会话：${item.linkedThreadLabel}`})]:[]),
     deleteId===item.id && item.deleteRevision!==undefined
       ? el('div',{className:'history-actions history-delete-confirm',role:'group','aria-label':'确认删除草稿'},[
         el('span',{text:'删除此草稿？'}),
@@ -17,6 +18,7 @@ export function feedbackHistory(items,{open,copyUrl,deleteId,requestDelete,cance
       : el('div',{className:'history-actions'},[
         el('button',{type:'button',className:'secondary',text:item.status==='published'?'查看反馈':item.status==='draft'?'继续填写':item.status==='ready'||item.status==='manual'?'继续投递':item.status==='unknown'?'核对结果':'查看进度',disabled:busy,onClick:()=>open(item.id)}),
         ...(item.issueUrl?[el('button',{type:'button',className:'text',disabled:busy,text:item.issueId?`复制 Issue #${item.issueId} 链接`:'复制 Issue 链接',onClick:()=>copyUrl(item.issueUrl)})]:[]),
+        ...(item.linkedThreadLabel&&item.threadUrl?[el('button',{type:'button',className:'text',disabled:busy,text:'复制会话链接',onClick:()=>copyUrl(item.threadUrl)})]:[]),
         ...(item.deleteRevision!==undefined?[el('button',{type:'button',className:'text history-delete',text:'删除草稿',disabled:busy,'data-delete-draft':'',onClick:()=>requestDelete(item)})]:[]),
       ]),
   ])));

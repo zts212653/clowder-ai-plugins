@@ -5,11 +5,13 @@ import { FeedbackAnalysis } from './analysis.js';
 import { analysisKey, digest, feedbackKey, feedbackTitle, profiles, record, text } from './config.js';
 import { FeedbackRecords } from './records.js';
 import { marker, provider } from './providers.js';
-import { sanitize } from './sanitize.js';
+import { parseReport } from './report.js';
+import { sanitize, sanitizeThreadText } from './sanitize.js';
 import type { Host, Journal, OwnerContext, Profile, Provider, Report, StoredAttachment, StoredFeedback } from './types.js';
 
 type ProviderFactory = (target: Profile) => Provider;
 const screenshotUploadTimeoutMs = 5 * 60_000;
+const threadPageSize = 30;
 export class RevisionConflictError extends Error { readonly code = 'revision_conflict'; }
 export class FeedbackService {
   private readonly analysis: FeedbackAnalysis;
@@ -25,7 +27,26 @@ export class FeedbackService {
     if (context?.kind !== 'owner-http-request' || context.operation !== 'write' || !context.requestIdentity || context.pluginInstanceId !== this.host.pluginInstanceId) throw new Error('反馈仅能由已登录用户在插件面板中操作');
     await context.assertCurrent();
     const data = record(input); const op = text(data.op, 30);
+    if (op === 'list-threads') {
+      const rows = await this.host.threads?.list({ limit: threadPageSize, before: pageCursor(data.before, 'lastActiveAt') });
+      if (!rows) throw new Error('当前宿主无法读取会话列表');
+      const items = rows.map(({ id, title, lastActiveAt }) => ({ id, title, lastActiveAt }));
+      const last = items.at(-1);
+      return { items, next: items.length === threadPageSize && last ? { id:last.id, lastActiveAt:last.lastActiveAt } : undefined };
+    }
     const targets = await profiles(this.host);
+    if (op === 'thread-context') {
+      const thread = await this.visibleThread(data.threadId);
+      await this.records.migrate(context.userId, targets);
+      const feedback = await this.history(context.userId, thread.id);
+      if (!this.host.threads?.readMessages) return { feedback, messages: [] };
+      const rows = await this.host.threads.readMessages(thread.id, { limit: threadPageSize, before: pageCursor(data.before, 'timestamp') });
+      const first = rows[0];
+      const messages = rows.filter(importableMessage).reverse().map(({ id, timestamp, content }) => ({
+        id, timestamp, excerpt: sanitizeThreadText(content, thread.projectRef ?? '', thread.id, thread.deepLinkUrl).trim().slice(0, 240),
+      }));
+      return { feedback, messages, next: rows.length === threadPageSize && first ? { id:first.id, timestamp:first.timestamp } : undefined };
+    }
     const selectionKey = `feedback-selection:${digest(context.userId)}`;
     const remember = async (id: string | null) => {
       const selected = await this.host.storage.get(selectionKey);
@@ -88,7 +109,9 @@ export class FeedbackService {
     if (['prepare-analysis', 'analyze', 'analysis-status', 'cancel-analysis'].includes(op)) {
       if (!journal || journal.owner !== context.userId) throw new Error('反馈记录不存在');
       if (op === 'prepare-analysis' && ['writing','unknown','upload_failed','published'].includes(journal.state)) throw new Error('此记录暂不能重新分析，可以新建另一条反馈');
-      return this.analysis.dispatch({...data,feedbackId:journal.id,report:(await vault.hydrate(journal)).report,journalDigest:journal.digest},context);
+      const thread = journal.linkedThread && (op === 'prepare-analysis' || op === 'analyze')
+        ? await this.visibleThread(journal.linkedThread.id) : undefined;
+      return this.analysis.dispatch({...data,feedbackId:journal.id,report:(await vault.hydrate(journal)).report,journalDigest:journal.digest},context,thread);
     }
     if (op === 'save') {
       if (journal && ['writing', 'unknown', 'upload_failed'].includes(journal.state)) throw new Error('请先处理上一次提交或保留上传回执，再编辑新报告');
@@ -97,14 +120,31 @@ export class FeedbackService {
       const target = targets.find(p => p.id === data.targetId);
       if (!target) throw new Error('反馈目标已变化');
       const clientId = data.clientId === undefined ? journal?.clientId : text(data.clientId, 200);
-      const projectRef = data.projectRef === undefined ? journal?.projectRef : text(data.projectRef, 4096);
-      const report = await vault.storeReport(this.report(data.report));
+      const requestedThread = data.linkedThreadId ?? (data.linkedThreadId === undefined ? journal?.linkedThread?.id : undefined);
+      const thread = requestedThread === undefined ? undefined : await this.visibleThread(requestedThread);
+      const linkedThread = thread ? { id: thread.id, title: thread.title, deepLinkUrl: thread.deepLinkUrl } : undefined;
+      const projectRef = thread ? thread.projectRef : data.projectRef === undefined ? journal?.projectRef : text(data.projectRef, 4096);
+      let inputReport = record(data.report);
+      if (data.sourceMessageId !== undefined) {
+        if (!thread || !this.host.threads?.readMessages) throw new Error('请先选择可读取的关联会话');
+        const id = text(data.sourceMessageId, 256);
+        const messages = await this.host.threads.readMessages(thread.id, { limit:threadPageSize, before:pageCursor(data.sourceBefore, 'timestamp') });
+        const message = messages.find(item => item.id === id && importableMessage(item));
+        if (!message) throw new Error('找不到所选回复，请重新打开会话查看');
+        const content = sanitizeThreadText(message.content, thread.projectRef ?? '', thread.id, thread.deepLinkUrl);
+        const source = parseReport(content);
+        const existing = text(inputReport.body ?? '').trim();
+        const imported = source?.body ?? content.trim();
+        const body = existing ? `${existing}\n\n## 会话中的分析\n\n${imported}` : imported;
+        inputReport = { ...inputReport, title: text(inputReport.title ?? '', 200).trim() || source?.title, body: body.slice(0, 100_000) };
+      }
+      const report = await vault.storeReport(this.report(inputReport));
       if (data.draftOnly !== true && !report.body.trim() && !report.attachments.length) throw new Error('请描述问题或添加图片');
       const id = journal?.id ?? feedbackId ?? key.split(':').at(-1)!;
       const value: Journal = {
         version: 1, id,
-        owner: context.userId, report, target, digest: digest({ id, report, target }), state: 'draft',
-        clientId, projectRef,
+        owner: context.userId, report, target, digest: digest({ id, report, target, linkedThreadId:linkedThread?.id }), state: 'draft',
+        clientId, projectRef, linkedThread,
         createdAt:journal?.createdAt ?? Date.now(),reviewReady:data.draftOnly !== true,
       };
       const saved = await publicWrite(value);
@@ -112,6 +152,18 @@ export class FeedbackService {
       return { ...saved, selectionSaved: await remember(id).catch(() => false) };
     }
     if (!journal || journal.owner !== context.userId || data.digest !== journal.digest) throw new Error('报告版本已变化，请重新检查并确认');
+    if (op === 'sync-thread-issue') {
+      if (journal.state !== 'published' || !journal.issue || !journal.linkedThread) throw new Error('请先核实已投递的 Issue 和关联会话');
+      if (journal.linkedIssueMessageId) return present(journal, current?.revision);
+      if (data.revision !== current?.revision) throw new RevisionConflictError('反馈记录已有更新，请重新打开');
+      if (!this.host.messaging) throw new Error('当前宿主无法向关联会话发送回执');
+      const thread = await this.visibleThread(journal.linkedThread.id);
+      const idempotencyKey = `feedback-issue:${journal.id}`;
+      await context.assertCurrent();
+      const sent = await this.host.messaging.send({ threadId:thread.id, idempotencyKey,
+        payload:{ provenance:{ epistemicStatus:'user_intent' }, elements:[{ elementId:journal.id, kind:'text', payload:{ text:`问题反馈已投递 · Issue #${journal.issue.id}\n${journal.issue.url}` } }] } });
+      return publicWrite({ ...journal, linkedIssueMessageId:sent.messageId });
+    }
     if (digest(targets.find(p => p.id === journal.target.id)) !== digest(journal.target)) throw new Error('目标配置已变化，请重新检查报告');
     if (op === 'preflight') {
       const target = journal.target;
@@ -219,7 +271,7 @@ export class FeedbackService {
       const archived = await this.host.storage.compareAndSet(`publication:${journal.id}`, null, journal);
       if (!archived.applied && digest((await this.host.storage.get(`publication:${journal.id}`))?.value) !== digest(journal)) throw new Error('回执已变化，请重新打开面板检查状态');
       const id = randomUUID();
-      const next: Journal = {...journal,id,digest:digest({id,report:journal.report,target:journal.target}),state:'draft',phase:undefined,uploads:undefined,uploadingHash:undefined,safeError:undefined,createdAt:Date.now()};
+      const next: Journal = {...journal,id,digest:digest({id,report:journal.report,target:journal.target,linkedThreadId:journal.linkedThread?.id}),state:'draft',phase:undefined,uploads:undefined,uploadingHash:undefined,safeError:undefined,createdAt:Date.now()};
       await this.records.register(context.userId,id);
       await this.host.storage.compareAndSet(feedbackKey(context.userId,id),null,next);
       await write({...journal,supersededBy:id});
@@ -278,8 +330,21 @@ export class FeedbackService {
     return { ...(r.kind ? {kind:r.kind} : {}),title:r.kind ? feedbackTitle(r.kind,title,body) : title || feedbackTitle('bug','',body),body,attachments:attachments(r.attachments ?? []) };
   }
 
-  private async history(userId: string) {
-    const journals=await this.records.list(userId);
+  private async visibleThread(value: unknown) {
+    const id = text(value, 500);
+    const rows = await this.host.threads?.list({ threadIds: [id] });
+    const thread = rows?.find(row => row.id === id);
+    if (!thread) throw new Error('该会话不存在或当前不可访问');
+    return thread;
+  }
+
+  private async history(userId: string, threadId?: string) {
+    let journals=await this.records.list(userId);
+    if (threadId !== undefined) {
+      const older = (await this.host.storage.get(`analysis-thread:${threadId}`))?.value as { key: string } | undefined;
+      journals = journals.filter(({ journal }) => journal.linkedThread?.id === threadId ||
+        (!journal.linkedThread && older?.key === analysisKey(userId, journal.id)));
+    }
     const items=await Promise.all(journals.map(async ({journal,revision})=>{
       const analysis=await this.analysis.status(userId,false,journal.id).catch(()=>({state:'unavailable',threadUrl:undefined,startedAt:undefined}));
       const status=journal.supersededBy ? 'retained' : journal.state==='published' ? 'published'
@@ -288,12 +353,23 @@ export class FeedbackService {
         : ['failed','interrupted','cancelled','unavailable'].includes(analysis?.state ?? '') ? analysis!.state
         : analysis?.state==='ready' || journal.reviewReady ? 'ready' : 'draft';
       return {id:journal.id,title:journal.report.title,...(status==='draft'&&journal.state==='draft'?{deleteRevision:revision}:{}),kind:journal.report.kind ?? (/^feat:/i.test(journal.report.title)?'feat':'bug'),status,
-        updatedAt:Math.max(journal.updatedAt ?? journal.createdAt ?? 0,analysis?.startedAt ?? 0),analyzed:analysis?.state==='ready',issueId:journal.issue?.id,issueUrl:journal.issue?.url,threadUrl:analysis?.threadUrl,
+        updatedAt:Math.max(journal.updatedAt ?? journal.createdAt ?? 0,analysis?.startedAt ?? 0),analyzed:analysis?.state==='ready',issueId:journal.issue?.id,issueUrl:journal.issue?.url,threadUrl:journal.linkedThread?.deepLinkUrl ?? analysis?.threadUrl,
+        linkedThreadLabel:journal.linkedThread ? journal.linkedThread.title ?? '未命名会话' : undefined,
         screenshotsPending:journal.state==='published' && (journal.screenshotAttempt || (journal.screenshotCommentUnverified && !journal.screenshotsConfirmed))
           ? 'verify' : undefined};
     }));
     return items.sort((a,b)=>b.updatedAt-a.updatedAt);
   }
+}
+function pageCursor<Key extends 'timestamp' | 'lastActiveAt'>(value: unknown, field: Key) {
+  if (value === undefined) return undefined;
+  const cursor = record(value);
+  const position = cursor[field];
+  if (typeof position !== 'number' || !Number.isSafeInteger(position) || position < 0) throw new Error('翻页位置无效，请刷新列表');
+  return { id: text(cursor.id, field === 'timestamp' ? 256 : 500), [field]: position } as { id: string } & Record<Key, number>;
+}
+function importableMessage(message: import('@clowder-ai/plugin-sdk').PluginThreadMessage) {
+  return message.sender.kind === 'cat' && (!message.response || message.response.status === 'completed') && Boolean(message.content.trim());
 }
 function screenshotCandidates(journal: Journal): StoredAttachment[] {
   if (journal.screenshotItems) return journal.screenshotItems;

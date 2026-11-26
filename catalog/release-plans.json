@@ -393,6 +393,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/242",
       "reason": "This candidate targets the existing next PDL console. Public catalog users may still be on older Hosts.",
       "condition": "Verify the published archive in an unchanged next PDL Host, then review activation in a separate catalog change."
+    },
+    {
+      "pluginId": "official.feedback",
+      "version": "0.1.0-alpha.13",
+      "integrity": "sha512-YcXNilCHs7fAOCVHEVYQquIkLLi3cRCPCfo18Ip1nqH9RE+FLOMabG3Z1OuC741rtR2mDI2zJAbzq2+HARWXjg==",
+      "disposition": "defer",
+      "owner": "codex",
+      "reviewBy": "2026-12-10T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/242",
+      "reason": "This candidate adds reuse of existing conversations on top of the feedback panel work in #242.",
+      "condition": "Verify this archive with the target next Host including linked analysis and the Issue receipt in an existing conversation, then review public catalog activation separately."
     }
   ]
 }
