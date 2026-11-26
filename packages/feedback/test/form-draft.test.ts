@@ -23,8 +23,12 @@ test('changing member and project after saving the description survives close an
   const actions=runInContext('({state,saveDraft,openRecord,render})',context);
   Object.assign(actions.state,{dirty:true,clientId:'member-A',projectRef:'',targetId:'clowder',report:{title:'bug: example',body:'description already saved',attachments:[]}});
   await actions.saveDraft();actions.render();
+  assert.equal(nodes.some(node=>node.id==='analysis-member'),false,'first page only describes the feedback');
+  actions.state.stage='configure';actions.render();
+  Object.assign(actions.state,{analysis:{state:'ready',clientId:'member-A'},material:'old material',hash:'old hash'});
   (nodes.findLast(node=>node.id==='analysis-member')?.onChange as (event:unknown)=>void)({target:{value:'member-B'}});
   (nodes.findLast(node=>node['aria-label']==='相关项目目录')?.onInput as (event:unknown)=>void)({target:{value:'C:/project-B'}});
+  assert.equal(actions.state.analysis,undefined);assert.equal(actions.state.hash,undefined);assert.equal(actions.state.contextChanged,true);
   await closePanel();
   assert.equal(saved.length,2);
   const last=saved.at(-1)!;

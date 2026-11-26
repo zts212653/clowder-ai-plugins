@@ -393,6 +393,17 @@
       "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/234",
       "reason": "Registration reads keep their dependent requests together and reuse the account login, so tracking registration fits the Host shared MCP budget; packaged for the home instance, public catalog activation stays separate.",
       "condition": "Upgrade the same home instance under existing upgrade authority, then retry the original failed registration ID. Before public discovery, verify supported public Host compatibility and canonical registry bytes."
+    },
+    {
+      "pluginId": "official.feedback",
+      "version": "0.1.0-alpha.12",
+      "integrity": "sha512-LElafMQUpOE9HJz4KHIQNdnQ/oKV/vEyJfNk1X1ThU4mNpUDLmnY/vxEyb4w7OopS+QQYrHSJsHqUY578XQFQg==",
+      "disposition": "defer",
+      "owner": "codex",
+      "reviewBy": "2026-12-04T08:00:00Z",
+      "sourceRef": "https://github.com/zts212653/clowder-ai-plugins/pull/242",
+      "reason": "This candidate targets the existing next PDL console. Public catalog users may still be on older Hosts.",
+      "condition": "Verify the published archive in an unchanged next PDL Host, then review activation in a separate catalog change."
     }
   ]
 }

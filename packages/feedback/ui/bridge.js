@@ -30,9 +30,13 @@ export function bridge(type, input) {
   });
 }
 export const call = async input => {
-  const response = await bridge('http', { method: 'POST', path: 'feedback', body: input });
-  if (response.status < 200 || response.status >= 300) throw Object.assign(new Error(response.body?.error ?? '反馈操作未完成'), {code:response.body?.code});
-  return response.body;
+  const response = await bridge('http', { method: 'POST', path: 'feedback/panel', body: { input } });
+  const body = response.body;
+  if (response.status < 200 || response.status >= 300 || body?.error) {
+    throw Object.assign(new Error(body?.error ?? '反馈操作未完成'), { code: body?.code, githubCli: body?.githubCli });
+  }
+  if (!body || !Object.hasOwn(body, 'result')) throw new Error('反馈面板收到无效响应');
+  return body.result;
 };
 export function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);

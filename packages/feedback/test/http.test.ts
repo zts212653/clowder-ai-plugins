@@ -23,3 +23,25 @@ test('packed entry serves HTML and business operations through declared HTTP han
   assert.equal(conflict.status,409);
   assert.equal(conflict.body.code,'revision_conflict');
 });
+
+test('PDL panel returns structured conflicts over its authenticated HTTP frame route', async () => {
+  const f = fixture();
+  const activation = await plugin.create().start(f.host);
+  const input = { op: 'save', feedbackId: 'pdl-draft', targetId: 'clowder', report: { title: 'Draft', body: 'First', attachments: [] } };
+  const request = { request: { method: 'POST', path: 'feedback/panel', body: { input } } };
+  const action = activation.actions['feedback.panel'];
+  const first = await action(request, undefined, f.ctx);
+  const decode = async (body: string | AsyncIterable<Uint8Array | string>) =>
+    JSON.parse(typeof body === 'string' ? body : Buffer.concat((await Array.fromAsync(body)).map(chunk => Buffer.from(chunk))).toString());
+  assert.equal(first.status, 200);
+  assert.equal((await decode(first.body)).result.journal.report.body, 'First');
+
+  const conflict = await action(request, undefined, f.ctx);
+  assert.equal(conflict.status, 200);
+  assert.equal((await decode(conflict.body)).code, 'revision_conflict');
+  await assert.rejects(action(request, undefined, { ...f.ctx, pluginInstanceId: 'other' }), /通过左栏反馈入口/);
+
+  const legacy = await action({ request: { ...request.request, body: input } }, undefined, f.ctx);
+  assert.equal(legacy.status, 400);
+  assert.equal((await decode(legacy.body)).code, 'revision_conflict');
+});
