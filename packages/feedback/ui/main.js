@@ -102,7 +102,7 @@ async function refreshHistory(){
   if(value&&JSON.stringify(value.items)!==JSON.stringify(state.items)){state.items=value.items;render();}
   historyTimer=setTimeout(refreshHistory,2000);
 }
-async function openRecord(id,value){
+async function openRecord(id,value,showResult=false){
   analysisEpoch++;clearTimeout(analysisTimer);clearTimeout(historyTimer);await flushDraft();
   value??=await call({op:'bootstrap',feedbackId:id});
   Object.assign(state,value,{feedbackId:id,linkedThread:value.journal.linkedThread,report:{...value.journal.report,kind:value.journal.report.kind??(/^feat:/i.test(value.journal.report.title)?'feat':'bug')},
@@ -119,6 +119,7 @@ async function openRecord(id,value){
   }else if(value.analysis?.state==='ready'&&!locked()){
     const matches=value.analysis.journalDigest===value.journal.digest&&sameContext;
     if(matches){state.report.title=value.analysis.title;state.report.body=value.analysis.body;await saveReview(false);}
+    else if(showResult)state.stage='analysis-result';
   }
   if(state.stage==='review'&&!locked())await checkRoute();
   if(value.journal.state!=='published'&&['failed','interrupted'].includes(value.analysis?.state))state.error=value.analysis.error;
@@ -576,8 +577,8 @@ function render() {
   const scroll = app.dataset.stage === state.stage ? app.querySelector('.content')?.scrollTop ?? 0 : 0;
   const stageIndex = state.stage === 'edit' ? 0 : ['configure','scope', 'analyzing'].includes(state.stage) ? 1 : ['review','handoff', 'submitting'].includes(state.stage) ? 2 : 3;
   const header = el('header', {}, [el('div',{className:'heading-row'},[
-    el('div',{},[el('h1',{text:state.stage==='history'?'反馈记录':state.stage==='choose-thread'?'关联已有会话':state.stage==='thread-context'?'会话中的反馈':'问题反馈'}),
-      ...(!['choose-thread','thread-context'].includes(state.stage)?[note(state.stage==='edit'?'描述问题，图片可选。':state.stage==='history'?'草稿、分析和投递进度都在这里。':state.stage==='published-report'?'投递时的报告':state.stage==='published-screenshots'?'补充截图':['填写问题','分析与脱敏','检查与提交','反馈完成'][stageIndex])]:[])]),
+    el('div',{},[el('h1',{text:state.stage==='history'?'反馈记录':state.stage==='choose-thread'?'关联已有会话':state.stage==='thread-context'?'会话中的反馈':state.stage==='analysis-result'?'分析结果':'问题反馈'}),
+      ...(!['choose-thread','thread-context','analysis-result'].includes(state.stage)?[note(state.stage==='edit'?'描述问题，图片可选。':state.stage==='history'?'草稿、分析和投递进度都在这里。':state.stage==='published-report'?'投递时的报告':state.stage==='published-screenshots'?'补充截图':['填写问题','分析与脱敏','检查与提交','反馈完成'][stageIndex])]:[])]),
     el('div',{className:'feedback-nav'},[button('新建反馈',startNew,'text'),button('反馈记录',showHistory,'secondary')])])]);
   const content = el('section', { className: 'content' }); const footer = el('footer');
   if (state.error) content.append(el('p', { role: 'alert', className: 'error', text: state.error }));
@@ -592,7 +593,7 @@ function render() {
   if (state.stage === 'history') {
     if(state.feedbackNotice)content.append(el('p',{role:'status',className:'hint',text:state.feedbackNotice}));
     content.append(feedbackHistory(state.items,{
-      open:id=>run(()=>openRecord(id)),copyUrl:url=>run(()=>copyLink(url)),deleteId:state.draftToDelete?.id,busy:state.busy,
+      open:(id,unread)=>run(()=>openRecord(id,undefined,unread)),copyUrl:url=>run(()=>copyLink(url)),deleteId:state.draftToDelete?.id,busy:state.busy,
       requestDelete:({id,deleteRevision})=>{
         state.draftToDelete={id,revision:deleteRevision};
         render();app.querySelector('[data-cancel-draft-delete]')?.focus();
@@ -703,6 +704,10 @@ function render() {
     content.className='content review-content';
     footer.className='review-footer';
     renderReview(content,footer);
+  } else if (state.stage === 'analysis-result') {
+    content.className='content review-content';
+    content.append(el('h2',{text:state.analysis.title}),reportReader(state.analysis.body,el));
+    footer.append(button('返回反馈草稿',()=>openRecord(state.feedbackId),'primary'));
   } else if (state.stage === 'published-report') {
     const { issue, report } = state.journal;
     content.className = 'content review-content published-report';
@@ -732,9 +737,10 @@ function render() {
 }
 function markDisplayedAnalysis() {
   const analysis=state.analysis;
-  if(document.hidden || state.busy || state.stage!=='review' || state.reviewView!=='report' ||
-    analysis?.state!=='ready' || analysis.viewed || viewingAnalysis===analysis ||
-    state.report.title!==analysis.title || state.report.body!==analysis.body) return;
+  if(document.hidden || state.busy || analysis?.state!=='ready' || analysis.viewed || viewingAnalysis===analysis) return;
+  const displayingResult=state.stage==='analysis-result' || state.stage==='review' && state.reviewView==='report' &&
+    state.report.title===analysis.title && state.report.body===analysis.body;
+  if(!displayingResult)return;
   viewingAnalysis=analysis;
   const feedbackId=state.feedbackId;
   void recordCall({op:'view-analysis',runId:analysis.id},feedbackId)
@@ -760,6 +766,7 @@ beforeClose(async()=>{
 run(async()=>{
   const initial=await call({op:'bootstrap',resume:true});state.targets=initial.targets;state.clients=initial.clients??[];state.items=initial.items??[];
   state.clientId=state.clients[0]?.id??'';state.targetId=state.targets[0]?.id??'';
-  if(initial.items?.some(item=>item.unread) && !initial.items.some(item=>item.unread && item.id===initial.journal?.id)) await showHistory();
-  else if(initial.journal)await openRecord(initial.journal.id,initial);
+  const selectedUnread=state.items.some(item=>item.unread && item.id===initial.journal?.id);
+  if(!selectedUnread && state.items.some(item=>item.unread)) await showHistory();
+  else if(initial.journal)await openRecord(initial.journal.id,initial,selectedUnread);
 });
