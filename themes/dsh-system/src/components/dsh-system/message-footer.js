@@ -91,12 +91,14 @@
   msgFrame = function (options) {
     if (PV.viewId !== 'chat.stream' || options.frame !== 'msg') return drawMessage(options);
     const message = chatMessageIndex.get(options.mid);
-    if ((message?.type === 'assistant' || options.running) && options.body?.includes('<table>')) {
+    if (options.body?.includes('<table>')) {
       const label = tr('横向滚动查看表格', 'Scroll table horizontally');
-      const body = options.body.replace(/<table><thead>([\s\S]*?)<\/thead>[\s\S]*?<\/table>/g, (table, headings) =>
-        headings.match(/<th>/g)?.length >= 4
-          ? '<div class="dsh-wide-table" role="region" tabindex="0" aria-label="' + h(label) + '">' + table + '</div>'
-          : table);
+      const body = options.body.replace(/<table><thead>([\s\S]*?)<\/thead>[\s\S]*?<\/table>/g, (table, headings) => {
+        const wide = headings.match(/<th>/g)?.length >= 4;
+        return wide
+          ? '<div class="dsh-table-scroll dsh-wide-table" role="region" tabindex="0" aria-label="' + h(label) + '">' + table + '</div>'
+          : '<div class="dsh-table-scroll">' + table + '</div>';
+      });
       options = { ...options, body };
     }
     if (options.running || message?.recalled || !['user', 'assistant', 'connector'].includes(message?.type))
