@@ -1,21 +1,26 @@
 ns: feedback
+icons:
+  feedback-mark: <path d="M5 10V5.5L9.5 8h5.75a4.25 4.25 0 0 1 0 8.5h-2.5c-2.15 0-2.4 3-5 3.5 1-1.25 1.2-2.45.7-3.65A4.25 4.25 0 0 1 5 12.1Z"/><circle cx="12.25" cy="12.25" r="1.45" fill="currentColor" stroke="none"/>
 inserts:
   - id: feedback
     anchor: inbox
     at: before
     node:
       title: t:feedback.plugin.entry
-      icon: msg
+      icon: feedback-mark
+      sources:
+        feedbackActivity: activity
+      activity: '@feedbackActivity.badge'
       open:
         node: feedback.panel
         as: float
 popups:
   feedback:
-    at: trigger
+    at: center
+    focus: true
     exit:
       - x
       - esc
-    drag: true
 views:
   feedback.panel:
     type: frame
@@ -28,3 +33,6 @@ views:
 requests:
   panel:
     path: panel
+  activity:
+    path: activity
+    refreshMs: 5000

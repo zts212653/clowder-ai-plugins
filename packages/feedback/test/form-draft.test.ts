@@ -10,7 +10,7 @@ test('changing member and project after saving the description survives close an
   };
   let closePanel!:()=>Promise<void>;
   const saved:Array<{clientId:string;projectRef:string;report:unknown}>=[];
-  const context=createContext({Blob,el,document:{getElementById:el,querySelector:()=>null,querySelectorAll:()=>[]},crypto:{randomUUID:()=> 'draft'},
+  const context=createContext({Blob,el,document:{addEventListener(){},getElementById:el,querySelector:()=>null,querySelectorAll:()=>[]},crypto:{randomUUID:()=> 'draft'},
     beforeClose:async(action:()=>Promise<void>)=>{closePanel=action;},bridge:async()=>true,copyImage:async()=>{},normalizePicture:async()=>{},reportPreview:el,feedbackHistory:el,
     setTimeout:()=>0,clearTimeout(){},console,call:async(input:{op:string;clientId:string;projectRef:string;report:unknown})=>{
       if(input.op==='save'){saved.push(structuredClone(input));return{journal:{id:'draft',state:'draft',digest:'saved',target:{id:'clowder'},...input},revision:saved.length};}
@@ -23,8 +23,12 @@ test('changing member and project after saving the description survives close an
   const actions=runInContext('({state,saveDraft,openRecord,render})',context);
   Object.assign(actions.state,{dirty:true,clientId:'member-A',projectRef:'',targetId:'clowder',report:{title:'bug: example',body:'description already saved',attachments:[]}});
   await actions.saveDraft();actions.render();
+  assert.equal(nodes.some(node=>node.id==='analysis-member'),false,'first page only describes the feedback');
+  actions.state.stage='configure';actions.render();
+  Object.assign(actions.state,{analysis:{state:'ready',clientId:'member-A'},material:'old material',hash:'old hash'});
   (nodes.findLast(node=>node.id==='analysis-member')?.onChange as (event:unknown)=>void)({target:{value:'member-B'}});
   (nodes.findLast(node=>node['aria-label']==='相关项目目录')?.onInput as (event:unknown)=>void)({target:{value:'C:/project-B'}});
+  assert.equal(actions.state.analysis,undefined);assert.equal(actions.state.hash,undefined);assert.equal(actions.state.contextChanged,true);
   await closePanel();
   assert.equal(saved.length,2);
   const last=saved.at(-1)!;

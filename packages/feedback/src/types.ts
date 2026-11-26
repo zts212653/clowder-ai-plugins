@@ -12,8 +12,10 @@ export interface Host {
   config: { get(key: string): Promise<unknown> }; secrets: { get(key: string): Promise<string | undefined> };
   runtimeInfo?: import('@clowder-ai/plugin-sdk').PluginRuntimeInfoHost;
   members?: import('@clowder-ai/plugin-sdk').ModulePluginHostShape['members'];
-  threads?: Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'create' | 'get' | 'list'> & Partial<Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'readMessages'>>;
-  messaging?: Pick<import('@clowder-ai/plugin-sdk').ModulePluginHostShape['messaging'], 'send' | 'subscribe' | 'unsubscribe'>;
+  threads?: Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'create' | 'get' | 'list'> &
+    Partial<Pick<import('@clowder-ai/plugin-sdk').PluginThreadHost, 'readMessages' | 'getCats'>>;
+  messaging?: Pick<import('@clowder-ai/plugin-sdk').ModulePluginHostShape['messaging'], 'send' | 'subscribe' | 'unsubscribe' | 'findSent'> &
+    Partial<Pick<import('@clowder-ai/plugin-sdk').ModulePluginHostShape['messaging'], 'get'>>;
 }
 export interface Command { executable: string; args: string[] }
 export interface Profile {
@@ -29,18 +31,30 @@ export type FeedbackKind = 'bug' | 'feat';
 export interface Report { kind?: FeedbackKind; title: string; body: string; attachments: Attachment[] }
 export interface StoredReport { kind?: FeedbackKind; title: string; body: string; attachments: StoredAttachment[] }
 export interface RemoteIssue { id: string; url: string; title: string; body: string }
+export type LinkedThread = Pick<import('@clowder-ai/plugin-sdk').PluginThreadSummary, 'id' | 'title' | 'deepLinkUrl'>;
 export interface Journal {
   version: 1; id: string; owner: string; report: StoredReport; target: Profile; digest: string;
   state: 'draft' | 'approved' | 'writing' | 'upload_failed' | 'unknown' | 'published'; issue?: RemoteIssue; safeError?: string;
   phase?: 'uploading' | 'creating' | 'verifying';
   uploads?: { submissionId: string; sha256: string; markdown: string }[];
   uploadingHash?: string;
+  addScreenshotsLater?: true;
+  screenshotCommentUnverified?: true;
+  screenshotsConfirmed?: true;
+  screenshotItems?: StoredAttachment[];
+  screenshotSent?: string[];
+  screenshotAttempt?: { id: string; hashes: string[]; startedAt: number; finished?: true; retryConfirmed?: true };
   clientId?: string; projectRef?: string;
+  linkedThread?: LinkedThread;
+  linkedIssueMessageId?: string;
   createdAt?: number; updatedAt?: number; reviewReady?: boolean; handoffAt?: number; supersededBy?: string;
 }
-export type HydratedJournal = Omit<Journal, 'report'> & { report: Report };
+export type StoredFeedback = Journal | { deleted: true };
+export type HydratedJournal = Omit<Journal, 'report' | 'screenshotItems'> & { report: Report; screenshotItems?: Attachment[] };
 export interface Provider {
-  preflight(signal: AbortSignal): Promise<{ principal: string; visibility: string; attachments: boolean }>;
+  preflight(signal: AbortSignal, hasPictures?: boolean): Promise<{ principal: string; visibility: string; attachments: boolean; githubCliAttachments?: boolean; githubAuth?: 'cli' | 'token'; githubAttachmentLimit?: 'permission' | 'cli' }>;
+  attachToIssue?(issue: RemoteIssue, pictures: Attachment[], id: string, signal: AbortSignal): Promise<string[]>;
+  findIssueScreenshots?(issue: RemoteIssue, hashes: string[], id: string, startedAt: number, signal: AbortSignal): Promise<string[] | undefined>;
   upload(attachment: Attachment, id: string, signal: AbortSignal): Promise<string>;
   create(report: Report, id: string, signal: AbortSignal): Promise<RemoteIssue>;
   reconcile(id: string, signal: AbortSignal): Promise<RemoteIssue | undefined>;

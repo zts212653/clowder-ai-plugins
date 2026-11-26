@@ -1,16 +1,16 @@
 pluginId: official.feedback
-version: 0.1.0-alpha.3
+version: 0.1.0-alpha.15
 contractVersion: 0.4.0-candidate.0
 name: 问题反馈
 description:
-  default: 通过已配置的本地 Agent Client 生成脱敏报告并提交 Issue，支持草稿恢复、粘贴截图及本地选图。需要支持声明式 HTTP 面板及关闭前保存的配套 next 宿主。
+  default: 通过已配置的本地 Agent Client 生成脱敏报告并提交 Issue，支持草稿恢复、粘贴截图及本地选图。在支持 PDL 控制台的 next 宿主中使用。
   translations:
-    en: Sanitized feedback reports with draft recovery, pasted screenshots and local images. Requires a paired next Host with declared HTTP panels and save-before-close support.
+    en: Sanitized feedback reports with draft recovery, pasted screenshots and local images. Uses the PDL console in a next Host.
 icon: { type: svg, src: assets/icon.svg }
 steps:
   - text: 启用后，从左侧栏底部打开“问题反馈”。建议先分析，检查完整报告和截图后再确认提交。
   - text: 本地 Client 可能连接云端模型；文本先脱敏，截图不交给模型。请手动遮盖截图中的敏感信息。
-  - text: 默认反馈到公开的 Clowder AI GitHub 仓库；自动提交需要下方的 GitHub 访问令牌，否则可手动创建。
+  - text: 默认反馈到公开的 Clowder AI GitHub 仓库；自动提交可使用现有 GitHub CLI 登录或下方的 GitHub 访问令牌。
 test: { action: { method: feedback.check } }
 configuration:
   - key: destinations
@@ -20,7 +20,7 @@ configuration:
     kind: string
     required: false
   - key: githubToken
-    label: GitHub 访问令牌（自动提交时需要）
+    label: GitHub 访问令牌（未使用 GitHub CLI 登录时填写）
     kind: secret
     required: false
   - key: gitlabToken
@@ -32,7 +32,8 @@ contributions:
   - { type: message-subscription, id: feedback.results, binding: feedback.identity, action: { method: feedback.delivery }, presentation: v2 }
   - { type: webhook, id: feedback.http, path: feedback, methods: [POST], requestBodyLimitBytes: 15728640, action: { method: feedback.http } }
   - { type: webhook, id: feedback.page, path: panel, methods: [GET], action: { method: feedback.panel } }
-  - { type: webhook, id: feedback.panel-route, path: feedback/panel, methods: [ POST ], action: { method: feedback.panel } }
+  - { type: webhook, id: feedback.activity, path: activity, methods: [GET], action: { method: feedback.panel } }
+  - { type: webhook, id: feedback.panel-route, path: feedback/panel, methods: [POST], requestBodyLimitBytes: 15728640, action: { method: feedback.panel } }
 features:
   - id: feedback
     name: 问题反馈
@@ -42,6 +43,7 @@ features:
       - { type: message-subscription, id: feedback.results }
       - { type: webhook, id: feedback.http }
       - { type: webhook, id: feedback.page }
+      - { type: webhook, id: feedback.activity }
       - { type: webhook, id: feedback.panel-route }
 data:
   - { name: feedback-journal, dataClass: user-authored, strategy: retained }

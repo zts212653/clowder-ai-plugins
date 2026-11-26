@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { FeedbackService, RevisionConflictError } from './service.js';
 import { parseProfiles, record } from './config.js';
+import { FeedbackTokenError } from './providers.js';
 import { sanitize } from './sanitize.js';
 import type { Host, OwnerContext } from './types.js';
 
@@ -9,7 +10,15 @@ function json(status: number, payload: unknown) {
   return {
     status,
     headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
-    body: JSON.stringify(payload ?? null),
+    body: Readable.from([JSON.stringify(payload ?? null)]),
+  };
+}
+
+function problem(error: unknown) {
+  return {
+    error: sanitize(error instanceof Error ? error.message : '反馈操作未完成').slice(0, 512),
+    ...(error instanceof RevisionConflictError || error instanceof FeedbackTokenError ? { code: error.code } : {}),
+    ...(error instanceof FeedbackTokenError && error.githubCli ? { githubCli: error.githubCli } : {}),
   };
 }
 
@@ -32,16 +41,23 @@ export default {
               if (context?.kind !== 'owner-http-request' || context.pluginInstanceId !== host.pluginInstanceId) throw new Error('请通过左栏反馈入口打开面板');
               await context.assertCurrent();
               const request = record(record(input).request);
+              if (request.method === 'GET' && request.path === 'activity') {
+                const activity = await service.activity(context);
+                const badge = activity.unread
+                  ? { kind:'unread', label:activity.running ? '有分析结果待查看，另有分析进行中' : '有分析结果待查看' }
+                  : activity.running ? { kind:'busy', label:'分析中' } : null;
+                return json(200, { badge });
+              }
               if (request.method === 'POST' && request.path === 'feedback/panel') {
+                const body = request.body;
+                const framed = body != null && typeof body === 'object' && 'input' in body;
                 try {
-                  const body = request.body;
                   if (body && typeof body === 'object' && 'op' in body && body.op === 'open') return json(200, { html });
-                  return json(200, await service.dispatch(body, context));
+                  const value = await service.dispatch(framed ? body.input : body, context);
+                  // PDL forwards successful JSON unchanged, but reduces HTTP errors to their message.
+                  return json(200, framed ? { result: value ?? null } : value);
                 } catch (error) {
-                  return json(400, {
-                    error: sanitize(error instanceof Error ? error.message : '反馈操作未完成').slice(0, 512),
-                    ...(error instanceof RevisionConflictError ? { code: error.code } : {}),
-                  });
+                  return json(framed ? 200 : 400, problem(error));
                 }
               }
               if (request.method !== 'GET' || request.path !== 'panel') throw new Error('面板资源仅支持声明的 GET 路由');
@@ -51,17 +67,10 @@ export default {
               const request = record(record(input).request);
               if (request.method !== 'POST' || request.path !== 'feedback') throw new Error('反馈 HTTP 路由无效');
               try {
-                const value = await service.dispatch(request.body, context);
-                return {
-                  status: 200,
-                  headers: { 'content-type': 'application/json; charset=utf-8' },
-                  // Standard HTTP streaming preserves reports with large retained screenshots.
-                  body: Readable.from([JSON.stringify(value ?? null)]),
-                };
+                return json(200, await service.dispatch(request.body, context));
               } catch (error) {
                 return { status: 409, headers: { 'content-type': 'application/json; charset=utf-8' },
-                  body: { error: sanitize(error instanceof Error ? error.message : '反馈操作未完成').slice(0, 512),
-                    ...(error instanceof RevisionConflictError ? {code:error.code} : {}) } };
+                  body: problem(error) };
               }
             },
             'feedback.check': () => check(host),
