@@ -1,5 +1,5 @@
-import { lstat, opendir, realpath, statfs } from 'node:fs/promises';
-import { basename, dirname, isAbsolute, join, parse, resolve, sep } from 'node:path';
+import { lstat, opendir, readdir, readFile, realpath, statfs } from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path';
 
 export interface Source {
   path: string;
@@ -42,13 +42,68 @@ const pathKey = (path: string) => (onWindows ? resolve(path).toLowerCase() : res
 const volumeOf = (path: string) => (onWindows ? parse(path).root.toUpperCase() : parse(path).root);
 const nativeRolloutId = /[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?=\.jsonl(?:\.(?:zst|zstd))?$)/i;
 
-export async function scanStorage(sources: Sources, signal: AbortSignal) {
+async function gitRecord(path: string) {
+  const file = await lstat(path).catch(() => undefined);
+  if (!file?.isFile() || file.size > 4096) return;
+  return readFile(path, 'utf8').then((text) => text.replace(/\r?\n$/, ''), () => undefined);
+}
+
+async function linkedWorktreesWithin(root: string) {
+  const registry = join(root, '.git', 'worktrees');
+  const canonical = await realpath(registry).catch(() => undefined);
+  if (!canonical || pathKey(canonical) !== pathKey(registry)) return [];
+  const entries = await readdir(registry, { withFileTypes: true }).catch(() => []);
+  const checkouts: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const registration = join(registry, entry.name);
+    const pointer = await gitRecord(join(registration, 'gitdir'));
+    if (!pointer) continue;
+    const marker = resolve(registration, pointer);
+    const checkout = dirname(marker);
+    const within = relative(root, checkout);
+    if (basename(marker) !== '.git' || !within || isAbsolute(within) || within === '..' || within.startsWith('..' + sep))
+      continue;
+    const canonicalCheckout = await realpath(checkout).catch(() => undefined);
+    if (!canonicalCheckout || pathKey(canonicalCheckout) !== pathKey(checkout)) continue;
+    const backPointer = await gitRecord(marker);
+    if (backPointer?.startsWith('gitdir: ') && pathKey(resolve(checkout, backPointer.slice(8))) === pathKey(registration))
+      checkouts.push(checkout);
+  }
+  return checkouts;
+}
+
+export interface StorageProgress {
+  phase: 'enumerating' | 'finalizing';
+  rootsDone: number;
+  rootsTotal: number;
+  filesSeen: number;
+}
+
+export async function scanStorage(
+  sources: Sources,
+  signal: AbortSignal,
+  onProgress?: (progress: StorageProgress) => void,
+) {
   const results = new Map<string, StorageFile>();
+  let rootsDone = 0;
+  let rootsTotal = 0;
+  const report = (phase: StorageProgress['phase']) =>
+    onProgress?.({ phase, rootsDone, rootsTotal, filesSeen: results.size });
   const directories = new Set<string>();
   const identities = new Map<string, StorageFile>();
   const rootsByPath = indexSources(sources.roots);
   const filesByPath = indexSources(sources.files);
-  const worktreeRoots = indexSources(sources.roots.filter((source) => source.category === 'worktree'));
+  const worktreeRoots = new Map(
+    sources.roots
+      .filter((root) => root.category === 'worktree' && isAbsolute(root.path) && rootsByPath.has(pathKey(root.path)))
+      .map((root) => [pathKey(root.path), resolve(root.path)]),
+  );
+  // A registered main checkout can already contain linked checkouts. Read the
+  // Git registry to split their totals while keeping the scan inside that root.
+  const linked = await Promise.all([...worktreeRoots.values()].map(linkedWorktreesWithin));
+  signal.throwIfAborted();
+  for (const checkout of linked.flat()) worktreeRoots.set(pathKey(checkout), checkout);
   const native = new Map<string, Set<string>>();
   const omissions = new Map(sources.omissions.map((row) => [row.reason + '\n' + row.path, { ...row }]));
 
@@ -117,7 +172,7 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
     const specific = rootsByPath.get(key);
     const owners = specific ? [...new Set([...inherited, ...specific.owners])] : inherited;
     const location = specific?.source.category ?? category;
-    const worktreePath = worktreeRoots.get(key)?.source.path ?? parentWorktree;
+    const worktreePath = worktreeRoots.get(key) ?? parentWorktree;
     if (stats.isDirectory() && !directFile) {
       if (directories.has(key)) return;
       directories.add(key);
@@ -170,21 +225,28 @@ export async function scanStorage(sources: Sources, signal: AbortSignal) {
       else identities.set(identity, row);
     }
     results.set(key, row);
+    if (results.size % 256 === 0) report('enumerating');
   }
 
   const roots = [...rootsByPath.values()].sort((a, b) => a.source.path.length - b.source.path.length);
+  rootsTotal = roots.length + (filesByPath.size ? 1 : 0);
+  report('enumerating');
   for (const { source } of roots) {
-    if (directories.has(pathKey(source.path))) continue;
-    await walk(source.path, source.category, [], undefined, undefined, false, source.optional);
+    if (!directories.has(pathKey(source.path)))
+      await walk(source.path, source.category, [], undefined, undefined, false, source.optional);
+    rootsDone += 1;
+    report('enumerating');
   }
   for (const { source } of filesByPath.values()) {
     if (results.has(pathKey(source.path))) continue;
     let parent = dirname(source.path);
     while (!worktreeRoots.has(pathKey(parent)) && dirname(parent) !== parent) parent = dirname(parent);
-    const worktree = worktreeRoots.get(pathKey(parent))?.source;
-    await walk(source.path, source.category, [], worktree?.path, undefined, true, source.optional);
+    const worktree = worktreeRoots.get(pathKey(parent));
+    await walk(source.path, source.category, [], worktree, undefined, true, source.optional);
   }
 
+  rootsDone = rootsTotal;
+  report('finalizing');
   const files = [...results.values()].sort(
     (a, b) =>
       (b.allocatedBytes ?? -1) - (a.allocatedBytes ?? -1) ||

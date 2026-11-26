@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/storage-governance",
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.0-alpha.6",
   "description": "Read-only storage inventory for conversations, works, worktrees, caches and host data",
   "license": "MIT",
   "type": "module",

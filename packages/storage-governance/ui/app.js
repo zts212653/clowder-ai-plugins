@@ -55,7 +55,7 @@
     categoryKey: null,
     filterOptionsKey: '',
     scanStartedAt: 0,
-    lastScanMs: readLastScanMs(),
+    lastScanMs: null,
     pollTimer: null,
     searchTimer: null,
     noticeTimer: null,
@@ -63,27 +63,6 @@
 
   function num(value) {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-  }
-
-  var LAST_SCAN_KEY = 'sg-last-scan-ms';
-
-  function readLastScanMs() {
-    try {
-      var value = Number(localStorage.getItem(LAST_SCAN_KEY));
-      return Number.isFinite(value) && value > 0 ? value : null;
-    } catch {
-      return null;
-    }
-  }
-
-  function rememberScan(ms) {
-    if (!Number.isFinite(ms) || ms <= 0) return;
-    state.lastScanMs = ms;
-    try {
-      localStorage.setItem(LAST_SCAN_KEY, String(Math.round(ms)));
-    } catch {
-      // Private mode or a sandboxed frame can make storage unavailable.
-    }
   }
 
   function nullableNumber(value) {
@@ -268,13 +247,13 @@
     return state.view === 'worktrees' ? mapWorktreesPage(report) : mapFilesPage(report);
   }
 
-  function syntheticProgress() {
+  function syntheticProgress(body) {
     return {
       scanId: 'current',
       state: 'scanning',
-      startedAt: state.scanStartedAt || Date.now(),
+      startedAt: (body && body.startedAt) || state.scanStartedAt || Date.now(),
       finishedAt: null,
-      progress: { phase: 'enumerating', rootsDone: 0, rootsTotal: 0, filesSeen: 0, bytesSeen: 0 },
+      progress: (body && body.progress) || { phase: 'preparing', rootsDone: 0, rootsTotal: 0, filesSeen: 0 },
     };
   }
 
@@ -284,30 +263,22 @@
 
   function scanEstimate(scan) {
     var elapsed = scanElapsed(scan);
-    var percent = M.scanProgressPercent(scan);
-    if (percent !== null && percent > 0) {
-      var remaining = elapsed * ((100 - percent) / percent);
-      return {
-        text: percent >= 99.5 ? '即将完成' : '预计还需约 ' + F.durationText(remaining),
-        detail: '按当前扫描进度估算',
-      };
-    }
-    if (state.lastScanMs) {
-      if (elapsed >= state.lastScanMs) {
-        return {
-          text: '可能即将完成',
-          detail: '上次扫描用时约 ' + F.durationText(state.lastScanMs),
-        };
-      }
+    var progress = scan.progress;
+    if (progress.phase === 'finalizing') return { text: '正在汇总并建立筛选索引' };
+    if (state.lastScanMs && elapsed < state.lastScanMs) {
       return {
         text: '预计还需约 ' + F.durationText(state.lastScanMs - elapsed),
         detail: '按上次扫描 ' + F.durationText(state.lastScanMs) + ' 估算',
       };
     }
-    return {
-      text: '首次扫描，暂无准确预计',
-      detail: '完成后会记住耗时，下次可估算',
-    };
+    if (progress.rootsDone >= 3 && progress.rootsDone < progress.rootsTotal && elapsed >= 10000) {
+      var remaining = elapsed * (progress.rootsTotal - progress.rootsDone) / progress.rootsDone;
+      return {
+        text: '预计还需约 ' + F.durationText(remaining),
+        detail: '按已完成范围粗估，大目录可能拉长用时',
+      };
+    }
+    return { text: '正在估算剩余时间' };
   }
 
   function errorText(body) {
@@ -666,8 +637,9 @@
     if (!body || typeof body !== 'object') throw new Error('存储清单返回了空结果。');
     if (body.state === 'running') {
       state.phase = 'running';
-      if (!state.scanStartedAt) state.scanStartedAt = Date.now();
-      state.active = syntheticProgress();
+      state.scanStartedAt = body.startedAt || state.scanStartedAt || Date.now();
+      state.lastScanMs = body.previousDurationMs ?? state.lastScanMs;
+      state.active = syntheticProgress(body);
       state.busy = false;
       state.filesLoading = false;
       render();
@@ -707,7 +679,7 @@
     if (body.state === 'ready') {
       var wasRunning = state.phase === 'running';
       if (wasRunning && state.scanStartedAt) {
-        rememberScan(Date.now() - state.scanStartedAt);
+        state.lastScanMs = Date.now() - state.scanStartedAt;
       }
       state.report = body;
       state.summary = mapSummary(body);
@@ -782,7 +754,8 @@
     try {
       var body = await fetchState();
       if (body.state === 'running') {
-        state.active = syntheticProgress();
+        state.lastScanMs = body.previousDurationMs ?? state.lastScanMs;
+        state.active = syntheticProgress(body);
         render();
         schedulePoll(1000);
         return;

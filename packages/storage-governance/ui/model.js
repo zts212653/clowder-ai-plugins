@@ -36,6 +36,7 @@
   };
   var PHASE_LABELS = {
     queued: '准备扫描',
+    preparing: '准备会话与存储来源',
     enumerating: '盘点目录',
     measuring: '读取文件大小',
     classifying: '归属分类',

@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { indexStorage, pageStorage } from './pages.js';
-import { scanStorage, type Sources } from './scan.js';
+import { scanStorage, type Sources, type StorageProgress } from './scan.js';
 
 interface OwnerContext {
   kind: 'owner-http-request';
@@ -25,8 +25,14 @@ interface Host {
   };
 }
 
+type RunningScan = {
+  state: 'running';
+  startedAt: number;
+  previousDurationMs?: number;
+  progress: Omit<StorageProgress, 'phase'> & { phase: StorageProgress['phase'] | 'preparing' };
+};
 type State =
-  | { state: 'running' }
+  | RunningScan
   | { state: 'ready'; index: ReturnType<typeof indexStorage> }
   | { state: 'error'; error: string };
 
@@ -49,14 +55,20 @@ export default {
       start(host: Host) {
         const controller = new AbortController();
         const scans = new Map<string, State>();
+        const previousDurations = new Map<string, number>();
         const readStages = new Map<string, 'sources' | 'scan'>();
         const polling = new Set<string>();
         const sources = host.conversationStorage;
         const finishScan = (userId: string, input: Sources) => {
-          void scanStorage(input, controller.signal).then(indexStorage).then(
+          const running = scans.get(userId);
+          if (running?.state !== 'running') return;
+          void scanStorage(input, controller.signal, (progress) => {
+            running.progress = progress;
+          }).then(indexStorage).then(
             (index) => {
               if (!controller.signal.aborted) {
                 readStages.delete(userId);
+                previousDurations.set(userId, Date.now() - running.startedAt);
                 scans.set(userId, { state: 'ready', index });
               }
             },
@@ -87,7 +99,11 @@ export default {
 
           if (method === 'POST') {
             if (state?.state === 'running') return json(200, state);
-            scans.set(owner.userId, { state: 'running' });
+            const running: RunningScan = {
+              state: 'running', startedAt: Date.now(), previousDurationMs: previousDurations.get(owner.userId),
+              progress: { phase: 'preparing', rootsDone: 0, rootsTotal: 0, filesSeen: 0 },
+            };
+            scans.set(owner.userId, running);
             if (sources.beginRead && sources.getRead) {
               readStages.set(owner.userId, 'sources');
               try {
@@ -102,7 +118,7 @@ export default {
               }
               if (controller.signal.aborted) return json(200, { state: 'idle' });
               const failed = scans.get(owner.userId);
-              return json(200, failed?.state === 'error' ? failed : { state: 'running' });
+              return json(200, failed?.state === 'error' ? failed : running);
             }
             try {
               finishScan(owner.userId, await sources.startRead());
@@ -113,7 +129,7 @@ export default {
           }
 
           if (state?.state === 'running' && readStages.get(owner.userId) === 'sources') {
-            if (polling.has(owner.userId)) return json(200, { state: 'running' });
+            if (polling.has(owner.userId)) return json(200, state);
             polling.add(owner.userId);
             let next: ReadState;
             try {
@@ -126,7 +142,7 @@ export default {
             }
             polling.delete(owner.userId);
             if (controller.signal.aborted) return json(200, { state: 'idle' });
-            if (next.state === 'running') return json(200, { state: 'running' });
+            if (next.state === 'running') return json(200, state);
             if (next.state === 'idle') {
               readStages.delete(owner.userId);
               scans.delete(owner.userId);
@@ -139,7 +155,7 @@ export default {
             }
             readStages.set(owner.userId, 'scan');
             finishScan(owner.userId, next.sources);
-            return json(200, { state: 'running' });
+            return json(200, state);
           }
 
           if (state?.state !== 'ready') return json(200, state ?? { state: 'idle' });
@@ -161,6 +177,7 @@ export default {
             controller.abort();
             scans.clear();
             readStages.clear();
+            previousDurations.clear();
             polling.clear();
           },
         };

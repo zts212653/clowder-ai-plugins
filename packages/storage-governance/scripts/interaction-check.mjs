@@ -257,7 +257,7 @@ try {
   await waitFor("document.querySelector('#progress .progress-card') !== null", 'scan progress');
   assert.ok(await evaluate("document.querySelector('#scan-btn').disabled"));
   assert.match(await evaluate("document.querySelector('#progress').textContent"), /已用/u);
-  assert.match(await evaluate("document.querySelector('#progress').textContent"), /首次扫描|上次扫描|预计/u);
+  assert.match(await evaluate("document.querySelector('#progress').textContent"), /首次扫描|上次扫描|预计|\u4f30\u7b97/u);
   assert.ok(await evaluate("document.querySelector('.bar.is-indeterminate') !== null"));
   await screenshot('scan-progress.png');
   await waitFor("/扫描完成/.test(document.querySelector('#notice').textContent)", 'scan completion');

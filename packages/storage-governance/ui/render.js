@@ -447,11 +447,10 @@
     var meta = progress.rootsTotal > 0
       ? [
           M.phaseLabel(progress.phase),
-          F.countText(progress.rootsDone) + ' / ' + F.countText(progress.rootsTotal) + ' 个根',
+          F.countText(progress.rootsDone) + ' / ' + F.countText(progress.rootsTotal) + ' 个扫描范围',
           F.countText(progress.filesSeen) + ' 个文件',
-          F.bytesText(progress.bytesSeen),
         ].join(' · ')
-      : '正在读取目录与文件大小';
+      : M.phaseLabel(progress.phase);
     meta += ' · 已用 ' + F.durationText(elapsed);
     var estimate = handlers.estimate || { text: '正在估算…', detail: '' };
     return el('div', { class: 'progress-card', role: 'status' }, [

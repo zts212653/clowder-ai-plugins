@@ -124,3 +124,30 @@ test('shows registered worktree directories with deduplicated totals and lazy fi
   assert.deepEqual(unassigned.files.map((row) => row.path), [unownedFile]);
   assert.equal(pageStorage(index, { worktreePath: base })?.total, 0);
 });
+
+test('separates a real linked checkout nested below a registered repository', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'storage-linked-worktree-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const child = join(root, 'worktrees', 'linked checkout');
+  const registration = join(root, '.git', 'worktrees', 'linked-checkout');
+  const image = join(child, 'ram.img');
+  const main = join(root, 'main.txt');
+  await Promise.all([mkdir(registration, { recursive: true }), mkdir(child, { recursive: true })]);
+  await Promise.all([
+    writeFile(join(registration, 'gitdir'), join(child, '.git') + '\n'),
+    writeFile(join(child, '.git'), 'gitdir: ' + registration + '\n'),
+    writeFile(main, 'main'),
+    writeFile(image, 'snapshot'),
+  ]);
+  const scanned = await scanStorage({
+    roots: [{ path: root, category: 'worktree', threadId: 'owner' }],
+    files: [],
+    threads: [{ id: 'owner', title: null }],
+    nativeSessions: [],
+    omissions: [],
+  }, new AbortController().signal);
+  assert.equal(scanned.files.find((row) => row.path === image)?.worktreePath, child);
+  assert.equal(scanned.files.find((row) => row.path === main)?.worktreePath, root);
+  assert.equal(scanned.files.length, 2);
+  assert.deepEqual(indexStorage(scanned).worktrees.map((row) => row.path).sort(), [root, child].sort());
+});

@@ -81,15 +81,18 @@ test('POST starts beginRead once and GET polls getRead before scanning', async (
         timer.unref();
       }),
     ]);
-    assert.deepEqual(bodyOf(response), { state: 'running' });
+    const progress = bodyOf(response);
+    assert.equal(progress.state, 'running');
+    assert.ok(typeof progress.startedAt === 'number' && progress.startedAt <= Date.now());
+    assert.deepEqual(progress.progress, { phase: 'preparing', rootsDone: 0, rootsTotal: 0, filesSeen: 0 });
     assert.equal(beginCalls, 1);
     assert.equal(getReadCalls, 0);
 
-    assert.deepEqual(bodyOf(await call(active, 'GET')), { state: 'running' });
+    assert.equal(bodyOf(await call(active, 'GET')).state, 'running');
     assert.equal(getReadCalls, 1);
 
     ready = true;
-    assert.deepEqual(bodyOf(await call(active, 'GET')), { state: 'running' });
+    assert.equal(bodyOf(await call(active, 'GET')).state, 'running');
     assert.equal(getReadCalls, 2);
     const readyBody = await waitForReady(active);
     assert.equal(readyBody.state, 'ready');
@@ -116,8 +119,8 @@ test('concurrent POSTs call beginRead only once', async () => {
   });
   try {
     const [first, second] = await Promise.all([call(active, 'POST'), call(active, 'POST')]);
-    assert.deepEqual(bodyOf(first), { state: 'running' });
-    assert.deepEqual(bodyOf(second), { state: 'running' });
+    assert.equal(bodyOf(first).state, 'running');
+    assert.equal(bodyOf(second).state, 'running');
     assert.equal(beginCalls, 1);
     assert.equal(getReadCalls, 0);
   } finally {
@@ -141,14 +144,14 @@ test('concurrent GETs share one getRead call and start one scan', async () => {
     },
   });
   try {
-    assert.deepEqual(bodyOf(await call(active, 'POST')), { state: 'running' });
+    assert.equal(bodyOf(await call(active, 'POST')).state, 'running');
     const first = call(active, 'GET');
     const second = call(active, 'GET');
     await new Promise((resolve) => setImmediate(resolve));
     release();
     const [firstResponse, secondResponse] = await Promise.all([first, second]);
-    assert.deepEqual(bodyOf(firstResponse), { state: 'running' });
-    assert.deepEqual(bodyOf(secondResponse), { state: 'running' });
+    assert.equal(bodyOf(firstResponse).state, 'running');
+    assert.equal(bodyOf(secondResponse).state, 'running');
     assert.equal(getReadCalls, 1);
     const readyBody = await waitForReady(active);
     assert.equal(readyBody.state, 'ready');
@@ -178,7 +181,7 @@ test('getRead error and beginRead rejection become sources-unavailable', async (
     getRead: async () => ({ state: 'error' }),
   });
   try {
-    assert.deepEqual(bodyOf(await call(getReadError, 'POST')), { state: 'running' });
+    assert.equal(bodyOf(await call(getReadError, 'POST')).state, 'running');
     assert.deepEqual(bodyOf(await call(getReadError, 'GET')), { state: 'error', error: 'sources-unavailable' });
   } finally {
     getReadError.stop();
@@ -208,7 +211,7 @@ test('stop aborts a pending two-step read without publishing ready', async () =>
       return { state: 'ready', sources: emptySources };
     },
   });
-  assert.deepEqual(bodyOf(await call(active, 'POST')), { state: 'running' });
+  assert.equal(bodyOf(await call(active, 'POST')).state, 'running');
   active.stop();
   assert.deepEqual(bodyOf(await call(active, 'GET')), { state: 'idle' });
   assert.equal(getReadCalls, 0);
@@ -237,8 +240,8 @@ test('getRead ready results page through more than one hundred rows', async (t) 
     },
   });
   try {
-    assert.deepEqual(bodyOf(await call(active, 'POST')), { state: 'running' });
-    assert.deepEqual(bodyOf(await call(active, 'GET')), { state: 'running' });
+    assert.equal(bodyOf(await call(active, 'POST')).state, 'running');
+    assert.equal(bodyOf(await call(active, 'GET')).state, 'running');
     const readyBody = await waitForReady(active);
     assert.equal(readyBody.total, 250);
     assert.equal((readyBody.files as unknown[]).length, 50);
