@@ -1,0 +1,26 @@
+pluginId: official.storage-governance
+version: 0.1.0-alpha.9
+contractVersion: 0.4.0-candidate.0
+name: 存储空间治理
+description:
+  default: 只读统计本机会话、作品、工作树、数据库与缓存占用的文件，按卷和类别展示容量、来源与漏扫原因。
+  translations:
+    en: Read-only inventory of files produced by sessions, works, worktrees and caches, grouped by volume, category and source.
+icon: { type: svg, src: assets/icon.svg }
+steps:
+  - text: 启用后，从左侧导航打开「存储空间治理」，点「开始扫描」。
+  - text: 扫描只读，不移动、不删除文件；逐文件列表可按卷和类别筛选、搜索。
+contributions:
+  - { type: webhook, id: storage-governance.page, path: panel, methods: [GET], action: { method: storage-governance.panel } }
+  - { type: webhook, id: storage-governance.scan, path: scan, methods: [GET, POST], action: { method: storage-governance.scan } }
+features:
+  - id: storage-governance
+    name: 存储空间治理
+    resources: []
+    contributions:
+      - { type: webhook, id: storage-governance.page }
+      - { type: webhook, id: storage-governance.scan }
+runtime:
+  transport: builtin
+  entrypoint: dist/index.js
+  dataDirectory: storage-governance
