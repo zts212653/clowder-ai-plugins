@@ -1,0 +1,16 @@
+pluginId: official.agent-dsh
+version: 0.1.0-alpha.1
+contractVersion: 0.4.0-candidate.0
+name: DeepSeek Harness
+description:
+  default: DeepSeek Harness Desktop 的原生 ACP 接入。
+  translations:
+    en: Adapt DeepSeek Harness Desktop ACP sessions.
+features:
+  - id: dsh
+    name: DeepSeek Harness
+    resources: []
+runtime:
+  transport: builtin
+  entrypoint: src/index.mjs
+  dataDirectory: agent-dsh
