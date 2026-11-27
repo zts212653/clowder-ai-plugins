@@ -196,9 +196,6 @@
     if (page.unavailable) {
       return el('div', { class: 'table-empty' }, [
         el('p', { text: '当前 Host 没有返回完整的工作树汇总，不能显示可能不完整的目录合计。请重新扫描或更新 Host 后重试。' }),
-        handlers.onScan
-          ? el('button', { class: 'btn ghost', type: 'button', text: '重新扫描', onClick: handlers.onScan })
-          : null,
       ]);
     }
     if (page.rows.length === 0) {
@@ -511,7 +508,7 @@
       idle: {
         title: '还没有扫描结果',
         body: '扫描会读取 Host 登记的会话、附件、作品、工作树与缓存目录，只统计大小和来源，不改动任何文件。',
-        action: { label: '开始扫描', onClick: handlers.onScan },
+        action: null,
       },
       error: {
         title: '存储清单读取失败',
@@ -523,7 +520,7 @@
     if (content.action) {
       nodes.push(
         el('button', {
-          class: 'btn ' + (kind === 'idle' ? 'primary' : 'secondary'),
+          class: 'btn secondary',
           type: 'button',
           text: content.action.label,
           onClick: content.action.onClick,

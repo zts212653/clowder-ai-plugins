@@ -344,7 +344,7 @@
         R.renderEmpty(
           kind,
           { reason: state.error },
-          { onScan: startScan, onReload: function () { void boot(); } },
+          { onReload: function () { void boot(); } },
         ),
       );
     }
@@ -430,7 +430,6 @@
             filtered: M.filterActive(state.filters),
             onDirectory: openWorktree,
             onClearFilters: clearFilters,
-            onScan: startScan,
           }),
         );
       } else {
@@ -734,10 +733,7 @@
       state.active = null;
       state.scanStartedAt = 0;
       state.phase = state.summary ? 'ready' : 'idle';
-      setNotice('danger', error instanceof Error ? error.message : String(error), {
-        label: '重试',
-        onClick: startScan,
-      });
+      setNotice('danger', error instanceof Error ? error.message : String(error));
     }
   }
 

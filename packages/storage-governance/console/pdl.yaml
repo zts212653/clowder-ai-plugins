@@ -6,6 +6,9 @@ inserts:
     node:
       title: t:storageGovernance.entry
       icon: box
+      sources:
+        scanStatus: scanStatus
+      activity: '@scanStatus.activity'
       open:
         node: storageGovernance.page
         anchor: shell
@@ -26,3 +29,8 @@ views:
 requests:
   page:
     path: panel
+  scanStatus:
+    path: scan
+    query:
+      view: status
+    refreshMs: 5000

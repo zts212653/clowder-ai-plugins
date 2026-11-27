@@ -98,8 +98,10 @@ export default {
           if (method !== 'GET' && method !== 'POST') return json(405, { error: 'invalid-method' });
           if (owner.operation !== (method === 'GET' ? 'read' : 'write')) return json(403, { error: 'owner-required' });
           await owner.assertCurrent();
-          const state = scans.get(owner.userId);
-          if (!sources) return json(200, { state: 'error', error: 'host-capability-unavailable' });
+          let state = scans.get(owner.userId);
+          const statusOnly = method === 'GET' && isRecord(query) && query.view === 'status';
+          if (!sources)
+            return json(200, statusOnly ? { activity: null } : { state: 'error', error: 'host-capability-unavailable' });
           const body = isRecord(input.request.body) ? input.request.body : {};
           const postQuery = isRecord(body.query) ? body.query : undefined;
           if (method === 'POST' && postQuery) {
@@ -145,34 +147,34 @@ export default {
             return json(200, scans.get(owner.userId) ?? { state: 'idle' });
           }
 
-          if (state?.state === 'running' && readStages.get(owner.userId) === 'sources') {
-            if (polling.has(owner.userId)) return json(200, state);
+          if (state?.state === 'running' && readStages.get(owner.userId) === 'sources' && !polling.has(owner.userId)) {
             polling.add(owner.userId);
-            let next: ReadState;
-            try {
-              next = await sources.getRead!();
-            } catch {
-              polling.delete(owner.userId);
-              readStages.delete(owner.userId);
-              if (!controller.signal.aborted) scans.set(owner.userId, { state: 'error', error: 'sources-unavailable' });
-              return json(200, controller.signal.aborted ? { state: 'idle' } : { state: 'error', error: 'sources-unavailable' });
-            }
+            const next = await Promise.resolve()
+              .then(() => sources.getRead!())
+              .catch(() => ({ state: 'error' as const }));
             polling.delete(owner.userId);
-            if (controller.signal.aborted) return json(200, { state: 'idle' });
-            if (next.state === 'running') return json(200, state);
-            if (next.state === 'idle') {
+            if (controller.signal.aborted) {
+              state = undefined;
+            } else if (next.state === 'ready') {
+              readStages.set(owner.userId, 'scan');
+              finishScan(owner.userId, next.sources);
+            } else if (next.state === 'idle') {
               readStages.delete(owner.userId);
               scans.delete(owner.userId);
-              return json(200, { state: 'idle' });
-            }
-            if (next.state === 'error') {
+              state = undefined;
+            } else if (next.state === 'error') {
               readStages.delete(owner.userId);
-              scans.set(owner.userId, { state: 'error', error: 'sources-unavailable' });
-              return json(200, { state: 'error', error: 'sources-unavailable' });
+              state = { state: 'error', error: 'sources-unavailable' };
+              scans.set(owner.userId, state);
             }
-            readStages.set(owner.userId, 'scan');
-            finishScan(owner.userId, next.sources);
-            return json(200, state);
+          }
+
+          if (statusOnly) {
+            const activity =
+              state?.state === 'running' ? { kind: 'busy', label: '正在扫描' }
+                : state?.state === 'ready' ? { kind: 'unread', label: '扫描完成' }
+                  : null;
+            return json(200, { activity });
           }
 
           if (state?.state !== 'ready') return json(200, state ?? { state: 'idle' });

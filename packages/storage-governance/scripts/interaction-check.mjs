@@ -101,6 +101,12 @@ async function screenshot(name) {
 try {
   await send('Runtime.enable');
   await send('Page.enable');
+  const previewUrl = 'file:///' + preview.replaceAll('\\', '/');
+  await send('Page.navigate', { url: previewUrl + '?state=empty' });
+  await waitFor("document.querySelector('#empty .empty-title')?.textContent === '还没有扫描结果'", 'empty page');
+  assert.equal(await evaluate("[...document.querySelectorAll('button')].filter(button => !button.closest('[hidden]') && button.textContent === '开始扫描').length"), 1);
+  pass('first scan has a single visible entry point');
+  await send('Page.navigate', { url: previewUrl });
   await waitFor("document.querySelector('#totals .stat-value') !== null", 'initial screen');
   const initialRequests = await evaluate("window.__sgRequests || []");
   assert.ok(initialRequests.some((request) => request.method === 'GET' && request.path === 'scan'));

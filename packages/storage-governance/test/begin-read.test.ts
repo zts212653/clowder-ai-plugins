@@ -57,7 +57,7 @@ async function waitForReady(active: ReturnType<typeof start>) {
   assert.fail('scan did not become ready');
 }
 
-test('POST starts beginRead once and GET polls getRead before scanning', async () => {
+test('sidebar status advances a scan that started in the panel', async () => {
   let ready = false;
   let beginCalls = 0;
   let getReadCalls = 0;
@@ -74,6 +74,7 @@ test('POST starts beginRead once and GET polls getRead before scanning', async (
     },
   });
   try {
+    assert.deepEqual(bodyOf(await call(active, 'GET', { view: 'status' })), { activity: null });
     const response = await Promise.race([
       call(active, 'POST'),
       new Promise<never>((_, reject) => {
@@ -88,13 +89,20 @@ test('POST starts beginRead once and GET polls getRead before scanning', async (
     assert.equal(beginCalls, 1);
     assert.equal(getReadCalls, 0);
 
-    assert.equal(bodyOf(await call(active, 'GET')).state, 'running');
+    assert.deepEqual(bodyOf(await call(active, 'GET', { view: 'status' })), {
+      activity: { kind: 'busy', label: '正在扫描' },
+    });
     assert.equal(getReadCalls, 1);
 
     ready = true;
-    assert.equal(bodyOf(await call(active, 'GET')).state, 'running');
+    assert.deepEqual(bodyOf(await call(active, 'GET', { view: 'status' })), {
+      activity: { kind: 'busy', label: '正在扫描' },
+    });
     assert.equal(getReadCalls, 2);
     const readyBody = await waitForReady(active);
+    assert.deepEqual(bodyOf(await call(active, 'GET', { view: 'status' })), {
+      activity: { kind: 'unread', label: '扫描完成' },
+    });
     assert.equal(readyBody.state, 'ready');
     assert.equal(readyBody.total, 0);
     assert.equal(beginCalls, 1);
