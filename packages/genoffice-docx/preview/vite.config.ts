@@ -24,6 +24,18 @@ export default defineConfig({
         return "import { readPreviewArchive } from 'genoffice-preview-archive';\n" +
           source.replace(check, '  for (const [name, bytes] of await readPreviewArchive(zip.files)) zip.file(name, bytes)\n');
       }
+      if (id.endsWith('/docx-engine/src/parse.ts')) {
+        const imageEncoding = "  const base64 = await file.async('base64')\n  return `data:${mime};base64,${base64}`";
+        if (!source.includes(imageEncoding)) throw new Error('Frozen GenOffice DOCX inline image reader changed');
+        // Keep the same data URL using the browser's encoder for potentially large embedded pictures.
+        return source.replace(imageEncoding, `  const image = new Blob([await file.async('arraybuffer')], { type: mime })
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(image)
+  })`);
+      }
       if (!id.endsWith('/pptx-engine/src/zip.ts')) return null;
       const nativeHash = "createHash('sha256').update(bytes).digest('hex')";
       const nativeText = "Buffer.from(bytes).toString('utf8')";
