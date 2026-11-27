@@ -1,6 +1,8 @@
 import type { FeatureContext, PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import type { ExternalReviewAggregate, GitHubWaitMatchedDelta, TaskItem } from './business/model/index.js';
 import { SdkCommunityObjectStore } from './business/domains/community/CommunityObjectStore.js';
+import { SdkCommunityEventLog } from './business/domains/community/CommunityEventLog.js';
+import { parseGitHubReviewDeliveryProof } from './business/domains/community/external-review/external-review-verdict-submission.js';
 import type { GitHubSnapshot } from './tracking-runtime.js';
 
 interface NotificationPolicyOptions {
@@ -10,6 +12,11 @@ interface NotificationPolicyOptions {
 }
 
 type NotificationLogContext = Pick<FeatureContext, 'config'> & { readonly log?: FeatureContext['log'] };
+
+interface SelfReceipt {
+  readonly aggregate: ExternalReviewAggregate;
+  readonly principal: { readonly catId: string; readonly threadId: string };
+}
 
 function sourceId(sourceRef: string | undefined, prefixes: readonly string[]): string | null {
   for (const prefix of prefixes) {
@@ -22,28 +29,34 @@ function sourceId(sourceRef: string | undefined, prefixes: readonly string[]): s
 
 function isExactSelfReceipt(
   match: GitHubWaitMatchedDelta,
-  receipt: ExternalReviewAggregate | null,
+  proof: SelfReceipt | null,
   task: TaskItem | undefined,
   snapshot: GitHubSnapshot,
 ): boolean {
   const active = task?.automationState?.await;
+  const receipt = proof?.aggregate;
   const delivery = receipt?.delivery;
-  if (!task?.subjectKey || !active || !receipt || delivery?.kind !== 'delivered' || !snapshot.headSha) return false;
-  if (receipt.reviewerCatId !== task.ownerCatId || receipt.reviewerThreadId !== task.threadId) return false;
-  if (receipt.headGeneration !== active.generation || receipt.currentHeadSha !== snapshot.headSha || delivery.headSha !== snapshot.headSha) return false;
-  const anchor = /#(pullrequestreview|issuecomment|discussion_r)-?([1-9][0-9]*)$/.exec(delivery.githubUrl);
-  if (!anchor) return false;
-  const [, surface, id] = anchor;
-  if (surface === 'pullrequestreview') {
+  if (!task?.subjectKey || !active || !proof || !receipt || delivery?.kind !== 'delivered' || !snapshot.headSha) return false;
+  if (proof.principal.catId !== task.ownerCatId || proof.principal.threadId !== task.threadId) return false;
+  // HEAD occurrences and wait renewals have independent generation counters.
+  // Prove delivery freshness inside the review aggregate, including a returning SHA.
+  if (!Number.isSafeInteger(receipt.headGeneration) || receipt.headGeneration < 1 ||
+      receipt.lastDeliveredHeadGeneration !== receipt.headGeneration || receipt.lastDeliveredHeadSha !== snapshot.headSha ||
+      receipt.currentHeadSha !== snapshot.headSha || delivery.headSha !== snapshot.headSha) return false;
+  const anchor = parseGitHubReviewDeliveryProof(delivery.githubUrl);
+  if (!anchor || anchor.subjectKey !== task.subjectKey) return false;
+  const { surface, id } = anchor;
+  if (surface === 'review') {
     if (match.kind !== 'pr_review_decision_changed' && match.kind !== 'pr_review_result_available') return false;
     const reviewId = sourceId(match.sourceRef, ['review:', 'github:pr-review:']);
     if (snapshot.reviews.some(review => String(review.id) === reviewId && review.state === 'DISMISSED')) return false;
     return reviewId === id;
   }
-  if (match.kind !== 'pr_conversation_comment_added' && match.kind !== 'pr_inline_comment_added' && match.kind !== 'pr_review_result_available') return false;
-  const prefixes = surface === 'issuecomment'
-    ? ['conversation:', 'github:pr-comment:']
-    : ['inline:', 'github:pr-comment:'];
+  const expectedKind = surface === 'conversation' ? 'pr_conversation_comment_added' : 'pr_inline_comment_added';
+  if (match.kind !== expectedKind && match.kind !== 'pr_review_result_available') return false;
+  const prefix = surface === 'conversation' ? 'conversation:' : 'inline:';
+  // A result has no comment kind to disambiguate the provider's shared numeric ID.
+  const prefixes = match.kind === 'pr_review_result_available' ? [prefix] : [prefix, 'github:pr-comment:'];
   return sourceId(match.sourceRef, prefixes) === id;
 }
 
@@ -60,7 +73,7 @@ function shouldCoalescePendingHeadUpdate(
   allMatches: readonly GitHubWaitMatchedDelta[],
   options: NotificationPolicyOptions,
   snapshot: GitHubSnapshot,
-  receipt: ExternalReviewAggregate | null,
+  receipt: SelfReceipt | null,
 ): boolean {
   const { task, subjectState } = options;
   const awaitsCiTerminal = task?.automationState?.await?.continuation.when.some(predicate => predicate.kind === 'pr_ci_terminal') === true;
@@ -74,10 +87,24 @@ async function loadSelfReceipt(
   context: NotificationLogContext,
   task: TaskItem | undefined,
   storage: PluginStorageHost | undefined,
-): Promise<ExternalReviewAggregate | null> {
+): Promise<SelfReceipt | null> {
   if (!task?.subjectKey || !storage) return null;
   try {
-    return (await new SdkCommunityObjectStore(storage).get(task.subjectKey))?.externalReview ?? null;
+    const aggregate = (await new SdkCommunityObjectStore(storage).get(task.subjectKey))?.externalReview;
+    const delivery = aggregate?.delivery;
+    const fingerprint = aggregate?.deliveredVerdictFingerprint;
+    if (!aggregate || delivery?.kind !== 'delivered' || typeof fingerprint !== 'string' || !/^[a-f0-9]{24}$/.test(fingerprint)) return null;
+    const sourceEventId = `f168:review-verdict:${task.subjectKey}:g${aggregate.headGeneration}:${fingerprint}`;
+    const event = await new SdkCommunityEventLog(storage).getEvent(sourceEventId);
+    if (!event || event.subjectKey !== task.subjectKey || event.kind !== 'case.review_verdict_recorded') return null;
+    const payload = event.payload, recorded = payload.delivery, principal = payload.principal;
+    if (payload.headSha !== aggregate.currentHeadSha || payload.headGeneration !== aggregate.headGeneration ||
+        payload.fingerprint !== fingerprint || !recorded || typeof recorded !== 'object' ||
+        !('kind' in recorded) || recorded.kind !== 'delivered' || !('headSha' in recorded) || recorded.headSha !== delivery.headSha ||
+        !('githubUrl' in recorded) || recorded.githubUrl !== delivery.githubUrl ||
+        !principal || typeof principal !== 'object' || !('catId' in principal) || typeof principal.catId !== 'string' || !principal.catId ||
+        !('threadId' in principal) || typeof principal.threadId !== 'string' || !principal.threadId) return null;
+    return { aggregate, principal: { catId: principal.catId, threadId: principal.threadId } };
   } catch (error) {
     context.log?.('info', 'GitHub self-receipt proof unavailable; provider events remain deliverable', {
       taskId: task.id,
@@ -108,7 +135,7 @@ export async function readNotificationFilter(
       const review = match.kind === 'pr_review_decision_changed' || match.kind === 'pr_review_result_available';
       if (comment || review) {
         const id = Number(match.sourceRef?.split(':').at(-1));
-        const fromComments = comment || /^(?:conversation:|github:(?:pr|issue)-comment:)/.test(match.sourceRef ?? '');
+        const fromComments = comment || /^(?:conversation:|inline:|github:(?:pr|issue)-comment:)/.test(match.sourceRef ?? '');
         const surface = match.kind === 'pr_inline_comment_added' || match.sourceRef?.startsWith('inline:') ? 'inline' : 'conversation';
         const author = fromComments
           ? snapshot.comments.find(row => row.id === id && (row.commentType ?? 'conversation') === surface)?.author ?? (review ? reviewer : undefined)

@@ -99,17 +99,27 @@ export function isSameDelivery(left: ReviewDeliveryOutcome | null, right: Review
         left.reason === (right as Extract<ReviewDeliveryOutcome, { kind: 'pending_delivery' }>).reason;
 }
 
-export function isGitHubReviewDeliveryProof(urlText: string, repoFullName: string, prNumber: number): boolean {
+export function parseGitHubReviewDeliveryProof(urlText: string): {
+  readonly subjectKey: string;
+  readonly surface: 'review' | 'conversation' | 'inline';
+  readonly id: string;
+} | null {
   try {
     const url = new URL(urlText);
-    if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== 'github.com') return false;
+    if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== 'github.com') return null;
     const path = url.pathname.replace(/\/+$/, '').toLowerCase();
-    const expected = `/${repoFullName.toLowerCase()}/pull/${prNumber}`;
-    if (path !== expected && path !== `${expected}/files`) return false;
-    return /^#(?:pullrequestreview-|discussion_r|issuecomment-|r)\d+$/.test(url.hash.toLowerCase());
+    const target = /^\/([^/]+\/[^/]+)\/pull\/([0-9]+)(?:\/files)?$/.exec(path);
+    const anchor = /^#(pullrequestreview-|discussion_r|issuecomment-|r)([0-9]+)$/.exec(url.hash.toLowerCase());
+    if (!target || !anchor) return null;
+    return { subjectKey: `pr:${target[1]}#${target[2]}`, id: anchor[2]!,
+      surface: anchor[1] === 'pullrequestreview-' ? 'review' : anchor[1] === 'issuecomment-' ? 'conversation' : 'inline' };
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function isGitHubReviewDeliveryProof(urlText: string, repoFullName: string, prNumber: number): boolean {
+  return parseGitHubReviewDeliveryProof(urlText)?.subjectKey === `pr:${repoFullName.toLowerCase()}#${prNumber}`;
 }
 
 export function verdictFingerprint(input: ExternalReviewVerdictRecordInput, headGeneration: number): string {

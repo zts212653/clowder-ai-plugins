@@ -21,6 +21,14 @@ export interface ICommunityEventLog {
 export class SdkCommunityEventLog implements ICommunityEventLog {
   private readonly directory: JournalDirectory;
   constructor(private readonly storage: PluginStorageHost) { this.directory = new JournalDirectory(storage); }
+  /** Exact immutable lookup; notification proof must not initialize or scan the journal. */
+  async getEvent(sourceEventId: string): Promise<CommunityEvent | null> {
+    const entry = await this.storage.get(eventKey(sourceEventId));
+    if (!entry) return null;
+    const { event } = storedEvent(entry.value);
+    if (event.sourceEventId !== sourceEventId) throw new Error('Immutable event identity mismatch');
+    return event;
+  }
   initialize(): Promise<void> { return initializeJournal(this.storage); }
   private async ready(): Promise<PluginStorageEntry> {
     await this.initialize();
