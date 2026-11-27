@@ -1,0 +1,18 @@
+{
+  "name": "@clowder-ai/agent-claude-code",
+  "version": "0.1.0-alpha.1",
+  "description": "Claude Code print-mode adapter for Clowder AI",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "exports": {
+    ".": "./src/index.mjs",
+    "./manifest": "./plugin.yaml"
+  },
+  "files": ["src", "plugin.yaml", "agent-adapter.json", "README.md"],
+  "scripts": {
+    "build": "node --check src/index.mjs",
+    "test": "node --test test/*.test.mjs",
+    "prepack": "npm run build"
+  }
+}

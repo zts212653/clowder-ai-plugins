@@ -1,0 +1,5 @@
+{
+  "protocolVersion": 1,
+  "id": "claude-code",
+  "operations": ["describe", "detect", "openSession", "startTurn", "cancel", "release"]
+}

@@ -1,0 +1,16 @@
+pluginId: official.agent-claude-code
+version: 0.1.0-alpha.1
+contractVersion: 0.4.0-candidate.0
+name: Claude Code
+description:
+  default: 接入 Claude Code 原生 CLI 会话。
+  translations:
+    en: Adapt native Claude Code CLI sessions.
+features:
+  - id: claude-code
+    name: Claude Code
+    resources: []
+runtime:
+  transport: builtin
+  entrypoint: src/index.mjs
+  dataDirectory: agent-claude-code
