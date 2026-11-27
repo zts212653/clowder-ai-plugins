@@ -15,7 +15,13 @@ importers:
         specifier: 2.9.0
         version: 2.9.0
 
+  packages/agent-agy: {}
+
+  packages/agent-claude-code: {}
+
   packages/agent-codex: {}
+
+  packages/agent-dsh: {}
 
   packages/agent-kimi: {}
 
