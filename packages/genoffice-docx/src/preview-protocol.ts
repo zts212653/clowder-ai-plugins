@@ -19,6 +19,7 @@ export interface PreviewSnapshot {
 }
 
 export const PREVIEW_MEDIA_TYPES = {
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   pdf: 'application/pdf',
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 } as const;

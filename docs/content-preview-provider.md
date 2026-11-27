@@ -2,7 +2,7 @@
 
 A builtin static plugin can declare a `content-preview-provider` with a versioned isolated HTML surface and 1–64 `formats` pairs. Each pair declares a single lower-case alphanumeric extension without its dot and the media type passed to the viewer. The Host matches the last filename extension after lowercasing it. The media type is carried in the snapshot. The viewer validates the bytes.
 
-Each extension may appear only once per manifest, across all preview contributions. When multiple enabled packages match the same extension, the Host rejects the ambiguous request before reading the file. The `docx` extension is reserved for the existing DOCX editor entry point. A single package can declare that editor alongside preview providers for other extensions.
+Each extension may appear only once per manifest, across all preview contributions. When multiple enabled packages match the same extension, the Host rejects the ambiguous request before reading the file. A single package can declare a DOCX preview and a DOCX editor. The preview receives a read-only file snapshot, and opening it does not create an editor session.
 
 The other fields are `id`, `surface` and `bridgeVersion`. A viewer contribution has no editor operations or materializer.
 

@@ -1,15 +1,15 @@
 pluginId: dev.clowder.genoffice-docx
-version: 0.1.0-alpha.5
+version: 0.1.0-alpha.6
 contractVersion: 0.1.0
 name: GenOffice
 icon:
   type: svg
   src: assets/icon.svg
 description:
-  default: Edit DOCX together and preview PDF and PPTX in your Clowder workspace.
-    Requires a compatible Host.
+  default: Edit DOCX together and preview DOCX, PDF and PPTX in your Clowder
+    workspace. Requires a compatible Host.
   translations:
-    zh-CN: 在 Clowder 工作空间共同编辑 DOCX，只读预览 PDF 和 PPTX。需要兼容的宿主。
+    zh-CN: 在 Clowder 工作空间共同编辑 DOCX，只读预览 DOCX、PDF 和 PPTX。需要兼容的宿主。
 contributions:
   - type: content-editor-provider
     id: genoffice-docx
@@ -34,13 +34,15 @@ contributions:
   - type: content-preview-provider
     id: genoffice-preview
     formats:
+      - extension: docx
+        mediaType: application/vnd.openxmlformats-officedocument.wordprocessingml.document
       - extension: pdf
         mediaType: application/pdf
       - extension: pptx
         mediaType: application/vnd.openxmlformats-officedocument.presentationml.presentation
     surface:
       entrypoint: renderer/preview/index.html
-      integrity: sha256-aD2UlzDy30bDtohjufykrx+LqweUzWYVazkDoC1ysO0=
+      integrity: sha256-7i9fQEIQZkfxOzwWtLTLFtFLBtsQe8bg8kLPDUawoZ4=
       sandbox: dedicated-origin-iframe
       navigationPolicy: navigation-api-deny
     bridgeVersion: 1.0.0
@@ -52,7 +54,7 @@ features:
       - type: content-editor-provider
         id: genoffice-docx
   - id: preview-office
-    name: Preview PDF and PPTX
+    name: Preview DOCX, PDF and PPTX
     resources: []
     contributions:
       - type: content-preview-provider

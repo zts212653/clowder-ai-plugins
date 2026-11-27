@@ -1965,8 +1965,7 @@
               "extension": {
                 "type": "string",
                 "pattern": "^[a-z0-9]+$",
-                "maxLength": 32,
-                "not": { "const": "docx" }
+                "maxLength": 32
               },
               "mediaType": {
                 "type": "string",

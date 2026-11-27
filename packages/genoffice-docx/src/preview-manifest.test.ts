@@ -27,6 +27,7 @@ test('preview contribution coexists with the unchanged DOCX editor', async () =>
   assert.equal(preview.type, 'content-preview-provider');
   assert.ok(Array.isArray(preview.formats));
   assert.deepEqual(preview.formats, [
+    { extension: 'docx', mediaType: DOCX },
     { extension: 'pdf', mediaType: PDF },
     { extension: 'pptx', mediaType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
   ]);

@@ -61,6 +61,7 @@ run(process.execPath, [
   '--noEmit', '--strict', '--skipLibCheck', '--target', 'ES2022', '--module', 'ESNext',
   '--moduleResolution', 'Bundler', '--jsx', 'react-jsx', '--lib', 'ES2022,DOM,DOM.Iterable',
   join(appRoot, 'preview', 'main.ts'), join(appRoot, 'preview', 'vite.config.ts'),
+  join(sourceRoot, 'apps', 'docs', 'src', 'renderer', 'env.d.ts'),
   join(sourceRoot, 'packages', 'pptx-render', 'src', 'bidi-js.d.ts'),
 ], appRoot);
 const viteBin = join(sourceRoot, 'node_modules', 'vite', 'bin', 'vite.js');

@@ -1,0 +1,26 @@
+.docx-preview-page {
+  box-sizing: border-box;
+  width: min(50rem, calc(100% - 24px));
+  margin: 12px auto;
+  padding: clamp(16px, 5vw, 48px);
+  background: #fff;
+  color: #202124;
+  font-size: 16px;
+  line-height: 1.45;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+.docx-preview-page p {
+  margin: 0 0 0.5em;
+}
+
+.docx-preview-page table {
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.docx-preview-page img {
+  max-width: 100%;
+  object-fit: contain;
+}

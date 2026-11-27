@@ -6,7 +6,7 @@ export default defineConfig({
   esbuild: { jsx: 'automatic' },
   build: { outDir: 'dist', target: 'chrome120' },
   plugins: [{
-    name: 'genoffice-read-only-pptx',
+    name: 'genoffice-read-only-office',
     enforce: 'pre',
     resolveId(id) {
       if (id === 'genoffice-preview-archive') return fileURLToPath(new URL('../src/preview-archive.ts', import.meta.url)).replaceAll('\\', '/');
@@ -18,6 +18,12 @@ export default defineConfig({
       return 'function deny() { throw new Error("Desktop write APIs are unavailable in preview"); } export { deny as createWriteStream, deny as pipeline, deny as deflateSync }; export const randomUUID = () => crypto.randomUUID();';
     },
     transform(source, id) {
+      if (id.endsWith('/docx-engine/src/zip-load.ts')) {
+        const check = '  assertZipWithinLimits(zip)\n';
+        if (!source.includes(check)) throw new Error('Frozen GenOffice DOCX archive loader changed');
+        return "import { readPreviewArchive } from 'genoffice-preview-archive';\n" +
+          source.replace(check, '  for (const [name, bytes] of await readPreviewArchive(zip.files)) zip.file(name, bytes)\n');
+      }
       if (!id.endsWith('/pptx-engine/src/zip.ts')) return null;
       const nativeHash = "createHash('sha256').update(bytes).digest('hex')";
       const nativeText = "Buffer.from(bytes).toString('utf8')";

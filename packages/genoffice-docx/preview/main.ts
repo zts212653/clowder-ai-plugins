@@ -44,12 +44,16 @@ startPreviewBridge({
           if (error) showError(error);
           else setStatus(snapshot.fileName);
         });
-      } else {
+      } else if (format === 'pptx') {
         const { mountPptxPreview } = await import('./pptx');
         await mountPptxPreview(stage, snapshot.bytes, (error) => {
           if (error) showError(error);
           else setStatus(snapshot.fileName);
         });
+      } else {
+        const { mountDocxPreview } = await import('./docx');
+        await mountDocxPreview(stage, snapshot.bytes);
+        setStatus(snapshot.fileName);
       }
     })().catch(showError);
   },

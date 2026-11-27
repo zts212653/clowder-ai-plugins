@@ -7,7 +7,7 @@
 ## 开始使用
 
 1. 安装并启用 `@clowder-ai/genoffice-docx`。
-2. 在 Workspace 文件树打开文档。DOCX 可协作编辑、评论和修订，PDF 与 PPTX 可只读翻页和缩放。有文本层的 PDF 可选择和搜索文本。
+2. 在 Workspace 文件树打开文档。DOCX 直接显示只读预览，点「协作编辑」可编辑、评论和修订。PDF 与 PPTX 可只读翻页和缩放。有文本层的 PDF 可选择和搜索文本。
 
 需要 Host 支持相应的插件能力及 Workspace 文件授权。预览保留源文件，复杂字体、SmartArt、三维及部分嵌入对象的显示可能与 PowerPoint 不同。无法预览时可通过文件菜单用系统默认应用打开。
 

@@ -13,6 +13,7 @@ import {
 const ORIGIN = 'https://host.example';
 const NONCE = 'handshake_0123456789abcdef0123456789abcdef';
 const OTHER_NONCE = 'handshake_fedcba9876543210fedcba9876543210';
+const DOCX = PREVIEW_MEDIA_TYPES.docx;
 const PDF = PREVIEW_MEDIA_TYPES.pdf;
 const PPTX = PREVIEW_MEDIA_TYPES.pptx;
 
@@ -87,8 +88,9 @@ test('snapshot accepts one declared media type with real bytes only', () => {
     mediaType: PDF,
     bytes: new ArrayBuffer(4),
   };
-  const allowed = new Set([PDF, PPTX]);
+  const allowed = new Set([DOCX, PDF, PPTX]);
   assert.equal(isSnapshotMessage(base, allowed), true);
+  assert.equal(isSnapshotMessage({ ...base, mediaType: DOCX }, allowed), true);
   assert.equal(isSnapshotMessage({ ...base, bytes: new ArrayBuffer(0) }, allowed), false);
   assert.equal(isSnapshotMessage({ ...base, mediaType: 'text/html' }, allowed), false);
   assert.equal(isSnapshotMessage({ ...base, fileName: '' }, allowed), false);
@@ -96,6 +98,7 @@ test('snapshot accepts one declared media type with real bytes only', () => {
 });
 
 test('format dispatch maps only declared media types', () => {
+  assert.equal(previewFormatFor(DOCX), 'docx');
   assert.equal(previewFormatFor(PDF), 'pdf');
   assert.equal(previewFormatFor(PPTX), 'pptx');
   assert.equal(previewFormatFor('application/zip'), null);
