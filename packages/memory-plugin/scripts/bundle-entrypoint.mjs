@@ -1,6 +1,6 @@
 import { copyFile, mkdir, readdir } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
@@ -56,4 +56,12 @@ if (verifiedBindings) {
   await Promise.all(names.map((name) => copyFile(join(verifiedBindings, name), join(nativeDir, name))));
 } else {
   await copyFile(join(sqlitePackage, 'build', 'Release', 'better_sqlite3.node'), join(nativeDir, localName));
+}
+
+// Stage the vec0 extension for the current build platform. It is a build-time
+// dependency only, so installed workers do not resolve it from node_modules.
+const platform = `${process.platform}-${process.arch}`;
+if (['darwin-arm64', 'darwin-x64', 'linux-arm64', 'linux-x64', 'win32-x64'].includes(platform)) {
+  const extension = require('sqlite-vec').getLoadablePath();
+  await copyFile(extension, join(nativeDir, basename(extension)));
 }

@@ -5,7 +5,7 @@ import Database from 'better-sqlite3';
 import { EventMemoryStore } from './events/EventMemoryStore.js';
 import type { MemoryHostPorts } from './host-port.js';
 
-export async function openMemoryStorage({ memoryDatabase, memoryData }: MemoryHostPorts): Promise<{
+export async function openMemoryStorage({ memoryDatabase, memoryData, memoryEmbedding }: MemoryHostPorts): Promise<{
   db: Database.Database;
   events: EventMemoryStore;
   runWrite<T>(work: () => T | Promise<T>): Promise<T>;
@@ -20,6 +20,14 @@ export async function openMemoryStorage({ memoryDatabase, memoryData }: MemoryHo
     db.pragma('foreign_keys = ON');
     const schema = db.prepare('SELECT MAX(version) FROM schema_version').pluck().get();
     if (schema !== 84) throw new Error(`memory storage format 1 requires schema 84, received ${String(schema)}`);
+    if (memoryEmbedding) {
+      const suffix = process.platform === 'win32' ? 'dll' : process.platform === 'darwin' ? 'dylib' : 'so';
+      try {
+        db.loadExtension(fileURLToPath(new URL(`./native/vec0.${suffix}`, import.meta.url)));
+      } catch {
+        // A missing or incompatible vec0 leaves lexical retrieval available.
+      }
+    }
     if (memoryData.eventDbPath !== ':memory:') await mkdir(dirname(memoryData.eventDbPath), { recursive: true });
     await events.initialize();
   } catch (error) {

@@ -74,6 +74,8 @@ const MAX_VALUE = 10000;
 /** Host ceilings for retrieval, unchanged from the live search route. */
 const MAX_QUERY = 2000;
 const MAX_RESULTS = 20;
+/** The live route's ceiling for surrounding passages per raw hit. */
+const MAX_CONTEXT_WINDOW = 5;
 
 /** Which data layer a retrieval targets. Mirrors the live route's `scope`. */
 export const SEARCH_SCOPES = ['docs', 'memory', 'threads', 'sessions', 'all'] as const;
@@ -98,6 +100,16 @@ export interface SearchOptionsDto {
   readonly threadId?: string;
   readonly dateFrom?: string;
   readonly dateTo?: string;
+  /** Surrounding passages to include per raw hit; absent means the hit's own passages only. */
+  readonly contextWindow?: number;
+  /**
+   * Include candidates reserved for pull surfaces.
+   *
+   * Host-derived, never caller-derived: ordinary recall leaves it out and thus
+   * never sees these rows, while a surface that already established the caller
+   * is pulling explicitly asks for them.
+   */
+  readonly includePullOnly?: boolean;
   /** Include the scoring breakdown on each hit. */
   readonly explain?: boolean;
 }
@@ -105,6 +117,27 @@ export interface SearchOptionsDto {
 export interface SearchInput {
   readonly query: string;
   readonly options: SearchOptionsDto;
+}
+
+/**
+ * One passage of a hit's own document, returned when the caller asked for
+ * `depth: 'raw'`.
+ *
+ * Field-for-field the Host's existing `EvidenceItem.passages` entry, so a
+ * consumer that already reads the live response keeps working across the
+ * plugin boundary.
+ */
+export interface SearchPassageDto {
+  /** The document this passage belongs to; absent when it is the hit's own. */
+  readonly docAnchor?: string;
+  readonly passageId: string;
+  readonly content: string;
+  readonly speaker?: string;
+  readonly createdAt?: string;
+  readonly threadId?: string;
+  readonly messageId?: string;
+  /** Surrounding passages, present only when the caller asked for a context window. */
+  readonly context?: readonly Omit<SearchPassageDto, 'context'>[];
 }
 
 /**
@@ -133,6 +166,14 @@ export interface SearchHitDto {
     readonly consumptionPrior?: number;
     readonly mmrPenalty?: number;
   };
+  /**
+   * Passage detail for this hit, present only on `depth: 'raw'`.
+   *
+   * A raw request that returns no passages is a different fact from one that
+   * returned them, so the field is absent rather than empty for a non-raw
+   * result — an empty array would claim the document has no passages.
+   */
+  readonly passages?: readonly SearchPassageDto[];
 }
 
 export interface SearchResultDto {
@@ -236,7 +277,18 @@ export function parseSearchInput(value: unknown): SearchInput {
   expectOnlyFields(input, ['query', 'options']);
   const query = requireBoundedString(input, 'query', MAX_QUERY);
   const raw = input.options === undefined ? {} : requireRecord(input.options, 'search.query options');
-  expectOnlyFields(raw, ['limit', 'scope', 'mode', 'depth', 'threadId', 'dateFrom', 'dateTo', 'explain']);
+  expectOnlyFields(raw, [
+    'limit',
+    'scope',
+    'mode',
+    'depth',
+    'threadId',
+    'dateFrom',
+    'dateTo',
+    'contextWindow',
+    'includePullOnly',
+    'explain',
+  ]);
   const options: SearchOptionsDto = {
     ...(raw.limit === undefined ? {} : { limit: requireLimit(raw.limit) }),
     ...(raw.scope === undefined ? {} : { scope: requireChoice(raw.scope, 'scope', SEARCH_SCOPES) }),
@@ -245,6 +297,8 @@ export function parseSearchInput(value: unknown): SearchInput {
     ...(raw.threadId === undefined ? {} : { threadId: requireBoundedString(raw, 'threadId', MAX_THREAD_REF) }),
     ...(raw.dateFrom === undefined ? {} : { dateFrom: requireBoundedString(raw, 'dateFrom', MAX_KEY) }),
     ...(raw.dateTo === undefined ? {} : { dateTo: requireBoundedString(raw, 'dateTo', MAX_KEY) }),
+    ...(raw.contextWindow === undefined ? {} : { contextWindow: requireContextWindow(raw.contextWindow) }),
+    ...(raw.includePullOnly === undefined ? {} : { includePullOnly: requireBoolean(raw, 'includePullOnly') }),
     ...(raw.explain === undefined ? {} : { explain: requireBoolean(raw, 'explain') }),
   };
   return { query, options };
@@ -295,6 +349,14 @@ function requireBoolean(input: Record<string, unknown>, field: string): boolean 
 function requireLimit(value: unknown): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > MAX_RESULTS) {
     throw new TypeError(`limit must be an integer between 1 and ${MAX_RESULTS}`);
+  }
+  return value;
+}
+
+/** The live route accepts up to five surrounding passages; the wire says the same. */
+function requireContextWindow(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > MAX_CONTEXT_WINDOW) {
+    throw new TypeError(`contextWindow must be an integer between 1 and ${MAX_CONTEXT_WINDOW}`);
   }
   return value;
 }

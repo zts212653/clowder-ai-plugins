@@ -80,6 +80,7 @@ function requireMemoryPorts(host: ModulePluginHostShape): MemoryHostPorts {
     memoryDatabase?: Partial<MemoryHostPorts['memoryDatabase']>;
     memoryData?: Partial<MemoryHostPorts['memoryData']>;
     memoryThreadKv?: Partial<MemoryHostPorts['memoryThreadKv']>;
+    memoryEmbedding?: Partial<MemoryHostPorts['memoryEmbedding']>;
     memorySource?: Partial<MemoryHostPorts['memorySource']>;
   };
   for (const [name, methods] of [
@@ -92,6 +93,9 @@ function requireMemoryPorts(host: ModulePluginHostShape): MemoryHostPorts {
     }
   }
   const { memoryDatabase, memoryData } = ports;
+  if (ports.memoryEmbedding !== undefined && typeof ports.memoryEmbedding?.embedQuery !== 'function') {
+    throw new TypeError('memory plugin requires a valid Host memoryEmbedding port when supplied');
+  }
   if (memoryDatabase?.storageFormat !== MEMORY_STORAGE_FORMAT || !isAbsolute(memoryDatabase.canonicalPath ?? '')) {
     throw new TypeError('memory plugin requires the canonical Host evidence DB and storage format');
   }
@@ -116,7 +120,7 @@ async function activate(ports: MemoryHostPorts) {
     db: storage.db,
     repository: new FileProfileRepository({ dataDir: memoryData.dataDir }),
   });
-  const search = new SearchOperations(storage.db);
+  const search = new SearchOperations(storage.db, ports.memoryEmbedding);
   const projectIndexClaims = new Set<string>();
   return {
     dispose: () => storage.close(),

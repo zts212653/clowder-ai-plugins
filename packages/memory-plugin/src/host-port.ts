@@ -38,12 +38,29 @@ export interface MemoryThreadKvPort {
 export interface MemoryHostPorts {
   readonly memoryThreadKv: MemoryThreadKvPort;
   readonly memoryDatabase: MemoryDatabasePort;
+  readonly memoryEmbedding?: MemoryEmbeddingPort;
   readonly memoryData: { readonly dataDir: string; readonly eventDbPath: string; readonly tasteProjectRoot?: string };
   readonly memorySource: MatterSourceReaders & {
     caller(): Promise<MatterCallAuthority>;
     assertCurrent(): Promise<void>;
     publishMatterChange(): Promise<void>;
   };
+}
+
+/** Query vector and index identity supplied by the Host's authorized embedding port. */
+export interface MemoryQueryVector {
+  readonly model: {
+    readonly modelId: string;
+    readonly modelRev: string;
+    readonly dim: number;
+    readonly generationId?: string;
+    readonly representationFingerprint?: string;
+  };
+  readonly vector: readonly number[];
+}
+
+export interface MemoryEmbeddingPort {
+  embedQuery(query: string): Promise<MemoryQueryVector | null>;
 }
 
 /**

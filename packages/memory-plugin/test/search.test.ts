@@ -7,7 +7,8 @@ import test from 'node:test';
 import type { MemoryDescriptor, SearchResultDto } from '@clowder-ai/plugin-memory-contract';
 
 import { createMemoryPluginModule } from '../dist/plugin-entrypoint.js';
-import { fakeKv, host, manifest, seedEvidenceDatabase } from './host-fixture.js';
+import type { MemoryEmbeddingPort } from '../src/host-port.js';
+import { fakeKv, FIXTURE_MODEL, host, manifest, seedEvidenceDatabase, VECTOR_ONLY_ANCHOR } from './host-fixture.js';
 
 /** The actions the Host invokes; bound here so the assertions stay typed. */
 interface MemoryActions {
@@ -15,13 +16,16 @@ interface MemoryActions {
   'memory.dispatch': (input: unknown) => Promise<unknown>;
 }
 
-async function withPlugin(run: (actions: MemoryActions) => Promise<void>) {
+async function withPlugin(
+  run: (actions: MemoryActions) => Promise<void>,
+  { withVectors = false, embedding }: { withVectors?: boolean; embedding?: MemoryEmbeddingPort } = {},
+) {
   const root = await mkdtemp(join(tmpdir(), 'memory-search-'));
   const canonicalPath = join(root, 'evidence.sqlite');
-  seedEvidenceDatabase(canonicalPath);
+  seedEvidenceDatabase(canonicalPath, withVectors);
   const activation = (await createMemoryPluginModule()
     .create(manifest)
-    .start(host(fakeKv().port, canonicalPath, root))) as unknown as {
+    .start(host(fakeKv().port, canonicalPath, root, embedding))) as unknown as {
     actions: MemoryActions;
     stop?: (input: unknown) => Promise<void>;
   };
@@ -118,7 +122,84 @@ test('an invalid query is rejected at the boundary without touching the database
   await withPlugin(async (actions) => {
     await assert.rejects(search(actions, { query: '' }), /query/);
     await assert.rejects(search(actions, { query: 'q', options: { authorizedCollections: ['secret'] } }), /authorizedCollections/);
+    await assert.rejects(search(actions, { query: 'q', options: { contextWindow: 6 } }), /contextWindow/);
   });
+});
+
+test('raw search returns the matched passage and only neighbours inside the date window', async () => {
+  await withPlugin(async (actions) => {
+    const query = 'Chrysanthemum migration detail';
+    const result = await search(actions, {
+      query,
+      options: { depth: 'raw', contextWindow: 1, dateTo: '2026-11-19T02:20:00.000Z' },
+    });
+    assert.equal(result.degraded, false);
+    const [hit] = result.hits;
+    assert.equal(hit?.anchor, 'test:legacy-fixture-v0141');
+    assert.deepEqual(hit?.passages?.map(({ passageId }) => passageId), ['p2']);
+    assert.equal(hit?.passages?.[0]?.content, 'Chrysanthemum migration detail in the middle');
+    assert.deepEqual(hit?.passages?.[0]?.context?.map(({ passageId }) => passageId), ['p1']);
+    assert.deepEqual((await search(actions, {
+      query,
+      options: { depth: 'raw', contextWindow: 1, threadId: 'absent' },
+    })).hits, []);
+  });
+});
+
+test('pull-only rows are absent from ordinary recall and available to an explicit pull', async () => {
+  await withPlugin(async (actions) => {
+    for (const depth of ['summary', 'raw'] as const) {
+      const options = { depth };
+      assert.deepEqual((await search(actions, { query: 'SealedMaterial', options })).hits, []);
+      const pulled = await search(actions, { query: 'SealedMaterial', options: { ...options, includePullOnly: true } });
+      assert.deepEqual(pulled.hits.map(({ anchor }) => anchor), ['test:pull-only']);
+    }
+  });
+});
+
+const embedding: MemoryEmbeddingPort = {
+  embedQuery: async () => ({ model: FIXTURE_MODEL, vector: [1, 0, 0, 0] }),
+};
+
+test('semantic search reaches an actual vec0 neighbour with no lexical match', async () => {
+  await withPlugin(async (actions) => {
+    const query = 'security roster';
+    assert.deepEqual((await search(actions, { query })).hits, []);
+    for (const depth of ['summary', 'raw'] as const) {
+      const result = await search(actions, { query, options: { depth, mode: 'semantic', limit: 1 } });
+      assert.equal(result.degraded, false);
+      assert.deepEqual(result.hits.map(({ anchor }) => anchor), [VECTOR_ONLY_ANCHOR]);
+      if (depth === 'raw') assert.equal(result.hits[0]?.passages?.[0]?.content, 'Night watch rotation schedule');
+    }
+  }, { withVectors: true, embedding });
+});
+
+test('hybrid search combines lexical and vector hits without admitting pull-only rows', async () => {
+  await withPlugin(async (actions) => {
+    for (const depth of ['summary', 'raw'] as const) {
+      const result = await search(actions, {
+        query: 'Chrysanthemum migration detail',
+        options: { depth, mode: 'hybrid', limit: 2 },
+      });
+      assert.equal(result.degraded, false);
+      assert.deepEqual(result.hits.map(({ anchor }) => anchor), ['test:legacy-fixture-v0141', VECTOR_ONLY_ANCHOR]);
+    }
+  }, { withVectors: true, embedding });
+});
+
+test('a missing vector index reports lexical fallback for summary and raw', async () => {
+  await withPlugin(async (actions) => {
+    const query = 'Chrysanthemum migration detail';
+    for (const depth of ['summary', 'raw'] as const) {
+      const options = { depth, limit: 1 };
+      const lexical = await search(actions, { query, options });
+      const result = await search(actions, { query, options: { ...options, mode: 'hybrid' } });
+      assert.equal(result.degraded, true);
+      assert.equal(result.effectiveMode, 'lexical');
+      assert.equal(result.degradeReason, 'passage_vector_search_error');
+      assert.deepEqual(result.hits, lexical.hits);
+    }
+  }, { embedding });
 });
 
 test('a missing evidence database fails at activation instead of answering "no hits"', async () => {

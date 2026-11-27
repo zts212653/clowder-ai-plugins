@@ -7,7 +7,7 @@ import Database from 'better-sqlite3';
 import { parse } from 'yaml';
 import type { ModulePluginHostShape } from '@clowder-ai/plugin-sdk';
 
-import type { MemoryThreadKvPort } from '../src/host-port.js';
+import type { MemoryEmbeddingPort, MemoryThreadKvPort } from '../src/host-port.js';
 
 export const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
 
@@ -19,6 +19,24 @@ const nativeBinding = fileURLToPath(
   new URL(`../dist/native/${process.platform}-${process.arch}-abi${process.versions.modules}.node`, import.meta.url),
 );
 
+/** The vec0 extension the activation stages beside that binding. */
+const vecExtension = fileURLToPath(
+  new URL(
+    `../dist/native/vec0.${process.platform === 'win32' ? 'dll' : process.platform === 'darwin' ? 'dylib' : 'so'}`,
+    import.meta.url,
+  ),
+);
+
+/** The embedding model the fixture's vectors claim to come from. */
+export const FIXTURE_MODEL = { modelId: 'fixture-embed', modelRev: 'r1', dim: 4 } as const;
+
+/** A unit-ish 4-dim vector; only relative distance matters to the ranker. */
+function vec(x: number, y: number, z = 0, w = 0): Float32Array {
+  const raw = [x, y, z, w];
+  const norm = Math.hypot(...raw) || 1;
+  return Float32Array.from(raw.map((value) => value / norm));
+}
+
 /**
  * Create the evidence database the activation requires: schema 84, the document
  * and FTS tables every retrieval pass reads, and a couple of rows to rank.
@@ -26,7 +44,7 @@ const nativeBinding = fileURLToPath(
  * Built with the same engine and native binding the activation loads, because a
  * database created by a different engine would not prove the real path works.
  */
-export function seedEvidenceDatabase(databasePath: string): void {
+export function seedEvidenceDatabase(databasePath: string, withVectors = false): void {
   const db = new Database(databasePath, { nativeBinding });
   db.exec(`
     CREATE TABLE schema_version (version INTEGER NOT NULL);
@@ -96,6 +114,17 @@ export function seedEvidenceDatabase(databasePath: string): void {
       'backstop',
     ],
     [
+      'test:pull-only',
+      'lesson',
+      'active',
+      'SealedMaterial',
+      'Only used by explicit pull surfaces',
+      '[]',
+      '2026-11-19T02:19:30.174Z',
+      'observed',
+      'pull_only',
+    ],
+    [
       'thread-absent',
       'thread',
       'active',
@@ -108,9 +137,64 @@ export function seedEvidenceDatabase(databasePath: string): void {
     ],
   ])
     insert.run(...row);
-  db.exec(`INSERT INTO evidence_fts(rowid, title, summary, keywords)
-           SELECT rowid, title, summary, keywords FROM evidence_docs`);
+  db.exec(`
+    CREATE TABLE evidence_passages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, doc_anchor TEXT NOT NULL, passage_id TEXT NOT NULL,
+      content TEXT NOT NULL, speaker TEXT, position INTEGER, created_at TEXT NOT NULL,
+      UNIQUE(doc_anchor, passage_id)
+    );
+    CREATE VIRTUAL TABLE passage_fts USING fts5(content, content=evidence_passages, content_rowid=rowid,
+      tokenize="unicode61 tokenchars '_-'");
+  `);
+  const passage = db.prepare(
+    `INSERT INTO evidence_passages (doc_anchor, passage_id, content, speaker, position, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  );
+  passage.run('test:legacy-fixture-v0141', 'p1', 'Opening migrated witness record', 'cat', 0, '2026-11-19T02:19:30.174Z');
+  passage.run('test:legacy-fixture-v0141', 'p2', 'Chrysanthemum migration detail in the middle', 'cat', 1, '2026-11-19T02:20:00.000Z');
+  passage.run('test:legacy-fixture-v0141', 'p3', 'Closing note after the migration', 'cat', 2, '2026-11-19T02:21:00.000Z');
+  passage.run('test:pull-only', 'private', 'SealedMaterial passage', 'cat', 0, '2026-11-19T02:20:00.000Z');
+  if (withVectors) {
+    insert.run(VECTOR_ONLY_ANCHOR, 'lesson', 'active', 'Quartermaster log', 'Rotation of the night watch',
+      '["rota"]', '2026-11-10T00:00:00.000Z', 'observed', 'query');
+    passage.run(VECTOR_ONLY_ANCHOR, 'q1', 'Night watch rotation schedule', 'cat', 0, '2026-11-10T00:00:00.000Z');
+    seedVectors(db);
+  }
+  db.exec(`
+    INSERT INTO evidence_fts(rowid, title, summary, keywords)
+      SELECT rowid, title, summary, keywords FROM evidence_docs;
+    INSERT INTO passage_fts(rowid, content) SELECT rowid, content FROM evidence_passages;
+  `);
   db.close();
+}
+
+export const VECTOR_ONLY_ANCHOR = 'test:vector-only';
+
+function seedVectors(db: Database.Database): void {
+  db.loadExtension(vecExtension);
+  db.exec(`
+    CREATE VIRTUAL TABLE evidence_vectors USING vec0(anchor TEXT PRIMARY KEY, embedding float[4]);
+    CREATE VIRTUAL TABLE passage_vectors USING vec0(passage_key TEXT PRIMARY KEY, embedding float[4]);
+    CREATE TABLE embedding_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+  `);
+
+  // Vectors: the vector-only document sits exactly on the query axis, the
+  // lexical witness sits far from it, so a semantic request must find one and a
+  // lexical one must find the other.
+  const docVector = db.prepare('INSERT INTO evidence_vectors (anchor, embedding) VALUES (?, ?)');
+  docVector.run(VECTOR_ONLY_ANCHOR, vec(1, 0));
+  docVector.run('test:legacy-fixture-v0141', vec(0, 1));
+  docVector.run('test:pull-only', vec(1, 0));
+  const passageVector = db.prepare('INSERT INTO passage_vectors (passage_key, embedding) VALUES (?, ?)');
+  passageVector.run(JSON.stringify([VECTOR_ONLY_ANCHOR, 'q1']), vec(1, 0));
+  passageVector.run(JSON.stringify(['test:legacy-fixture-v0141', 'p2']), vec(0, 1));
+  passageVector.run(JSON.stringify(['test:pull-only', 'private']), vec(1, 0));
+
+  const meta = db.prepare('INSERT INTO embedding_meta (key, value) VALUES (?, ?)');
+  meta.run('embedding_model_id', FIXTURE_MODEL.modelId);
+  meta.run('embedding_model_rev', FIXTURE_MODEL.modelRev);
+  meta.run('embedding_dim', String(FIXTURE_MODEL.dim));
+  meta.run('vector_invalidation_epoch', '0');
 }
 
 /** In-memory Host port standing in for the authorized Redis hash surface. */
@@ -158,6 +242,7 @@ export function host(
   memoryThreadKv: unknown,
   evidencePath: string,
   dataDirectory: string = dataDir,
+  embedding?: MemoryEmbeddingPort,
 ): ModulePluginHostShape {
   return {
     pluginInstanceId: 'memory-instance',
@@ -236,5 +321,6 @@ export function host(
       currentTrigger: async () => ({ status: 'ordinary' as const }),
     },
     ...(memoryThreadKv === undefined ? {} : { memoryThreadKv }),
+    ...(embedding === undefined ? {} : { memoryEmbedding: embedding }),
   } as ModulePluginHostShape;
 }
