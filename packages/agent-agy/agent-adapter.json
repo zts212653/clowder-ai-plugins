@@ -1,0 +1,5 @@
+{
+  "protocolVersion": 1,
+  "id": "agy",
+  "operations": ["describe", "detect", "openSession", "startTurn", "cancel", "release"]
+}

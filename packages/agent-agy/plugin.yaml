@@ -1,0 +1,16 @@
+pluginId: official.agent-agy
+version: 0.1.0-alpha.1
+contractVersion: 0.4.0-candidate.0
+name: Antigravity
+description:
+  default: 接入 Antigravity CLI 的原生会话。
+  translations:
+    en: Adapt Antigravity CLI native sessions.
+features:
+  - id: agy
+    name: Antigravity
+    resources: []
+runtime:
+  transport: builtin
+  entrypoint: src/index.mjs
+  dataDirectory: agent-agy
