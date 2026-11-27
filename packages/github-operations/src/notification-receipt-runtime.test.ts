@@ -1,27 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { fixture } from '../test/typed-wait-fixture.js';
+import { fixture, seedReceipt } from '../test/typed-wait-fixture.js';
 
 const input = { registrationId: 'original-registration', repoFullName: 'owner/repo', prNumber: 1 };
 const reviewedHead = 'a'.repeat(40);
-
-async function seedReceipt(f: ReturnType<typeof fixture>, over: Record<string, unknown> = {},
-  url = 'https://github.com/owner/repo/pull/1#pullrequestreview-42') {
-  const { SdkCommunityObjectStore } = await import('./business/domains/community/CommunityObjectStore.js');
-  await new SdkCommunityObjectStore(f.storage).save({
-    subjectKey: 'pr:owner/repo#1',
-    externalReview: {
-      mode: 'maintainer_review', cloudPolicy: 'optional', lifecycle: 'delivered',
-      currentHeadSha: reviewedHead, headGeneration: 1, currentHeadObservedAt: 1000,
-      lastReviewedHeadSha: reviewedHead, lastReviewedHeadGeneration: 1,
-      lastDeliveredHeadSha: reviewedHead, lastDeliveredHeadGeneration: 1,
-      ci: null, cloud: null, wake: null,
-      delivery: { kind: 'delivered', headSha: reviewedHead, githubUrl: url, deliveredAt: 1000 },
-      deliveredVerdictFingerprint: null, verdictSubmissionEpoch: 1, pendingVerdict: null,
-      reviewerCatId: 'codex61-sol', reviewerThreadId: 'home', ...over,
-    },
-  } as import('./business/model/index.js').CommunityObjectProjection);
-}
 
 for (const subscriptionGeneration of [1, 2, 4, 7]) {
 test(`exact self receipt survives wait generation ${subscriptionGeneration}, baseline consumption and restart`, async () => {
@@ -256,6 +238,7 @@ for (const mismatch of [
   { lastDeliveredHeadSha: null },
   { currentHeadSha: 'c'.repeat(40) },
   { delivery: null },
+  { deliveredVerdictFingerprint: null },
   { delivery: { kind: 'delivered', headSha: reviewedHead, githubUrl: 'https://github.com/owner/repo/pull/1', deliveredAt: 1000 } },
   { delivery: { kind: 'delivered', headSha: reviewedHead, githubUrl: 'https://github.com/owner/repo/pull/1#pullrequestreview-43', deliveredAt: 1000 } },
   { delivery: { kind: 'delivered', headSha: 'c'.repeat(40), githubUrl: 'https://github.com/owner/repo/pull/1#pullrequestreview-42', deliveredAt: 1000 } },

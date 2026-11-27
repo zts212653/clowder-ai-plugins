@@ -22,3 +22,35 @@ export function fixture() {
     reads: () => reads, advance: () => { now += 60_001; },
     fail: (error?: Error) => { failure = error; } };
 }
+
+const reviewedHead = 'a'.repeat(40);
+
+export async function seedReceipt(f: ReturnType<typeof fixture>, over: Record<string, unknown> = {},
+  url = 'https://github.com/owner/repo/pull/1#pullrequestreview-42') {
+  const { SdkCommunityObjectStore } = await import('../src/business/domains/community/CommunityObjectStore.js');
+  const { SdkCommunityEventLog } = await import('../src/business/domains/community/CommunityEventLog.js');
+  const projection = {
+    subjectKey: 'pr:owner/repo#1',
+    externalReview: {
+      mode: 'maintainer_review', cloudPolicy: 'optional', lifecycle: 'delivered',
+      currentHeadSha: reviewedHead, headGeneration: 1, currentHeadObservedAt: 1000,
+      lastReviewedHeadSha: reviewedHead, lastReviewedHeadGeneration: 1,
+      lastDeliveredHeadSha: reviewedHead, lastDeliveredHeadGeneration: 1,
+      ci: null, cloud: null, wake: null,
+      delivery: { kind: 'delivered', headSha: reviewedHead, githubUrl: url, deliveredAt: 1000 },
+      deliveredVerdictFingerprint: 'e'.repeat(24), verdictSubmissionEpoch: 1, pendingVerdict: null,
+      reviewerCatId: 'codex61-sol', reviewerThreadId: 'home', ...over,
+    },
+  } as import('../src/business/model/index.js').CommunityObjectProjection;
+  const receipt = projection.externalReview!;
+  if (receipt.deliveredVerdictFingerprint && receipt.delivery?.kind === 'delivered') {
+    await new SdkCommunityEventLog(f.storage).append({
+      sourceEventId: `f168:review-verdict:${projection.subjectKey}:g${receipt.headGeneration}:${receipt.deliveredVerdictFingerprint}`,
+      subjectKey: projection.subjectKey, kind: 'case.review_verdict_recorded', classification: 'informational', at: 1000,
+      payload: { headSha: receipt.currentHeadSha, headGeneration: receipt.headGeneration,
+        fingerprint: receipt.deliveredVerdictFingerprint, delivery: receipt.delivery,
+        principal: { catId: receipt.reviewerCatId, threadId: receipt.reviewerThreadId } },
+    });
+  }
+  await new SdkCommunityObjectStore(f.storage).save(projection);
+}
