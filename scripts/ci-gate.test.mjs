@@ -171,6 +171,14 @@ test('both validation workflows have no package command missing from the local g
   }
 });
 
+test('Memory plugin builds and tests its package before inventory checks its entrypoint', () => {
+  const steps = buildGateSteps();
+  const memory = steps.findIndex(step => step.name === 'Memory plugin gates');
+  assert.ok(memory > steps.findIndex(step => step.name === 'SDK build'));
+  assert.ok(memory < steps.findIndex(step => step.name === 'Package inventory'));
+  assert.equal(steps[memory].command, 'pnpm --filter @clowder-ai/memory-plugin test && pnpm --filter @clowder-ai/memory-plugin typecheck');
+});
+
 test('Collective full package tests run before inventory and installed artifact checks', () => {
   const command = buildGateSteps().find(step => step.name === 'Package inventory').command;
   assert.equal(command, 'pnpm --filter @clowder-ai/collective-connector build && pnpm --filter @clowder-ai/collective-connector typecheck && pnpm --filter @clowder-ai/collective-connector test && pnpm test:package-inventory && pnpm --filter @clowder-ai/collective-connector test:source && pnpm --filter @clowder-ai/collective-connector test:installed');

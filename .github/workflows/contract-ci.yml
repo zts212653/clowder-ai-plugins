@@ -12,6 +12,8 @@ on:
     paths:
       - 'packages/plugin-contract/**'
       - 'packages/plugin-sdk/**'
+      - 'packages/plugin-memory-contract/**'
+      - 'packages/memory-plugin/**'
       - 'packages/companion/**'
       - 'packages/collective-connector/**'
       - 'packages/connector-dingtalk/**'
