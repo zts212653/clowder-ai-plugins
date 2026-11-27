@@ -72,6 +72,7 @@ export function buildGateSteps() {
     { name: 'SDK typecheck', command: 'pnpm --filter @clowder-ai/plugin-sdk typecheck' },
     { name: 'SDK unit tests', command: 'pnpm --filter @clowder-ai/plugin-sdk test' },
     { name: 'SDK build', command: 'pnpm --filter @clowder-ai/plugin-sdk build' },
+    { name: 'Memory plugin gates', command: chain('@clowder-ai/memory-plugin', ['test', 'typecheck']) },
     { name: 'Superagent package gates', command: chain('@clowder-ai/superagent', ['typecheck', 'test', 'build']) },
     { name: 'Feedback package', command: chain('@clowder-ai/feedback', ['typecheck', 'build', 'test', 'lint']) },
     { name: 'Quick phrases package', command: chain('@clowder-ai/quick-phrases', ['typecheck', 'build', 'test']) },

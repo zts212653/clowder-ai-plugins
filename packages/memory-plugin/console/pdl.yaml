@@ -1,0 +1,14 @@
+id: memory
+icon: memory
+ns: memory
+inserts:
+  - id: workbench
+    anchor: nav.cafe
+    at: inside
+    part: kids
+    after: memory
+    node:
+      title: t:memory.title
+      icon: puzzle
+      open:
+        page: memoryPlugin
