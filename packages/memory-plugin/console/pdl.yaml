@@ -1,13 +1,14 @@
-# The Host-owned console surface, read beside console/i18n and console/components.
-# The plugin's runtime manifest declares no page behaviour; this file is the
-# host's copy, validated by pluginPdlSchema when the package is installed.
 id: memory
 icon: memory
 ns: memory
-views:
-  memory.overview:
-    route: memory
-    blocks:
-      - { type: title, text: t:memory.title }
-      - { type: text, text: t:memory.intro }
-      - { type: status, id: memory.capability, label: t:memory.capability }
+inserts:
+  - id: workbench
+    anchor: nav.cafe
+    at: inside
+    part: kids
+    after: memory
+    node:
+      title: t:memory.title
+      icon: puzzle
+      open:
+        page: memoryPlugin

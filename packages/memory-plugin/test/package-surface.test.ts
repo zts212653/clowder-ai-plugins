@@ -36,7 +36,8 @@ test('the packaged manifest and the built entrypoint agree on every declared coo
   // The console is the host's file, in the package layout the Host actually reads.
   const pdl = parse(await readFile(new URL('../console/pdl.yaml', import.meta.url), 'utf8'));
   assert.equal(pdl.ns, 'memory');
-  assert.equal(pdl.views['memory.overview'].route, 'memory');
+  assert.equal(pdl.inserts[0].anchor, 'nav.cafe');
+  assert.deepEqual(pdl.inserts[0].node.open, { page: 'memoryPlugin' });
 
   const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as {
     files: string[];
