@@ -40,9 +40,11 @@ contributions:
         mediaType: application/pdf
       - extension: pptx
         mediaType: application/vnd.openxmlformats-officedocument.presentationml.presentation
+      - extension: xlsx
+        mediaType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
     surface:
       entrypoint: renderer/preview/index.html
-      integrity: sha256-wv51dpNZ5j31OPPjzPVsx8LRRjWgV4AxdDJSWJfp5PI=
+      integrity: sha256-6/4KtVtErcu7FDUDZGBH1SzEBgJPBvDEqPFgPGr8Gd4=
       sandbox: dedicated-origin-iframe
       navigationPolicy: navigation-api-deny
     bridgeVersion: 1.0.0

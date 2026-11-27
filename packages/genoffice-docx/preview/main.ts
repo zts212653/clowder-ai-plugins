@@ -54,6 +54,10 @@ startPreviewBridge({
           if (error) showError(error);
           else setStatus(snapshot.fileName);
         });
+      } else if (format === 'xlsx') {
+        const { mountXlsxPreview } = await import('./xlsx');
+        await mountXlsxPreview(stage, snapshot.bytes);
+        setStatus(snapshot.fileName);
       } else {
         const { mountDocxPreview } = await import('./docx');
         await mountDocxPreview(stage, snapshot.bytes);

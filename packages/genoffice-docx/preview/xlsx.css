@@ -1,0 +1,61 @@
+.xlsx-deck {
+  overflow: auto;
+  min-width: 0;
+  padding: 12px;
+}
+
+.xlsx-banner {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: var(--preview-chrome);
+  color: var(--preview-muted);
+  border-left: 3px solid var(--preview-accent);
+  border-radius: 4px;
+}
+
+.xlsx-sheet {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #fff;
+  color: #202124;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 35%);
+}
+
+.xlsx-sheet-name {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.xlsx-table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+}
+
+.xlsx-table td,
+.xlsx-table th {
+  max-width: 40rem;
+  padding: 3px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid #dadce0;
+  text-align: left;
+}
+
+.xlsx-row-number {
+  background: #f1f3f4;
+  color: #5f6368;
+  font-weight: 400;
+  text-align: right;
+  user-select: none;
+}
+
+.xlsx-sheet-empty,
+.xlsx-sheet-truncated,
+.xlsx-sheet-notice {
+  margin: 8px 0 0;
+  color: #5f6368;
+  white-space: normal;
+}
