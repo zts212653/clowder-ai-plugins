@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { normalizeKimiEvent } from './kimi-events.mjs';
 import { buildKimiLaunchArguments } from './kimi-launch.mjs';
 import { parseKimiCliUsageOutput } from './kimi-quota.mjs';
@@ -39,6 +40,9 @@ function create() {
           async openSession(input, context) {
             const runtime = context?.nativeRuntime;
             if (!runtime?.prepare) return { ok: false, code: 'failed', reason: portMissing.reason };
+            if (!input.instructions.trim()) return { ok: false, code: 'failed', reason: 'Kimi identity is empty' };
+            // Match the fingerprint format used by existing Kimi members.
+            const fingerprint = createHash('sha256').update(input.instructions).digest('hex').slice(0, 16);
             const prepared = await runtime.prepare({
               hostSessionId: input.sessionId,
               resumeNativeSessionId: input.resume?.nativeSessionId,
@@ -48,10 +52,17 @@ function create() {
             if (resume && prepared.nativeSessionId !== resume) {
               return { ok: false, code: 'resume_unavailable', reason: 'Kimi session identity unavailable' };
             }
+            if (resume && prepared.sessionFingerprint !== fingerprint) {
+              const identityStatus = prepared.sessionFingerprint === undefined ? 'unverifiable' : 'stale';
+              return { ok: false, code: 'resume_unavailable', reason: 'Kimi session identity changed', identityStatus };
+            }
+            if (!resume && !prepared.agentFile)
+              return { ok: false, code: 'failed', reason: 'Kimi agent file is unavailable' };
             sessions.set(input.sessionId, {
               nativeSessionId: resume,
               agentFile: prepared.agentFile,
               model: input.model,
+              fingerprint,
             });
             const binding = resume
               ? { state: 'bound', nativeSessionId: resume }
@@ -91,6 +102,11 @@ function create() {
                   throw new Error('Unexpected Kimi native session');
                 }
                 if (observed && !session.nativeSessionId) {
+                  await runtime.recordSessionFingerprint?.({
+                    hostSessionId: input.sessionId,
+                    nativeSessionId: observed,
+                    fingerprint: session.fingerprint,
+                  }, signal);
                   session.nativeSessionId = observed;
                   yield { type: 'native_bound', nativeSessionId: observed };
                 }

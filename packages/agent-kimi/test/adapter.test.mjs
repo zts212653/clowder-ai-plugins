@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import worker from '../src/index.mjs';
 
@@ -6,6 +7,7 @@ const contextFor = (nativeRuntime) => ({ nativeRuntime, signal: new AbortControl
 const fixture = () => worker.create().start();
 const record = (value) => ({ kind: 'record', value });
 const exit = (code) => ({ kind: 'exit', code });
+const identityFingerprint = createHash('sha256').update('identity').digest('hex').slice(0, 16);
 
 test('reports missing Host grant and refuses unverified native resume', async () => {
   const { actions } = fixture();
@@ -20,14 +22,37 @@ test('reports missing Host grant and refuses unverified native resume', async ()
   assert.equal(result.code, 'resume_unavailable');
 });
 
+test('rejects an absent new agent file and resumes only the current verified identity', async () => {
+  const { actions } = fixture();
+  const input = { sessionId: 'host-1', instructions: 'identity' };
+  const missing = await actions.openSession(input, contextFor({ prepare: async () => ({}) }));
+  assert.equal(missing.ok, false);
+  const resumeInput = { ...input, resume: { nativeSessionId: 'old' } };
+  for (const [stored, identityStatus] of [[undefined, 'unverifiable'], ['another', 'stale']]) {
+    const result = await actions.openSession(resumeInput, contextFor({
+      prepare: async () => ({ nativeSessionId: 'old', sessionFingerprint: stored }),
+    }));
+    assert.equal(result.code, 'resume_unavailable');
+    assert.equal(result.identityStatus, identityStatus);
+  }
+  const matched = await actions.openSession(resumeInput, contextFor({
+    prepare: async () => ({ nativeSessionId: 'old', sessionFingerprint: identityFingerprint }),
+  }));
+  assert.deepEqual(matched, { ok: true, binding: { state: 'bound', nativeSessionId: 'old' } });
+});
+
 test('launches a new session with its agent file then resumes the bound native ID', async () => {
   const { actions } = fixture();
   const launches = [];
+  const bindings = [];
   const ctx = contextFor({
     inspect: async () => ({ status: 'ready', version: '0.38.0' }),
     prepare: async (request) => {
       assert.equal(request.instructions, 'identity');
       return { agentFile: 'host-managed-instructions.md' };
+    },
+    async recordSessionFingerprint(request) {
+      bindings.push(request);
     },
     async *run(plan) {
       launches.push(plan);
@@ -49,6 +74,7 @@ test('launches a new session with its agent file then resumes the bound native I
   await Array.fromAsync(actions.startTurn({ ...input, invocationId: 'turn-2' }, ctx));
   assert.deepEqual(launches[0].args, ['--output-format', 'stream-json', '--agent-file', 'host-managed-instructions.md', '-p', 'hello']);
   assert.deepEqual(launches[1].args, ['--output-format', 'stream-json', '--session', 'native-1', '-p', 'hello']);
+  assert.deepEqual(bindings, [{ hostSessionId: 'host-1', nativeSessionId: 'native-1', fingerprint: identityFingerprint }]);
   assert.deepEqual(await actions.release({ sessionId: 'host-1' }), { ok: true });
   await assert.rejects(Array.fromAsync(actions.startTurn(input, ctx)), /session unavailable/);
 });
@@ -56,7 +82,7 @@ test('launches a new session with its agent file then resumes the bound native I
 test('cancels the expected turn and drains its exit outcome', async () => {
   const { actions } = fixture();
   const ctx = contextFor({
-    prepare: async () => ({ nativeSessionId: 'prior' }),
+    prepare: async () => ({ nativeSessionId: 'prior', sessionFingerprint: identityFingerprint }),
     async *run(_plan, signal) {
       yield record({ role: 'assistant', content: 'before cancellation', session_id: 'prior' });
       assert.equal(signal.aborted, true);
