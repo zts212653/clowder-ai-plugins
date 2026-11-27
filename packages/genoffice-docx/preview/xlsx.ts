@@ -1,9 +1,10 @@
 /**
  * Read-only XLSX text preview.
  *
- * Shows what the extractor actually recovers — sheet tabs, real row numbers and
- * a table grid — and states on screen what it does not recover (styles, merged
- * ranges, number formats) so the surface never implies it looks like Excel.
+ * Shows what the extractor actually recovers — sheet tabs, each row's worksheet
+ * number and a table grid — and states on screen what it does not recover
+ * (styles, merged ranges, number formats) so the surface never implies it looks
+ * like Excel.
  */
 import { parseSpreadsheetText, type SpreadsheetSheet } from './spreadsheet-text';
 import { xlsxToText } from './spreadsheet-extract';
@@ -91,12 +92,15 @@ export async function mountXlsxPreview(stage: HTMLElement, bytes: ArrayBuffer): 
   deck.append(banner);
 
   for (const sheet of model.sheets) {
-    const hasBlanks = sheet.blankCellCount > 0;
+    // Warn only for an interior blank: a trailing blank is visibly the end of the
+    // row's data, but a blank with values on both sides reads as a lost value and
+    // is what a covered merged range actually looks like.
+    const maybeMerged = sheet.interiorBlankCount > 0;
     deck.append(
       renderSheet(
         sheet,
-        hasBlanks
-          ? ['空白单元格可能是原文件中的空单元格，也可能是合并单元格被覆盖的部分——此预览不还原合并区域。']
+        maybeMerged
+          ? ['行内空白单元格可能是原文件中的空单元格，也可能是合并单元格被覆盖的部分——此预览不还原合并区域。']
           : [],
       ),
     );

@@ -15,6 +15,7 @@
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
 import { createPreviewEntryReader, type PreviewZipEntry } from '../src/preview-archive';
+import { ROW_TAG_CLOSE, ROW_TAG_OPEN } from './spreadsheet-text';
 
 // Text fidelity: no trim (xml:space="preserve" runs carry the spaces between words),
 // no numeric coercion of tag values (otherwise <t>02139</t> becomes a number and loses characters)
@@ -79,18 +80,13 @@ function cellText(cell: Cell, shared: string[]): string {
   return value;
 }
 
-/** extract sheet text from an xlsx: one "# SheetName" section per sheet, cells joined with " | " */
 /**
- * Read one archive entry as text, or undefined when the part is absent.
+ * Extract sheet text from an xlsx: one `# SheetName` section per sheet, one line
+ * per `<row>` the package actually contains, cells joined with `" | "`.
  *
- * JSZip's published typings expose neither `_data` nor `internalStream`, which is
- * what the bounded reader needs to decompress on its own terms. The cast is the
- * boundary where the frozen JSZip implementation is asserted to match the
- * narrow structural shape `preview-archive` describes; the same assertion the
- * PPTX path makes by string-substitution at build time.
- */
-/**
- * Read one archive entry as text, or undefined when the part is absent.
+ * Rows the package omits (Excel writes no `<row>` for a fully empty row) are not
+ * represented, so the emitted order is not Excel's row numbering. Consumers that
+ * show a gutter must number what they received, not claim the workbook's rows.
  *
  * JSZip's published typings expose neither `_data` nor `internalStream`, which is
  * what the bounded reader needs to decompress on its own terms. The cast below
@@ -149,7 +145,14 @@ export async function xlsxToText(bytes: Uint8Array): Promise<string> {
         while (cells.length < col) cells.push('');
         cells[col] = text;
       }
-      lines.push(cells.join(' | '));
+      // Tag the line with the package's own row number. Excel writes no <row> for a
+      // fully empty row, so the emitted order is not the row numbering; without this
+      // tag the preview could only show a running count and would mislabel the row a
+      // reader is looking at. RS/US cannot occur in XML 1.0 character data, so a cell
+      // value can never imitate the tag.
+      const declared = Number(row['@_r']);
+      const tag = Number.isSafeInteger(declared) && declared > 0 ? `${ROW_TAG_OPEN}${declared}${ROW_TAG_CLOSE}` : '';
+      lines.push(`${tag}${cells.join(' | ')}`);
     }
     sections.push(lines.join('\n'));
   }

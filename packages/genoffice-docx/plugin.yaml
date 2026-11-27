@@ -44,7 +44,7 @@ contributions:
         mediaType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
     surface:
       entrypoint: renderer/preview/index.html
-      integrity: sha256-6/4KtVtErcu7FDUDZGBH1SzEBgJPBvDEqPFgPGr8Gd4=
+      integrity: sha256-Eofl5vU1saxfLaT8hOdNiSTltDiMcA5Qe1NBPdT6DZQ=
       sandbox: dedicated-origin-iframe
       navigationPolicy: navigation-api-deny
     bridgeVersion: 1.0.0

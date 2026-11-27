@@ -64,26 +64,29 @@ async function buildWorkbook(): Promise<Uint8Array> {
   <si><t>李四</t></si>
 </sst>`,
   );
+  // Row numbers are deliberately non-contiguous: Excel writes no <row> for a fully
+  // empty row, so the package jumps 2 -> 5 -> 9. A preview that renumbers sequentially
+  // would tell the reader to look at the wrong Excel row.
   // Row 2 keeps "02139" as an inline string (leading zero must survive).
-  // Row 3 skips column B entirely -> the middle cell must come back empty.
+  // Row 5 skips column B entirely -> the middle cell must come back empty.
   zip.file(
     'xl/worksheets/sheet1.xml',
     `<?xml version="1.0" encoding="UTF-8"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <sheetData>
-    <row r="1">
-      <c r="A1" t="s"><v>0</v></c>
-      <c r="B1" t="s"><v>1</v></c>
-      <c r="C1" t="s"><v>2</v></c>
-    </row>
     <row r="2">
-      <c r="A2" t="s"><v>3</v></c>
-      <c r="B2" t="s"><v>4</v></c>
-      <c r="C2" t="inlineStr"><is><t>02139</t></is></c>
+      <c r="A2" t="s"><v>0</v></c>
+      <c r="B2" t="s"><v>1</v></c>
+      <c r="C2" t="s"><v>2</v></c>
     </row>
-    <row r="3">
-      <c r="A3" t="s"><v>5</v></c>
-      <c r="C3" t="inlineStr"><is><t>01088</t></is></c>
+    <row r="5">
+      <c r="A5" t="s"><v>3</v></c>
+      <c r="B5" t="s"><v>4</v></c>
+      <c r="C5" t="inlineStr"><is><t>02139</t></is></c>
+    </row>
+    <row r="9">
+      <c r="A9" t="s"><v>5</v></c>
+      <c r="C9" t="inlineStr"><is><t>01088</t></is></c>
     </row>
   </sheetData>
 </worksheet>`,
@@ -97,9 +100,9 @@ async function buildWorkbook(): Promise<Uint8Array> {
       <c r="A1" t="inlineStr"><is><t>项目</t></is></c>
       <c r="B1" t="inlineStr"><is><t>已批准</t></is></c>
     </row>
-    <row r="2">
-      <c r="A2" t="inlineStr"><is><t>差旅</t></is></c>
-      <c r="B2" t="b"><v>1</v></c>
+    <row r="3">
+      <c r="A3" t="inlineStr"><is><t>差旅</t></is></c>
+      <c r="B3" t="b"><v>1</v></c>
     </row>
   </sheetData>
 </worksheet>`,
@@ -125,6 +128,24 @@ test('extracts a real workbook through the bounded preview reader', async () => 
   assert.equal(staff?.blankCellCount, 1);
 
   assert.deepEqual(budget?.rows[1]?.cells, ['差旅', 'TRUE']);
+});
+
+test('a row Excel skipped keeps its package row number end to end', async () => {
+  // Excel writes no <row> for a fully empty row, so a real package can jump
+  // r=2 -> r=5. This runs the actual extractor and model, so it fails if the
+  // extractor stops carrying the declared row number (the parser tests alone
+  // cannot, because they build their own tagged strings).
+  const model = parseSpreadsheetText(await xlsxToText(await buildWorkbook()));
+
+  const staff = model.sheets[0];
+  assert.deepEqual(staff?.rows.map((row) => row.number), [2, 5, 9]);
+  // The number must reach the model without leaking into a cell.
+  assert.deepEqual(staff?.rows[1]?.cells, ['张三', '研发', '02139']);
+  // Column B was absent in the XML, so the preview must show an empty middle cell.
+  assert.deepEqual(staff?.rows[2]?.cells, ['李四', '', '01088']);
+
+  // Second sheet shares the same package-level numbering rule.
+  assert.deepEqual(model.sheets[1]?.rows.map((row) => row.number), [1, 3]);
 });
 
 test('rejects a package with no workbook part', async () => {
