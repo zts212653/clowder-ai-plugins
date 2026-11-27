@@ -9,7 +9,7 @@
     ".": "./src/index.mjs",
     "./manifest": "./plugin.yaml"
   },
-  "files": ["src", "plugin.yaml", "agent-adapter.json", "README.md"],
+  "files": ["src", "plugin.yaml", "agent-adapter.json", "README.md", "README.en.md"],
   "scripts": {
     "build": "node --check src/index.mjs",
     "test": "node --test test/*.test.mjs",

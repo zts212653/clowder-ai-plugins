@@ -1,10 +1,7 @@
-# Claude Code Agent adapter
+# Claude Code Agent 接入插件
 
-This alpha runs Claude Code print-mode sessions through the Host Agent Adapter v1
-contract. The Host grants version detection, a private identity file and a
-scoped native process. Prompts travel through stdin. The adapter projects native
-session IDs, assistant text, terminal outcomes and reported usage.
+[English](README.en.md)
 
-The current carrier runs with tools and MCP disabled. The SDK, interactive
-carriers, account login, model discovery and quota have separate product
-acceptance requirements.
+当前候选通过 Agent Adapter v1 契约运行 Claude Code print 模式。Host 提供版本检测、私有身份文件及受控原生进程。用户提示经 stdin 传入，插件输出原生会话标识、文本、回合结果和用量。
+
+此承载关闭工具和 MCP。SDK、交互承载、登录、模型发现和额度各有独立的产品验收要求。
