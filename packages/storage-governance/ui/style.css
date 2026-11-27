@@ -917,6 +917,61 @@ select {
   font-size: 12px;
 }
 
+.omission-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px 4px;
+}
+
+.omission-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--surface-1);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.omission-chip strong {
+  color: var(--body);
+  font-weight: 500;
+}
+
+.omission-group {
+  padding: 0 14px;
+}
+
+.omission-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline);
+  font-size: 12px;
+}
+
+.omission-group-head strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.omission-group-head span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.omission-group-note {
+  margin: 4px 0 2px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .scope-note {
   margin: 8px 0 0;
   color: var(--muted);

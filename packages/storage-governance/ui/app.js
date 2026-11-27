@@ -130,6 +130,7 @@
         rootId: String(row.path || ''),
         path: String(row.path || ''),
         reasonCode: String(row.reason || ''),
+        count: count,
         reason: M.omissionReason(row.reason) + (count > 1 ? ' · ' + count + ' 处' : ''),
         affectedBytes: null,
       };

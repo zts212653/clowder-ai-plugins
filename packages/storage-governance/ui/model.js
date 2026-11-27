@@ -62,10 +62,12 @@
   var OMISSION_LABELS = {
     missing: '扫描时文件已不存在',
     unreadable: '权限不足或读取失败',
-    'link-or-mount': '重解析点或跨卷链接，未跨根扫描',
+    'link-or-mount': '依赖链接/跨卷目录（按设计跳过）',
     'not-regular-file': '不是普通文件',
     'size-out-of-range': '大小超出可统计范围',
-    'worktree-unavailable': '工作树标记缺失或不可用',
+    'worktree-unavailable': '工作树登记缺失/不可用（非 junction）',
+    'worktree-missing': '历史登记的工作树目录已不存在',
+    'worktree-marker-missing': '工作树目录存在但缺少 Git 标记',
     'temp-directory-unavailable': '临时目录不可读',
     'work-attribution-unavailable': '作品归属暂不可用，已计入共享或未归属',
   };

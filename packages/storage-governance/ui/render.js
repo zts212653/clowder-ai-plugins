@@ -378,27 +378,71 @@
   function renderUnscanned(summary) {
     if (!summary.unscanned || summary.unscanned.length === 0) return null;
     var total = typeof summary.unscannedCount === 'number' ? summary.unscannedCount : summary.unscanned.length;
-    var rows = summary.unscanned.map(function (root) {
-      return el('div', { class: 'fold-row' }, [
-        el('div', { class: 'fold-path mono', title: root.path, text: root.path }),
-        el('div', { class: 'fold-detail', text: root.reason }),
-        el('div', {
-          class: 'fold-side',
-          text: root.affectedBytes === null ? '遗漏量未知' : '可能遗漏 ' + F.bytesText(root.affectedBytes),
+    var groups = new Map();
+    for (var row of summary.unscanned) {
+      var code = row.reasonCode || 'unknown';
+      var group = groups.get(code);
+      if (!group) {
+        group = { code: code, label: M.omissionReason(code), rows: [] };
+        groups.set(code, group);
+      }
+      group.rows.push(row);
+    }
+    var priority = {
+      'worktree-missing': 0,
+      'worktree-marker-missing': 1,
+      'worktree-unavailable': 2,
+      'link-or-mount': 3,
+    };
+    var ordered = [...groups.values()].sort(function (left, right) {
+      var a = priority[left.code] ?? 9;
+      var b = priority[right.code] ?? 9;
+      return a - b || left.label.localeCompare(right.label);
+    });
+    var hidden = Math.max(0, total - summary.unscanned.length);
+    var groupRows = ordered.map(function (group) {
+      return el('section', { class: 'omission-group' }, [
+        el('div', { class: 'omission-group-head' }, [
+          el('strong', { text: group.label }),
+          el('span', { class: 'muted', text: '当前可见 ' + F.countText(group.rows.length) + ' 处' }),
+        ]),
+        group.code === 'link-or-mount'
+          ? el('p', {
+              class: 'omission-group-note',
+              text: '跳过的是链接路径。目标文件若已通过实际路径扫描到，已计入磁盘占用。',
+            })
+          : null,
+        ...group.rows.map(function (root) {
+          return el('div', { class: 'fold-row' }, [
+            el('div', { class: 'fold-path mono', title: root.path, text: root.path }),
+            el('div', { class: 'fold-detail', text: root.reason }),
+            el('div', {
+              class: 'fold-side',
+              text: root.affectedBytes === null ? '遗漏量未知' : '可能遗漏 ' + F.bytesText(root.affectedBytes),
+            }),
+          ]);
         }),
       ]);
     });
-    var hidden = Math.max(0, total - summary.unscanned.length);
     return el('details', { class: 'fold', open: false }, [
       el('summary', {}, [
         el('span', { text: '未扫描 ' + F.countText(total) + ' 处' }),
-        el('span', { class: 'fold-hint', text: '查看原因' }),
+        el('span', { class: 'fold-hint', text: '按原因分组 · 查看' }),
       ]),
       el('div', { class: 'fold-body' }, [
-        rows,
-        hidden > 0
-          ? el('p', { class: 'fold-note', text: '另有 ' + F.countText(hidden) + ' 处未逐条列出。' })
-          : null,
+        el('div', { class: 'omission-summary' }, ordered.map(function (group) {
+          return el('span', { class: 'omission-chip' }, [
+            el('strong', { text: group.label }),
+            el('span', { text: F.countText(group.rows.length) }),
+          ]);
+        })),
+        ...groupRows,
+        el('p', {
+          class: 'fold-note',
+          text: hidden > 0
+            ? '当前可见 ' + F.countText(summary.unscanned.length) + ' 处按原因分组；另有 ' + F.countText(hidden) + ' 处未逐条列出，不计入“当前可见”分组。'
+            : '以上为本次扫描的完整漏项明细。',
+        }),
       ]),
     ]);
   }

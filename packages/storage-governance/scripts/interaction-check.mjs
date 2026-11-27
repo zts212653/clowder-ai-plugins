@@ -129,6 +129,15 @@ try {
   assert.match(await evaluate("document.querySelector('#result-count').textContent"), /重复路径/u);
   pass('duplicate path note is visible');
 
+  await evaluate("document.querySelector('#unscanned summary').click()");
+  await waitFor("document.querySelectorAll('.omission-chip').length > 1", 'omission groups');
+  assert.match(await evaluate("document.querySelector('#unscanned').textContent"), /工作树登记缺失\/不可用/u);
+  assert.match(await evaluate("document.querySelector('#unscanned').textContent"), /依赖链接\/跨卷目录/u);
+  assert.match(await evaluate("document.querySelector('.omission-summary').textContent"), /当前可见|依赖链接/u);
+  assert.match(await evaluate("document.querySelector('#unscanned').textContent"), /目标文件若已通过实际路径扫描到，已计入磁盘占用/u);
+  await screenshot('unscanned-groups.png');
+  pass('unscanned entries are grouped by worktree vs junction reason');
+
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 440, deviceScaleFactor: 1, mobile: false });
   await waitFor("innerHeight === 440", "compact viewport");
   await evaluate("document.querySelectorAll('.file-row')[24].scrollIntoView({block:'center',behavior:'instant'})");
