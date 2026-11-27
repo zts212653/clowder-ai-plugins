@@ -1,0 +1,16 @@
+pluginId: official.agent-codex
+version: 0.1.0-alpha.1
+contractVersion: 0.4.0-candidate.0
+name: Codex
+description:
+  default: Codex exec 的原生会话接入。
+  translations:
+    en: Adapt native Codex exec sessions.
+features:
+  - id: codex
+    name: Codex
+    resources: []
+runtime:
+  transport: builtin
+  entrypoint: src/index.mjs
+  dataDirectory: agent-codex
