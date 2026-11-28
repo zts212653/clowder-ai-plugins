@@ -1,0 +1,16 @@
+pluginId: official.agent-kimi
+version: 0.1.0-alpha.2
+contractVersion: 0.4.0-candidate.0
+name: Kimi Code
+description:
+  default: 提供 Kimi Code 检测、会话和额度适配。
+  translations:
+    en: Adapt Kimi Code discovery, sessions, and quota.
+features:
+  - id: kimi
+    name: Kimi Code
+    resources: []
+runtime:
+  transport: builtin
+  entrypoint: src/index.mjs
+  dataDirectory: agent-kimi

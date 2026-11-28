@@ -1,0 +1,29 @@
+{
+  "name": "@clowder-ai/agent-kimi",
+  "version": "0.1.0-alpha.2",
+  "description": "Kimi Code adapter for Clowder AI",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "exports": {
+    ".": "./src/index.mjs",
+    "./manifest": "./plugin.yaml"
+  },
+  "files": [
+    "src",
+    "plugin.yaml",
+    "agent-adapter.json",
+    "README.md",
+    "README.en.md"
+  ],
+  "scripts": {
+    "build": "node --check src/index.mjs",
+    "test": "node --test test/*.test.mjs",
+    "prepack": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/agent-kimi"
+  }
+}

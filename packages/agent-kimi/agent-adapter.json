@@ -1,0 +1,13 @@
+{
+  "protocolVersion": 1,
+  "id": "kimi",
+  "operations": [
+    "describe",
+    "detect",
+    "openSession",
+    "startTurn",
+    "cancel",
+    "release",
+    "quota"
+  ]
+}
