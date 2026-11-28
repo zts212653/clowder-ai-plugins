@@ -1,5 +1,5 @@
 pluginId: official.superagent
-version: 0.1.0-alpha.5
+version: 0.1.0-alpha.20
 contractVersion: 0.4.0-candidate.0
 name: Superagent
 description:
@@ -99,6 +99,8 @@ features:
         id: route
       - type: tool
         id: report
+      - type: tool
+        id: overview
       - type: webhook
         id: view-route
 contributions:
@@ -305,6 +307,95 @@ contributions:
       additionalProperties: false
     action:
       method: superagent.report
+  - type: tool
+    id: overview
+    name: superagent_overview
+    description: 仅配置的助手成员在主对话或内部协调会话使用。refresh 核实全部监听来源；publish 提交每个来源一行的进展、具体阻塞和用户下一步。只读汇总，不创建或接管工作。
+    inputSchema:
+      type: object
+      oneOf:
+        - type: object
+          properties:
+            kind:
+              type: string
+              const: refresh
+          required:
+            - kind
+          additionalProperties: false
+        - type: object
+          properties:
+            kind:
+              type: string
+              const: publish
+            requestId:
+              type: string
+              minLength: 1
+              maxLength: 100
+            rows:
+              maxItems: 5000
+              type: array
+              items:
+                type: object
+                properties:
+                  threadId:
+                    type: string
+                    minLength: 1
+                    maxLength: 500
+                  status:
+                    type: string
+                    enum:
+                      - needs_you
+                      - blocked
+                      - doing
+                      - waiting_acceptance
+                      - done
+                      - quiet
+                      - unknown
+                  tracking:
+                    default: 关联 Issue/PR 尚未核实
+                    type: string
+                    minLength: 1
+                    maxLength: 300
+                  background:
+                    default: 问题背景尚未核实
+                    type: string
+                    minLength: 1
+                    maxLength: 300
+                  progress:
+                    type: string
+                    minLength: 1
+                    maxLength: 180
+                  blocker:
+                    type: string
+                    maxLength: 140
+                  nextStep:
+                    type: string
+                    minLength: 1
+                    maxLength: 180
+                  evidenceIds:
+                    maxItems: 20
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                      maxLength: 500
+                required:
+                  - threadId
+                  - status
+                  - tracking
+                  - background
+                  - progress
+                  - blocker
+                  - nextStep
+                  - evidenceIds
+                additionalProperties: false
+          required:
+            - kind
+            - requestId
+            - rows
+          additionalProperties: false
+    action:
+      method: superagent.overview
   - type: webhook
     id: view-route
     path: superagent/view

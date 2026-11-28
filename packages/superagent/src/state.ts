@@ -49,7 +49,7 @@ export async function editPreferences(
   }
   throw new Error('设置正在更新，请重试本次选择');
 }
-export const runtimeSchema = z.object({ mainThreadId: id.optional(), error: z.string().optional() }).strict();
+export const runtimeSchema = z.object({ mainThreadId: id.optional(), coordinationThreadId: id.optional(), error: z.string().optional() }).strict();
 export const inboxSchema = z
   .object({
     // Only persisted pre-reason inboxes are normalized; live observe() stays strict.
@@ -63,6 +63,7 @@ export const inboxSchema = z
     phase: z.enum(['pending', 'routed', 'failed', 'done']),
     attempt: z.number().int().nonnegative().default(0),
     wakeMessageId: id.optional(),
+    coordinationThreadId: id.optional(),
     receivedAt: z.number(),
   })
   .strict();
@@ -170,9 +171,13 @@ export async function editQueue(host: SuperagentHost, kind: QueueKind, id: strin
 
 export async function queued<T>(host: SuperagentHost, kind: QueueKind, prefix: string, schema: z.ZodType<T>) {
   const queue = queueSchema.parse((await host.storage.get('queue'))?.value ?? {});
-  return (await Promise.all(queue[kind].map((id) => read(host, `${prefix}${id}`, schema)))).filter(
-    (entry) => entry !== undefined,
-  );
+  const entries: T[] = [];
+  // Storage crosses the execution RPC boundary; a retained backlog must not fan out into one request per record.
+  for (const id of queue[kind]) {
+    const entry = await read(host, `${prefix}${id}`, schema);
+    if (entry !== undefined) entries.push(entry);
+  }
+  return entries;
 }
 
 export async function read<T>(host: SuperagentHost, key: string, schema: z.ZodType<T>) {

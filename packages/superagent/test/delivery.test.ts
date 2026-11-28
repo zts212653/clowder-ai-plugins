@@ -7,9 +7,9 @@ test('a coordinator delivery is visible as pending acceptance until its owner ac
   const f = fixture();
   await f.seed();
   const runtime = await startSuperagent(f.host);
-  await runtime.actions['superagent.observe'](event('start'));
+  await runtime.actions['superagent.observe'](event('start', [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id));
   await runtime.actions['superagent.tick']({});
-  const main = [...f.sent.values()].find((message) => message.wake)!.threadId;
+  const main = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id;
   await runtime.actions['superagent.route'](
     { eventId: 'start', decisions: [{ kind: 'start', title: '样例', outcome: '验证样例', workerId: 'worker' }] },
     f.caller(main),

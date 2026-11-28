@@ -41,18 +41,48 @@ export async function findWork(host: SuperagentHost, workId: string) {
   return { work, task };
 }
 
+export function briefResult(content: string) {
+  if (content.length <= 600) return content;
+  const paragraph = content.split(/\n\s*\n/, 1)[0]!;
+  return `原文节选：${paragraph.slice(0, 400)}${paragraph.length > 400 ? '…' : ''}`;
+}
+
+export const threadHref = (threadId: string) => `/thread/${encodeURIComponent(threadId)}`;
+
+export async function notification(host: SuperagentHost, sourceThreadId: string, title: string, content: string, nextStep: string, background?: string) {
+  const source = await host.threads.get(sourceThreadId);
+  const label = (source?.title ?? '原会话暂不可用').replace(/[\[\]\\]/g, '\\$&');
+  return [
+    `【${title}】`,
+    `来自：${source ? `[${label}](${threadHref(sourceThreadId)})` : label}`,
+    ...(background ? [`背景：${background.slice(0, 180)}`] : []),
+    briefResult(content),
+    `下一步：${nextStep}`,
+  ].join('\n');
+}
+
 export async function publish(
   host: SuperagentHost,
   mainThreadId: string,
-  work: Pick<WorkLink, 'sourceThreadId' | 'taskId'>,
+  work: Pick<WorkLink, 'sourceThreadId' | 'taskId'> & Partial<Pick<WorkLink, 'threadId' | 'title' | 'outcome'>>,
   key: string,
   content: string,
-  question = false,
+  kind: 'question' | 'result' | 'error' = 'result',
 ) {
-  const original = await send(host, work.sourceThreadId, `${key}:source`, content);
-  if (mainThreadId !== work.sourceThreadId)
-    await send(host, mainThreadId, `${key}:main`, `${content}\n原会话：${work.sourceThreadId}`);
-  if (question) {
+  let detailsThreadId = work.sourceThreadId;
+  if (content.length > 600 && work.sourceThreadId === mainThreadId && work.threadId && work.threadId !== mainThreadId) {
+    await send(host, work.threadId, `${key}:details`, content);
+    detailsThreadId = work.threadId;
+  }
+  const source = detailsThreadId !== mainThreadId ? await host.threads.get(detailsThreadId) : undefined;
+  const summary = briefResult(content);
+  const mainContent = `${await notification(host, work.sourceThreadId, `${kind === 'question' ? '需要你确认' : kind === 'error' ? '处理受阻' : '待验收'}${work.title ? ` · ${work.title}` : ''}`, summary,
+    kind === 'question' ? '请在原会话回复这个问题。' : kind === 'error' ? '请在原会话核对错误，确认后再决定是否重试。' : '请在原会话验收结果，或说明需要调整的地方。', work.outcome)}${source ? `\n[查看完整结果](${threadHref(detailsThreadId)})` : ''}`;
+  const original = await send(host, work.sourceThreadId, `${key}:source`,
+    work.sourceThreadId === mainThreadId ? mainContent : content);
+  if (mainThreadId !== work.sourceThreadId && kind === 'question')
+    await send(host, mainThreadId, `${key}:main`, mainContent);
+  if (kind === 'question' || kind === 'result') {
     await host.storage.compareAndSet(`question:${key}`, null, {
       id: key,
       workId: work.taskId,
@@ -73,11 +103,22 @@ export async function applyPlan(
 ) {
   const inbox = await read(host, `inbox:${plan.eventId}`, inboxSchema);
   if (!inbox) throw new Error('Source event unavailable');
+  const retainedWorks = await records(host, 'work:', workSchema);
   const answeredQuestions: z.infer<typeof questionSchema>[] = [];
   for (const [index, decision] of plan.decisions.entries()) {
     const key = createHash('sha256')
       .update(JSON.stringify([host.pluginInstanceId, plan.eventId, index]))
       .digest('hex');
+    if (decision.kind === 'start' && inbox.delivery.envelope.actor.kind !== 'user') {
+      await host.storage.set(`refused-start:${key}`, {
+        eventId: plan.eventId, sourceMessageId: inbox.delivery.envelope.messageId, reason: 'non-user-source',
+      });
+      continue;
+    }
+    if (decision.kind === 'start' && inbox.delivery.threadId !== mainThreadId) {
+      await host.storage.set(`refused-start:${key}`, { eventId: plan.eventId, reason: 'continue-in-source-conversation' });
+      continue;
+    }
     if ((decision.kind === 'start' || decision.kind === 'ignore') && decision.questionId) {
       const question = await read(host, `question:${decision.questionId}`, questionSchema);
       if (!question || question.workId || inbox.delivery.envelope.actor.kind !== 'user')
@@ -86,7 +127,7 @@ export async function applyPlan(
     }
     if (decision.kind === 'ignore') continue;
     if (decision.kind === 'ask' && !decision.workId) {
-      await publish(host, mainThreadId, { sourceThreadId: inbox.delivery.threadId }, key, decision.content, true);
+      await publish(host, mainThreadId, { sourceThreadId: inbox.delivery.threadId }, key, decision.content, 'question');
       continue;
     }
     if (decision.kind === 'start') {
@@ -145,6 +186,17 @@ export async function applyPlan(
       await send(host, work.threadId, `${key}:execute`, workerInstructions(work), work.workerId);
       continue;
     }
+    const retained = retainedWorks.find((work) => work.taskId === decision.workId || work.key === decision.workId);
+    const source = retained ? await host.messaging.get(retained.sourceMessageId) : null;
+    if (retained && source?.catId) {
+      await host.storage.set(`refused-decision:${key}`, { eventId: plan.eventId, workId: decision.workId, reason: 'non-user-admission' });
+      for (const question of (await records(host, 'question:', questionSchema)).filter((question) =>
+        question.workId !== undefined && (question.workId === retained.taskId || question.workId === retained.key))) {
+        await host.storage.set(`question:${question.id}`, { ...question, resolved: true });
+        await editQueue(host, 'questions', question.id, false);
+      }
+      continue;
+    }
     const { work, task } = await findWork(host, decision.workId!);
     if (decision.kind === 'accept' && task.entrustedWork?.closure.state === 'satisfied') continue;
     if (task.entrustedWork?.closure.state !== 'open') throw new Error('Work is already terminal');
@@ -169,13 +221,13 @@ export async function applyPlan(
         await editQueue(host, 'questions', question!.id, false);
       }
     } else if (decision.kind === 'ask' || decision.kind === 'deliver') {
-      const message = await publish(host, mainThreadId, work, key, `${work.title}：${decision.content}`, true);
+      const message = await publish(host, mainThreadId, work, key, decision.content, decision.kind === 'ask' ? 'question' : 'result');
       await host.tasks.update(task.id, {
         status: 'blocked',
         entrustedWork: {
           expectedRevision: task.entrustedWork!.revision,
           progress: {
-            summary: decision.content,
+            summary: briefResult(decision.content),
             nextStep: decision.kind === 'ask' ? '等待用户决定' : '等待用户验收',
             sourceRef: `message:${message.messageId}`,
           },

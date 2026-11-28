@@ -10,13 +10,17 @@ test('one observed request can create two canonical Work items; cross-thread fee
   const call = runtime.actions;
   await call['superagent.observe'](event('outside', 'outside'));
   await call['superagent.tick']({});
-  assert.equal(f.sent.size, 0, 'unselected conversation cannot wake a member');
-  await call['superagent.observe'](event('new-work'));
-  await call['superagent.observe'](event('new-work'));
+  assert.equal(
+    [...f.sent.values()].filter((message) => message.wake).length,
+    0,
+    'unselected conversation cannot wake a member',
+  );
+  await call['superagent.observe'](event('new-work', [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id));
+  await call['superagent.observe'](event('new-work', [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id));
   await call['superagent.tick']({});
   const coordinatorWake = [...f.sent.values()].filter((m) => m.wake);
-  assert.equal(coordinatorWake.length, 1, 'one durable event produces one coordinator input');
-  const main = coordinatorWake[0].threadId;
+  assert.equal(coordinatorWake.length, 0, 'direct assistant input reuses the existing member invocation');
+  const main = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id;
   await call['superagent.route'](
     {
       eventId: 'new-work',
@@ -65,6 +69,15 @@ test('one observed request can create two canonical Work items; cross-thread fee
   const count = f.sent.size;
   await call['superagent.tick']({});
   assert.equal(f.sent.size, count, 'idle ticks do not call a model or repeat deliveries');
+  await call['superagent.observe'](event('wrong-reference', 'source-b', '继续原任务'));
+  const stored = [...f.rows.entries()].find(([key, row]) => key.startsWith('work:') && (row.value as { taskId?: string }).taskId === original.id)!;
+  await assert.rejects(
+    async () => call['superagent.route']({ eventId: 'wrong-reference', decisions: [{ kind: 'follow_up', workId: stored[0].slice(5), content: '使用错误编号' }] }, f.caller(main)),
+    /canonical Task/,
+  );
+  assert.equal(f.rows.has('plan:wrong-reference'), false, 'an internal work key cannot poison the durable plan queue');
+  await call['superagent.route']({ eventId: 'wrong-reference', decisions: [{ kind: 'follow_up', workId: original.id, content: '使用正式任务编号' }] }, f.caller(main));
+  await call['superagent.tick']({});
   await runtime.stop({ reason: 'test' });
 });
 
@@ -76,7 +89,7 @@ test('pause and a normal restart preserve the Bot conversation and pending input
   await first.configRefresh?.();
   await first.actions['superagent.observe'](event('during-pause'));
   await first.actions['superagent.tick']({});
-  assert.equal(f.sent.size, 0);
+  assert.equal([...f.sent.values()].filter((message) => message.wake).length, 0);
   const count = f.threads.size;
   await first.stop({ reason: 'shutdown' });
   await f.host.storage.set('preferences', f.preferences);
@@ -127,9 +140,9 @@ test('a lost worker wake receipt retries its original input and preserves the or
   const f = fixture();
   await f.seed();
   const runtime = await startSuperagent(f.host);
-  await runtime.actions['superagent.observe'](event('retry'));
+  await runtime.actions['superagent.observe'](event('retry', [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id));
   await runtime.actions['superagent.tick']({});
-  const main = [...f.sent.values()].find((m) => m.wake)!.threadId;
+  const main = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id;
   await runtime.actions['superagent.route'](
     {
       eventId: 'retry',
@@ -167,9 +180,9 @@ test('worker questions and results return in place; a result stays open until it
   const f = fixture();
   await f.seed();
   const runtime = await startSuperagent(f.host);
-  await runtime.actions['superagent.observe'](event('delivery'));
+  await runtime.actions['superagent.observe'](event('delivery', [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id));
   await runtime.actions['superagent.tick']({});
-  const main = [...f.sent.values()].find((m) => m.wake)!.threadId;
+  const main = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id;
   await runtime.actions['superagent.route'](
     {
       eventId: 'delivery',
@@ -199,7 +212,7 @@ test('worker questions and results return in place; a result stays open until it
   await runtime.actions['superagent.tick']({});
   assert.equal(f.tasks.get(task.id)?.entrustedWork?.closure.state, 'open');
   const delivered = [...f.sent.values()].filter(
-    (m) => m.threadId === 'source-a' && JSON.stringify(m.payload).includes('已修复空文件'),
+    (m) => m.threadId === main && JSON.stringify(m.payload).includes('已修复空文件'),
   );
   assert.equal(delivered.length, 1);
   const acceptance = event('accepted', 'source-b', '导出结果验收通过。');
@@ -221,7 +234,7 @@ test('enable reads the coordinator, workers and conversations from the plugin co
   const f = fixture();
   await f.host.storage.set('preferences', { ...f.preferences, enabled: false });
   f.config.set('responsibility', f.preferences.responsibility);
-  f.config.delete('threadIds');
+  f.config.set('threadIds', '[]');
   const runtime = await startSuperagent(f.host);
   const owner = {
     kind: 'owner-operation' as const,

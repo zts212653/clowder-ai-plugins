@@ -36,7 +36,7 @@ test('an unclear request asks in place before creating Work; an answer resolves 
   const actions = runtime.actions;
   await actions['superagent.observe'](event('unclear', 'source-a', '把上次那个也处理一下。'));
   await actions['superagent.tick']({});
-  const main = [...f.sent.values()].find((message) => message.wake)!.threadId;
+  const main = [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id;
   await actions['superagent.route'](
     {
       eventId: 'unclear',
@@ -53,7 +53,7 @@ test('an unclear request asks in place before creating Work; an answer resolves 
   );
   const inspected = (await actions['superagent.inspect']({}, f.caller(main))) as { questions: { id: string }[] };
   assert.equal(inspected.questions.length, 1);
-  await actions['superagent.observe'](event('answer', 'source-b', '是导出修复，请补上空文件处理。'));
+  await actions['superagent.observe'](event('answer', [...f.threads.values()].find((thread) => thread.title === f.preferences.name)!.id, '是导出修复，请补上空文件处理。'));
   await actions['superagent.tick']({});
   await actions['superagent.route'](
     {
