@@ -4,7 +4,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
 import test from 'node:test';
 import { parse } from 'yaml';
 
@@ -268,7 +268,7 @@ test('unpublished current versions and matching published history pass together'
 });
 
 
-async function runPublicationAction(t, { published, tags, integrity = 'sha512-exact', registryIntegrity = integrity, restoreRaceNext, packageExists = true, version = '0.1.0-beta.12', visibilityDelayStep, visibilityDelayPolls = 0 }) {
+async function runPublicationAction(t, { published, tags, integrity = 'sha512-exact', registryIntegrity = integrity, restoreRaceNext, packageExists = true, version = '0.1.0-beta.12', publishTag = 'next', visibilityDelayStep, visibilityDelayPolls = 0 }) {
   const root = await mkdtemp(join(tmpdir(), 'clowder-publication-action-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const bin = join(root, 'bin');
@@ -277,7 +277,7 @@ async function runPublicationAction(t, { published, tags, integrity = 'sha512-ex
   const state = { published, tags, integrity: registryIntegrity, restoreRaceNext, packageExists, mutations: [],
     visibilityDelayStep, visibilityDelayPolls, delayedLookups: 0 };
   await writeFile(statePath, JSON.stringify(state));
-  await writeFile(join(bin, 'npm'), `#!${process.execPath}
+  await writeFile(join(bin, 'npm'), `#!/usr/bin/env node
 const fs = require('node:fs');
 const state = JSON.parse(fs.readFileSync(process.env.MOCK_REGISTRY, 'utf8'));
 const args = process.argv.slice(2);
@@ -302,7 +302,7 @@ if (args[0] === 'view') {
 } else if (args[0] === 'publish') {
   state.published = true;
   state.packageExists = true;
-  state.tags.next = process.env.PACKAGE_VERSION;
+  state.tags[args[args.indexOf('--tag') + 1]] = process.env.PACKAGE_VERSION;
   state.tags.latest ??= process.env.PACKAGE_VERSION;
   state.mutations.push(args);
   fs.writeFileSync(process.env.MOCK_REGISTRY, JSON.stringify(state));
@@ -313,13 +313,9 @@ if (args[0] === 'view') {
   fs.writeFileSync(process.env.MOCK_REGISTRY, JSON.stringify(state));
 } else { throw new Error('unexpected npm call: '+JSON.stringify(args)); }
 `);
-  // Keep the real action's retry count for propagation regressions. Other tests
-  // need only one inspection to reject a bad identity or tag.
-  if (!visibilityDelayPolls) await writeFile(join(bin, 'seq'), '#!/bin/sh\necho 1\n');
-  await writeFile(join(bin, 'sleep'), '#!/bin/sh\nexit 0\n');
-  for (const name of ['npm', 'sleep', ...(!visibilityDelayPolls ? ['seq'] : [])]) await chmod(join(bin, name), 0o755);
+  await chmod(join(bin, 'npm'), 0o755);
   const action = parse(await readFile(new URL('../.github/actions/publish-prerelease/action.yml', import.meta.url), 'utf8'));
-  const outputs = { pack: { name: '@clowder-ai/plugin-sdk', version, integrity, filename: 'exact.tgz' }, registry: {} };
+  const outputs = { pack: { name: '@clowder-ai/plugin-sdk', version, integrity, filename: 'exact.tgz', tag: publishTag }, registry: {} };
   const inputs = { 'npm-token': '', 'allowed-stable-version': '0.3.0' };
   const interpolate = value => value.replace(/\$\{\{\s*(.*?)\s*\}\}/g, (_, key) => {
     if (key === 'runner.temp') return root;
@@ -332,11 +328,14 @@ if (args[0] === 'view') {
     if (step.if && published) continue;
     const outputPath = join(root, 'output');
     await writeFile(outputPath, '');
-    const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, MOCK_REGISTRY: statePath,
+    const env = { ...process.env, PATH: [bin, dirname(process.execPath), process.env.PATH].join(delimiter), MOCK_REGISTRY: statePath,
       PACKAGE_VERSION: outputs.pack.version, GITHUB_OUTPUT: outputPath,
       ...Object.fromEntries(Object.entries(step.env ?? {}).map(([key, value]) => [key, interpolate(value)])) };
     for (const key of Object.keys(env)) if (key.toUpperCase().includes('TOKEN')) delete env[key];
-    const result = spawnSync('bash', ['-c', step.run], { env, cwd: new URL('../', import.meta.url), encoding: 'utf8', timeout: 30_000 });
+    // Keep the production retry count for propagation tests, while checking
+    // rejected identities and tags once without waiting between polls.
+    const run = (visibilityDelayPolls ? step.run : step.run.replace('$(seq 1 120)', '1')).replace('sleep 5', ':');
+    const result = spawnSync('bash', ['-c', run], { env, cwd: new URL('../', import.meta.url), encoding: 'utf8', timeout: 30_000 });
     if (result.status !== 0) { failure = { step: step.name, status: result.status, stderr: result.stderr }; break; }
     if (step.id) for (const line of (await readFile(outputPath, 'utf8')).trim().split('\n')) {
       const split = line.indexOf('=');
@@ -518,6 +517,22 @@ test('authorized stable contract publication preserves an existing latest tag', 
   assert.equal(result.failure, undefined, JSON.stringify(result.failure));
   assert.deepEqual(result.state.tags, { latest: '0.1.0-beta.37', next: '0.3.0' });
   assert.equal(result.state.mutations.length, 1);
+});
+
+test('Quick Phrases stable publication replaces latest and preserves next', async t => {
+  const result = await runPublicationAction(t, { published: false, version: '0.1.0', publishTag: 'latest',
+    tags: { latest: '0.1.0-alpha.3', next: '0.1.0-alpha.4' } });
+  assert.equal(result.failure, undefined, JSON.stringify(result.failure));
+  assert.deepEqual(result.state.tags, { latest: '0.1.0', next: '0.1.0-alpha.4' });
+  assert.equal(result.state.mutations.length, 1);
+});
+
+test('Quick Phrases stable replay requires latest to identify the verified release', async t => {
+  const result = await runPublicationAction(t, { published: true, version: '0.1.0', publishTag: 'latest',
+    tags: { latest: '0.1.0-alpha.3', next: '0.1.0-alpha.4' } });
+  assert.equal(result.failure?.step, 'Inspect published registry state');
+  assert.match(result.failure.stderr, /registry inspection failed/);
+  assert.deepEqual(result.state.mutations, []);
 });
 
 test('registry package versions distinguish a historical gap from a published release', async () => {
