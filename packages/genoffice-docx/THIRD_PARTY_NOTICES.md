@@ -5,10 +5,11 @@ The renderer artifact is built from GenOffice `v0.8.1039`, commit
 in `source-lock.json`.
 
 Every renderer build invokes that frozen source's
-`tools/gen-third-party-notices.mjs`. The built source maps select the npm
-packages that actually reach the renderer bundle, and every emitted font file
-must map to the upstream-generated font notices. Those notices and the exact
-file-level SPDX inventory ship as:
+`tools/gen-third-party-notices.mjs`. The built source maps identify bundled npm
+packages. The PDF.js legacy modules also embed core-js, whose locked license
+text and version are included in the generated notices and SPDX inventory.
+The license comes from the matching upstream core-js release tag. Every emitted
+font file must map to the upstream-generated font notices. The package ships:
 
 - `renderer/THIRD-PARTY-NOTICES.txt`
 - `renderer/SBOM.spdx.json`

@@ -1,5 +1,5 @@
 pluginId: dev.clowder.genoffice-docx
-version: 0.1.0-alpha.4
+version: 0.1.0-alpha.5
 contractVersion: 0.1.0
 name: GenOffice
 icon:
@@ -40,7 +40,7 @@ contributions:
         mediaType: application/vnd.openxmlformats-officedocument.presentationml.presentation
     surface:
       entrypoint: renderer/preview/index.html
-      integrity: sha256-cyYgSVq7y9FU58ZL8fYiPpCQ+bS0LRpyuuZSd9MZ0do=
+      integrity: sha256-aD2UlzDy30bDtohjufykrx+LqweUzWYVazkDoC1ysO0=
       sandbox: dedicated-origin-iframe
       navigationPolicy: navigation-api-deny
     bridgeVersion: 1.0.0

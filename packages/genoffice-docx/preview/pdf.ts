@@ -2,8 +2,9 @@
  * Read-only PDF surface: one page at a time, fit-width base scale, zoom, and a
  * selectable text layer. No annotations, no write path, no network.
  */
-import * as pdfjs from 'pdfjs-dist';
-import type { PDFPageProxy, RenderTask } from 'pdfjs-dist';
+// Electron's Chromium lacks APIs required by the modern bundle, such as Uint8Array.toHex.
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type { PDFPageProxy, RenderTask } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PreviewRenderError } from '../src/preview-errors';
 import { PDF_CANVAS_BYTES, pdfCanvasRatio, PREVIEW_IMAGE_PIXELS } from '../src/preview-limits';
 
