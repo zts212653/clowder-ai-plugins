@@ -83,9 +83,8 @@ test('bounds a preview provider to 64 declared formats', () => {
   assert.equal(validateManifest(manifest({ ...preview, formats })).valid, false);
 });
 
-test('keeps DOCX on its editor while admitting separate PDF and PPTX previews', () => {
-  assert.ok(validateManifest(manifest(editor, preview)).valid);
-  const formats = [{ extension: 'docx', mediaType: editor.mediaTypes[0]! }];
-  assert.equal(validateManifest(manifest(editor, { ...preview, formats })).valid, false);
-  assert.equal(validateManifest(manifest({ ...preview, formats })).valid, false);
+test('admits DOCX read-only preview alongside the explicit DOCX editor', () => {
+  const formats = [...preview.formats, { extension: 'docx', mediaType: editor.mediaTypes[0]! }];
+  assert.ok(validateManifest(manifest(editor, { ...preview, formats })).valid);
+  assert.ok(validateManifest(manifest({ ...preview, formats })).valid);
 });

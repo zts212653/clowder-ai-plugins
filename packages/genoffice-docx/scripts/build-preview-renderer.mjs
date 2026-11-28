@@ -61,6 +61,7 @@ run(process.execPath, [
   '--noEmit', '--strict', '--skipLibCheck', '--target', 'ES2022', '--module', 'ESNext',
   '--moduleResolution', 'Bundler', '--jsx', 'react-jsx', '--lib', 'ES2022,DOM,DOM.Iterable',
   join(appRoot, 'preview', 'main.ts'), join(appRoot, 'preview', 'vite.config.ts'),
+  join(sourceRoot, 'apps', 'docs', 'src', 'renderer', 'env.d.ts'),
   join(sourceRoot, 'packages', 'pptx-render', 'src', 'bidi-js.d.ts'),
 ], appRoot);
 const viteBin = join(sourceRoot, 'node_modules', 'vite', 'bin', 'vite.js');
@@ -71,7 +72,10 @@ await cp(join(appRoot, 'preview', 'dist'), rendererRoot, { recursive: true });
 await copyFile(join(sourceRoot, 'node_modules', 'image-size', 'LICENSE'), join(rendererRoot, 'image-size-LICENSE.txt'));
 // PDF.js can resolve page.render() after rejecting the image operator stream.
 // Record the budget rejection inside the same fake-worker module as the evaluator.
-const pdfWorker = await readFile(join(sourceRoot, 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.min.mjs'), 'utf8');
+const pdfWorker = await readFile(
+  join(sourceRoot, 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.min.mjs'),
+  'utf8',
+);
 const imageLimitMarker = '"Image exceeded maximum allowed size and was removed.";';
 if (pdfWorker.split(imageLimitMarker).length !== 2) throw new Error('Frozen PDF.js image budget branch changed');
 const workerWithImageBudget = pdfWorker.replace(imageLimitMarker, imageLimitMarker + 'previewImageBudgetPages.add(this.pageIndex);');

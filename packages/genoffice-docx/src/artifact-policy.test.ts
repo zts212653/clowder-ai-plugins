@@ -54,6 +54,14 @@ test('surface integrity uses standard sha256 SRI', () => {
   );
 });
 
+test('PDF preview pairs the compatibility bundles for the desktop Chromium runtime', async () => {
+  const root = join(import.meta.dirname, '..');
+  const renderer = await readFile(join(root, 'preview', 'pdf.ts'), 'utf8');
+  const build = await readFile(join(root, 'scripts', 'build-preview-renderer.mjs'), 'utf8');
+  assert.match(renderer, /import \* as pdfjs from 'pdfjs-dist\/legacy\/build\/pdf\.mjs'/);
+  assert.match(build, /'pdfjs-dist', 'legacy', 'build', 'pdf\.worker\.min\.mjs'/);
+});
+
 test('renderer build uses frozen local Vite and cannot fall back to online npm exec', async () => {
   const script = await readFile(join(import.meta.dirname, '..', 'scripts', 'build-renderer.mjs'), 'utf8');
   const compliance = await readFile(

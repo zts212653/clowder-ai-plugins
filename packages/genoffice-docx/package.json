@@ -1,7 +1,7 @@
 {
   "name": "@clowder-ai/genoffice-docx",
-  "version": "0.1.0-alpha.4",
-  "description": "GenOffice DOCX editing and read-only PDF and PPTX preview for Clowder AI",
+  "version": "0.1.0-alpha.6",
+  "description": "GenOffice DOCX editing and read-only DOCX, PDF and PPTX preview for Clowder AI",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -35,7 +35,7 @@
     "build": "pnpm clean && tsc -p tsconfig.build.json && node --import tsx scripts/generate-manifest.mjs",
     "build:renderer": "pnpm build && node scripts/fetch-verify-source.mjs && node scripts/build-renderer.mjs",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
-    "test": "pnpm --filter @clowder-ai/plugin-contract build && node --import tsx --test src/**/*.test.ts",
+    "test": "pnpm --filter @clowder-ai/plugin-contract build && node --import tsx --test src/**/*.test.ts preview/*.test.ts",
     "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
     "clean": "rm -rf dist",
     "prepack": "node scripts/assert-pack-ready.mjs"
@@ -45,6 +45,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
+    "fast-xml-parser": "5.10.1",
+    "jszip": "3.10.1",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "yaml": "^2.9.0"

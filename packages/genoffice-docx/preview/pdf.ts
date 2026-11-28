@@ -2,8 +2,9 @@
  * Read-only PDF surface: one page at a time, fit-width base scale, zoom, and a
  * selectable text layer. No annotations, no write path, no network.
  */
-import * as pdfjs from 'pdfjs-dist';
-import type { PDFPageProxy, RenderTask } from 'pdfjs-dist';
+// Electron's Chromium lacks APIs required by the modern bundle, such as Uint8Array.toHex.
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type { PDFPageProxy, RenderTask } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PreviewRenderError } from '../src/preview-errors';
 import { PDF_CANVAS_BYTES, pdfCanvasRatio, PREVIEW_IMAGE_PIXELS } from '../src/preview-limits';
 
@@ -15,13 +16,13 @@ export async function mountPdfPreview(
   stage: HTMLElement,
   bytes: ArrayBuffer,
   onRendered: (error?: unknown) => void,
+  { WorkerMessageHandler, previewImageBudgetPages }: {
+    WorkerMessageHandler: unknown;
+    previewImageBudgetPages: Set<number>;
+  },
 ): Promise<void> {
   const workerUrl = new URL('./pdf.worker.js', window.location.href).href;
   const resourceUrl = new URL('./pdf-resources.js', workerUrl).href;
-  const [{ WorkerMessageHandler, previewImageBudgetPages }, { default: resources }] = await Promise.all([
-    import(/* @vite-ignore */ workerUrl),
-    import(/* @vite-ignore */ resourceUrl) as Promise<{ default: Record<string, Record<string, string>> }>,
-  ]);
   Object.assign(globalThis, { pdfjsWorker: { WorkerMessageHandler } });
 
   let missingResources = false;
@@ -37,6 +38,10 @@ export async function mountPdfPreview(
     canvasMaxAreaInBytes: PDF_CANVAS_BYTES,
     BinaryDataFactory: class {
       async fetch({ kind, filename }: { kind: string; filename: string }): Promise<Uint8Array> {
+        // Scans and documents with embedded fonts do not need this module.
+        const { default: resources } = await import(/* @vite-ignore */ resourceUrl) as {
+          default: Record<string, Record<string, string>>;
+        };
         if (!Object.hasOwn(resources, kind) || !Object.hasOwn(resources[kind]!, filename)) {
           missingResources = true;
           throw new Error('PDF resource not included in the preview package');

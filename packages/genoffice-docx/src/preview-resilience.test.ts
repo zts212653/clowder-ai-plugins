@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readPreviewArchive } from './preview-archive.js';
+import { readPreviewArchive, createPreviewEntryReader, type PreviewZipEntry } from './preview-archive.js';
 import { checkPreviewSignature, previewRenderError } from './preview-errors.js';
 import { assertPreviewImageSize, pdfCanvasRatio, PDF_CANVAS_BYTES } from './preview-limits.js';
 
@@ -84,6 +84,62 @@ test('archive reader rejects a stream that exceeds its declared size or ends ear
   assert.equal(oversized.paused, true);
   await assert.rejects(readPreviewArchive({ source: entry(3, [bytes(1, 2)]) }), { code: 'preview_file_damaged' });
 });
+
+test('entry reader charges every part against one running budget and rejects past it', async () => {
+  // `createPreviewEntryReader` exists only so the XLSX path reads a few named parts
+  // under the same ceilings `readPreviewArchive` enforces. Each part stays under the
+  // 32MB per-entry bound; the cumulative total is what must trip.
+  const perPart = 30 * 1024 * 1024;
+  const payload = new Uint8Array(perPart);
+  const parts = Object.fromEntries(
+    Array.from({ length: 9 }, (_, i) => [`xl/worksheets/sheet${i}.xml`, part(perPart, payload)]),
+  );
+
+  const reader = createPreviewEntryReader(parts as unknown as Record<string, PreviewZipEntry>);
+  // Eight parts fit under 256MB; the ninth crosses it.
+  for (let i = 0; i < 8; i += 1) {
+    assert.equal((await reader.readText(`xl/worksheets/sheet${i}.xml`))?.length, perPart);
+  }
+  await assert.rejects(reader.readText('xl/worksheets/sheet8.xml'), { code: 'preview_limit_exceeded' });
+});
+
+test('entry reader rejects a single over-budget part before streaming it', async () => {
+  const excessive = entry(32 * 1024 * 1024 + 1, []);
+  const reader = createPreviewEntryReader({ 'xl/workbook.xml': excessive });
+  await assert.rejects(reader.readText('xl/workbook.xml'), { code: 'preview_limit_exceeded' });
+  assert.equal(excessive.started, false);
+});
+
+test('entry reader returns undefined for an absent part and skips a directory entry', async () => {
+  const reader = createPreviewEntryReader({
+    'xl/workbook.xml': entry(3, [bytes(1, 2, 3)]),
+    'xl/worksheets/': { dir: true, internalStream: () => { throw new Error('must not stream a directory'); } },
+  });
+  assert.equal(await reader.readText('xl/sharedStrings.xml'), undefined);
+  assert.equal(await reader.readText('xl/worksheets/'), undefined);
+  assert.equal(await reader.readText('xl/workbook.xml'), '\u0001\u0002\u0003');
+});
+
+function part(declared: number, payload: Uint8Array) {
+  let data: ((chunk: Uint8Array) => void) | undefined;
+  let end: (() => void) | undefined;
+  const stream = {
+    on(event: string, callback: never) {
+      if (event === 'data') data = callback;
+      if (event === 'end') end = callback;
+      return this;
+    },
+    pause() {
+      return this;
+    },
+    resume() {
+      data?.(payload);
+      end?.();
+      return this;
+    },
+  };
+  return { dir: false, _data: { uncompressedSize: declared }, internalStream: () => stream };
+}
 
 test('preview reports actionable format, password, resource limit and damage errors', () => {
   checkPreviewSignature('pdf', new TextEncoder().encode('%PDF-1.7'));

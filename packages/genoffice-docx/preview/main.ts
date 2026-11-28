@@ -39,17 +39,29 @@ startPreviewBridge({
     void (async () => {
       checkPreviewSignature(format, new Uint8Array(snapshot.bytes));
       if (format === 'pdf') {
-        const { mountPdfPreview } = await import('./pdf');
+        const workerUrl = new URL('./pdf.worker.js', window.location.href).href;
+        const [{ mountPdfPreview }, worker] = await Promise.all([
+          import('./pdf'),
+          import(/* @vite-ignore */ workerUrl),
+        ]);
         await mountPdfPreview(stage, snapshot.bytes, (error) => {
           if (error) showError(error);
           else setStatus(snapshot.fileName);
-        });
-      } else {
+        }, worker);
+      } else if (format === 'pptx') {
         const { mountPptxPreview } = await import('./pptx');
         await mountPptxPreview(stage, snapshot.bytes, (error) => {
           if (error) showError(error);
           else setStatus(snapshot.fileName);
         });
+      } else if (format === 'xlsx') {
+        const { mountXlsxPreview } = await import('./xlsx');
+        await mountXlsxPreview(stage, snapshot.bytes);
+        setStatus(snapshot.fileName);
+      } else {
+        const { mountDocxPreview } = await import('./docx');
+        await mountDocxPreview(stage, snapshot.bytes);
+        setStatus(snapshot.fileName);
       }
     })().catch(showError);
   },
