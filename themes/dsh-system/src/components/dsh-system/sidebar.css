@@ -45,6 +45,10 @@
 }
 .dsh-workspace-label > span:first-child { margin-inline-end: auto; }
 
+@media (min-width: 961px) {
+  #cafe-nav-scroll .dsh-sidebar-collapse { margin-inline-end: calc(var(--sp-s) + 8px); }
+}
+
 #cafe-nav-scroll .gsec-h { --row-h-1: 34px; }
 #cafe-nav-scroll .gsec-h .lr-head { min-height: 34px; }
 #cafe-nav-scroll .cafe-trow {
@@ -69,6 +73,74 @@
 }
 
 #cafe-nav-scroll .cafe-trow .lr-sub { font-size: 11px; line-height: 16px; }
+
+/* Electron can paint the scroll mask as a black panel when the label field opens. */
+.dialog-body.scroll:has(#ts-name) { mask-image: none; }
+
+.dsh-thread-labels {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-inline-size: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg-muted);
+  font: inherit;
+  vertical-align: top;
+  cursor: pointer;
+}
+.dsh-thread-labels:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+.dsh-thread-label {
+  min-inline-size: 0;
+  max-inline-size: 8rem;
+  padding-inline: 4px;
+  border-radius: 4px;
+  background: var(--bg-field);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dsh-label-overflow { flex: none; }
+.dsh-thread-label-editor {
+  display: grid;
+  gap: 5px;
+  min-inline-size: 0;
+  padding-block: 3px;
+  font-size: 11px;
+  cursor: default;
+}
+.dsh-label-edits,
+.dsh-label-entry { display: flex; align-items: center; gap: 4px; min-inline-size: 0; }
+.dsh-label-edits { flex-wrap: wrap; }
+.dsh-label-entry .input { flex: 1 1 0; inline-size: 0; min-inline-size: 0; padding: 2px 4px; font: inherit; }
+.dsh-label-entry button,
+.dsh-label-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-block-size: 24px;
+  max-inline-size: 100%;
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--bg-field);
+  color: var(--fg-strong);
+  font: inherit;
+  white-space: nowrap;
+}
+.dsh-label-remove > span { overflow: hidden; text-overflow: ellipsis; }
+.dsh-label-remove > .ic { flex: none; }
+.dsh-label-remove:hover { color: var(--danger); }
+.dsh-label-entry button:hover { background: var(--bg-hover); }
+.dsh-thread-label-editor :is(button, input):focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.dsh-label-origin { color: var(--fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dsh-thread-label-editor [role="alert"] { color: var(--danger); }
+
 #cafe-nav-scroll .cafe-trow > .lr-head > .lr-aside { align-items: center; }
 #cafe-nav-scroll .cafe-trow .lr-aside-t { font-size: 11px; line-height: var(--dsh-thread-line-height); }
 #cafe-nav-scroll .cafe-trow .lr-pre {

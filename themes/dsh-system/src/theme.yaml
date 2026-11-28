@@ -1,6 +1,6 @@
 id: dsh-system
 name: DSH Workbench · 系统底包
-version: "0.2.21"
+version: "0.2.26"
 contractVersion: 0.4.0
 uses: [dsh-system]
 pdl:
