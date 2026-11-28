@@ -110,6 +110,58 @@ async function buildWorkbook(): Promise<Uint8Array> {
   return new Uint8Array(await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }));
 }
 
+/**
+ * A workbook whose cell text contains the literal pipe sequence the preview used
+ * to split on. A1 is one cell `研发 | 运维`; B1 is `完成`.
+ */
+async function buildPipeWorkbook(): Promise<Uint8Array> {
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', CONTENT_TYPES);
+  zip.file('_rels/.rels', PACKAGE_RELS);
+  zip.file(
+    'xl/workbook.xml',
+    `<?xml version="1.0" encoding="UTF-8"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="职责" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`,
+  );
+  zip.file(
+    'xl/_rels/workbook.xml.rels',
+    `<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
+</Relationships>`,
+  );
+  // 0 `研发 | 运维` — one shared string that itself contains " | ".
+  zip.file(
+    'xl/sharedStrings.xml',
+    `<?xml version="1.0" encoding="UTF-8"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="3" uniqueCount="3">
+  <si><t>研发 | 运维</t></si>
+  <si><t>完成</t></si>
+  <si><t>负责人 | 交接</t></si>
+</sst>`,
+  );
+  zip.file(
+    'xl/worksheets/sheet1.xml',
+    `<?xml version="1.0" encoding="UTF-8"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>
+    <row r="1">
+      <c r="A1" t="s"><v>0</v></c>
+      <c r="B1" t="s"><v>1</v></c>
+    </row>
+    <row r="2">
+      <c r="A2" t="s"><v>2</v></c>
+      <c r="B2" t="inlineStr"><is><t>。</t></is></c>
+    </row>
+  </sheetData>
+</worksheet>`,
+  );
+  return new Uint8Array(await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }));
+}
+
 test('extracts a real workbook through the bounded preview reader', async () => {
   const model = parseSpreadsheetText(await xlsxToText(await buildWorkbook()));
 
@@ -146,6 +198,20 @@ test('a row Excel skipped keeps its package row number end to end', async () => 
 
   // Second sheet shares the same package-level numbering rule.
   assert.deepEqual(model.sheets[1]?.rows.map((row) => row.number), [1, 3]);
+});
+
+test('a real cell whose text contains " | " keeps its value and column boundary', async () => {
+  // The user-visible failure this guards: A1 is a single cell `研发 | 运维` and
+  // B1 is `完成`. With a printable `" | "` separator the extractor joined them
+  // and the parser re-split a 2-cell row into three columns, so the preview
+  // showed `研发`, `运维`, `完成` — a table the workbook never contained.
+  const model = parseSpreadsheetText(await xlsxToText(await buildPipeWorkbook()));
+
+  const [sheet] = model.sheets;
+  assert.equal(sheet?.name, '职责');
+  assert.equal(sheet?.columnCount, 2);
+  assert.deepEqual(sheet?.rows[0]?.cells, ['研发 | 运维', '完成']);
+  assert.deepEqual(sheet?.rows[1]?.cells, ['负责人 | 交接', '。']);
 });
 
 test('rejects a package with no workbook part', async () => {

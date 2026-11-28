@@ -15,7 +15,7 @@
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
 import { createPreviewEntryReader, type PreviewZipEntry } from '../src/preview-archive';
-import { ROW_TAG_CLOSE, ROW_TAG_OPEN } from './spreadsheet-text';
+import { CELL_SEPARATOR, ROW_TAG_CLOSE, ROW_TAG_OPEN } from './spreadsheet-text';
 
 // Text fidelity: no trim (xml:space="preserve" runs carry the spaces between words),
 // no numeric coercion of tag values (otherwise <t>02139</t> becomes a number and loses characters)
@@ -82,7 +82,12 @@ function cellText(cell: Cell, shared: string[]): string {
 
 /**
  * Extract sheet text from an xlsx: one `# SheetName` section per sheet, one line
- * per `<row>` the package actually contains, cells joined with `" | "`.
+ * per `<row>` the package actually contains, cells joined with US (U+001F).
+ *
+ * The delimiter must be a character no cell value can carry, otherwise a cell
+ * whose text contains the delimiter splits into two columns and the preview
+ * shows a table that does not exist. US is forbidden in XML 1.0 character data,
+ * so no value read from the workbook can collide with it.
  *
  * Rows the package omits (Excel writes no `<row>` for a fully empty row) are not
  * represented, so the emitted order is not Excel's row numbering. Consumers that
@@ -152,7 +157,7 @@ export async function xlsxToText(bytes: Uint8Array): Promise<string> {
       // value can never imitate the tag.
       const declared = Number(row['@_r']);
       const tag = Number.isSafeInteger(declared) && declared > 0 ? `${ROW_TAG_OPEN}${declared}${ROW_TAG_CLOSE}` : '';
-      lines.push(`${tag}${cells.join(' | ')}`);
+      lines.push(`${tag}${cells.join(CELL_SEPARATOR)}`);
     }
     sections.push(lines.join('\n'));
   }

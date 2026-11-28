@@ -1,19 +1,30 @@
 /**
  * Read-only XLSX text preview model.
  *
- * The upstream `xlsxToText` extractor (GenOffice 0.8.1039 `file-parse`) emits
- * plain text: one `# SheetName` heading per worksheet, one line per row, cells
- * joined with `" | "`. This module turns that text back into a renderable model
- * so the preview surface can show an actual table grid instead of a wall of
- * pipe-delimited lines, without re-implementing the extractor.
+ * The extractor in `spreadsheet-extract` emits plain text: one `# SheetName`
+ * heading per worksheet, one line per row, cells joined with a delimiter. This
+ * module turns that text back into a renderable model so the preview surface can
+ * show an actual table grid instead of a wall of delimited lines, without
+ * re-implementing the extractor.
  *
  * Scope is deliberately narrow and the UI must say so: the extractor reads cell
  * text only. Cell styles, merged ranges, column widths, column/row headers and
  * number formats are not recovered, and dates stay as their raw serial values.
  */
 
-/** Separator the upstream extractor joins cells with. */
-const CELL_SEPARATOR = ' | ';
+/**
+ * Separator the extractor joins cells with.
+ *
+ * Upstream GenOffice 0.8.1039 joins with `" | "` and does not escape it, so a
+ * cell whose own text contains a pipe — `研发 | 运维` — splits into two columns
+ * and the reader sees a table that does not exist. Any printable delimiter has
+ * that failure mode; the fix is a delimiter cell text cannot contain.
+ *
+ * US (U+001F) is forbidden in XML 1.0 character data, so every value the
+ * extractor can emit is guaranteed free of it. Row tags already rely on the same
+ * guarantee for RS/US, so this introduces no new assumption about file content.
+ */
+export const CELL_SEPARATOR = '\u001f';
 
 /**
  * Row-number tag the extractor prefixes onto every emitted row line.
@@ -65,12 +76,11 @@ export interface SpreadsheetTextModel {
 }
 
 /**
- * Split one upstream row line into cells.
+ * Split one extractor row line into cells.
  *
- * The extractor joins with `" | "`, so a plain `.split(' | ')` mis-splits any
- * cell whose own text ends or begins with a pipe. The extractor does not escape
- * that, which means the boundary is genuinely ambiguous; splitting on the exact
- * separator is the closest faithful reading and keeps the common case correct.
+ * The separator is US, which no cell value can carry (see `CELL_SEPARATOR`), so
+ * `.split` is exact rather than a heuristic: a pipe inside cell text stays in
+ * the cell where it belongs.
  */
 function splitRow(line: string): string[] {
   return line.split(CELL_SEPARATOR);
